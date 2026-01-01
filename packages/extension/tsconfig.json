@@ -1,0 +1,20 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./out",
+        "rootDir": "./src",
+        "module": "CommonJS",
+        "moduleResolution": "Node"
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "webview"
+    ],
+    "references": [
+        {
+            "path": "../shared"
+        }
+    ]
+}

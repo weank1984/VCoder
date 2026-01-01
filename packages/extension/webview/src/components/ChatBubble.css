@@ -1,0 +1,52 @@
+.chat-bubble {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.chat-bubble.user {
+  background: var(--vscode-input-background);
+  margin-left: 24px;
+}
+
+.chat-bubble.assistant {
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+}
+
+.bubble-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.role-icon {
+  font-size: 14px;
+}
+
+.role-name {
+  font-weight: 500;
+}
+
+.bubble-content {
+  color: var(--vscode-foreground);
+}
+
+.message-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.cursor {
+  animation: blink 1s infinite;
+  color: var(--vscode-terminal-ansiCyan);
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}

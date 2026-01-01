@@ -1,0 +1,90 @@
+{
+    "name": "z-code",
+    "displayName": "Z-Code",
+    "description": "VSCode 智能编程助手 (Claude Code / Codex CLI)",
+    "version": "0.1.0",
+    "publisher": "z-code",
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Machine Learning",
+        "Other"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "vcoder",
+                    "title": "Z-Code",
+                    "icon": "resources/icon.svg"
+                }
+            ]
+        },
+        "views": {
+            "vcoder": [
+                {
+                    "type": "webview",
+                    "id": "vcoder.chatView",
+                    "name": "Chat"
+                }
+            ]
+        },
+        "commands": [
+            {
+                "command": "vcoder.newChat",
+                "title": "Z-Code: New Chat"
+            },
+            {
+                "command": "vcoder.setApiKey",
+                "title": "Z-Code: Set API Key"
+            },
+            {
+                "command": "vcoder.restart",
+                "title": "Z-Code: Restart Server"
+            }
+        ],
+        "configuration": {
+            "title": "Z-Code",
+            "properties": {
+                "vcoder.defaultModel": {
+                    "type": "string",
+                    "default": "claude-sonnet-4-20250514",
+                    "enum": [
+                        "claude-sonnet-4-20250514",
+                        "claude-3-5-sonnet-20241022",
+                        "claude-3-5-haiku-20241022",
+                        "claude-3-opus-20240229"
+                    ],
+                    "description": "Default AI model"
+                },
+                "vcoder.trustMode": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Skip bash command confirmation"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run build",
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf out",
+        "lint": "eslint src"
+    },
+    "dependencies": {
+        "@z-code/shared": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/node": "^20.0.0",
+        "@types/vscode": "^1.80.0",
+        "typescript": "^5.3.0"
+    }
+}
