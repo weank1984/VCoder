@@ -3,85 +3,118 @@ $input-prefixCls: 'vc-input';
 .input-area {
   padding: 8px; /* Compact floating spacing */
   background: var(--vc-bg);
-  /* Remove top border as the floating box handle separation visually */
   border-top: none; 
   flex-shrink: 0;
 }
 
 .input-wrapper {
   position: relative;
-  border: 1px solid var(--vc-color-border);
-  border-radius: 8px; /* Demo uses 8px */
+  border-radius: 9px;
+  padding: 1px; /* The border space */
+  overflow: hidden;
   
-  /* Demo-like translucency and blur */
+  /* Default border */
+  background: var(--vc-color-border);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  
+  &.input-wrapper--loading {
+    background: transparent;
+  }
+  
+  &.input-wrapper--loading::before {
+    display: none;
+  }
+
+  &:focus-within:not(.input-wrapper--loading) {
+    background: var(--vc-color-focus-border);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--vc-color-focus-border) 30%, transparent);
+  }
+}
+
+/* SVG Marquee Styles */
+.marquee-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  overflow: visible;
+  
+  /* Cycle colors for the entire gradient */
+  animation: color-cycle 4s linear infinite;
+}
+
+.marquee-rect {
+  fill: none;
+  stroke: url(#neon-gradient); /* Use the rich gradient */
+  stroke-width: 4px; /* Broader beam */
+  stroke-linecap: round;
+  
+  /* 
+     We use dasharray to create the "snake".
+     --snake-length and --perimeter are set by JS
+  */
+  stroke-dasharray: var(--snake-length) calc(var(--perimeter) - var(--snake-length));
+  
+  /* Drop shadow glowing effect */
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.5)); 
+  
+  animation: marquee-svg-anim 1.5s linear infinite;
+}
+
+@keyframes marquee-svg-anim {
+  from { stroke-dashoffset: var(--perimeter); }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes color-cycle {
+  0% { filter: hue-rotate(0deg) drop-shadow(0 0 2px rgba(255,255,255,0.3)); }
+  50% { filter: hue-rotate(180deg) drop-shadow(0 0 5px rgba(255,255,255,0.6)); }
+  100% { filter: hue-rotate(360deg) drop-shadow(0 0 2px rgba(255,255,255,0.3)); }
+}
+
+.input-content {
+  position: relative;
+  z-index: 10; /* Above marquee */
+  border-radius: 8px;
   background: color-mix(in srgb, var(--vscode-input-background) 85%, transparent);
   backdrop-filter: blur(4px);
-  
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-
-  /* Top marquee/flow animation bar */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: transparent;
-    transition: background 0.3s ease;
-    z-index: 1;
-  }
-
-  /* Loading state - marquee animation */
-  &.input-wrapper--loading::before {
-    background: linear-gradient(90deg, 
-      transparent, 
-      var(--vc-color-primary) 20%, 
-      var(--vscode-textLink-activeForeground, #646cff) 50%,
-      var(--vc-color-primary) 80%, 
-      transparent
-    );
-    background-size: 200% 100%;
-    animation: input-flow 2s linear infinite;
-  }
-
-  &:focus-within {
-    border-color: var(--vc-color-focus-border);
-    /* Demo uses box-shadow for focus glow instead of outline */
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--vc-color-focus-border) 30%, transparent);
-    outline: none;
-  }
+  width: 100%;
+  gap: 0 !important; /* Force no gap */
+  
+  background-clip: padding-box; 
 }
 
-@keyframes input-flow {
-  0% {
-    background-position: 100% 0;
-  }
-  100% {
-    background-position: -100% 0;
-  }
-}
-
+/* Rest of styles remain same */
 .input-field {
   width: 100%;
   padding: 12px 12px 8px;
-  border: none;
+  border: none !important;
+  border-bottom: none !important; /* Ensure no separator */
+  outline: none !important;
+  box-shadow: none !important;
   background: transparent;
   color: var(--vc-color-text);
   font-family: var(--vc-font-family);
   font-size: var(--vc-font-size);
   line-height: var(--vc-line-height);
   resize: none;
-  outline: none;
   min-height: 40px;
   max-height: 200px;
   box-sizing: border-box;
+  margin-bottom: 0 !important;
 
   &::placeholder {
     color: var(--vc-color-text-placeholder);
+  }
+
+  /* Remove resize handle */
+  &::-webkit-resizer {
+    display: none;
   }
 }
 
@@ -91,6 +124,8 @@ $input-prefixCls: 'vc-input';
   align-items: center;
   padding: 4px 8px 8px;
   gap: 8px;
+  border-top: none !important; /* Ensure no separator */
+  margin-top: 0 !important;
 }
 
 .toolbar-left,
@@ -192,7 +227,7 @@ $input-prefixCls: 'vc-input';
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: 0.9em;
     transition: background 0.15s, transform 0.1s;
 }
 

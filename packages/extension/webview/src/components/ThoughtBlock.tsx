@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react';
-import './ThoughtBlock.css';
+import './ThoughtBlock.scss';
 
 interface ThoughtBlockProps {
     content: string;

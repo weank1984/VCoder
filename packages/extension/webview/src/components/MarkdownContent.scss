@@ -1,284 +1,146 @@
-@use '../styles/theme.scss';
+/* Markdown Content Styles */
 
-// Markdown Styles
-.vc-markdown {
-  line-height: 1.6;
-  color: var(--vc-color-text);
-  font-size: var(--vc-font-size);
+.markdown-content {
+    line-height: 1.6;
+    color: var(--vscode-foreground);
+}
 
-  /* Block Elements */
-  h1, h2, h3, h4, h5, h6 {
-    margin: 16px 0 8px 0;
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+    margin-top: 1em;
+    margin-bottom: 0.5em;
     font-weight: 600;
-    line-height: 1.25;
-    border-bottom: none;
-  }
+    line-height: 1.3;
+}
 
-  h1 {
-    font-size: 2em;
-    border-bottom: 1px solid var(--vc-color-border);
-    padding-bottom: 8px;
-    margin-bottom: 16px;
-  }
+.markdown-content h1 { font-size: 1.5em; }
+.markdown-content h2 { font-size: 1.3em; }
+.markdown-content h3 { font-size: 1.15em; }
 
-  h2 {
-    font-size: 1.5em;
-    border-bottom: 1px solid var(--vc-color-border-secondary);
-    padding-bottom: 8px;
-  }
+.markdown-content p {
+    margin: 0.5em 0;
+}
 
-  h3 {
-    font-size: 1.25em;
-  }
+.markdown-content ul,
+.markdown-content ol {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+}
 
-  h4 {
-    font-size: 1em;
-  }
+.markdown-content li {
+    margin: 0.25em 0;
+}
 
-  h5 {
-    font-size: 0.875em;
-  }
+.markdown-content blockquote {
+    margin: 0.5em 0;
+    padding-left: 1em;
+    border-left: 3px solid var(--vscode-textBlockQuote-border);
+    color: var(--vscode-textBlockQuote-foreground);
+}
 
-  h6 {
-    font-size: 0.85em;
-    color: var(--vc-color-text-secondary);
-  }
-
-  p {
-    margin: 0 0 16px 0;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  /* Inline Elements */
-  a {
-    color: var(--vc-color-link);
+.markdown-content a {
+    color: var(--vscode-textLink-foreground);
     text-decoration: none;
+}
 
-    &:hover {
-      color: var(--vc-color-link-hover);
-      text-decoration: underline;
-    }
+.markdown-content a:hover {
+    text-decoration: underline;
+}
 
-    &:active {
-      color: var(--vc-color-link-active);
-    }
-  }
-
-  strong {
-    font-weight: 600;
-  }
-
-  em {
-    font-style: italic;
-  }
-
-  del {
-    text-decoration: line-through;
-    opacity: 0.7;
-  }
-
-  :not(pre) > code {
-    background-color: var(--vc-color-fill-quaternary);
-    border: 1px solid var(--vc-color-border-secondary);
-    border-radius: 3px;
-    font-family: var(--vc-font-family-code);
-    font-size: 0.85em;
-    padding: 0.2em 0.4em;
-    margin: 0 2px;
-    color: var(--vc-color-text-code);
-  }
-
-  /* Horizontal Rule */
-  hr {
-    border: none;
-    border-top: 1px solid var(--vc-color-border);
-    margin: 24px 0;
-  }
-
-  /* Blockquote */
-  blockquote {
-    margin: 0 0 16px 0;
-    padding: 0 16px;
-    border-left: 4px solid var(--vc-color-border);
-    background-color: var(--vc-color-fill-quaternary);
-    color: var(--vc-color-text-secondary);
-    border-radius: 0 4px 4px 0;
-
-    > *:first-child {
-      margin-top: 0;
-    }
-
-    > *:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  /* Lists */
-  ul, ol {
-    margin: 0 0 16px 0;
-    padding-left: 24px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  ul {
-    list-style-type: disc;
-
-    ul {
-      list-style-type: circle;
-
-      ul {
-        list-style-type: square;
-      }
-    }
-  }
-
-  ol {
-    list-style-type: decimal;
-
-    ol {
-      list-style-type: lower-alpha;
-
-      ol {
-        list-style-type: lower-roman;
-      }
-    }
-  }
-
-  li {
-    margin: 4px 0;
-
-    > p {
-      margin: 0;
-    }
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  /* Tables */
-  .table-wrapper {
-    margin: 16px 0;
-    overflow-x: auto;
-    border-radius: 6px;
-    border: 1px solid var(--vc-color-border);
-  }
-
-  table {
-    width: 100%;
+.markdown-content table {
     border-collapse: collapse;
-    background-color: var(--vscode-editor-background, var(--vc-bg));
-    font-size: var(--vc-font-size);
-  }
+    margin: 0.5em 0;
+    width: 100%;
+}
 
-  th, td {
-    padding: 8px 12px;
+.markdown-content th,
+.markdown-content td {
+    border: 1px solid var(--vscode-panel-border);
+    padding: 6px 12px;
     text-align: left;
-    border-bottom: 1px solid var(--vc-color-border-secondary);
-    vertical-align: top;
-  }
+}
 
-  th {
-    background-color: var(--vc-color-fill-quaternary);
+.markdown-content th {
+    background: var(--vscode-editor-inactiveSelectionBackground);
     font-weight: 600;
-    color: var(--vc-color-text);
-    border-bottom: 2px solid var(--vc-color-border);
-  }
-
-  td {
-    color: var(--vc-color-text);
-  }
-
-  tbody tr:last-child td {
-    border-bottom: none;
-  }
-
-  tbody tr:hover {
-    background-color: var(--vc-control-item-bg-hover);
-  }
 }
 
-/* Code Block Component Styles (independent of markdown parent if needed, but scoped here) */
-.vc-markdown-code-block {
-  margin: 8px 0;
+/* Inline code */
+.inline-code {
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 0.9em;
+    background: var(--vscode-textCodeBlock-background);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
 
-  .code-block-header {
-      display: flex;
-      align-items: center;
-      background-color: var(--vc-color-fill-quaternary);
-      padding: 4px 12px;
-      border-radius: 6px 6px 0 0;
-      border: 1px solid var(--vc-color-border-secondary);
-      border-bottom: none;
-      font-size: 12px;
-      color: var(--vc-color-text-description);
-  }
-
-  .code-language {
-    flex: 1;
-    white-space: nowrap;
+/* Code block container */
+.code-block-container {
+    margin: 0.75em 0;
+    border-radius: 6px;
     overflow: hidden;
-    text-overflow: ellipsis;
+    background: #1e1e1e;
+}
+
+.code-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background: #2d2d2d;
+    font-size: 12px;
+}
+
+.code-language {
+    color: #888;
     text-transform: uppercase;
-    font-family: var(--vc-font-family-code);
-  }
-
-  .copy-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--vc-color-text-description);
-      padding: 4px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      
-      &:hover {
-          background-color: var(--vc-control-item-bg-hover);
-          color: var(--vc-color-text);
-      }
-  }
-
-  // Ensure SyntaxHighlighter styles override defaults where needed
-  // Note: SyntaxHighlighter styles are inline, so we might need !important or specific structure if we want to customize the container border
-  // The container usually generated by SyntaxHighlighter
+    font-weight: 500;
+    letter-spacing: 0.5px;
 }
 
-// Light Theme Specifics
-.vscode-light,
-.vscode-high-contrast-light {
-  .vc-markdown {
-    table {
-      background-color: var(--vscode-editor-background, #ffffff);
-    }
-    th {
-      background-color: rgba(0, 0, 0, 0.04);
-    }
-    blockquote {
-      background-color: rgba(0, 0, 0, 0.02);
-    }
-  }
+.copy-btn {
+    background: transparent;
+    border: none;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    border-radius: 4px;
 }
 
-// Dark Theme Specifics
-.vscode-dark,
-.vscode-high-contrast {
-  .vc-markdown {
-    table {
-      background-color: var(--vscode-editor-background, #1e1e1e);
-    }
-    th {
-      background-color: rgba(255, 255, 255, 0.08);
-    }
-    blockquote {
-      background-color: rgba(255, 255, 255, 0.02);
-    }
-  }
+.copy-btn:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Typing cursor */
+.cursor {
+    display: inline-block;
+    animation: blink 1s step-end infinite;
+    color: var(--vscode-editorCursor-foreground);
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+/* Horizontal rule */
+.markdown-content hr {
+    border: none;
+    border-top: 1px solid var(--vscode-panel-border);
+    margin: 1em 0;
+}
+
+/* Strong and emphasis */
+.markdown-content strong {
+    font-weight: 600;
+}
+
+.markdown-content em {
+    font-style: italic;
 }

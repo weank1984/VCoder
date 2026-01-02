@@ -1,0 +1,142 @@
+.task-list {
+    background: var(--vcoder-surface);
+    border-bottom: 1px solid var(--vcoder-border);
+    display: flex;
+    flex-direction: column;
+}
+
+.task-list-header-group {
+    background: var(--vcoder-surface);
+    border-bottom: 1px solid var(--vcoder-border);
+}
+
+.task-list-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--vscode-foreground);
+    text-align: left;
+    transition: background 0.2s;
+}
+
+.task-list-header:hover {
+    background: var(--vscode-list-hoverBackground);
+}
+
+.task-header-icon {
+    display: flex;
+    align-items: center;
+    color: var(--vscode-foreground);
+    opacity: 0.8;
+}
+
+.task-header-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.task-list-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.task-progress-text {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+    padding: 1px 6px;
+    border-radius: 10px;
+}
+
+.expand-toggle {
+    display: flex;
+    align-items: center;
+    color: var(--vscode-descriptionForeground);
+}
+
+.expand-toggle svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* Progress Bar */
+.task-progress-bar {
+    height: 2px;
+    width: 100%;
+    background: var(--vcoder-border);
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--vscode-progressBar-background);
+    transition: width 0.3s ease-out;
+}
+
+/* Content */
+.task-list-content {
+    padding: 8px 0;
+    max-height: 250px;
+    overflow-y: auto;
+    background: var(--vcoder-surface-2);
+}
+
+.task-item-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.task-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 14px;
+    font-size: 13px;
+    line-height: 20px;
+    min-height: 24px;
+}
+
+.task-status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 20px; /* Align with line-height */
+}
+
+.task-status-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.task-item.completed .task-status-icon { color: var(--vscode-terminal-ansiGreen); }
+.task-item.failed .task-status-icon { color: var(--vscode-terminal-ansiRed); }
+.task-item.in_progress .task-status-icon { color: var(--vscode-terminal-ansiBlue); }
+.task-item.pending .task-status-icon { color: var(--vscode-disabledForeground); }
+
+.task-title {
+    flex: 1;
+    color: var(--vscode-foreground);
+}
+
+.task-item.completed .task-title {
+    color: var(--vscode-descriptionForeground);
+    text-decoration: line-through;
+}
+
+.task-item.in_progress .task-title {
+    font-weight: 500;
+    color: var(--vscode-foreground);
+}
+
+.task-item.pending .task-title {
+    color: var(--vscode-descriptionForeground);
+}

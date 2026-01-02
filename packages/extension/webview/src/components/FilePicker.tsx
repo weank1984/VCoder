@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import './FilePicker.css';
+import './FilePicker.scss';
 
 interface FilePickerProps {
     files: string[];

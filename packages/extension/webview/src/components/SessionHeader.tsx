@@ -6,7 +6,7 @@ import { useState } from 'react';
 import type { MouseEvent } from 'react';
 import type { Session } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
-import './SessionHeader.css';
+import './SessionHeader.scss';
 
 interface SessionHeaderProps {
     sessions: Session[];

@@ -25,6 +25,8 @@ export function InputArea() {
     const [cursorPosition, setCursorPosition] = useState(0);
     const [isComposing, setIsComposing] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const rectRef = useRef<SVGRectElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
 
     const { planMode, model, isLoading, workspaceFiles, setPlanMode, setModel, addMessage, setLoading } = useStore();
 
@@ -32,6 +34,32 @@ export function InputArea() {
     useEffect(() => {
         postMessage({ type: 'getWorkspaceFiles' });
     }, []);
+
+    // Calculate perimeter for SVG animation
+    useEffect(() => {
+        if (!wrapperRef.current) return;
+
+        const updatePerimeter = () => {
+            if (rectRef.current) {
+                const length = rectRef.current.getTotalLength();
+                rectRef.current.style.setProperty('--perimeter', `${length}px`);
+                // Calculate snake length (60% of perimeter for longer bar)
+                const snakeLen = length * 0.6; 
+                rectRef.current.style.setProperty('--snake-length', `${snakeLen}px`);
+            }
+        };
+
+        const observer = new ResizeObserver(() => {
+            updatePerimeter();
+        });
+
+        observer.observe(wrapperRef.current);
+        
+        // Initial calculation
+        updatePerimeter();
+
+        return () => observer.disconnect();
+    }, [isLoading]);
 
     const handleSubmit = () => {
         if (!input.trim() || isLoading) return;
@@ -141,67 +169,89 @@ export function InputArea() {
                 />
             )}
             
-            <div className={`input-wrapper ${isLoading ? 'input-wrapper--loading' : ''}`}>
-                <textarea
-                    ref={textareaRef}
-                    className="input-field"
-                    placeholder="Ask anything (⌘L), @ to mention, / for workflows"
-                    value={input}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    onCompositionStart={() => setIsComposing(true)}
-                    onCompositionEnd={() => setIsComposing(false)}
-                    disabled={isLoading}
-                    rows={1}
-                    onClick={(e) => {
-                        setCursorPosition(e.currentTarget.selectionStart);
-                        setShowPicker(false); // Hide picker on click moving cursor
-                    }}
-                />
+            <div 
+                ref={wrapperRef}
+                className={`input-wrapper ${isLoading ? 'input-wrapper--loading' : ''}`}
+            >
+                {isLoading && (
+                    <svg className="marquee-svg">
+                        <defs>
+                            <linearGradient id="neon-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#00f2ff" />
+                                <stop offset="50%" stopColor="#7000ff" />
+                                <stop offset="100%" stopColor="#ff00a0" />
+                            </linearGradient>
+                        </defs>
+                        <rect 
+                            ref={rectRef}
+                            className="marquee-rect"
+                            x="1" y="1" 
+                            width="calc(100% - 2px)" 
+                            height="calc(100% - 2px)" 
+                            rx="8" ry="8" 
+                        />
+                    </svg>
+                )}
+                <div className="input-content">
+                    <textarea
+                        ref={textareaRef}
+                        className="input-field"
+                        placeholder="Ask anything (⌘L), @ to mention, / for workflows"
+                        value={input}
+                        onChange={handleInputChange}
+                        onKeyDown={handleKeyDown}
+                        onCompositionStart={() => setIsComposing(true)}
+                        onCompositionEnd={() => setIsComposing(false)}
+                        disabled={isLoading}
+                        rows={1}
+                        onClick={(e) => {
+                            setCursorPosition(e.currentTarget.selectionStart);
+                            setShowPicker(false); // Hide picker on click moving cursor
+                        }}
+                    />
 
-                <div className="input-toolbar">
-                    <div className="toolbar-left">
-                        <button className="tool-btn add-btn" title="Add context" aria-label="Add context" onClick={() => setShowPicker(true)}>
-                            <AddIcon />
-                        </button>
+                    <div className="input-toolbar">
+                        <div className="toolbar-left">
+                            <button className="tool-btn add-btn" title="Add context" aria-label="Add context" onClick={() => setShowPicker(true)}>
+                                <AddIcon />
+                            </button>
 
-                        <button
-                            className={`dropdown-btn ${planMode ? 'active' : ''}`}
-                            onClick={() => setPlanMode(!planMode)}
-                        >
-                            <span className="dropdown-arrow" aria-hidden="true"><ArrowTopIcon /></span>
-                            <span>{planMode ? 'Planning' : 'Normal'}</span>
-                        </button>
-
-                        <button className="dropdown-btn model-btn">
-                            <span className="dropdown-arrow" aria-hidden="true"><ArrowTopIcon /></span>
-                            <span>{selectedModel?.name || 'Select Model'}</span>
-                            <select
-                                className="model-select-overlay"
-                                value={model}
-                                onChange={(e) => setModel(e.target.value as ModelId)}
+                            <button
+                                className={`dropdown-btn ${planMode ? 'active' : ''}`}
+                                onClick={() => setPlanMode(!planMode)}
                             >
-                                {MODELS.map((m) => (
-                                    <option key={m.id} value={m.id}>
-                                        {m.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </button>
-                    </div>
+                                <span className="dropdown-arrow" aria-hidden="true"><ArrowTopIcon /></span>
+                                <span>{planMode ? 'Planning' : 'Normal'}</span>
+                            </button>
 
-                    <div className="toolbar-right">
+                            <button className="dropdown-btn model-btn">
+                                <span className="dropdown-arrow" aria-hidden="true"><ArrowTopIcon /></span>
+                                <span>{selectedModel?.name || 'Select Model'}</span>
+                                <select
+                                    className="model-select-overlay"
+                                    value={model}
+                                    onChange={(e) => setModel(e.target.value as ModelId)}
+                                >
+                                    {MODELS.map((m) => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </button>
+                        </div>
 
-
-                        <button
-                            className="send-btn"
-                            onClick={handleSubmit}
-                            disabled={!input.trim() || isLoading}
-                            title={isLoading ? 'Generating…' : 'Send'}
-                            aria-label={isLoading ? 'Generating…' : 'Send'}
-                        >
-                            {isLoading ? <LoadingIcon className="icon-spin" /> : <SendIcon />}
-                        </button>
+                        <div className="toolbar-right">
+                            <button
+                                className="send-btn"
+                                onClick={handleSubmit}
+                                disabled={!input.trim() || isLoading}
+                                title={isLoading ? 'Generating…' : 'Send'}
+                                aria-label={isLoading ? 'Generating…' : 'Send'}
+                            >
+                                {isLoading ? <LoadingIcon className="icon-spin" /> : <SendIcon />}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

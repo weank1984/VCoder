@@ -4,7 +4,24 @@
 
 import { useMemo, useState } from 'react';
 import type { ToolCall } from '../types';
-import './ToolCallList.css';
+import { 
+    TerminalIcon, 
+    FileIcon, 
+    CheckIcon, 
+    ErrorIcon, 
+    LoadingIcon, 
+    ExpandIcon,
+    CollapseIcon,
+    PlayIcon,
+    StopIcon,
+    EditIcon,
+    SearchIcon,
+    InfoIcon,
+    WarningIcon,
+    WebIcon
+} from './Icon';
+import { postMessage } from '../utils/vscode';
+import './ToolCallList.scss';
 
 interface ToolCallListProps {
     toolCalls: ToolCall[];
@@ -20,47 +37,98 @@ function safeStringify(value: unknown, pretty: boolean): string {
     }
 }
 
-function summarizeToolInput(name: string, input: unknown): string {
-    if (!input || typeof input !== 'object') return '';
+function getToolIcon(name: string) {
+    const n = name.toLowerCase();
+    if (n.includes('bash') || n.includes('command') || n.includes('terminal')) return <TerminalIcon />;
+    if (n.includes('read') || n.includes('write') || n.includes('file')) return <FileIcon />;
+    if (n.includes('edit') || n.includes('replace')) return <EditIcon />;
+    if (n.includes('search') || n.includes('grep') || n.includes('find')) return <SearchIcon />;
+    if (n.includes('browser') || n.includes('web')) return <WebIcon />;
+    return <PlayIcon />;
+}
+
+function summarizeToolInput(name: string, input: unknown): { summary: string, detail?: string } {
+    if (!input || typeof input !== 'object') return { summary: '' };
     const obj = input as Record<string, unknown>;
 
-    if (name === 'Bash' && typeof obj.command === 'string') return obj.command;
-    if ((name === 'Read' || name === 'Write' || name === 'Edit') && typeof obj.path === 'string') return obj.path;
-    if (name === 'Task') {
-        if (typeof obj.description === 'string') return obj.description;
-        if (typeof obj.prompt === 'string') return obj.prompt;
-        if (typeof obj.subagent === 'string') return obj.subagent;
-        if (typeof obj.subagent_name === 'string') return obj.subagent_name;
-        if (typeof obj.subagentName === 'string') return obj.subagentName;
+    // Bash / Command
+    if (name === 'Bash') {
+        if (typeof obj.command === 'string') return { 
+            summary: obj.command,
+            detail: 'Command'
+        };
+    }
+    if (name === 'run_command' && typeof obj.CommandLine === 'string') {
+        return {
+            summary: obj.CommandLine,
+            detail: 'Command'
+        };
     }
 
+    // File Ops
+    if ((name === 'Read' || name === 'Write' || name === 'Edit') && typeof obj.path === 'string') {
+        return { summary: obj.path, detail: 'File' };
+    }
+    if (name === 'read_file' || name === 'read_url_content' || name === 'view_file') {
+         if (typeof obj.Url === 'string') return { summary: obj.Url, detail: 'URL' };
+         if (typeof obj.AbsolutePath === 'string') return { summary: obj.AbsolutePath, detail: 'Path' };
+    }
+    if (name === 'write_to_file' || name === 'replace_file_content' || name === 'multi_replace_file_content') {
+        if (typeof obj.TargetFile === 'string') return { summary: obj.TargetFile, detail: 'Target' };
+    }
+    
+    // Search
+    if (name === 'grep_search' || name === 'find_by_name') {
+        if (typeof obj.Query === 'string') return { summary: obj.Query, detail: 'Query' };
+        if (typeof obj.Pattern === 'string') return { summary: obj.Pattern, detail: 'Pattern' };
+    }
+
+    // Task
+    if (name === 'Task' || name === 'task_boundary') {
+        if (typeof obj.description === 'string') return { summary: obj.description };
+        if (typeof obj.TaskStatus === 'string') return { summary: obj.TaskStatus };
+        if (typeof obj.TaskName === 'string') return { summary: obj.TaskName };
+    }
+
+    // Default fallback
     const fallback = safeStringify(input, false).replace(/\s+/g, ' ').trim();
-    const maxLen = 160;
-    return fallback.length > maxLen ? `${fallback.slice(0, maxLen)}…` : fallback;
+    const maxLen = 80;
+    return { 
+        summary: fallback.length > maxLen ? `${fallback.slice(0, maxLen)}…` : fallback 
+    };
 }
 
 export function ToolCallList({ toolCalls }: ToolCallListProps) {
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(true);
     const [expandedToolIds, setExpandedToolIds] = useState<Set<string>>(() => new Set());
+    
+    // Auto-expand pending or failed tools on initial load or update
+    useMemo(() => {
+        const toExpand = new Set<string>();
+        toolCalls.forEach(tc => {
+            if (tc.status === 'pending' || tc.status === 'failed' || tc.status === 'running') {
+                toExpand.add(tc.id);
+            }
+        });
+        if (toExpand.size > 0) {
+            setExpandedToolIds(prev => {
+                const next = new Set(prev);
+                toExpand.forEach(id => next.add(id));
+                return next;
+            });
+        }
+    }, [toolCalls.length]); 
 
     const completedCount = toolCalls.filter(tc => tc.status === 'completed').length;
     const failedCount = toolCalls.filter(tc => tc.status === 'failed').length;
     const runningCount = toolCalls.filter(tc => tc.status === 'running').length;
-
-    const getStatusIcon = (status: ToolCall['status']) => {
-        switch (status) {
-            case 'completed': return '✓';
-            case 'failed': return '✗';
-            case 'running': return '⏳';
-            default: return '○';
-        }
-    };
+    const pendingCount = toolCalls.filter(tc => tc.status === 'pending').length;
 
     const headerStatusIcon = useMemo(() => {
-        if (failedCount > 0) return '✗';
-        if (runningCount > 0) return '⏳';
-        return '✓';
-    }, [failedCount, runningCount]);
+        if (failedCount > 0) return <WarningIcon />;
+        if (runningCount > 0 || pendingCount > 0) return <LoadingIcon />;
+        return <CheckIcon />;
+    }, [failedCount, runningCount, pendingCount]);
 
     const toggleTool = (id: string) => {
         setExpandedToolIds((prev) => {
@@ -71,69 +139,114 @@ export function ToolCallList({ toolCalls }: ToolCallListProps) {
         });
     };
 
+    const handleConfirm = (tc: ToolCall, approve: boolean) => {
+        if (approve) {
+            postMessage({ type: 'confirmBash', commandId: tc.id });
+        } else {
+            postMessage({ type: 'skipBash', commandId: tc.id });
+        }
+    };
+
+    if (toolCalls.length === 0) return null;
+
     return (
         <div className="tool-call-list">
-            <button
-                className="tool-list-header"
+            <button 
+                className={`tool-list-header ${failedCount > 0 ? 'has-error' : ''}`}
                 onClick={() => setIsExpanded(!isExpanded)}
             >
-                <span className={`status-icon ${failedCount > 0 ? 'failed' : runningCount > 0 ? 'running' : 'completed'}`}>{headerStatusIcon}</span>
+                <span className={`status-icon-wrapper ${failedCount > 0 ? 'failed' : (runningCount > 0 || pendingCount > 0) ? 'running' : 'completed'}`}>
+                    {headerStatusIcon}
+                </span>
                 <span className="tool-list-title">
                     工具调用
-                    {failedCount > 0 && <span className="failed-badge">{failedCount} 失败</span>}
+                    {failedCount > 0 && <span className="list-badge error">{failedCount} 失败</span>}
+                    {pendingCount > 0 && <span className="list-badge warning">{pendingCount} 待批准</span>}
+                    {runningCount > 0 && <span className="list-badge info">{runningCount} 执行中</span>}
                 </span>
-                <span className="call-count">{completedCount}/{toolCalls.length}</span>
-                <span className="tool-list-expand-icon">{isExpanded ? '▼' : '▶'}</span>
+                <span className="tool-count">{completedCount}/{toolCalls.length}</span>
+                <span className="expand-icon">{isExpanded ? <CollapseIcon /> : <ExpandIcon />}</span>
             </button>
 
             {isExpanded && (
                 <div className="tool-list-content">
-                    {toolCalls.map((tc) => (
-                        <div key={tc.id} className={`tool-call-item ${tc.status}`}>
-                            <button
-                                className="tool-call-item-header"
-                                onClick={() => toggleTool(tc.id)}
-                                title={tc.name}
-                            >
-                                <span className="tool-status">{getStatusIcon(tc.status)}</span>
-                                <span className="tool-name">{tc.name}</span>
-                                {tc.input !== undefined && (
-                                    <span className="tool-summary" title={safeStringify(tc.input, true)}>
-                                        {summarizeToolInput(tc.name, tc.input)}
+                    {toolCalls.map((tc) => {
+                        const { summary, detail } = summarizeToolInput(tc.name, tc.input);
+                        const isExpandedItem = expandedToolIds.has(tc.id);
+                        
+                        return (
+                            <div key={tc.id} className={`tool-call-item ${tc.status}`}>
+                                <div className="tool-item-summary" onClick={() => toggleTool(tc.id)}>
+                                    <span className="tool-icon">{getToolIcon(tc.name)}</span>
+                                    <div className="tool-info">
+                                        <div className="tool-name-row">
+                                            <span className="tool-name">{tc.name}</span>
+                                            <span className="tool-status-badge">
+                                                {tc.status === 'completed' && <CheckIcon />}
+                                                {tc.status === 'failed' && <ErrorIcon />}
+                                                {(tc.status === 'running' || tc.status === 'pending') && <LoadingIcon />}
+                                            </span>
+                                        </div>
+                                        <div className="tool-args-preview" title={summary}>
+                                            {detail && <span className="arg-label">{detail}:</span>}
+                                            {summary}
+                                        </div>
+                                    </div>
+                                    <span className="item-expand-toggle">
+                                        {isExpandedItem ? <CollapseIcon /> : <ExpandIcon />}
                                     </span>
-                                )}
-                                {tc.error && (
-                                    <span className="tool-error" title={tc.error}>
-                                        错误
-                                    </span>
-                                )}
-                                <span className="tool-item-expand">{expandedToolIds.has(tc.id) ? '▼' : '▶'}</span>
-                            </button>
-
-                            {expandedToolIds.has(tc.id) && (
-                                <div className="tool-call-item-details">
-                                    {tc.input !== undefined && (
-                                        <div className="tool-detail-block">
-                                            <div className="tool-detail-title">Input</div>
-                                            <pre className="tool-detail-pre">{safeStringify(tc.input, true)}</pre>
-                                        </div>
-                                    )}
-                                    {tc.result !== undefined && (
-                                        <div className="tool-detail-block">
-                                            <div className="tool-detail-title">Result</div>
-                                            <pre className="tool-detail-pre">{safeStringify(tc.result, true)}</pre>
-                                        </div>
-                                    )}
-                                    {tc.error && (
-                                        <div className="tool-detail-block tool-detail-block-error">
-                                            <div className="tool-detail-title">Error</div>
-                                            <pre className="tool-detail-pre">{tc.error}</pre>
-                                        </div>
-                                    )}
                                 </div>
-                            )}
-                        </div>
-                    ))}
+
+                                {isExpandedItem && (
+                                    <div className="tool-item-details">
+                                        {tc.status === 'pending' && (
+                                            <div className="tool-approval-actions">
+                                                <div className="approval-message">
+                                                    <InfoIcon />
+                                                    <span>此操作需要您的批准</span>
+                                                </div>
+                                                <div className="approval-buttons">
+                                                    <button className="btn-approve" onClick={() => handleConfirm(tc, true)}>
+                                                        <CheckIcon /> 批准执行
+                                                    </button>
+                                                    <button className="btn-reject" onClick={() => handleConfirm(tc, false)}>
+                                                        <StopIcon /> 拒绝
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {tc.input !== undefined && (
+                                            <div className="detail-section">
+                                                <div className="detail-header">Input</div>
+                                                <div className="code-block">
+                                                    <pre>{safeStringify(tc.input, true)}</pre>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {tc.result !== undefined && (
+                                            <div className="detail-section">
+                                                <div className="detail-header">Result</div>
+                                                <div className="code-block result">
+                                                    <pre>{safeStringify(tc.result, true)}</pre>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {tc.error && (
+                                            <div className="detail-section error">
+                                                <div className="detail-header">Error</div>
+                                                <div className="code-block error">
+                                                    <pre>{tc.error}</pre>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>
