@@ -4,12 +4,14 @@
 
 import { useEffect, useRef } from 'react';
 import { useStore } from './store/useStore';
-import { TaskList } from './components/TaskList';
+import { PlanBlock } from './components/PlanBlock';
 import { ChatBubble } from './components/ChatBubble';
 import { InputArea } from './components/InputArea';
+import { VoyahIcon } from './components/Icon';
 import { postMessage } from './utils/vscode';
 import type { ExtensionMessage } from './types';
-import './App.css';
+import './styles/index.scss';
+import './App.scss';
 
 function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -71,13 +73,15 @@ function App() {
 
   return (
     <div className="app">
-      <TaskList tasks={tasks} visible={planMode} />
+      {tasks.length > 0 && planMode && (
+          <PlanBlock plan={tasks} sticky={true} />
+      )}
 
       <div className="messages-container">
         {messages.length === 0 ? (
           <div className="empty-state">
             <div className="empty-card">
-              <div className="empty-icon">🤖</div>
+              <div className="empty-icon"><VoyahIcon style={{ fontSize: 48 }} /></div>
               <h2>欢迎使用 VCoder</h2>
               <p>输入你的问题，让 AI 帮你写代码、修 Bug、做重构</p>
             </div>

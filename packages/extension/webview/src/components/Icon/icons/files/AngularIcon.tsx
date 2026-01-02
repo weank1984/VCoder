@@ -1,0 +1,19 @@
+import React from 'react';
+import classNames from 'classnames';
+import IconBase, { type IconProps } from '../../IconBase';
+
+const AngularIcon: React.FC<IconProps> = (props) => {
+    const { className, style } = props;
+    
+    const mergedCls = classNames('vc-icon-angular', className);
+
+    return (
+        <IconBase className={mergedCls} style={style}>
+            <svg version="1.1" viewBox="0 0 24 24"  xmlns="http://www.w3.org/2000/svg" width="1em" height="1em">
+                <path d="m9.8691 2.5-6.8457 3.166 0.64453 10.178zm4.2617 0 6.2012 13.344 0.64453-10.178zm-2.1309 5.0625-2.4512 5.9648h4.9062zm-3.7305 8.959-0.95312 2.3086 4.6836 2.6699 4.6836-2.6699-0.95312-2.3086z" fill="#e53935"/>
+            </svg>
+        </IconBase>
+    );
+};
+
+export default AngularIcon;

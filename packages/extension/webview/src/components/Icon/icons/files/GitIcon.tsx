@@ -1,0 +1,19 @@
+import React from 'react';
+import classNames from 'classnames';
+import IconBase, { type IconProps } from '../../IconBase';
+
+const GitIcon: React.FC<IconProps> = (props) => {
+    const { className, style } = props;
+    
+    const mergedCls = classNames('vc-icon-git', className);
+
+    return (
+        <IconBase className={mergedCls} style={style}>
+            <svg id="Calque_1" data-name="Calque 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="1em" height="1em">
+                <path d="M8,1.74a1.13,1.13,0,0,0-.78.32L5.94,3.35,7.57,5A1.22,1.22,0,0,1,8,4.89a1,1,0,0,1,1,1,1,1,0,0,1-.09.42l1.22,1.22a1,1,0,0,1,.42-.09,1,1,0,0,1,1,1v0a1,1,0,0,1-1,1,1,1,0,0,1-.94-1.46L8.42,6.87l-.06,0v3.23a1,1,0,1,1-.73,0V6.89a1,1,0,0,1-.66-1,1,1,0,0,1,.09-.43L5.43,3.87l-3.6,3.6A1.1,1.1,0,0,0,1.83,9l5.4,5.41a1.11,1.11,0,0,0,1.56,0L14.2,9a1.12,1.12,0,0,0,0-1.56L8.79,2.06A1.13,1.13,0,0,0,8,1.74" fill="#db4b33" />
+            </svg>
+        </IconBase>
+    );
+};
+
+export default GitIcon;

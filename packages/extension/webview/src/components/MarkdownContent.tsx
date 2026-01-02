@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useState, useCallback } from 'react';
-import './MarkdownContent.css';
+import './MarkdownContent.scss';
 
 interface MarkdownContentProps {
     content: string;
@@ -43,7 +43,7 @@ function CodeBlock({ inline, className, children }: CodeBlockProps) {
     }
 
     return (
-        <div className="code-block-container">
+        <div className="vc-markdown-code-block">
             <div className="code-block-header">
                 {language && <span className="code-language">{language}</span>}
                 <button 
@@ -76,7 +76,7 @@ export function MarkdownContent({ content, isComplete }: MarkdownContentProps) {
     }
 
     return (
-        <div className="markdown-content">
+        <div className="vc-markdown">
             <ReactMarkdown
                 components={{
                     code: CodeBlock,

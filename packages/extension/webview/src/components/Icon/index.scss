@@ -1,0 +1,27 @@
+$icon-prefixCls: vc-icon;
+
+.#{$icon-prefixCls} {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    color: var(--vc-color-icon);
+    // color: inherit;
+    font-style: normal;
+    line-height: 0;
+    text-align: center;
+    text-transform: none;
+    vertical-align: -0.125em;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+
+    &-loading,
+    &-refreshing {
+        animation: loadingCircle 1s infinite linear;
+    }
+}
+
+@keyframes loadingCircle {
+    to {
+        transform: rotate(360deg);
+    }
+}

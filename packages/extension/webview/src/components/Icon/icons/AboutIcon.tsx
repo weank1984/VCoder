@@ -1,0 +1,19 @@
+import React from 'react';
+import classNames from 'classnames';
+import IconBase, { type IconProps } from '../IconBase';
+
+const AboutIcon: React.FC<IconProps> = (props) => {
+    const { className, style } = props;
+    const mergedCls = classNames('vc-icon-accepted', className);
+
+    return (
+        <IconBase className={mergedCls} style={style}>
+            <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6558" width="1em" height="1em" fill='currentColor' >
+                <path d="M511.2 920.8c225.6 0 409.1-183.5 409.1-409.1S736.8 102.6 511.2 102.6C285.5 102.6 102 286.1 102 511.7s183.5 409.1 409.2 409.1m0 96.3C232 1017.1 5.8 790.8 5.8 511.7 5.8 232.5 232 6.3 511.2 6.3c279.1 0 505.4 226.3 505.4 505.4s-226.3 505.4-505.4 505.4z" p-id="6559"></path>
+                <path d="M570.3 222.6c35.7 2 63.1 34.2 61.1 71.7-1.9 37.6-32.5 66.3-68.2 64.3s-63.1-34.1-61.1-71.7c1.9-37.6 32.5-66.3 68.2-64.3zM409.5 514.8S535 418.1 576.1 437c41 18.8-14.5 138-18.5 155.6-4.1 17.6-30.1 152.6 55.5 77.8 0 0 42.8-29.8-18.5 38.9s-138.8 90.6-148.1 38.9c-7-38.9 29.7-180.2 37-233.4 2.4-17.4-18.5 0-18.5 0s-60.2 44.4-74 19.5c-2.2-4 12.6-16.2 18.5-19.5z" p-id="6560"></path>
+            </svg>
+        </IconBase>
+    );
+};
+
+export default AboutIcon;

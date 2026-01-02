@@ -1,0 +1,224 @@
+/**
+ * Agent Block 统一样式
+ * 用于 PlanBlock, ReasoningBlock, CommandExecutionBlock 等 Agent 执行区块
+ */
+
+// 主题变量
+.vscode-dark,
+.vscode-high-contrast {
+  --agent-block-bg: rgba(255, 255, 255, 0.03);
+  --agent-block-border: rgba(255, 255, 255, 0.08);
+  --agent-block-header-bg: rgba(255, 255, 255, 0.05);
+  --agent-block-hover-bg: rgba(255, 255, 255, 0.05);
+  --agent-block-code-bg: rgba(0, 0, 0, 0.3);
+}
+
+.vscode-light,
+.vscode-high-contrast-light {
+  --agent-block-bg: rgba(0, 0, 0, 0.02);
+  --agent-block-border: rgba(0, 0, 0, 0.08);
+  --agent-block-header-bg: rgba(0, 0, 0, 0.03);
+  --agent-block-hover-bg: rgba(0, 0, 0, 0.04);
+  --agent-block-code-bg: rgba(0, 0, 0, 0.05);
+}
+
+// 基础区块样式
+.agent-block {
+  --block-radius: 8px;
+  --block-padding: 12px;
+  --block-gap: 8px;
+
+  margin: 8px 0;
+  border-radius: var(--block-radius);
+  border: 1px solid var(--agent-block-border);
+  background: var(--agent-block-bg);
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    border-color: var(--vscode-focusBorder, var(--vc-color-primary));
+  }
+
+  // 区块头部
+  &-header {
+    display: flex;
+    align-items: center;
+    gap: var(--block-gap);
+    padding: 8px var(--block-padding);
+    background: var(--agent-block-header-bg);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: var(--agent-block-hover-bg);
+    }
+  }
+
+  &-icon {
+    font-size: 14px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  &-title {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--vscode-editor-foreground);
+  }
+
+  &-subtitle {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    font-weight: normal;
+  }
+
+  &-badge {
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 10px;
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+  }
+
+  &-expand-icon {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    transition: transform 0.2s ease;
+
+    &.expanded {
+      transform: rotate(90deg);
+    }
+  }
+
+  // 区块内容
+  &-content {
+    padding: var(--block-padding);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--vscode-editor-foreground);
+
+    &.collapsed {
+      display: none;
+    }
+  }
+
+  // 区块列表
+  &-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px var(--block-padding);
+  }
+
+  &-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: var(--agent-block-hover-bg);
+    }
+
+    &-icon {
+      font-size: 12px;
+      min-width: 16px;
+      text-align: center;
+    }
+
+    &-text {
+      flex: 1;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+  }
+
+  // 代码/终端区域
+  &-terminal {
+    margin: 0;
+    padding: var(--block-padding);
+    background: var(--agent-block-code-bg);
+    font-family: var(--vscode-editor-font-family);
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-x: auto;
+    max-height: 300px;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--vscode-scrollbarSlider-background);
+      border-radius: 3px;
+    }
+  }
+}
+
+// 状态修饰符
+.agent-block {
+  &--pending {
+    opacity: 0.7;
+  }
+
+  &--running {
+    border-color: var(--vscode-textLink-activeForeground);
+
+    .agent-block-header {
+      background: color-mix(in srgb, var(--vscode-textLink-activeForeground) 10%, transparent);
+    }
+  }
+
+  &--success {
+    border-color: var(--vscode-gitDecoration-addedResourceForeground);
+  }
+
+  &--error {
+    border-color: var(--vscode-errorForeground);
+  }
+}
+
+// 加载动画
+.agent-block-loading {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--vscode-descriptionForeground);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: agent-block-spin 0.8s linear infinite;
+}
+
+@keyframes agent-block-spin {
+  to { transform: rotate(360deg); }
+}
+
+// 旋转图标动画
+.agent-block-icon-spin {
+  animation: agent-block-spin 1.5s linear infinite;
+}
+
+// 入场动画
+.agent-block-enter {
+  animation: agent-block-slide-in 0.25s ease-out;
+}
+
+@keyframes agent-block-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

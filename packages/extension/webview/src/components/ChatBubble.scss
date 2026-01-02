@@ -1,0 +1,81 @@
+$bubble-prefixCls: vc-bubble;
+
+.chat-bubble {
+    width: 100%;
+}
+
+.#{$bubble-prefixCls} {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    row-gap: 4px;
+    width: 100%;
+    
+    // Animation
+    animation: bubble-slide-in 0.25s ease-out;
+    
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+
+    &-header {
+        display: flex;
+        align-items: center;
+        column-gap: 8px;
+        width: 100%;
+        margin-bottom: 2px;
+        color: var(--vc-color-text-label);
+        font-size: 12px;
+    }
+
+    &-avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+
+    &-title {
+        font-weight: 500;
+    }
+
+    &-content {
+        position: relative;
+        box-sizing: border-box;
+        width: 100%;
+        padding: 8px 12px;
+        border-radius: 6px;
+        color: var(--vc-color-text);
+        background-color: var(--vc-bg-container);
+        border: 1px solid var(--vc-color-border-secondary);
+        line-height: var(--vc-line-height);
+        font-size: var(--vc-font-size);
+        word-break: break-word;
+
+        pre {
+            white-space: pre-wrap;
+        }
+    }
+}
+
+// User bubble specific overrides
+.user .#{$bubble-prefixCls}-content {
+    background-color: var(--vc-control-item-bg-active);
+    border-color: var(--vc-color-primary-border);
+}
+
+// Assistant bubble specific overrides
+.assistant .#{$bubble-prefixCls}-content {
+    background-color: transparent;
+}
+
+@keyframes bubble-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

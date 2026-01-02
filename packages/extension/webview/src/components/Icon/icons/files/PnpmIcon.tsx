@@ -1,0 +1,24 @@
+import React from 'react';
+import classNames from 'classnames';
+import IconBase, { type IconProps } from '../../IconBase';
+
+const PnpmIcon: React.FC<IconProps> = (props) => {
+    const { className, style } = props;
+
+    const mergedCls = classNames('vc-icon-pnpm', className);
+
+    return (
+        <IconBase className={mergedCls} style={style}>
+            <svg clip-rule="evenodd" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2" version="1.1" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em">
+                <g transform="matrix(.98233 0 0 .98233 2.648 2.6505)" fill-rule="nonzero">
+                    <g transform="matrix(.94312 0 0 .94312 8.5246 8.532)">
+                        <path d="m195.02 30h75v75h-75zm-82.515 0h75v75h-75zm-82.5 0h75v75h-75zm165.02 82.5h75v75h-75z" fill="#ffb300" />
+                        <path d="m112.5 112.5h75v75h-75zm0 82.5h75v75h-75zm82.515 0h75v75h-75zm-165.02 0h75v75h-75z" fill="#e0e0e0" />
+                    </g>
+                </g>
+            </svg>
+        </IconBase>
+    );
+};
+
+export default PnpmIcon;

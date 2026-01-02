@@ -1,0 +1,56 @@
+$loading-prefixCls: vc-loading;
+
+.#{$loading-prefixCls} {
+    display: flex;
+    align-items: baseline;
+    column-gap: 4px;
+
+    &-dots {
+        display: flex;
+        align-items: center;
+        column-gap: 6px;
+    }
+
+    &-dot {
+        width: 3px;
+        height: 3px;
+        background-color: var(--vc-color-text);
+        border-radius: 50%;
+        animation: pulse 1.4s infinite ease-in-out both;
+
+        &:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        &:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(0.7);
+        opacity: 0.7;
+    }
+
+    50% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: translateY(0);
+    }
+
+    40% {
+        transform: translateY(-2px);
+    }
+}

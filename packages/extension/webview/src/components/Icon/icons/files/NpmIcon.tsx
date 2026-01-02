@@ -1,0 +1,19 @@
+import React from 'react';
+import classNames from 'classnames';
+import IconBase, { type IconProps } from '../../IconBase';
+
+const NpmIcon: React.FC<IconProps> = (props) => {
+    const { className, style } = props;
+    
+    const mergedCls = classNames('vc-icon-npm', className);
+
+    return (
+        <IconBase className={mergedCls} style={style}>
+            <svg data-name="Layer 1" viewBox="0 0 990 990" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"><defs/>
+                <path d="M113.26 876.74V113.27h763.47v763.47zm143.59-620.4v476.18h240.61V355.63h140.21v376.96h95.457V256.34z" fill="#e53935" stroke-width=".771" style={{fill: '#cb3837'}}/>
+            </svg>
+        </IconBase>
+    );
+};
+
+export default NpmIcon;

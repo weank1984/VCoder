@@ -1,0 +1,145 @@
+import React, { useState, useMemo } from 'react';
+import type { Task } from '@vcoder/shared';
+import classNames from 'classnames';
+import { ArrowRightIcon, CheckIcon, LoadingIcon, ManageIcon } from '../Icon';
+import './index.scss';
+
+interface PlanBlockProps {
+  plan: Task[];
+  explanation?: string;
+  sticky?: boolean;
+}
+
+export const PlanBlock: React.FC<PlanBlockProps> = ({ plan, explanation, sticky = false }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (!plan || plan.length === 0) {
+    return null;
+  }
+
+  // Flatten tasks for simple counting/display if needed, or just iterate top level
+  // For now let's handle top-level tasks primarily to match PlanBlock design
+  const counts = useMemo(() => {
+    let total = 0;
+    let pending = 0;
+    let inProgress = 0;
+    let completed = 0;
+
+    const traverse = (tasks: Task[]) => {
+      tasks.forEach(t => {
+        total++;
+        if (t.status === 'completed') completed++;
+        else if (t.status === 'in_progress') inProgress++;
+        else pending++;
+        
+        if (t.children) traverse(t.children);
+      });
+    };
+    traverse(plan);
+    return { total, pending, inProgress, completed };
+  }, [plan]);
+
+  const isRunning = counts.inProgress > 0;
+  const isAllCompleted = counts.completed === counts.total && counts.total > 0;
+  
+  // Find current running task (first in_progress)
+  const findCurrentTask = (tasks: Task[]): Task | null => {
+    for (const t of tasks) {
+      if (t.status === 'in_progress') return t;
+      if (t.children) {
+        const found = findCurrentTask(t.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  const currentTask = findCurrentTask(plan);
+
+  const getStatusIcon = (status: Task['status']) => {
+    switch (status) {
+      case 'completed': return <CheckIcon />;
+      case 'in_progress': return <LoadingIcon />;
+      default: return <span className="dot" />; // Needs styling
+    }
+  };
+
+  const getStatusClass = (status: Task['status']) => {
+    switch (status) {
+      case 'completed': return 'completed';
+      case 'in_progress': return 'in-progress';
+      default: return 'pending';
+    }
+  };
+
+  const blockClass = classNames('agent-block', 'plan-block', {
+    'agent-block--running': isRunning,
+    'agent-block--success': isAllCompleted,
+    'plan-block--sticky': sticky,
+  });
+
+  const renderTaskItem = (task: Task, index: number, depth: number = 0) => (
+    <div key={task.id}>
+      <div
+        className={classNames('agent-block-item', 'plan-item', getStatusClass(task.status))}
+        style={{ paddingLeft: 12 + depth * 16 }}
+      >
+        <span className="plan-item-index">{index + 1}</span>
+        <span
+          className={classNames('agent-block-item-icon', {
+            'agent-block-icon-spin': task.status === 'in_progress',
+          })}
+        >
+          {getStatusIcon(task.status)}
+        </span>
+        <span className="agent-block-item-text">{task.title}</span>
+      </div>
+      {task.children?.map((child, idx) => renderTaskItem(child, idx, depth + 1))}
+    </div>
+  );
+
+  const content = (
+    <div className="plan-content-inner">
+      {explanation && <div className="plan-explanation">{explanation}</div>}
+      <div className="agent-block-list">
+        {plan.map((task, index) => renderTaskItem(task, index))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={blockClass}>
+      <div className="agent-block-header" onClick={() => setIsExpanded(!isExpanded)}>
+        <span className="agent-block-icon"><ManageIcon /></span>
+        <span className="agent-block-title">Plan</span>
+        <div className="plan-progress-dots">
+           {/* Simple dots for top level only to avoid clutter */}
+           {plan.map((step, i) => (
+            <span 
+              key={i} 
+              className={classNames('progress-dot', getStatusClass(step.status))}
+              title={step.title}
+            />
+          ))}
+        </div>
+        <span className="agent-block-badge">
+          {counts.completed}/{counts.total}
+        </span>
+        <span className={classNames('agent-block-expand-icon', { expanded: isExpanded })}>
+          <ArrowRightIcon />
+        </span>
+      </div>
+
+      {!isExpanded && currentTask && (
+        <div className="plan-current-step">
+          <span className="current-step-icon"><LoadingIcon /></span>
+          <span className="current-step-text">{currentTask.title}</span>
+        </div>
+      )}
+
+      {/* Simplified overlay logic - always inline for now or specific sticky mode */}
+      <div className={classNames('plan-content', { collapsed: !isExpanded })}>
+        {content}
+      </div>
+    </div>
+  );
+};

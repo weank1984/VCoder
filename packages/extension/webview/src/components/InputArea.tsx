@@ -8,7 +8,8 @@ import { postMessage } from '../utils/vscode';
 import { useStore } from '../store/useStore';
 import type { ModelId } from '@vcoder/shared';
 import { FilePicker } from './FilePicker';
-import './InputArea.css';
+import { AddIcon, ArrowTopIcon, LoadingIcon, SendIcon } from './Icon';
+import './InputArea.scss';
 
 const MODELS: { id: ModelId; name: string }[] = [
     { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
@@ -163,19 +164,19 @@ export function InputArea() {
                 <div className="input-toolbar">
                     <div className="toolbar-left">
                         <button className="tool-btn add-btn" title="Add context" aria-label="Add context" onClick={() => setShowPicker(true)}>
-                            +
+                            <AddIcon />
                         </button>
 
                         <button
                             className={`dropdown-btn ${planMode ? 'active' : ''}`}
                             onClick={() => setPlanMode(!planMode)}
                         >
-                            <span className="dropdown-arrow" aria-hidden="true">▲</span>
+                            <span className="dropdown-arrow" aria-hidden="true"><ArrowTopIcon /></span>
                             <span>{planMode ? 'Planning' : 'Normal'}</span>
                         </button>
 
                         <button className="dropdown-btn model-btn">
-                            <span className="dropdown-arrow" aria-hidden="true">▲</span>
+                            <span className="dropdown-arrow" aria-hidden="true"><ArrowTopIcon /></span>
                             <span>{selectedModel?.name || 'Select Model'}</span>
                             <select
                                 className="model-select-overlay"
@@ -192,9 +193,7 @@ export function InputArea() {
                     </div>
 
                     <div className="toolbar-right">
-                        <button className="tool-btn mic-btn" title="Voice" aria-label="Voice" disabled>
-                            <span aria-hidden="true">🎤</span>
-                        </button>
+
 
                         <button
                             className="send-btn"
@@ -203,7 +202,7 @@ export function InputArea() {
                             title={isLoading ? 'Generating…' : 'Send'}
                             aria-label={isLoading ? 'Generating…' : 'Send'}
                         >
-                            {isLoading ? <span className="loader" aria-hidden="true" /> : '→'}
+                            {isLoading ? <LoadingIcon className="icon-spin" /> : <SendIcon />}
                         </button>
                     </div>
                 </div>

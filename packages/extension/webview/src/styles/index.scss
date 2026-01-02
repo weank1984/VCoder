@@ -1,0 +1,57 @@
+@use './theme.scss';
+@use './_agent-block.scss';
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--vc-font-family);
+    font-size: var(--vc-font-size);
+    line-height: var(--vc-line-height);
+    color: var(--vc-text-color);
+    background-color: var(--vc-bg);
+}
+
+// Reset some VSCode defaults if they interfere
+a {
+    text-decoration: none;
+    color: var(--vc-color-link);
+    &:hover {
+        color: var(--vc-color-link-hover);
+    }
+    &:active {
+        color: var(--vc-color-link-active);
+    }
+}
+
+// Global Scrollbar
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-corner {
+    background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--vscode-scrollbarSlider-background, rgba(121, 121, 121, 0.4));
+    border-radius: 16px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+
+    &:hover {
+        background-color: var(--vscode-scrollbarSlider-hoverBackground, rgba(100, 100, 100, 0.7));
+    }
+
+    &:active {
+        background-color: var(--vscode-scrollbarSlider-activeBackground, rgba(65, 65, 65, 0.7));
+    }
+}
+
+::-webkit-scrollbar-track {
+    background-color: transparent;
+}

@@ -4,18 +4,18 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: var(--vcoder-surface);
+  background: var(--vc-bg);
 }
 
 /* Messages Area */
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: var(--vcoder-space-2);
-  background: var(--vcoder-surface);
+  padding: var(--vc-padding);
+  background: var(--vc-bg);
   display: flex;
   flex-direction: column;
-  gap: var(--vcoder-space-2);
+  gap: var(--vc-padding);
 }
 
 /* Empty State */
@@ -25,17 +25,18 @@
   justify-content: center;
   flex: 1;
   text-align: center;
-  color: var(--vscode-descriptionForeground);
-  padding: var(--vcoder-space-4);
+  color: var(--vc-color-text-description);
+  padding: var(--vc-padding-xl);
 }
 
 .empty-card {
   width: 100%;
   max-width: 360px;
-  border: 1px solid var(--vcoder-border);
-  background: var(--vcoder-surface-3);
-  border-radius: var(--vcoder-radius-lg);
+  border: 1px solid var(--vc-color-border);
+  background: var(--vc-bg-container);
+  border-radius: 8px;
   padding: 20px 18px;
+  box-shadow: var(--vc-box-shadow-card);
 }
 
 .empty-icon {
@@ -47,13 +48,14 @@
   font-size: 30px;
   border-radius: 14px;
   margin: 4px auto 14px;
-  background: var(--vscode-button-secondaryBackground);
+  background: var(--vc-control-item-bg-active);
+  color: var(--vc-color-primary-text);
 }
 
 .empty-state h2 {
-  font-size: 16px;
+  font-size: var(--vc-font-size-heading-5);
   font-weight: 600;
-  color: var(--vscode-foreground);
+  color: var(--vc-color-text-heading);
   margin-bottom: 6px;
 }
 
@@ -63,13 +65,13 @@
 
 /* Error Banner */
 .error-banner {
-  background-color: var(--vscode-inputValidation-errorBackground);
-  border: 1px solid var(--vscode-inputValidation-errorBorder);
+  background-color: var(--vc-color-error-bg);
+  border: 1px solid var(--vc-color-error-border);
   padding: 8px 12px;
   margin: 0 16px 16px 16px;
   border-radius: 4px;
   display: flex;
-  align-items: center; /* Center items vertically */
+  align-items: center;
   gap: 8px;
   animation: slideIn 0.3s ease-out;
 }
@@ -84,17 +86,18 @@
 
 .error-icon {
   font-size: 16px;
+  color: var(--vc-color-error-text);
 }
 
 .error-message {
   font-size: 13px;
-  color: var(--vscode-foreground);
+  color: var(--vc-color-text);
 }
 
 .error-action-btn {
-  background-color: var(--vscode-button-background);
-  color: var(--vscode-button-foreground);
-  border: none;
+  background-color: var(--vc-bg);
+  color: var(--vc-color-text);
+  border: 1px solid var(--vc-color-border);
   padding: 4px 8px;
   border-radius: 2px;
   cursor: pointer;
@@ -102,20 +105,21 @@
 }
 
 .error-action-btn:hover {
-  background-color: var(--vscode-button-hoverBackground);
+  background-color: var(--vc-control-item-bg-hover);
 }
 
 .error-dismiss {
   background: none;
   border: none;
-  color: var(--vscode-foreground);
+  color: var(--vc-color-text-description);
   cursor: pointer;
   font-size: 18px;
   opacity: 0.7;
   padding: 0 4px;
-  margin-left: auto; /* Ensure dismiss button stays right */
+  margin-left: auto;
 }
 
 .error-dismiss:hover {
   opacity: 1;
+  color: var(--vc-color-text);
 }
