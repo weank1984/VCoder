@@ -18,6 +18,7 @@ import {
     FileChangeUpdate,
     McpCallUpdate,
     TaskListUpdate,
+    SubagentRunUpdate,
     BashRequestUpdate,
     PlanReadyUpdate,
     ErrorUpdate,
@@ -42,6 +43,12 @@ export class ClaudeCodeWrapper extends EventEmitter {
         planMode: false,
     };
     private pendingBashCommands: Map<string, (confirmed: boolean) => void> = new Map();
+    private toolNameByIdByLocalSessionId: Map<string, Map<string, string>> = new Map();
+    private taskListByLocalSessionId: Map<string, TaskListUpdate> = new Map();
+    private subagentRunMetaByIdByLocalSessionId: Map<
+        string,
+        Map<string, { title: string; subagentType?: string; parentTaskId?: string; input?: Record<string, unknown> }>
+    > = new Map();
 
     constructor(private options: ClaudeCodeOptions) {
         super();
@@ -75,6 +82,17 @@ export class ClaudeCodeWrapper extends EventEmitter {
             'stream-json',
             '--verbose'
         ];
+
+        if (this.settings.model) {
+            args.push('--model', this.settings.model);
+        }
+
+        if (this.settings.planMode) {
+            args.push('--permission-mode', 'plan');
+        }
+
+        // We currently do not support interactive question tools; force the CLI to ask in plain text instead.
+        args.push('--disallowed-tools', 'AskUserQuestion');
 
         // Optional: auto-approve tools (bypasses prompts). Keep off by default.
         if (process.env.VCODER_ALLOWED_TOOLS && process.env.VCODER_ALLOWED_TOOLS.trim().length > 0) {
@@ -112,6 +130,8 @@ export class ClaudeCodeWrapper extends EventEmitter {
         // Setup Listeners
         this.processesByLocalSessionId.set(sessionId, child);
         this.startedLocalSessions.add(sessionId);
+        this.toolNameByIdByLocalSessionId.set(sessionId, new Map());
+        this.subagentRunMetaByIdByLocalSessionId.set(sessionId, new Map());
         this.setupProcessListeners(sessionId, child);
 
         return new Promise((resolve, reject) => {
@@ -123,9 +143,13 @@ export class ClaudeCodeWrapper extends EventEmitter {
                      reject(new Error(`Exit code ${code}`));
                 }
                 this.processesByLocalSessionId.delete(sessionId);
+                this.toolNameByIdByLocalSessionId.delete(sessionId);
+                this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
             });
              child.on('error', (err) => {
                 this.processesByLocalSessionId.delete(sessionId);
+                this.toolNameByIdByLocalSessionId.delete(sessionId);
+                this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
                 reject(err);
             });
         });
@@ -399,16 +423,106 @@ export class ClaudeCodeWrapper extends EventEmitter {
         }
     }
 
+    private inferCurrentTaskId(tasks: TaskListUpdate['tasks']): string | undefined {
+        const visit = (items: TaskListUpdate['tasks']): string | undefined => {
+            for (const item of items) {
+                if (item.status === 'in_progress') return item.id;
+                if (item.children) {
+                    const child = visit(item.children);
+                    if (child) return child;
+                }
+            }
+            return undefined;
+        };
+        return visit(tasks);
+    }
+
+    private firstLine(text: string): string {
+        const line = text.split('\n', 1)[0] ?? '';
+        return line.trim();
+    }
+
+    private formatSubagentRunTitle(toolInput: Record<string, unknown>): { title: string; subagentType?: string } {
+        const description = typeof toolInput.description === 'string' ? toolInput.description.trim() : '';
+        const prompt = typeof toolInput.prompt === 'string' ? this.firstLine(toolInput.prompt) : '';
+        const subagentType =
+            typeof toolInput.subagent_type === 'string'
+                ? toolInput.subagent_type
+                : typeof toolInput.subagentType === 'string'
+                  ? toolInput.subagentType
+                  : typeof toolInput.subagent_name === 'string'
+                    ? toolInput.subagent_name
+                    : typeof toolInput.subagentName === 'string'
+                      ? toolInput.subagentName
+                      : undefined;
+
+        return { title: description || prompt || 'Task', subagentType };
+    }
+
+    private emitSubagentRun(sessionId: string, update: SubagentRunUpdate): void {
+        this.emit('update', sessionId, update, 'subagent_run');
+    }
+
     private emitToolResult(sessionId: string, toolId: string, result: unknown, error?: string): void {
+        const toolName = this.toolNameByIdByLocalSessionId.get(sessionId)?.get(toolId);
+        // Some Claude CLI flows represent user-questions as tool errors; treat them as informational.
+        if (toolName === 'AskUserQuestion') {
+            error = undefined;
+        }
         const update: ToolResultUpdate = {
             id: toolId,
             result,
             error,
         };
         this.emit('update', sessionId, update, 'tool_result');
+
+        if (toolName === 'Task') {
+            const meta = this.subagentRunMetaByIdByLocalSessionId.get(sessionId)?.get(toolId);
+            const title = meta?.title ?? 'Task';
+            const subagentType = meta?.subagentType;
+            const parentTaskId = meta?.parentTaskId;
+            const input = meta?.input;
+
+            const runUpdate: SubagentRunUpdate = {
+                id: toolId,
+                title,
+                subagentType,
+                parentTaskId,
+                input,
+                status: error ? 'failed' : 'completed',
+                result,
+                error,
+            };
+            this.emitSubagentRun(sessionId, runUpdate);
+            this.subagentRunMetaByIdByLocalSessionId.get(sessionId)?.delete(toolId);
+        }
     }
 
     private emitToolUse(sessionId: string, toolName: string, toolInput: Record<string, unknown>, toolId: string): void {
+        this.toolNameByIdByLocalSessionId.get(sessionId)?.set(toolId, toolName);
+
+        if (toolName === 'Task') {
+            const { title, subagentType } = this.formatSubagentRunTitle(toolInput);
+            const parentTaskId = this.taskListByLocalSessionId.get(sessionId)?.currentTaskId;
+
+            this.subagentRunMetaByIdByLocalSessionId.get(sessionId)?.set(toolId, {
+                title,
+                subagentType,
+                parentTaskId,
+                input: toolInput,
+            });
+
+            const runUpdate: SubagentRunUpdate = {
+                id: toolId,
+                title,
+                subagentType,
+                parentTaskId,
+                status: 'running',
+                input: toolInput,
+            };
+            this.emitSubagentRun(sessionId, runUpdate);
+        }
+
         // Handle specific tool types
         if (toolName === 'Write' || toolName === 'Edit') {
             // File write event - will be handled when result comes back
@@ -435,13 +549,57 @@ export class ClaudeCodeWrapper extends EventEmitter {
         }
 
         if (toolName === 'TodoWrite') {
-            const tasks = toolInput?.tasks as TaskListUpdate['tasks'] | undefined;
-            if (tasks) {
+            const raw = (toolInput?.tasks ??
+                (toolInput as unknown as { todos?: unknown }).todos ??
+                (toolInput as unknown as { items?: unknown }).items) as unknown;
+
+            const normalizeTasks = (value: unknown): TaskListUpdate['tasks'] | undefined => {
+                if (!Array.isArray(value)) return undefined;
+
+                const coerceStatus = (status: unknown): TaskListUpdate['tasks'][number]['status'] => {
+                    if (status === 'completed' || status === 'in_progress' || status === 'pending' || status === 'failed') return status;
+                    return 'pending';
+                };
+
+                const visit = (item: unknown, index: number): TaskListUpdate['tasks'][number] | null => {
+                    if (!item || typeof item !== 'object') return null;
+                    const obj = item as Record<string, unknown>;
+                    const id = (typeof obj.id === 'string' && obj.id) ? obj.id : `task-${index + 1}`;
+                    const titleCandidate =
+                        (typeof obj.title === 'string' && obj.title) ? obj.title :
+                        (typeof obj.content === 'string' && obj.content) ? obj.content :
+                        (typeof obj.text === 'string' && obj.text) ? obj.text :
+                        undefined;
+                    const title = titleCandidate ?? `Task ${index + 1}`;
+                    const status = coerceStatus(obj.status);
+                    const childrenRaw = obj.children ?? obj.subtasks;
+                    const children = Array.isArray(childrenRaw)
+                        ? childrenRaw
+                              .map((c, i) => visit(c, i))
+                              .filter((c): c is TaskListUpdate['tasks'][number] => c !== null)
+                        : undefined;
+
+                    return children && children.length > 0
+                        ? { id, title, status, children }
+                        : { id, title, status };
+                };
+
+                const tasks = value
+                    .map((t, i) => visit(t, i))
+                    .filter((t): t is TaskListUpdate['tasks'][number] => t !== null);
+
+                return tasks.length > 0 ? tasks : undefined;
+            };
+
+            const tasks = normalizeTasks(raw);
+            if (tasks && tasks.length > 0) {
+                const currentTaskId = this.inferCurrentTaskId(tasks);
                 const update: TaskListUpdate = {
                     tasks,
-                    currentTaskId: undefined,
+                    currentTaskId,
                 };
                 this.emit('update', sessionId, update, 'task_list');
+                this.taskListByLocalSessionId.set(sessionId, update);
             }
             return;
         }

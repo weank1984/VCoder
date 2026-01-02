@@ -22,11 +22,46 @@ $input-prefixCls: 'vc-input';
   flex-direction: column;
   overflow: hidden;
 
+  /* Top marquee/flow animation bar */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.3s ease;
+    z-index: 1;
+  }
+
+  /* Loading state - marquee animation */
+  &.input-wrapper--loading::before {
+    background: linear-gradient(90deg, 
+      transparent, 
+      var(--vc-color-primary) 20%, 
+      var(--vscode-textLink-activeForeground, #646cff) 50%,
+      var(--vc-color-primary) 80%, 
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: input-flow 2s linear infinite;
+  }
+
   &:focus-within {
     border-color: var(--vc-color-focus-border);
     /* Demo uses box-shadow for focus glow instead of outline */
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--vc-color-focus-border) 30%, transparent);
     outline: none;
+  }
+}
+
+@keyframes input-flow {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
   }
 }
 

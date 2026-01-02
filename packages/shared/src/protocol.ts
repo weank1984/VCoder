@@ -177,6 +177,7 @@ export type UpdateType =
     | 'file_change'
     | 'mcp_call'
     | 'task_list'
+    | 'subagent_run'
     | 'bash_request'
     | 'plan_ready'
     | 'error';
@@ -192,6 +193,7 @@ export interface UpdateNotificationParams {
     | FileChangeUpdate
     | McpCallUpdate
     | TaskListUpdate
+    | SubagentRunUpdate
     | BashRequestUpdate
     | PlanReadyUpdate
     | ErrorUpdate;
@@ -244,13 +246,24 @@ export interface McpCallUpdate {
 export interface Task {
     id: string;
     title: string;
-    status: 'pending' | 'in_progress' | 'completed';
+    status: 'pending' | 'in_progress' | 'completed' | 'failed';
     children?: Task[];
 }
 
 export interface TaskListUpdate {
     tasks: Task[];
     currentTaskId?: string;
+}
+
+export interface SubagentRunUpdate {
+    id: string;
+    title: string;
+    subagentType?: string;
+    status: 'running' | 'completed' | 'failed';
+    parentTaskId?: string;
+    input?: Record<string, unknown>;
+    result?: unknown;
+    error?: string;
 }
 
 export interface BashRequestUpdate {

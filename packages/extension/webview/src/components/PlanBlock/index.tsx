@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { Task } from '@vcoder/shared';
 import classNames from 'classnames';
-import { ArrowRightIcon, CheckIcon, LoadingIcon, ManageIcon } from '../Icon';
+import { ArrowRightIcon, CheckIcon, ErrorIcon, LoadingIcon, ManageIcon } from '../Icon';
 import './index.scss';
 
 interface PlanBlockProps {
@@ -24,11 +24,13 @@ export const PlanBlock: React.FC<PlanBlockProps> = ({ plan, explanation, sticky 
     let pending = 0;
     let inProgress = 0;
     let completed = 0;
+    let failed = 0;
 
     const traverse = (tasks: Task[]) => {
       tasks.forEach(t => {
         total++;
         if (t.status === 'completed') completed++;
+        else if (t.status === 'failed') failed++;
         else if (t.status === 'in_progress') inProgress++;
         else pending++;
         
@@ -36,11 +38,12 @@ export const PlanBlock: React.FC<PlanBlockProps> = ({ plan, explanation, sticky 
       });
     };
     traverse(plan);
-    return { total, pending, inProgress, completed };
+    return { total, pending, inProgress, completed, failed };
   }, [plan]);
 
   const isRunning = counts.inProgress > 0;
-  const isAllCompleted = counts.completed === counts.total && counts.total > 0;
+  const isAllCompleted = counts.completed === counts.total && counts.failed === 0 && counts.total > 0;
+  const isError = counts.failed > 0;
   
   // Find current running task (first in_progress)
   const findCurrentTask = (tasks: Task[]): Task | null => {
@@ -58,6 +61,7 @@ export const PlanBlock: React.FC<PlanBlockProps> = ({ plan, explanation, sticky 
   const getStatusIcon = (status: Task['status']) => {
     switch (status) {
       case 'completed': return <CheckIcon />;
+      case 'failed': return <ErrorIcon />;
       case 'in_progress': return <LoadingIcon />;
       default: return <span className="dot" />; // Needs styling
     }
@@ -66,6 +70,7 @@ export const PlanBlock: React.FC<PlanBlockProps> = ({ plan, explanation, sticky 
   const getStatusClass = (status: Task['status']) => {
     switch (status) {
       case 'completed': return 'completed';
+      case 'failed': return 'failed';
       case 'in_progress': return 'in-progress';
       default: return 'pending';
     }
@@ -74,6 +79,7 @@ export const PlanBlock: React.FC<PlanBlockProps> = ({ plan, explanation, sticky 
   const blockClass = classNames('agent-block', 'plan-block', {
     'agent-block--running': isRunning,
     'agent-block--success': isAllCompleted,
+    'agent-block--error': isError,
     'plan-block--sticky': sticky,
   });
 

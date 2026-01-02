@@ -4,7 +4,7 @@
 
 import { create } from './createStore';
 import type { AppState, ChatMessage, ToolCall } from '../types';
-import type { Task, ModelId, UpdateNotificationParams, ErrorUpdate } from '@vcoder/shared';
+import type { Task, ModelId, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
 
 interface AppStore extends AppState {
@@ -16,6 +16,7 @@ interface AppStore extends AppState {
     addToolCall: (toolCall: ToolCall) => void;
     updateToolCall: (id: string, updates: Partial<ToolCall>) => void;
     setTasks: (tasks: Task[]) => void;
+    setSubagentRuns: (runs: SubagentRunUpdate[]) => void;
     setSessions: (sessions: AppState['sessions']) => void;
     setCurrentSession: (sessionId: string | null) => void;
     setPlanMode: (enabled: boolean) => void;
@@ -45,6 +46,7 @@ const initialState: AppState = {
     currentSessionId: null,
     messages: [],
     tasks: [],
+    subagentRuns: [],
     planMode: false,
     model: 'claude-sonnet-4-20250514',
     isLoading: false,
@@ -163,6 +165,8 @@ export const useStore = create<AppStore>((set, get) => ({
 
     setTasks: (tasks) => set({ tasks }),
 
+    setSubagentRuns: (subagentRuns) => set({ subagentRuns }),
+
     setSessions: (sessions) =>
         set((state) => ({
             sessions,
@@ -172,7 +176,12 @@ export const useStore = create<AppStore>((set, get) => ({
     setCurrentSession: (sessionId) => set({ currentSessionId: sessionId }),
 
     setPlanMode: (enabled) => {
-        set({ planMode: enabled });
+        set((state) => ({
+            planMode: enabled,
+            // Avoid showing stale plan/tasks when switching into planning.
+            tasks: enabled && !state.planMode ? [] : state.tasks,
+            subagentRuns: enabled && !state.planMode ? [] : state.subagentRuns,
+        }));
         postMessage({ type: 'setPlanMode', enabled });
     },
 
@@ -251,6 +260,20 @@ export const useStore = create<AppStore>((set, get) => ({
             case 'task_list': {
                 const { tasks } = content as { tasks: Task[] };
                 get().setTasks(tasks);
+                break;
+            }
+            case 'subagent_run': {
+                const run = content as SubagentRunUpdate;
+                set((state) => {
+                    const subagentRuns = [...state.subagentRuns];
+                    const idx = subagentRuns.findIndex((r) => r.id === run.id);
+                    if (idx >= 0) {
+                        subagentRuns[idx] = { ...subagentRuns[idx], ...run };
+                    } else {
+                        subagentRuns.push(run);
+                    }
+                    return { subagentRuns };
+                });
                 break;
             }
             case 'error': {

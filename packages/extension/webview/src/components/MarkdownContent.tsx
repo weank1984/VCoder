@@ -70,9 +70,9 @@ function CodeBlock({ inline, className, children }: CodeBlockProps) {
     );
 }
 
-export function MarkdownContent({ content, isComplete }: MarkdownContentProps) {
+export function MarkdownContent({ content }: MarkdownContentProps) {
     if (!content) {
-        return isComplete ? null : <span className="cursor">▊</span>;
+        return null;
     }
 
     return (
@@ -84,7 +84,6 @@ export function MarkdownContent({ content, isComplete }: MarkdownContentProps) {
             >
                 {content}
             </ReactMarkdown>
-            {!isComplete && <span className="cursor">▊</span>}
         </div>
     );
 }

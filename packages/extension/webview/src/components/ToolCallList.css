@@ -28,6 +28,14 @@
     color: var(--vscode-terminal-ansiGreen);
 }
 
+.status-icon.failed {
+    color: var(--vscode-terminal-ansiRed);
+}
+
+.status-icon.running {
+    color: var(--vscode-terminal-ansiYellow);
+}
+
 .tool-list-title {
     flex: 1;
     font-weight: 500;
@@ -54,15 +62,11 @@
 
 .tool-list-content {
     border-top: 1px solid var(--vcoder-border);
-    max-height: 200px;
+    max-height: 260px;
     overflow-y: auto;
 }
 
 .tool-call-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
     font-size: 12px;
     border-bottom: 1px solid var(--vcoder-border);
 }
@@ -73,6 +77,23 @@
 
 .tool-call-item.failed {
     background: var(--vscode-inputValidation-errorBackground);
+}
+
+.tool-call-item-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border: none;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
+.tool-call-item-header:hover {
+    background: color-mix(in srgb, var(--vscode-list-hoverBackground) 65%, transparent);
 }
 
 .tool-status {
@@ -93,7 +114,16 @@
 }
 
 .tool-name {
+    flex: 0 0 auto;
+    font-family: var(--vscode-editor-font-family);
+}
+
+.tool-summary {
     flex: 1;
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-family: var(--vscode-editor-font-family);
 }
 
@@ -103,4 +133,47 @@
     font-size: 10px;
     background: var(--vscode-inputValidation-errorBackground);
     color: var(--vscode-errorForeground);
+}
+
+.tool-item-expand {
+    flex: 0 0 auto;
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.tool-call-item-details {
+    padding: 0 12px 10px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tool-detail-block {
+    border: 1px solid var(--vcoder-border);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--vcoder-surface-2) 80%, transparent);
+    overflow: hidden;
+}
+
+.tool-detail-block-error {
+    border-color: color-mix(in srgb, var(--vscode-inputValidation-errorBorder) 65%, var(--vcoder-border));
+}
+
+.tool-detail-title {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--vcoder-border);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--vscode-descriptionForeground);
+}
+
+.tool-detail-pre {
+    margin: 0;
+    padding: 8px 10px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: var(--vscode-editor-font-family);
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--vscode-foreground);
 }

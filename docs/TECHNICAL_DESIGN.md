@@ -105,6 +105,7 @@ VCoder 采用 **Client-Server 分离架构**，核心理念是将 CLI Agent（�
 | `file_change` | `file_write` | `file_change` |
 | `mcp_call` | `mcp_tool_use` | `mcp_tool_call` |
 | `task_list` | `TodoWrite` | `todo_list` |
+| `subagent_run` | `Task` | - |
 | `complete` | 进程退出 | `turn.completed` |
 
 #### 1.4.3 兼容性设计
@@ -160,6 +161,7 @@ vcoder/
 | `ThoughtBlock` | 可折叠的思考过程块 |
 | `ToolCallList` | 工具调用列表（"Finished working"） |
 | `TaskList` | 任务计划列表（Plan Mode） |
+| `TaskRuns` | 子代理/并行执行列表（`Task` 工具） |
 | `ModelSelector` | 模型选择下拉框 |
 | `PlanModeToggle` | Plan Mode 切换按钮 |
 | `InputArea` | 输入区（含附件、@引用） |
@@ -203,9 +205,14 @@ vcoder/
 | `file_change` | 文件修改 | path, diff, proposed |
 | `mcp_call` | MCP 工具调用 | server, tool, status |
 | `task_list` | 任务计划列表 | tasks[], currentTaskId |
+| `subagent_run` | 子代理/并行执行（`Task` 工具） | id, title, subagentType, status, parentTaskId? |
 | `bash_request` | Bash 命令确认请求 | command, id |
 | `plan_ready` | 计划完成待确认 | tasks[], summary |
 | `error` | 错误信息 | code, message, action |
+
+> **语义说明**：
+> - `task_list`：由 Claude Code `TodoWrite` 工具输入（通常为 `todos[]`）转换而来，是“用户可见计划/进度”的主数据源。
+> - `subagent_run`：由 Claude Code `Task` 工具调用转换而来，代表“子代理/并行执行单元”，用于在 UI 中单独展示并行执行进度；不等同于 `task_list`。
 
 ### 3.3 通信流程
 
@@ -273,6 +280,12 @@ class ClaudeCodeWrapper:
       "tool_result" → { type: "tool_result", id: ..., result: ... }
       "file_write"  → { type: "file_change", path: ..., diff: ... }
       "mcp_tool"    → { type: "mcp_call", server: ..., tool: ... }
+
+    # Special tool projections (semantic updates)
+    if tool.name == "TodoWrite":
+      emit { type: "task_list", tasks: mapTodos(tool.input.todos) }
+    if tool.name == "Task":
+      emit { type: "subagent_run", id: tool.id, title: tool.input.description, subagentType: tool.input.subagent_type, status: "running" }
 ```
 
 ---

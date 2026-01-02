@@ -21,6 +21,7 @@ export function TaskList({ tasks, visible }: TaskListProps) {
     const getStatusIcon = (status: Task['status']) => {
         switch (status) {
             case 'completed': return '✓';
+            case 'failed': return '✗';
             case 'in_progress': return '⏳';
             default: return '☐';
         }

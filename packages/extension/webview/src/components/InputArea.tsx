@@ -141,7 +141,7 @@ export function InputArea() {
                 />
             )}
             
-            <div className="input-wrapper">
+            <div className={`input-wrapper ${isLoading ? 'input-wrapper--loading' : ''}`}>
                 <textarea
                     ref={textareaRef}
                     className="input-field"

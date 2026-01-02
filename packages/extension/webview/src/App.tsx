@@ -5,6 +5,7 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from './store/useStore';
 import { PlanBlock } from './components/PlanBlock';
+import { TaskRunsBlock } from './components/TaskRunsBlock';
 import { ChatBubble } from './components/ChatBubble';
 import { InputArea } from './components/InputArea';
 import { VoyahIcon } from './components/Icon';
@@ -19,6 +20,7 @@ function App() {
   const {
     messages,
     tasks,
+    subagentRuns,
     planMode,
     error,
     setSessions,
@@ -75,6 +77,10 @@ function App() {
     <div className="app">
       {tasks.length > 0 && planMode && (
           <PlanBlock plan={tasks} sticky={true} />
+      )}
+
+      {subagentRuns.length > 0 && planMode && (
+          <TaskRunsBlock runs={subagentRuns} sticky={true} />
       )}
 
       <div className="messages-container">

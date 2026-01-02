@@ -32,6 +32,7 @@ export class ACPClient extends EventEmitter {
     }> = new Map();
 
     private currentSession: Session | null = null;
+    private desiredSettings: Pick<SettingsChangeParams, 'model' | 'planMode'> = {};
 
     constructor(private stdio: { stdin: Writable; stdout: Readable }) {
         super();
@@ -115,6 +116,7 @@ export class ACPClient extends EventEmitter {
     async newSession(title?: string): Promise<Session> {
         const result = await this.sendRequest<NewSessionResult>(ACPMethods.SESSION_NEW, { title });
         this.currentSession = result.session;
+        await this.syncDesiredSettings();
         return result.session;
     }
 
@@ -142,8 +144,12 @@ export class ACPClient extends EventEmitter {
     }
 
     async prompt(content: string, attachments?: PromptParams['attachments']): Promise<void> {
+        const hadSession = Boolean(this.currentSession);
         if (!this.currentSession) {
+            // newSession() already syncs desired settings.
             await this.newSession();
+        } else if (hadSession) {
+            await this.syncDesiredSettings();
         }
         await this.sendRequest(ACPMethods.SESSION_PROMPT, {
             sessionId: this.currentSession!.id,
@@ -153,6 +159,7 @@ export class ACPClient extends EventEmitter {
     }
 
     async changeSettings(settings: { model?: ModelId; planMode?: boolean }): Promise<void> {
+        this.desiredSettings = { ...this.desiredSettings, ...settings };
         if (!this.currentSession) return;
         await this.sendRequest(ACPMethods.SETTINGS_CHANGE, {
             sessionId: this.currentSession.id,
@@ -201,6 +208,16 @@ export class ACPClient extends EventEmitter {
 
     getCurrentSession(): Session | null {
         return this.currentSession;
+    }
+
+    private async syncDesiredSettings(): Promise<void> {
+        if (!this.currentSession) return;
+        if (this.desiredSettings.model === undefined && this.desiredSettings.planMode === undefined) return;
+
+        await this.sendRequest<void>(ACPMethods.SETTINGS_CHANGE, {
+            sessionId: this.currentSession.id,
+            ...this.desiredSettings,
+        } satisfies SettingsChangeParams);
     }
 
     async shutdown(): Promise<void> {

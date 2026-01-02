@@ -2,7 +2,7 @@
  * Webview Types
  */
 
-import type { UpdateNotificationParams, Session, Task, ModelId, ErrorUpdate } from '@vcoder/shared';
+import type { UpdateNotificationParams, Session, Task, ModelId, ErrorUpdate, SubagentRunUpdate } from '@vcoder/shared';
 
 // Message types from Extension to Webview
 export interface UpdateMessage {
@@ -146,6 +146,7 @@ export interface AppState {
     currentSessionId: string | null;
     messages: ChatMessage[];
     tasks: Task[];
+    subagentRuns: SubagentRunUpdate[];
     planMode: boolean;
     model: ModelId;
     isLoading: boolean;

@@ -307,13 +307,18 @@ describe('ACPClient', () => {
 
       // Send prompt
       const promptPromise = client.prompt('Another question');
-      mockStdout.push(
-        JSON.stringify({
-          jsonrpc: '2.0',
-          id: 2,
-          result: null,
-        }) + '\n'
-      );
+      await new Promise<void>((resolve) => {
+        setImmediate(() => {
+          mockStdout.push(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: 2,
+              result: null,
+            }) + '\n'
+          );
+          resolve();
+        });
+      });
 
       await promptPromise;
 
@@ -370,6 +375,75 @@ describe('ACPClient', () => {
 
       // Should not send any request
       expect(writtenData).toHaveLength(0);
+    });
+
+    it('should apply preselected settings on first prompt', async () => {
+      // Select settings before any session exists (should be buffered locally).
+      await client.changeSettings({ planMode: true, model: 'claude-3-5-sonnet-20241022' });
+      expect(writtenData).toHaveLength(0);
+
+      const promptPromise = client.prompt('Hello, AI!');
+
+      // 1) session/new response
+      await new Promise<void>((resolve) => {
+        setImmediate(() => {
+          mockStdout.push(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: 1,
+              result: {
+                session: {
+                  id: 'auto-session',
+                  title: 'New Chat',
+                  createdAt: '2024-01-01T00:00:00Z',
+                  updatedAt: '2024-01-01T00:00:00Z',
+                },
+              },
+            }) + '\n'
+          );
+          resolve();
+        });
+      });
+
+      // 2) settings/change response
+      await new Promise<void>((resolve) => {
+        setImmediate(() => {
+          mockStdout.push(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: 2,
+              result: null,
+            }) + '\n'
+          );
+          resolve();
+        });
+      });
+
+      // 3) session/prompt response
+      await new Promise<void>((resolve) => {
+        setImmediate(() => {
+          mockStdout.push(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: 3,
+              result: null,
+            }) + '\n'
+          );
+          resolve();
+        });
+      });
+
+      await promptPromise;
+
+      expect(writtenData.length).toBeGreaterThanOrEqual(3);
+      const settingsReq = JSON.parse(writtenData[1]);
+      expect(settingsReq.method).toBe('settings/change');
+      expect(settingsReq.params.planMode).toBe(true);
+      expect(settingsReq.params.model).toBe('claude-3-5-sonnet-20241022');
+
+      const promptReq = JSON.parse(writtenData[2]);
+      expect(promptReq.method).toBe('session/prompt');
+      expect(promptReq.params.sessionId).toBe('auto-session');
     });
   });
 
