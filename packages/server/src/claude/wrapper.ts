@@ -285,7 +285,20 @@ export class ClaudeCodeWrapper extends EventEmitter {
             }
 
             case 'user': {
-                // Echo of the user message in stream-json output; ignore.
+                // In stream-json, tool results are emitted as a "user" message containing tool_result blocks.
+                const message = event.message as Record<string, unknown> | undefined;
+                const content = message?.content as Array<Record<string, unknown>> | undefined;
+                if (content && Array.isArray(content)) {
+                    for (const block of content) {
+                        if (block.type !== 'tool_result') continue;
+                        const toolUseId = block.tool_use_id as string | undefined;
+                        if (!toolUseId) continue;
+
+                        const isError = (block.is_error as boolean | undefined) === true;
+                        const result = block.content;
+                        this.emitToolResult(sessionId, toolUseId, result, isError ? this.formatToolError(result) : undefined);
+                    }
+                }
                 break;
             }
 
@@ -294,21 +307,27 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 const message = event.message as Record<string, unknown> | undefined;
                 if (!message) break;
 
-                const content = message.content as Array<{ type: string; text?: string; thinking?: string }> | undefined;
+                const content = message.content as Array<Record<string, unknown>> | undefined;
                 if (!content || !Array.isArray(content)) break;
 
                 for (const block of content) {
-                    if (block.type === 'thinking' && block.thinking) {
+                    if (block.type === 'thinking' && typeof block.thinking === 'string' && block.thinking) {
                         const update: ThoughtUpdate = {
                             content: block.thinking,
                             isComplete: true,
                         };
                         this.emit('update', sessionId, update, 'thought');
-                    } else if (block.type === 'text' && block.text) {
+                    } else if (block.type === 'text' && typeof block.text === 'string' && block.text) {
                         const update: TextUpdate = {
                             text: block.text,
                         };
                         this.emit('update', sessionId, update, 'text');
+                    } else if (block.type === 'tool_use') {
+                        const toolName = block.name as string | undefined;
+                        const toolId = block.id as string | undefined;
+                        const toolInput = block.input as Record<string, unknown> | undefined;
+                        if (!toolName || !toolId || !toolInput) continue;
+                        this.emitToolUse(sessionId, toolName, toolInput, toolId);
                     }
                 }
                 break;
@@ -321,75 +340,14 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
                 const toolName = tool.name || 'unknown';
                 const toolId = tool.id || (event.uuid as string) || crypto.randomUUID();
-
-                // Handle specific tool types
-                if (toolName === 'Write' || toolName === 'Edit') {
-                    // File write event - will be handled when result comes back
-                    const update: ToolUseUpdate = {
-                        id: toolId,
-                        name: toolName,
-                        input: tool.input,
-                        status: 'running',
-                    };
-                    this.emit('update', sessionId, update, 'tool_use');
-
-                    // Synthesize file_change notification for DiffManager
-                    // TODO: Handle 'Edit' tool which might provide diffs/patches instead of full content
-                    if (toolName === 'Write' && tool.input?.path && typeof tool.input.content === 'string') {
-                        const fileUpdate: FileChangeUpdate = {
-                            path: tool.input.path as string,
-                            type: 'modified', // Assume modified, DiffManager handles created check
-                            content: tool.input.content as string,
-                            proposed: true,
-                        };
-                         this.emit('update', sessionId, fileUpdate, 'file_change');
-                    }
-                } else if (toolName === 'Bash') {
-                    const update: BashRequestUpdate = {
-                        id: toolId,
-                        command: (tool.input?.command as string) || '',
-                    };
-                    this.emit('update', sessionId, update, 'bash_request');
-                } else if (toolName === 'TodoWrite') {
-                    const tasks = tool.input?.tasks as TaskListUpdate['tasks'] | undefined;
-                    if (tasks) {
-                        const update: TaskListUpdate = {
-                            tasks,
-                            currentTaskId: undefined,
-                        };
-                        this.emit('update', sessionId, update, 'task_list');
-                    }
-                } else if (toolName.startsWith('mcp__')) {
-                    const parts = toolName.split('__');
-                    const update: McpCallUpdate = {
-                        id: toolId,
-                        server: parts[1] || 'unknown',
-                        tool: parts.slice(2).join('__') || toolName,
-                        input: tool.input,
-                        status: 'running',
-                    };
-                    this.emit('update', sessionId, update, 'mcp_call');
-                } else {
-                    const update: ToolUseUpdate = {
-                        id: toolId,
-                        name: toolName,
-                        input: tool.input,
-                        status: 'running',
-                    };
-                    this.emit('update', sessionId, update, 'tool_use');
-                }
+                this.emitToolUse(sessionId, toolName, tool.input, toolId);
                 break;
             }
 
             case 'tool_result': {
                 const toolResult = event.tool_result as { content?: unknown; error?: string; id?: string } | undefined;
                 const toolId = toolResult?.id || (event.tool_use_id as string) || '';
-                const update: ToolResultUpdate = {
-                    id: toolId,
-                    result: toolResult?.content,
-                    error: toolResult?.error,
-                };
-                this.emit('update', sessionId, update, 'tool_result');
+                this.emitToolResult(sessionId, toolId, toolResult?.content, toolResult?.error);
                 break;
             }
 
@@ -429,6 +387,85 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 // Don't spam logs for harmless new event types; keep as debug.
                 console.error('[ClaudeCode] Unhandled event type:', type);
         }
+    }
+
+    private formatToolError(result: unknown): string {
+        if (typeof result === 'string' && result.trim().length > 0) return result;
+        try {
+            return JSON.stringify(result);
+        } catch {
+            return 'Tool error';
+        }
+    }
+
+    private emitToolResult(sessionId: string, toolId: string, result: unknown, error?: string): void {
+        const update: ToolResultUpdate = {
+            id: toolId,
+            result,
+            error,
+        };
+        this.emit('update', sessionId, update, 'tool_result');
+    }
+
+    private emitToolUse(sessionId: string, toolName: string, toolInput: Record<string, unknown>, toolId: string): void {
+        // Handle specific tool types
+        if (toolName === 'Write' || toolName === 'Edit') {
+            // File write event - will be handled when result comes back
+            const update: ToolUseUpdate = {
+                id: toolId,
+                name: toolName,
+                input: toolInput,
+                status: 'running',
+            };
+            this.emit('update', sessionId, update, 'tool_use');
+
+            // Synthesize file_change notification for DiffManager
+            // TODO: Handle 'Edit' tool which might provide diffs/patches instead of full content
+            if (toolName === 'Write' && toolInput?.path && typeof toolInput.content === 'string') {
+                const fileUpdate: FileChangeUpdate = {
+                    path: toolInput.path as string,
+                    type: 'modified', // Assume modified, DiffManager handles created check
+                    content: toolInput.content as string,
+                    proposed: true,
+                };
+                this.emit('update', sessionId, fileUpdate, 'file_change');
+            }
+            return;
+        }
+
+        if (toolName === 'TodoWrite') {
+            const tasks = toolInput?.tasks as TaskListUpdate['tasks'] | undefined;
+            if (tasks) {
+                const update: TaskListUpdate = {
+                    tasks,
+                    currentTaskId: undefined,
+                };
+                this.emit('update', sessionId, update, 'task_list');
+            }
+            return;
+        }
+
+        if (toolName.startsWith('mcp__')) {
+            const parts = toolName.split('__');
+            const update: McpCallUpdate = {
+                id: toolId,
+                server: parts[1] || 'unknown',
+                tool: parts.slice(2).join('__') || toolName,
+                input: toolInput,
+                status: 'running',
+            };
+            this.emit('update', sessionId, update, 'mcp_call');
+            return;
+        }
+
+        // Default: represent tool invocations uniformly.
+        const update: ToolUseUpdate = {
+            id: toolId,
+            name: toolName,
+            input: toolInput,
+            status: 'running',
+        };
+        this.emit('update', sessionId, update, 'tool_use');
     }
 
     async acceptFileChange(sessionId: string, path: string): Promise<void> {

@@ -27,6 +27,19 @@ interface AppStore extends AppState {
     reset: () => void;
 }
 
+function createId(): string {
+    const anyCrypto = (globalThis as unknown as { crypto?: unknown }).crypto as { randomUUID?: () => string } | undefined;
+    if (anyCrypto && typeof anyCrypto.randomUUID === 'function') return anyCrypto.randomUUID();
+    return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function formatBashName(command: string): string {
+    const normalized = command.trim().replace(/\s+/g, ' ');
+    if (!normalized) return 'Bash';
+    const maxLen = 80;
+    return normalized.length > maxLen ? `Bash: ${normalized.slice(0, maxLen)}…` : `Bash: ${normalized}`;
+}
+
 const initialState: AppState = {
     sessions: [],
     currentSessionId: null,
@@ -56,9 +69,17 @@ export const useStore = create<AppStore>((set, get) => ({
         set((state) => {
             const messages = [...state.messages];
             const last = messages[messages.length - 1];
-            if (last && last.role === 'assistant') {
-                last.content += text;
-            }
+            const target: ChatMessage =
+                last && last.role === 'assistant' && !last.isComplete
+                    ? last
+                    : (messages[messages.length] = {
+                          id: createId(),
+                          role: 'assistant',
+                          content: '',
+                          isComplete: false,
+                      });
+
+            target.content += text;
             return { messages };
         }),
 
@@ -66,9 +87,17 @@ export const useStore = create<AppStore>((set, get) => ({
         set((state) => {
             const messages = [...state.messages];
             const last = messages[messages.length - 1];
-            if (last && last.role === 'assistant') {
-                last.thought = isComplete ? thought : (last.thought || '') + thought;
-            }
+            const target: ChatMessage =
+                last && last.role === 'assistant' && !last.isComplete
+                    ? last
+                    : (messages[messages.length] = {
+                          id: createId(),
+                          role: 'assistant',
+                          content: '',
+                          isComplete: false,
+                      });
+
+            target.thought = isComplete ? thought : (target.thought || '') + thought;
             return { messages };
         }),
 
@@ -76,8 +105,21 @@ export const useStore = create<AppStore>((set, get) => ({
         set((state) => {
             const messages = [...state.messages];
             const last = messages[messages.length - 1];
-            if (last && last.role === 'assistant') {
-                last.toolCalls = [...(last.toolCalls || []), toolCall];
+            const target: ChatMessage =
+                last && last.role === 'assistant' && !last.isComplete
+                    ? last
+                    : (messages[messages.length] = {
+                          id: createId(),
+                          role: 'assistant',
+                          content: '',
+                          isComplete: false,
+                      });
+
+            const existing = target.toolCalls?.find((tc) => tc.id === toolCall.id);
+            if (existing) {
+                Object.assign(existing, toolCall);
+            } else {
+                target.toolCalls = [...(target.toolCalls || []), toolCall];
             }
             return { messages };
         }),
@@ -85,12 +127,37 @@ export const useStore = create<AppStore>((set, get) => ({
     updateToolCall: (id, updates) =>
         set((state) => {
             const messages = [...state.messages];
-            const last = messages[messages.length - 1];
-            if (last && last.toolCalls) {
-                last.toolCalls = last.toolCalls.map((tc) =>
-                    tc.id === id ? { ...tc, ...updates } : tc
-                );
+            for (let i = messages.length - 1; i >= 0; i--) {
+                const message = messages[i];
+                if (message.role !== 'assistant' || !message.toolCalls?.length) continue;
+                const idx = message.toolCalls.findIndex((tc) => tc.id === id);
+                if (idx === -1) continue;
+                message.toolCalls[idx] = { ...message.toolCalls[idx], ...updates };
+                return { messages };
             }
+
+            const last = messages[messages.length - 1];
+            const target: ChatMessage =
+                last && last.role === 'assistant' && !last.isComplete
+                    ? last
+                    : (messages[messages.length] = {
+                          id: createId(),
+                          role: 'assistant',
+                          content: '',
+                          isComplete: false,
+                      });
+
+            target.toolCalls = [
+                ...(target.toolCalls || []),
+                {
+                    id,
+                    name: typeof updates.name === 'string' && updates.name ? updates.name : 'Tool',
+                    status: updates.status ?? 'running',
+                    input: updates.input,
+                    result: updates.result,
+                    error: updates.error,
+                },
+            ];
             return { messages };
         }),
 
@@ -134,7 +201,12 @@ export const useStore = create<AppStore>((set, get) => ({
             }
             case 'tool_use': {
                 const tc = content as ToolCall;
-                get().addToolCall(tc);
+                get().addToolCall({
+                    id: tc.id,
+                    name: tc.name,
+                    status: tc.status,
+                    input: (tc as unknown as { input?: unknown }).input,
+                });
                 break;
             }
             case 'tool_result': {
@@ -143,6 +215,36 @@ export const useStore = create<AppStore>((set, get) => ({
                     status: error ? 'failed' : 'completed',
                     result,
                     error,
+                });
+                break;
+            }
+            case 'mcp_call': {
+                const mcp = content as {
+                    id: string;
+                    server: string;
+                    tool: string;
+                    input: Record<string, unknown>;
+                    status: ToolCall['status'];
+                    result?: unknown;
+                    error?: string;
+                };
+                get().addToolCall({
+                    id: mcp.id,
+                    name: `mcp__${mcp.server}__${mcp.tool}`,
+                    status: mcp.status,
+                    input: mcp.input,
+                    result: mcp.result,
+                    error: mcp.error,
+                });
+                break;
+            }
+            case 'bash_request': {
+                const bash = content as { id: string; command: string };
+                get().addToolCall({
+                    id: bash.id,
+                    name: formatBashName(bash.command),
+                    status: 'pending',
+                    input: { command: bash.command },
                 });
                 break;
             }

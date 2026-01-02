@@ -2,7 +2,20 @@
  * VSCode API Hook
  */
 
-const vscode = acquireVsCodeApi();
+type VSCodeApiLike = {
+    postMessage(message: unknown): void;
+    getState(): unknown;
+    setState(state: unknown): void;
+};
+
+const vscode: VSCodeApiLike =
+    typeof acquireVsCodeApi === 'function'
+        ? acquireVsCodeApi()
+        : {
+              postMessage: () => {},
+              getState: () => undefined,
+              setState: () => {},
+          };
 
 export function postMessage(message: unknown): void {
     vscode.postMessage(message);

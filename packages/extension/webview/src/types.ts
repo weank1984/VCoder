@@ -136,6 +136,7 @@ export interface ToolCall {
     id: string;
     name: string;
     status: 'pending' | 'running' | 'completed' | 'failed';
+    input?: unknown;
     result?: unknown;
     error?: string;
 }
