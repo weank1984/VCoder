@@ -4,6 +4,7 @@
  */
 
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { ACPClient } from '../acp/client';
 import { UpdateNotificationParams } from '@vcoder/shared';
 
@@ -100,11 +101,21 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                     await this.acpClient.confirmPlan();
                     break;
                 case 'getWorkspaceFiles':
-                    const files = await vscode.workspace.findFiles('**/*', '**/node_modules/**');
-                    this.postMessage({ 
-                        type: 'workspaceFiles', 
-                        data: files.map(f => f.fsPath) 
-                    });
+                    {
+                        const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                        const files = await vscode.workspace.findFiles('**/*', '**/node_modules/**');
+                        const rel = (p: string) => p.replace(/\\/g, '/');
+                        this.postMessage({
+                            type: 'workspaceFiles',
+                            data: files
+                                .map((f) => {
+                                    if (!root) return f.fsPath;
+                                    const relative = path.relative(root, f.fsPath);
+                                    return relative ? rel(relative) : rel(f.fsPath);
+                                })
+                                .filter((p) => typeof p === 'string' && p.length > 0),
+                        });
+                    }
                     break;
                 case 'executeCommand':
                     if (message.command) {

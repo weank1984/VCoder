@@ -6,6 +6,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import {
     Attachment,
@@ -100,7 +101,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
             env: {
                 ...process.env,
                 TERM: 'xterm-256color',
-                HOME: process.env.HOME || '/Users/weank',
+                HOME: process.env.HOME || os.homedir(),
             },
         });
 

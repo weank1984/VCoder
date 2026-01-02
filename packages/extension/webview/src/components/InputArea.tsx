@@ -88,8 +88,6 @@ export function InputArea() {
         
         if (match) {
             const prefix = textBefore.slice(0, match.index);
-            // Insert file path directly. 
-            // Ideally we'd use relative path but complete path is safer for CLI.
             const newValue = prefix + file + ' ' + textAfter;
             setInput(newValue);
             setShowPicker(false);
