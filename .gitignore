@@ -58,3 +58,12 @@ packages/extension/webview/out/
 *.pem
 *.key
 secrets/
+
+# Local plugin/runtime artifacts
+.vcoder/
+packages/extension/server/
+
+# Local scratch files
+demo/
+help.txt
+test-claude-raw.js
