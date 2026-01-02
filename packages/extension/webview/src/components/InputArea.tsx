@@ -22,6 +22,7 @@ export function InputArea() {
     const [showPicker, setShowPicker] = useState(false);
     const [pickerQuery, setPickerQuery] = useState('');
     const [cursorPosition, setCursorPosition] = useState(0);
+    const [isComposing, setIsComposing] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const { planMode, model, isLoading, workspaceFiles, setPlanMode, setModel, addMessage, setLoading } = useStore();
@@ -98,7 +99,12 @@ export function InputArea() {
     };
 
     const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+        const nativeEvent = e.nativeEvent as unknown as { isComposing?: boolean; keyCode?: number; key?: string };
+        const isImeComposing =
+            isComposing || nativeEvent.isComposing === true || nativeEvent.keyCode === 229 || nativeEvent.key === 'Process';
+
         if (showPicker) {
+            if (isImeComposing) return;
             if (['ArrowUp', 'ArrowDown', 'Enter', 'Tab', 'Escape'].includes(e.key)) {
                 // Prevent InputArea default behavior (submit/newline)
                 // FilePicker handles selection via window listener
@@ -108,6 +114,7 @@ export function InputArea() {
         }
 
         if (e.key === 'Enter' && !e.shiftKey) {
+            if (isImeComposing) return;
             e.preventDefault();
             handleSubmit();
         }
@@ -143,6 +150,8 @@ export function InputArea() {
                     value={input}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
+                    onCompositionStart={() => setIsComposing(true)}
+                    onCompositionEnd={() => setIsComposing(false)}
                     disabled={isLoading}
                     rows={1}
                     onClick={(e) => {

@@ -32,6 +32,12 @@ export function FilePicker({ files, searchQuery, position, onSelect, onClose }: 
 
     // Handle keyboard navigation
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
+        const isImeComposing =
+            (e as unknown as { isComposing?: boolean; keyCode?: number; key?: string }).isComposing === true ||
+            (e as unknown as { keyCode?: number }).keyCode === 229 ||
+            (e as unknown as { key?: string }).key === 'Process';
+        if (isImeComposing) return;
+
         switch (e.key) {
             case 'ArrowDown':
                 e.preventDefault();
