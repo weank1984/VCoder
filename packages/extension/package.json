@@ -1,9 +1,9 @@
 {
-    "name": "z-code",
-    "displayName": "Z-Code",
+    "name": "vcoder",
+    "displayName": "V-Coder",
     "description": "VSCode 智能编程助手 (Claude Code / Codex CLI)",
     "version": "0.1.0",
-    "publisher": "z-code",
+    "publisher": "vcoder",
     "license": "MIT",
     "engines": {
         "vscode": "^1.80.0"
@@ -14,7 +14,8 @@
         "Other"
     ],
     "activationEvents": [
-        "onStartupFinished"
+        "onStartupFinished",
+        "onView:vcoder.chatView"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -22,7 +23,7 @@
             "activitybar": [
                 {
                     "id": "vcoder",
-                    "title": "Z-Code",
+                    "title": "V-Coder",
                     "icon": "resources/icon.svg"
                 }
             ]
@@ -30,28 +31,58 @@
         "views": {
             "vcoder": [
                 {
-                    "type": "webview",
                     "id": "vcoder.chatView",
-                    "name": "Chat"
+                    "name": "Chat",
+                    "type": "webview"
                 }
             ]
         },
         "commands": [
             {
                 "command": "vcoder.newChat",
-                "title": "Z-Code: New Chat"
+                "title": "New Chat",
+                "icon": "$(add)"
+            },
+            {
+                "command": "vcoder.showHistory",
+                "title": "History",
+                "icon": "$(history)"
+            },
+            {
+                "command": "vcoder.openSettings",
+                "title": "Settings",
+                "icon": "$(ellipsis)"
             },
             {
                 "command": "vcoder.setApiKey",
-                "title": "Z-Code: Set API Key"
+                "title": "V-Coder: Set API Key"
             },
             {
                 "command": "vcoder.restart",
-                "title": "Z-Code: Restart Server"
+                "title": "V-Coder: Restart Server"
             }
         ],
+        "menus": {
+            "view/title": [
+                {
+                    "command": "vcoder.newChat",
+                    "when": "view == vcoder.chatView",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "vcoder.showHistory",
+                    "when": "view == vcoder.chatView",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "vcoder.openSettings",
+                    "when": "view == vcoder.chatView",
+                    "group": "navigation@3"
+                }
+            ]
+        },
         "configuration": {
-            "title": "Z-Code",
+            "title": "V-Coder",
             "properties": {
                 "vcoder.defaultModel": {
                     "type": "string",
@@ -74,13 +105,13 @@
     },
     "scripts": {
         "vscode:prepublish": "npm run build",
-        "build": "tsc",
+        "build": "tsc && npm --prefix webview run build",
         "dev": "tsc --watch",
         "clean": "rm -rf out",
         "lint": "eslint src"
     },
     "dependencies": {
-        "@z-code/shared": "workspace:*"
+        "@vcoder/shared": "workspace:*"
     },
     "devDependencies": {
         "@types/node": "^20.0.0",

@@ -4,17 +4,19 @@
  */
 
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { ACPClient } from '../acp/client';
-import { UpdateNotificationParams } from '@z-code/shared';
+import { UpdateNotificationParams } from '@vcoder/shared';
 
 export class ChatViewProvider implements vscode.WebviewViewProvider {
     private webviewView?: vscode.WebviewView;
+    private readonly distRoot: vscode.Uri;
 
     constructor(
         private context: vscode.ExtensionContext,
         private acpClient: ACPClient
     ) {
+        this.distRoot = vscode.Uri.joinPath(this.context.extensionUri, 'webview', 'dist');
+
         // Listen to ACP updates and forward to Webview
         this.acpClient.on('session/update', (params: UpdateNotificationParams) => {
             this.postMessage({ type: 'update', data: params });
@@ -25,19 +27,26 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         });
     }
 
-    resolveWebviewView(
+    async resolveWebviewView(
         webviewView: vscode.WebviewView,
         context: vscode.WebviewViewResolveContext,
         token: vscode.CancellationToken
-    ): void {
+    ): Promise<void> {
+        console.log('[VCoder] Resolving webview...');
         this.webviewView = webviewView;
 
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [
-                vscode.Uri.joinPath(this.context.extensionUri, 'webview', 'dist'),
+                this.distRoot,
             ],
         };
+
+        const assetsOk = await this.ensureWebviewAssets();
+        if (!assetsOk) {
+            webviewView.webview.html = this.getMissingAssetsHtml(webviewView.webview);
+            return;
+        }
 
         webviewView.webview.html = this.getHtmlContent(webviewView.webview);
 
@@ -45,10 +54,17 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(async (message) => {
             switch (message.type) {
                 case 'send':
+                    if (!this.acpClient.getCurrentSession()) {
+                        const session = await this.acpClient.newSession();
+                        this.postMessage({ type: 'currentSession', data: { sessionId: session.id } });
+                        this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() });
+                    }
                     await this.acpClient.prompt(message.content, message.attachments);
                     break;
                 case 'newSession':
-                    await this.acpClient.newSession(message.title);
+                    const session = await this.acpClient.newSession(message.title);
+                    this.postMessage({ type: 'currentSession', data: { sessionId: session.id } });
+                    this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() });
                     break;
                 case 'listSessions':
                     const sessions = await this.acpClient.listSessions();
@@ -56,9 +72,11 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'switchSession':
                     await this.acpClient.switchSession(message.sessionId);
+                    this.postMessage({ type: 'currentSession', data: { sessionId: message.sessionId } });
                     break;
                 case 'deleteSession':
                     await this.acpClient.deleteSession(message.sessionId);
+                    this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() });
                     break;
                 case 'acceptChange':
                     await this.acpClient.acceptFileChange(message.path);
@@ -91,32 +109,72 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private postMessage(message: unknown): void {
+    public postMessage(message: unknown): void {
         this.webviewView?.webview.postMessage(message);
     }
 
     private getHtmlContent(webview: vscode.Webview): string {
         const scriptUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this.context.extensionUri, 'webview', 'dist', 'index.js')
+            vscode.Uri.joinPath(this.distRoot, 'index.js')
         );
         const styleUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this.context.extensionUri, 'webview', 'dist', 'index.css')
+            vscode.Uri.joinPath(this.distRoot, 'index.css')
         );
 
         const nonce = this.getNonce();
+
+        console.log('[VCoder] Webview styleUri:', styleUri.toString());
+        console.log('[VCoder] Webview scriptUri:', scriptUri.toString());
 
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'nonce-${nonce}';">
   <link rel="stylesheet" href="${styleUri}">
-  <title>Z-Code</title>
+  <title>VCoder</title>
 </head>
 <body>
   <div id="root"></div>
-  <script nonce="${nonce}" src="${scriptUri}"></script>
+  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+</body>
+</html>`;
+    }
+
+    private async ensureWebviewAssets(): Promise<boolean> {
+        try {
+            await vscode.workspace.fs.stat(vscode.Uri.joinPath(this.distRoot, 'index.js'));
+            await vscode.workspace.fs.stat(vscode.Uri.joinPath(this.distRoot, 'index.css'));
+            return true;
+        } catch (err) {
+            console.error('[VCoder] Webview assets missing:', err);
+            return false;
+        }
+    }
+
+    private getMissingAssetsHtml(webview: vscode.Webview): string {
+        const nonce = this.getNonce();
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'nonce-${nonce}';">
+  <title>VCoder</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 16px; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace; }
+  </style>
+</head>
+<body>
+  <h3>VCoder webview build output not found</h3>
+  <p>Expected files:</p>
+  <ul>
+    <li><code>packages/extension/webview/dist/index.js</code></li>
+    <li><code>packages/extension/webview/dist/index.css</code></li>
+  </ul>
+  <p>Rebuild the webview, then reload the Extension Host window.</p>
 </body>
 </html>`;
     }

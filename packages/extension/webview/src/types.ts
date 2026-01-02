@@ -2,12 +2,7 @@
  * Webview Types
  */
 
-import {
-    UpdateNotificationParams,
-    Session,
-    Task,
-    ModelId,
-} from '@z-code/shared';
+import type { UpdateNotificationParams, Session, Task, ModelId } from '@vcoder/shared';
 
 // Message types from Extension to Webview
 export interface UpdateMessage {
@@ -25,7 +20,12 @@ export interface SessionsMessage {
     data: Session[];
 }
 
-export type ExtensionMessage = UpdateMessage | CompleteMessage | SessionsMessage;
+export interface CurrentSessionMessage {
+    type: 'currentSession';
+    data: { sessionId: string };
+}
+
+export type ExtensionMessage = UpdateMessage | CompleteMessage | SessionsMessage | CurrentSessionMessage;
 
 // Message types from Webview to Extension
 export interface SendMessage {

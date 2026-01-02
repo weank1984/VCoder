@@ -2,9 +2,9 @@
  * App State Store using Zustand
  */
 
-import { create } from 'zustand';
-import { AppState, ChatMessage, ToolCall } from '../types';
-import { Task, ModelId, UpdateNotificationParams } from '@z-code/shared';
+import { create } from './createStore';
+import type { AppState, ChatMessage, ToolCall } from '../types';
+import type { Task, ModelId, UpdateNotificationParams } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
 
 interface AppStore extends AppState {
@@ -94,7 +94,11 @@ export const useStore = create<AppStore>((set, get) => ({
 
     setTasks: (tasks) => set({ tasks }),
 
-    setSessions: (sessions) => set({ sessions }),
+    setSessions: (sessions) =>
+        set((state) => ({
+            sessions,
+            currentSessionId: state.currentSessionId ?? sessions[0]?.id ?? null,
+        })),
 
     setCurrentSession: (sessionId) => set({ currentSessionId: sessionId }),
 
@@ -148,6 +152,7 @@ export const useStore = create<AppStore>((set, get) => ({
             case 'error': {
                 const { message } = content as { message: string };
                 get().setError(message);
+                get().setLoading(false);
                 break;
             }
         }

@@ -5,6 +5,11 @@ import { resolve } from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@vcoder/shared': resolve(__dirname, '../../shared/src/index.ts'),
+    },
+  },
   build: {
     outDir: 'dist',
     rollupOptions: {

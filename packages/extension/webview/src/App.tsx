@@ -1,23 +1,20 @@
 /**
- * Z-Code Webview App
+ * V-Coder Webview App
  */
 
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useStore } from './store/useStore';
-import { SessionHeader } from './components/SessionHeader';
 import { TaskList } from './components/TaskList';
 import { ChatBubble } from './components/ChatBubble';
 import { InputArea } from './components/InputArea';
 import { postMessage } from './utils/vscode';
-import { ExtensionMessage } from './types';
+import type { ExtensionMessage } from './types';
 import './App.css';
 
 function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
-    sessions,
-    currentSessionId,
     messages,
     tasks,
     planMode,
@@ -38,15 +35,20 @@ function App() {
           handleUpdate(message.data);
           break;
         case 'complete':
-          setLoading(false);
-          // Mark last message as complete
-          const lastMsg = messages[messages.length - 1];
-          if (lastMsg) {
-            useStore.getState().updateMessage(lastMsg.id, { isComplete: true });
+          {
+            setLoading(false);
+            const state = useStore.getState();
+            const lastMsg = state.messages[state.messages.length - 1];
+            if (lastMsg) {
+              state.updateMessage(lastMsg.id, { isComplete: true });
+            }
           }
           break;
         case 'sessions':
           setSessions(message.data);
+          break;
+        case 'currentSession':
+          setCurrentSession(message.data.sessionId);
           break;
       }
     };
@@ -57,34 +59,25 @@ function App() {
     postMessage({ type: 'listSessions' });
 
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  }, [handleUpdate, setCurrentSession, setLoading, setSessions]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSwitchSession = (sessionId: string) => {
-    setCurrentSession(sessionId);
-    postMessage({ type: 'switchSession', sessionId });
-  };
-
   return (
     <div className="app">
-      <SessionHeader
-        sessions={sessions}
-        currentSessionId={currentSessionId}
-        onSwitchSession={handleSwitchSession}
-      />
-
       <TaskList tasks={tasks} visible={planMode} />
 
       <div className="messages-container">
         {messages.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🤖</div>
-            <h2>Welcome to Z-Code</h2>
-            <p>Start a conversation with AI to get coding help</p>
+            <div className="empty-card">
+              <div className="empty-icon">🤖</div>
+              <h2>欢迎使用 VCoder</h2>
+              <p>输入你的问题，让 AI 帮你写代码、修 Bug、做重构</p>
+            </div>
           </div>
         ) : (
           messages.map((msg) => (

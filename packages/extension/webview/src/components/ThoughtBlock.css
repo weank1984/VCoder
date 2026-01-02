@@ -1,8 +1,9 @@
 .thought-block {
     margin: 8px 0;
-    border-radius: 6px;
+    border-radius: var(--vcoder-radius-md);
     background: var(--vscode-textBlockQuote-background);
     border-left: 3px solid var(--vscode-terminal-ansiYellow);
+    overflow: hidden;
 }
 
 .thought-header {
@@ -32,7 +33,7 @@
     font-style: italic;
 }
 
-.expand-icon {
+.thought-expand-icon {
     font-size: 10px;
     color: var(--vscode-descriptionForeground);
 }
@@ -42,5 +43,5 @@
     font-size: 13px;
     color: var(--vscode-descriptionForeground);
     white-space: pre-wrap;
-    border-top: 1px solid var(--vscode-panel-border);
+    border-top: 1px solid var(--vcoder-border);
 }

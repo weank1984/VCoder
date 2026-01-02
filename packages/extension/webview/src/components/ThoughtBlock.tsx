@@ -2,14 +2,14 @@
  * Thought Block Component - Collapsible AI thinking process
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import './ThoughtBlock.css';
 
 interface ThoughtBlockProps {
     content: string;
 }
 
-export const ThoughtBlock: React.FC<ThoughtBlockProps> = ({ content }) => {
+export function ThoughtBlock({ content }: ThoughtBlockProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
@@ -19,8 +19,8 @@ export const ThoughtBlock: React.FC<ThoughtBlockProps> = ({ content }) => {
                 onClick={() => setIsExpanded(!isExpanded)}
             >
                 <span className="thought-icon">💭</span>
-                <span className="thought-title">Thinking...</span>
-                <span className="expand-icon">{isExpanded ? '▼' : '▶'}</span>
+                <span className="thought-title">思考过程</span>
+                <span className="thought-expand-icon">{isExpanded ? '▼' : '▶'}</span>
             </button>
 
             {isExpanded && (
@@ -30,4 +30,4 @@ export const ThoughtBlock: React.FC<ThoughtBlockProps> = ({ content }) => {
             )}
         </div>
     );
-};
+}

@@ -27,7 +27,7 @@ import {
     UpdateNotificationParams,
     SessionCompleteParams,
     Session,
-} from '@z-code/shared';
+} from '@vcoder/shared';
 import { ClaudeCodeWrapper } from '../claude/wrapper';
 
 export class ACPServer {
@@ -144,7 +144,7 @@ export class ACPServer {
         console.error('[ACPServer] Initialize:', params.clientInfo);
         return {
             serverInfo: {
-                name: 'z-code-server',
+                name: 'vcoder-server',
                 version: '0.1.0',
             },
             capabilities: {

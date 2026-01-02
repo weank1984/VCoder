@@ -2,8 +2,8 @@
  * Task List Component - Fixed at top, shows plan tasks
  */
 
-import React, { useState } from 'react';
-import { Task } from '@z-code/shared';
+import { useState } from 'react';
+import type { Task } from '@vcoder/shared';
 import './TaskList.css';
 
 interface TaskListProps {
@@ -11,7 +11,7 @@ interface TaskListProps {
     visible: boolean;
 }
 
-export const TaskList: React.FC<TaskListProps> = ({ tasks, visible }) => {
+export function TaskList({ tasks, visible }: TaskListProps) {
     const [isExpanded, setIsExpanded] = useState(true);
 
     if (!visible || tasks.length === 0) {
@@ -41,7 +41,7 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, visible }) => {
                 onClick={() => setIsExpanded(!isExpanded)}
             >
                 <span className="task-icon">📋</span>
-                <span className="header-title">Plan ({tasks.length} tasks)</span>
+                <span className="task-list-title">计划（{tasks.length} 项）</span>
                 <span className="expand-toggle">{isExpanded ? '▼ 收起' : '▶ 展开'}</span>
             </button>
 
@@ -52,4 +52,4 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, visible }) => {
             )}
         </div>
     );
-};
+}

@@ -1,29 +1,33 @@
 .session-header {
     display: flex;
     align-items: center;
-    padding: 8px 12px;
-    background: var(--vscode-titleBar-activeBackground);
-    border-bottom: 1px solid var(--vscode-panel-border);
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--vscode-sideBarTitle-background, var(--vscode-sideBar-background));
+    border-bottom: 1px solid var(--vcoder-border);
     position: relative;
 }
 
-.header-title {
+.session-header-title {
     font-weight: 600;
-    font-size: 14px;
-    color: var(--vscode-titleBar-activeForeground);
+    font-size: 13px;
+    color: var(--vscode-sideBarTitle-foreground, var(--vscode-foreground));
+    letter-spacing: 0.2px;
 }
 
 .header-actions {
     display: flex;
-    gap: 4px;
+    gap: 6px;
+    align-items: center;
     margin-left: auto;
 }
 
 .action-btn {
-    padding: 4px 8px;
+    height: 28px;
+    padding: 0 10px;
     background: var(--vscode-button-secondaryBackground);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--vcoder-radius-sm);
     cursor: pointer;
     font-size: 12px;
     color: var(--vscode-button-secondaryForeground);
@@ -33,9 +37,25 @@
     background: var(--vscode-button-secondaryHoverBackground);
 }
 
+.action-btn.primary {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+}
+
+.action-btn.primary:hover {
+    background: var(--vscode-button-hoverBackground);
+}
+
 .icon-btn {
-    padding: 4px 6px;
+    width: 28px;
+    padding: 0;
     font-size: 14px;
+    background: transparent;
+    color: var(--vscode-foreground);
+}
+
+.icon-btn:hover {
+    background: var(--vscode-toolbar-hoverBackground);
 }
 
 .session-list-dropdown {
@@ -45,9 +65,9 @@
     width: 240px;
     max-height: 300px;
     overflow-y: auto;
-    background: var(--vscode-dropdown-background);
-    border: 1px solid var(--vscode-dropdown-border);
-    border-radius: 6px;
+    background: var(--vscode-quickInput-background, var(--vscode-dropdown-background));
+    border: 1px solid var(--vscode-widget-border, var(--vscode-dropdown-border));
+    border-radius: var(--vcoder-radius-md);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 100;
 }
@@ -62,7 +82,7 @@
 .session-item {
     display: flex;
     align-items: center;
-    padding: 8px 12px;
+    padding: 8px 10px;
     cursor: pointer;
 }
 
@@ -91,7 +111,7 @@
     cursor: pointer;
     color: var(--vscode-descriptionForeground);
     font-size: 16px;
-    border-radius: 4px;
+    border-radius: var(--vcoder-radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;

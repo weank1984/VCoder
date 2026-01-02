@@ -2,8 +2,7 @@
  * Chat Bubble Component
  */
 
-import React from 'react';
-import { ChatMessage } from '../types';
+import type { ChatMessage } from '../types';
 import { ThoughtBlock } from './ThoughtBlock';
 import { ToolCallList } from './ToolCallList';
 import './ChatBubble.css';
@@ -12,14 +11,14 @@ interface ChatBubbleProps {
     message: ChatMessage;
 }
 
-export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
+export function ChatBubble({ message }: ChatBubbleProps) {
     const isUser = message.role === 'user';
 
     return (
         <div className={`chat-bubble ${isUser ? 'user' : 'assistant'}`}>
             <div className="bubble-header">
                 <span className="role-icon">{isUser ? '👤' : '🤖'}</span>
-                <span className="role-name">{isUser ? 'You' : 'Z-Code'}</span>
+                <span className="role-name">{isUser ? '你' : 'VCoder'}</span>
             </div>
 
             <div className="bubble-content">
@@ -41,4 +40,4 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
             </div>
         </div>
     );
-};
+}

@@ -2,8 +2,9 @@
  * Session Header Component
  */
 
-import React, { useState } from 'react';
-import { Session } from '@z-code/shared';
+import { useState } from 'react';
+import type { MouseEvent } from 'react';
+import type { Session } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
 import './SessionHeader.css';
 
@@ -13,11 +14,11 @@ interface SessionHeaderProps {
     onSwitchSession: (sessionId: string) => void;
 }
 
-export const SessionHeader: React.FC<SessionHeaderProps> = ({
+export function SessionHeader({
     sessions,
     currentSessionId,
     onSwitchSession,
-}) => {
+}: SessionHeaderProps) {
     const [showList, setShowList] = useState(false);
 
     const handleNewChat = () => {
@@ -25,19 +26,17 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
         setShowList(false);
     };
 
-    const handleDeleteSession = (sessionId: string, e: React.MouseEvent) => {
+    const handleDeleteSession = (sessionId: string, e: MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         postMessage({ type: 'deleteSession', sessionId });
     };
 
-    const currentSession = sessions.find((s) => s.id === currentSessionId);
-
     return (
         <div className="session-header">
-            <span className="header-title">Z-Code</span>
+            <span className="session-header-title">VCoder</span>
 
             <div className="header-actions">
-                <button className="action-btn" onClick={handleNewChat} title="New Chat">
+                <button className="action-btn primary" onClick={handleNewChat} title="新对话">
                     新对话
                 </button>
 
@@ -48,14 +47,14 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
                     会话列表 ▾
                 </button>
 
-                <button className="action-btn icon-btn" title="Refresh">⟳</button>
-                <button className="action-btn icon-btn" title="Settings">⚙️</button>
+                <button className="action-btn icon-btn" title="刷新" aria-label="刷新">⟳</button>
+                <button className="action-btn icon-btn" title="设置" aria-label="设置">⚙️</button>
             </div>
 
             {showList && (
                 <div className="session-list-dropdown">
                     {sessions.length === 0 ? (
-                        <div className="session-empty">No sessions</div>
+                        <div className="session-empty">暂无会话</div>
                     ) : (
                         sessions.map((session) => (
                             <div
@@ -70,6 +69,8 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
                                 <button
                                     className="session-delete"
                                     onClick={(e) => handleDeleteSession(session.id, e)}
+                                    aria-label="删除会话"
+                                    title="删除会话"
                                 >
                                     ×
                                 </button>
@@ -80,4 +81,4 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
             )}
         </div>
     );
-};
+}

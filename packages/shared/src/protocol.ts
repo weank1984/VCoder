@@ -1,5 +1,5 @@
 /**
- * Z-Code ACP Protocol Types
+ * V-Coder ACP Protocol Types
  * Agent Client Protocol over JSON-RPC 2.0
  */
 
@@ -223,6 +223,11 @@ export interface FileChangeUpdate {
     type: 'created' | 'modified' | 'deleted';
     path: string;
     diff?: string;
+    /**
+     * Proposed full file content (when available from the CLI).
+     * When present, the extension can render a real VSCode diff and apply changes locally.
+     */
+    content?: string;
     proposed: boolean;
 }
 

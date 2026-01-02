@@ -1,53 +1,60 @@
-/* VSCode Theme Variables */
-:root {
-  font-family: var(--vscode-font-family);
-  font-size: var(--vscode-font-size);
-  color: var(--vscode-foreground);
-  background: var(--vscode-sideBar-background);
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 /* App Layout */
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
+  background: var(--vcoder-surface);
 }
 
 /* Messages Area */
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: var(--vcoder-space-3);
+  background: var(--vcoder-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vcoder-space-3);
 }
 
 /* Empty State */
 .empty-state {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  flex: 1;
   text-align: center;
   color: var(--vscode-descriptionForeground);
+  padding: var(--vcoder-space-4);
+}
+
+.empty-card {
+  width: 100%;
+  max-width: 360px;
+  border: 1px solid var(--vcoder-border);
+  background: var(--vcoder-surface-3);
+  border-radius: var(--vcoder-radius-lg);
+  padding: 20px 18px;
 }
 
 .empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
+  width: 56px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  border-radius: 14px;
+  margin: 4px auto 14px;
+  background: var(--vscode-button-secondaryBackground);
 }
 
 .empty-state h2 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--vscode-foreground);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .empty-state p {
@@ -86,23 +93,4 @@
 
 .error-dismiss:hover {
   background: rgba(255, 255, 255, 0.1);
-}
-
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--vscode-scrollbarSlider-background);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--vscode-scrollbarSlider-hoverBackground);
 }

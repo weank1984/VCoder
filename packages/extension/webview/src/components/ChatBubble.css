@@ -1,24 +1,28 @@
 .chat-bubble {
-  margin: 12px 0;
-  padding: 12px;
-  border-radius: 8px;
+  max-width: 92%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--vcoder-surface-3);
 }
 
 .chat-bubble.user {
+  align-self: flex-end;
   background: var(--vscode-input-background);
-  margin-left: 24px;
+  border-color: var(--vscode-input-border);
 }
 
 .chat-bubble.assistant {
-  background: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-panel-border);
+  align-self: flex-start;
+  background: var(--vcoder-surface-3);
+  border-color: var(--vscode-editorWidget-border, var(--vcoder-border));
 }
 
 .bubble-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-size: 12px;
   color: var(--vscode-descriptionForeground);
 }
@@ -39,6 +43,7 @@
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.5;
+  font-size: 13px;
 }
 
 .cursor {

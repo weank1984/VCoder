@@ -1,8 +1,8 @@
 .tool-call-list {
     margin: 8px 0;
-    border-radius: 6px;
-    background: var(--vscode-editor-background);
-    border: 1px solid var(--vscode-panel-border);
+    border-radius: var(--vcoder-radius-md);
+    background: var(--vcoder-surface-3);
+    border: 1px solid var(--vcoder-border);
     overflow: hidden;
 }
 
@@ -28,7 +28,7 @@
     color: var(--vscode-terminal-ansiGreen);
 }
 
-.header-title {
+.tool-list-title {
     flex: 1;
     font-weight: 500;
 }
@@ -47,13 +47,13 @@
     color: var(--vscode-descriptionForeground);
 }
 
-.expand-icon {
+.tool-list-expand-icon {
     font-size: 10px;
     color: var(--vscode-descriptionForeground);
 }
 
 .tool-list-content {
-    border-top: 1px solid var(--vscode-panel-border);
+    border-top: 1px solid var(--vcoder-border);
     max-height: 200px;
     overflow-y: auto;
 }
@@ -64,7 +64,7 @@
     gap: 8px;
     padding: 6px 12px;
     font-size: 12px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--vcoder-border);
 }
 
 .tool-call-item:last-child {

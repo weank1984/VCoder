@@ -2,15 +2,15 @@
  * Tool Call List Component
  */
 
-import React, { useState } from 'react';
-import { ToolCall } from '../types';
+import { useState } from 'react';
+import type { ToolCall } from '../types';
 import './ToolCallList.css';
 
 interface ToolCallListProps {
     toolCalls: ToolCall[];
 }
 
-export const ToolCallList: React.FC<ToolCallListProps> = ({ toolCalls }) => {
+export function ToolCallList({ toolCalls }: ToolCallListProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const completedCount = toolCalls.filter(tc => tc.status === 'completed').length;
@@ -32,12 +32,12 @@ export const ToolCallList: React.FC<ToolCallListProps> = ({ toolCalls }) => {
                 onClick={() => setIsExpanded(!isExpanded)}
             >
                 <span className="status-icon">✓</span>
-                <span className="header-title">
-                    Finished working
-                    {failedCount > 0 && <span className="failed-badge">{failedCount} failed</span>}
+                <span className="tool-list-title">
+                    工具调用
+                    {failedCount > 0 && <span className="failed-badge">{failedCount} 失败</span>}
                 </span>
-                <span className="call-count">{completedCount}/{toolCalls.length} tool calls</span>
-                <span className="expand-icon">{isExpanded ? '▼' : '▶'}</span>
+                <span className="call-count">{completedCount}/{toolCalls.length}</span>
+                <span className="tool-list-expand-icon">{isExpanded ? '▼' : '▶'}</span>
             </button>
 
             {isExpanded && (
@@ -51,7 +51,7 @@ export const ToolCallList: React.FC<ToolCallListProps> = ({ toolCalls }) => {
                             <span className="tool-name">{tc.name}</span>
                             {tc.error && (
                                 <span className="tool-error" title={tc.error}>
-                                    Error
+                                    错误
                                 </span>
                             )}
                         </div>
@@ -60,4 +60,4 @@ export const ToolCallList: React.FC<ToolCallListProps> = ({ toolCalls }) => {
             )}
         </div>
     );
-};
+}

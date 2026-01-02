@@ -1,5 +1,5 @@
 /**
- * Z-Code Agent Server
+ * V-Coder Agent Server
  * Entry point - listens on stdin/stdout for ACP messages
  */
 
@@ -7,7 +7,7 @@ import { ClaudeCodeWrapper } from './claude/wrapper';
 import { ACPServer } from './acp/server';
 
 async function main() {
-    console.error('[Z-Code Server] Starting...');
+    console.error('[V-Coder Server] Starting...');
 
     // Create Claude Code CLI wrapper
     const claudeCode = new ClaudeCodeWrapper({
@@ -19,18 +19,18 @@ async function main() {
 
     await server.start();
 
-    console.error('[Z-Code Server] Ready');
+    console.error('[V-Coder Server] Ready');
 
     // Handle shutdown signals
     process.on('SIGTERM', async () => {
-        console.error('[Z-Code Server] Shutting down...');
+        console.error('[V-Coder Server] Shutting down...');
         await claudeCode.shutdown();
         await server.shutdown();
         process.exit(0);
     });
 
     process.on('SIGINT', async () => {
-        console.error('[Z-Code Server] Interrupted, shutting down...');
+        console.error('[V-Coder Server] Interrupted, shutting down...');
         await claudeCode.shutdown();
         await server.shutdown();
         process.exit(0);
@@ -38,6 +38,6 @@ async function main() {
 }
 
 main().catch((err) => {
-    console.error('[Z-Code Server] Fatal error:', err);
+    console.error('[V-Coder Server] Fatal error:', err);
     process.exit(1);
 });

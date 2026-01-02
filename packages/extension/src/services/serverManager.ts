@@ -39,14 +39,14 @@ export class ServerManager {
         this.process.on('error', (err) => {
             this.status = 'error';
             console.error('[ServerManager] Error:', err);
-            vscode.window.showErrorMessage(`Z-Code Server Error: ${err.message}`);
+            vscode.window.showErrorMessage(`V-Coder Server Error: ${err.message}`);
         });
 
         this.process.on('exit', (code) => {
             this.status = 'stopped';
             if (code !== 0) {
                 console.error('[ServerManager] Exited with code:', code);
-                vscode.window.showWarningMessage('Z-Code Server exited unexpectedly');
+                vscode.window.showWarningMessage('V-Coder Server exited unexpectedly');
             }
         });
 

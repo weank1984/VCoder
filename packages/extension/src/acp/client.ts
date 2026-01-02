@@ -22,7 +22,7 @@ import {
     SessionCompleteParams,
     Session,
     ModelId,
-} from '@z-code/shared';
+} from '@vcoder/shared';
 
 export class ACPClient extends EventEmitter {
     private requestId = 0;
@@ -115,10 +115,20 @@ export class ACPClient extends EventEmitter {
 
     async switchSession(sessionId: string): Promise<void> {
         await this.sendRequest(ACPMethods.SESSION_SWITCH, { sessionId });
+        // Server doesn't return the full session object; keep minimal info for routing future prompts.
+        this.currentSession = {
+            id: sessionId,
+            title: 'Switched Session',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
     }
 
     async deleteSession(sessionId: string): Promise<void> {
         await this.sendRequest(ACPMethods.SESSION_DELETE, { sessionId });
+        if (this.currentSession?.id === sessionId) {
+            this.currentSession = null;
+        }
     }
 
     async prompt(content: string, attachments?: PromptParams['attachments']): Promise<void> {
