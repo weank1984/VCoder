@@ -1,12 +1,13 @@
 .input-area {
-    padding: 12px 16px 16px;
+    padding: 0 var(--vcoder-space-2) var(--vcoder-space-2);
     background: var(--vcoder-surface);
 }
 
 .input-wrapper {
-    background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-input-border);
-    border-radius: 12px;
+    background: var(--vcoder-overlay-1);
+    border: 1px solid var(--vcoder-overlay-2);
+    border-radius: var(--vcoder-radius-lg);
+    padding: 4px;
     overflow: hidden;
 }
 
@@ -16,15 +17,15 @@
 
 .input-field {
     width: 100%;
-    padding: 14px 16px 10px;
+    padding: 10px 10px 8px;
     border: none;
     background: transparent;
     color: var(--vscode-input-foreground);
     font-family: var(--vscode-font-family);
-    font-size: 14px;
+    font-size: 13px;
     resize: none;
-    min-height: 44px;
-    max-height: 200px;
+    min-height: 40px;
+    max-height: 300px;
     line-height: 1.5;
 }
 
@@ -41,72 +42,77 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    gap: 8px;
+    padding: 2px 2px 0;
+    gap: 6px;
 }
 
 .toolbar-left,
 .toolbar-right {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
 }
 
 /* Tool Button */
 .tool-btn {
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
     padding: 0;
     background: transparent;
     border: none;
-    border-radius: 8px;
+    border-radius: 999px;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--vscode-foreground);
+    color: var(--vscode-descriptionForeground);
+    font-size: 16px;
     opacity: 0.7;
-    transition: opacity 0.15s, background 0.15s;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
 }
 
 .tool-btn:hover {
     opacity: 1;
-    background: var(--vscode-toolbar-hoverBackground);
+    background: var(--vcoder-overlay-2);
 }
 
-.tool-btn .icon {
-    font-size: 16px;
+.add-btn {
+    font-size: 18px;
+    font-weight: 300;
 }
 
 /* Dropdown Button */
 .dropdown-btn {
-    height: 28px;
-    padding: 0 10px;
+    height: 26px;
+    padding: 0 8px 0 6px;
     background: transparent;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--vcoder-radius-sm);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 12px;
     color: var(--vscode-descriptionForeground);
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    transition: color 0.15s, background 0.15s;
+    gap: 4px;
+    opacity: 0.7;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
     position: relative;
 }
 
 .dropdown-btn:hover {
-    color: var(--vscode-foreground);
-    background: var(--vscode-toolbar-hoverBackground);
+    opacity: 1;
+    background: var(--vcoder-overlay-2);
 }
 
 .dropdown-btn.active {
+    opacity: 1;
     color: var(--vscode-foreground);
+    background: var(--vcoder-overlay-1);
 }
 
-.dropdown-icon {
-    font-size: 10px;
-    opacity: 0.6;
+.dropdown-arrow {
+    font-size: 11px;
+    font-weight: 300;
 }
 
 /* Model Button with overlay select */
@@ -125,31 +131,36 @@
 
 /* Mic Button */
 .mic-btn {
-    opacity: 0.5;
+    font-size: 14px;
 }
 
-.mic-btn:hover {
-    opacity: 0.8;
+.mic-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.mic-btn:disabled:hover {
+    background: transparent;
 }
 
 /* Send Button */
 .send-btn {
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
     border: none;
-    border-radius: 50%;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    border-radius: 999px;
+    background: var(--vcoder-overlay-3);
+    color: var(--vscode-button-foreground);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s, transform 0.15s;
+    font-size: 13px;
+    transition: background 0.15s, transform 0.1s;
 }
 
 .send-btn:hover:not(:disabled) {
     background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
 }
 
 .send-btn:active:not(:disabled) {
@@ -157,10 +168,21 @@
 }
 
 .send-btn:disabled {
-    opacity: 0.4;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
-.send-btn .icon {
-    font-size: 16px;
+.loader {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgb(128 128 128 / 70%);
+    border-top-color: rgb(128 128 128 / 20%);
+    animation: loading-animation 1s infinite linear;
+}
+
+@keyframes loading-animation {
+    100% {
+        transform: rotate(1turn);
+    }
 }

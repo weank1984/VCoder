@@ -99,6 +99,22 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                 case 'confirmPlan':
                     await this.acpClient.confirmPlan();
                     break;
+                case 'getWorkspaceFiles':
+                    const files = await vscode.workspace.findFiles('**/*', '**/node_modules/**');
+                    this.postMessage({ 
+                        type: 'workspaceFiles', 
+                        data: files.map(f => f.fsPath) 
+                    });
+                    break;
+                case 'executeCommand':
+                    if (message.command) {
+                        try {
+                            await vscode.commands.executeCommand(message.command);
+                        } catch (err) {
+                            console.error('[VCoder] Failed to execute command:', message.command, err);
+                        }
+                    }
+                    break;
             }
         });
     }

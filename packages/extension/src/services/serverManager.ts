@@ -5,12 +5,16 @@
 
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
+import * as fs from 'fs';
 import * as vscode from 'vscode';
 import { Readable, Writable } from 'stream';
 
 export class ServerManager {
     private process: ChildProcess | null = null;
     private status: 'stopped' | 'starting' | 'running' | 'error' = 'stopped';
+
+    private _onStatusChange = new vscode.EventEmitter<string>();
+    readonly onStatusChange = this._onStatusChange.event;
 
     constructor(private context: vscode.ExtensionContext) { }
 
@@ -19,43 +23,57 @@ export class ServerManager {
             return;
         }
 
-        this.status = 'starting';
+        this.updateStatus('starting');
 
-        // Find server binary location
-        const serverPath = this.getServerPath();
+        try {
+            // Find server binary location
+            const serverPath = this.getServerPath();
 
-        // Get API Key
-        const apiKey = await this.context.secrets.get('anthropic-api-key');
+            // Get API Key
+            const apiKey = await this.context.secrets.get('anthropic-api-key');
 
-        this.process = spawn('node', [serverPath], {
-            cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd(),
-            stdio: ['pipe', 'pipe', 'pipe'],
-            env: {
-                ...process.env,
-                ANTHROPIC_API_KEY: apiKey || '',
-            },
-        });
-
-        this.process.on('error', (err) => {
-            this.status = 'error';
-            console.error('[ServerManager] Error:', err);
-            vscode.window.showErrorMessage(`V-Coder Server Error: ${err.message}`);
-        });
-
-        this.process.on('exit', (code) => {
-            this.status = 'stopped';
-            if (code !== 0) {
-                console.error('[ServerManager] Exited with code:', code);
-                vscode.window.showWarningMessage('V-Coder Server exited unexpectedly');
+            const env: NodeJS.ProcessEnv = { ...process.env };
+            // Only pass through the API key when it's actually set; don't override CLI defaults with an empty string.
+            if (apiKey && apiKey.trim().length > 0) {
+                env.ANTHROPIC_API_KEY = apiKey;
+            } else {
+                delete env.ANTHROPIC_API_KEY;
             }
-        });
 
-        // Log stderr
-        this.process.stderr?.on('data', (data) => {
-            console.log('[Server]', data.toString().trim());
-        });
+            this.process = spawn('node', [serverPath], {
+                cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd(),
+                stdio: ['pipe', 'pipe', 'pipe'],
+                env,
+            });
 
-        this.status = 'running';
+            this.process.on('error', (err) => {
+                this.updateStatus('error');
+                console.error('[ServerManager] Error:', err);
+                vscode.window.showErrorMessage(`V-Coder Server Error: ${err.message}`);
+            });
+
+            this.process.on('exit', (code) => {
+                if (this.status !== 'stopped') { // Unexpected exit
+                    this.updateStatus('error');
+                    console.error('[ServerManager] Exited unexpectedly with code:', code);
+                    vscode.window.showWarningMessage('V-Coder Server exited unexpectedly');
+                } else {
+                    this.updateStatus('stopped');
+                }
+                this.process = null;
+            });
+
+            // Log stderr
+            this.process.stderr?.on('data', (data) => {
+                console.log('[Server]', data.toString().trim());
+            });
+
+            this.updateStatus('running');
+        } catch (error) {
+            this.updateStatus('error');
+            console.error('[ServerManager] Failed to start:', error);
+            throw error;
+        }
     }
 
     getStdio(): { stdin: Writable; stdout: Readable } {
@@ -70,21 +88,45 @@ export class ServerManager {
 
     async stop(): Promise<void> {
         if (this.process) {
+            this.updateStatus('stopped'); // Set status first to avoid 'unexpected exit' logic
             this.process.kill('SIGTERM');
             this.process = null;
+        } else {
+            this.updateStatus('stopped');
         }
-        this.status = 'stopped';
+    }
+
+    async restart(): Promise<void> {
+        await this.stop();
+        // Wait a brief moment to ensure cleanup
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await this.start();
     }
 
     getStatus(): string {
         return this.status;
     }
 
+    private updateStatus(newStatus: 'stopped' | 'starting' | 'running' | 'error') {
+        this.status = newStatus;
+        this._onStatusChange.fire(newStatus);
+    }
+
     private getServerPath(): string {
-        // In development, use the built server in packages/server/dist
-        // In production, it would be bundled with the extension
-        return this.context.asAbsolutePath(
-            path.join('..', 'server', 'dist', 'index.js')
-        );
+        // Production: Server is bundled in 'server/index.js' at extension root
+        const bundledPath = path.join(this.context.extensionPath, 'server', 'index.js');
+        // Development: prefer monorepo build output to avoid running stale bundled copies.
+        // Note: In strict production (VSIX), this path won't exist or be accessible.
+        const devPath = path.resolve(this.context.extensionPath, '..', 'server', 'dist', 'index.js');
+
+        if (this.context.extensionMode === vscode.ExtensionMode.Development && fs.existsSync(devPath)) {
+            return devPath;
+        }
+
+        if (fs.existsSync(bundledPath)) {
+            return bundledPath;
+        }
+
+        return devPath;
     }
 }

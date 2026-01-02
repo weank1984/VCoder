@@ -8,16 +8,34 @@ import { ServerManager } from './services/serverManager';
 import { ACPClient } from './acp/client';
 import { ChatViewProvider } from './providers/chatViewProvider';
 import { DiffManager } from './services/diffManager';
-import { FileChangeUpdate, UpdateNotificationParams } from '@vcoder/shared';
+import { VCoderFileDecorationProvider } from './providers/fileDecorationProvider';
+import { FileChangeUpdate, UpdateNotificationParams, InitializeParams } from '@vcoder/shared';
 
 let serverManager: ServerManager;
 let acpClient: ACPClient;
+let statusBarItem: vscode.StatusBarItem;
+let clientInitParams: InitializeParams;
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('[VCoder] Activating extension...');
 
     // 1. Start Agent Server
     serverManager = new ServerManager(context);
+    
+    // Status Bar initialization
+    statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    statusBarItem.command = 'vcoder.showServerStatus';
+    context.subscriptions.push(statusBarItem);
+    
+    serverManager.onStatusChange((status) => {
+        updateStatusBar(status);
+        // Re-initialize client if server restarted to running state
+        if (status === 'running' && acpClient && clientInitParams) {
+             const { stdin, stdout } = serverManager.getStdio();
+             acpClient.updateTransport(stdout, stdin);
+             acpClient.initialize(clientInitParams).catch(err => console.error('Failed to re-init client:', err));
+        }
+    });
 
     try {
         await serverManager.start();
@@ -25,12 +43,12 @@ export async function activate(context: vscode.ExtensionContext) {
     } catch (err) {
         vscode.window.showErrorMessage('VCoder: Failed to start server. Check if dependencies are installed.');
         console.error('[VCoder] Server start error:', err);
-        return;
+        // Don't return, let the user try to restart via status bar
     }
 
     // 2. Initialize ACP Client
     acpClient = new ACPClient(serverManager.getStdio());
-    await acpClient.initialize({
+    clientInitParams = {
         clientInfo: {
             name: 'vcoder-vscode',
             version: '0.1.0',
@@ -44,11 +62,18 @@ export async function activate(context: vscode.ExtensionContext) {
             multiSession: true,
         },
         workspaceFolders: vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath) || [],
-    });
+    };
+    await acpClient.initialize(clientInitParams);
 
     // 2.1 Register diff preview provider & confirmation flows
     const diffManager = new DiffManager(acpClient);
     context.subscriptions.push(diffManager.register());
+
+    // 2.2 Register file decoration provider
+    const fileDecorator = new VCoderFileDecorationProvider();
+    context.subscriptions.push(
+        vscode.window.registerFileDecorationProvider(fileDecorator)
+    );
 
     const promptedBash = new Set<string>();
     acpClient.on('session/update', (params: UpdateNotificationParams) => {
@@ -56,6 +81,7 @@ export async function activate(context: vscode.ExtensionContext) {
         void (async () => {
             if (params.type === 'file_change') {
                 const change = params.content as FileChangeUpdate;
+                fileDecorator.updateFile(change);
                 await diffManager.previewChange(params.sessionId, change);
                 return;
             }
@@ -120,13 +146,9 @@ export async function activate(context: vscode.ExtensionContext) {
             (err) => console.warn('[VCoder] Failed to open V-Coder view container:', err)
         );
 
-    // 4. Register Status Bar
-    const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    statusBar.text = '$(zap) VCoder: Connected';
-    statusBar.tooltip = 'VCoder is running';
-    statusBar.command = 'vcoder.restart';
-    statusBar.show();
-    context.subscriptions.push(statusBar);
+    // 4. Register Status Bar (Handled by ServerManager status change)
+    // Initial update
+    updateStatusBar(serverManager.getStatus());
 
     // 5. Register Commands
     context.subscriptions.push(
@@ -165,11 +187,23 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
 
         vscode.commands.registerCommand('vcoder.restart', async () => {
-            statusBar.text = '$(sync~spin) VCoder: Restarting...';
-            await serverManager.stop();
-            await serverManager.start();
-            statusBar.text = '$(zap) VCoder: Connected';
+            await serverManager.restart();
             vscode.window.showInformationMessage('VCoder: Server restarted');
+        }),
+
+        vscode.commands.registerCommand('vcoder.showServerStatus', async () => {
+             const status = serverManager.getStatus();
+             const selection = await vscode.window.showQuickPick(
+                 [
+                     { label: 'Restart Server', description: 'Restarts the backend process' },
+                     { label: 'View Logs', description: 'Open hidden output channel (TODO)' }
+                 ], 
+                 { placeHolder: `Server Status: ${status}` }
+             );
+             
+             if (selection?.label === 'Restart Server') {
+                 vscode.commands.executeCommand('vcoder.restart');
+             }
         })
     );
 
@@ -178,9 +212,11 @@ export async function activate(context: vscode.ExtensionContext) {
         try {
             const apiKey = await context.secrets.get('anthropic-api-key');
             if (!apiKey) {
-                statusBar.text = '$(key) VCoder: Set API Key';
-                statusBar.tooltip = 'VCoder needs an Anthropic API Key';
-                statusBar.command = 'vcoder.setApiKey';
+                statusBarItem.text = '$(key) VCoder: Set API Key';
+                statusBarItem.tooltip = 'VCoder needs an Anthropic API Key';
+                statusBarItem.command = 'vcoder.setApiKey';
+                statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+                statusBarItem.show();
 
                 const choice = await vscode.window.showWarningMessage(
                     'VCoder: API Key not configured',
@@ -197,6 +233,30 @@ export async function activate(context: vscode.ExtensionContext) {
     })();
 
     console.log('[VCoder] Extension activated');
+}
+
+function updateStatusBar(status: string) {
+    if (!statusBarItem) return;
+    
+    switch (status) {
+        case 'starting':
+            statusBarItem.text = '$(sync~spin) VCoder: Connecting...';
+            statusBarItem.backgroundColor = undefined;
+            break;
+        case 'running':
+            statusBarItem.text = '$(check) VCoder: Connected';
+            statusBarItem.backgroundColor = undefined;
+            break;
+        case 'error':
+            statusBarItem.text = '$(error) VCoder: Error';
+            statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+            break;
+        case 'stopped':
+            statusBarItem.text = '$(circle-slash) VCoder: Disconnected';
+            statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+            break;
+    }
+    statusBarItem.show();
 }
 
 export async function deactivate() {

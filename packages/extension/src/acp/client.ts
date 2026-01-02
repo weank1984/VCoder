@@ -38,12 +38,20 @@ export class ACPClient extends EventEmitter {
         this.setupMessageHandler();
     }
 
+    updateTransport(stdout: Readable, stdin: Writable) {
+        this.stdio = { stdout, stdin };
+        // Remove old listeners if any (though readline handles this mostly)
+        // Re-setup message handler for new stdout
+        this.setupMessageHandler();
+    }
+
     private setupMessageHandler(): void {
         const rl = createInterface({ input: this.stdio.stdout });
 
         rl.on('line', (line) => {
             try {
                 const message = JSON.parse(line);
+                console.log('[ACPClient] Received:', JSON.stringify(message).slice(0, 200));
 
                 if ('id' in message && message.id !== null) {
                     // Response
@@ -92,7 +100,9 @@ export class ACPClient extends EventEmitter {
 
         return new Promise((resolve, reject) => {
             this.pendingRequests.set(id, { resolve: resolve as (v: unknown) => void, reject });
-            this.stdio.stdin.write(JSON.stringify(request) + '\n');
+            const requestStr = JSON.stringify(request);
+            console.log('[ACPClient] Sending:', requestStr.slice(0, 200));
+            this.stdio.stdin.write(requestStr + '\n');
         });
     }
 

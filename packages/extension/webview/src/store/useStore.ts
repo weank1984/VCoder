@@ -4,7 +4,7 @@
 
 import { create } from './createStore';
 import type { AppState, ChatMessage, ToolCall } from '../types';
-import type { Task, ModelId, UpdateNotificationParams } from '@vcoder/shared';
+import type { Task, ModelId, UpdateNotificationParams, ErrorUpdate } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
 
 interface AppStore extends AppState {
@@ -21,8 +21,9 @@ interface AppStore extends AppState {
     setPlanMode: (enabled: boolean) => void;
     setModel: (model: ModelId) => void;
     setLoading: (loading: boolean) => void;
-    setError: (error: string | null) => void;
+    setError: (error: ErrorUpdate | null) => void;
     handleUpdate: (update: UpdateNotificationParams) => void;
+    setWorkspaceFiles: (files: string[]) => void;
     reset: () => void;
 }
 
@@ -35,6 +36,7 @@ const initialState: AppState = {
     model: 'claude-sonnet-4-20250514',
     isLoading: false,
     error: null,
+    workspaceFiles: [],
 };
 
 export const useStore = create<AppStore>((set, get) => ({
@@ -150,13 +152,15 @@ export const useStore = create<AppStore>((set, get) => ({
                 break;
             }
             case 'error': {
-                const { message } = content as { message: string };
-                get().setError(message);
+                const errorUpdate = content as ErrorUpdate;
+                get().setError(errorUpdate);
                 get().setLoading(false);
                 break;
             }
         }
     },
+
+    setWorkspaceFiles: (files) => set({ workspaceFiles: files }),
 
     reset: () => set(initialState),
 }));

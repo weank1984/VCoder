@@ -2,7 +2,7 @@
  * Webview Types
  */
 
-import type { UpdateNotificationParams, Session, Task, ModelId } from '@vcoder/shared';
+import type { UpdateNotificationParams, Session, Task, ModelId, ErrorUpdate } from '@vcoder/shared';
 
 // Message types from Extension to Webview
 export interface UpdateMessage {
@@ -25,7 +25,7 @@ export interface CurrentSessionMessage {
     data: { sessionId: string };
 }
 
-export type ExtensionMessage = UpdateMessage | CompleteMessage | SessionsMessage | CurrentSessionMessage;
+export type ExtensionMessage = UpdateMessage | CompleteMessage | SessionsMessage | CurrentSessionMessage | WorkspaceFilesMessage;
 
 // Message types from Webview to Extension
 export interface SendMessage {
@@ -91,6 +91,11 @@ export interface ConfirmPlanMessage {
     type: 'confirmPlan';
 }
 
+export interface ExecuteCommandMessage {
+    type: 'executeCommand';
+    command: string;
+}
+
 export type WebviewMessage =
     | SendMessage
     | NewSessionMessage
@@ -103,7 +108,19 @@ export type WebviewMessage =
     | SetPlanModeMessage
     | ConfirmBashMessage
     | SkipBashMessage
-    | ConfirmPlanMessage;
+    | ConfirmPlanMessage
+    | ExecuteCommandMessage
+    | GetWorkspaceFilesMessage;
+
+export interface GetWorkspaceFilesMessage {
+    type: 'getWorkspaceFiles';
+}
+
+export interface WorkspaceFilesMessage {
+    type: 'workspaceFiles';
+    data: string[];
+}
+
 
 // UI State
 export interface ChatMessage {
@@ -131,5 +148,6 @@ export interface AppState {
     planMode: boolean;
     model: ModelId;
     isLoading: boolean;
-    error: string | null;
+    error: ErrorUpdate | null;
+    workspaceFiles: string[];
 }

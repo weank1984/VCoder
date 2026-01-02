@@ -104,8 +104,9 @@
         }
     },
     "scripts": {
-        "vscode:prepublish": "npm run build",
+        "vscode:prepublish": "npm run build && npm run package:server",
         "build": "tsc && npm --prefix webview run build",
+        "package:server": "mkdir -p server && cp -r ../server/dist/* server/",
         "dev": "tsc --watch",
         "clean": "rm -rf out",
         "lint": "eslint src"

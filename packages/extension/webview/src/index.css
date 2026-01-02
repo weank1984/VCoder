@@ -18,6 +18,10 @@
     --vcoder-surface: var(--vscode-sideBar-background);
     --vcoder-surface-2: var(--vscode-editor-background);
     --vcoder-surface-3: var(--vscode-editorWidget-background);
+
+    --vcoder-overlay-1: rgba(128, 128, 128, 0.10);
+    --vcoder-overlay-2: rgba(128, 128, 128, 0.20);
+    --vcoder-overlay-3: rgba(128, 128, 128, 0.50);
 }
 
 *,

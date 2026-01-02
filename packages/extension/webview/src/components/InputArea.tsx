@@ -1,5 +1,5 @@
 /**
- * Input Area Component - Redesigned based on reference design
+ * Input Area Component - Redesigned based on Augment reference design
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -7,6 +7,7 @@ import type { KeyboardEvent } from 'react';
 import { postMessage } from '../utils/vscode';
 import { useStore } from '../store/useStore';
 import type { ModelId } from '@vcoder/shared';
+import { FilePicker } from './FilePicker';
 import './InputArea.css';
 
 const MODELS: { id: ModelId; name: string }[] = [
@@ -18,9 +19,17 @@ const MODELS: { id: ModelId; name: string }[] = [
 
 export function InputArea() {
     const [input, setInput] = useState('');
+    const [showPicker, setShowPicker] = useState(false);
+    const [pickerQuery, setPickerQuery] = useState('');
+    const [cursorPosition, setCursorPosition] = useState(0);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const { planMode, model, isLoading, setPlanMode, setModel, addMessage, setLoading } = useStore();
+    const { planMode, model, isLoading, workspaceFiles, setPlanMode, setModel, addMessage, setLoading } = useStore();
+
+    // Request workspace files on mount
+    useEffect(() => {
+        postMessage({ type: 'getWorkspaceFiles' });
+    }, []);
 
     const handleSubmit = () => {
         if (!input.trim() || isLoading) return;
@@ -52,7 +61,52 @@ export function InputArea() {
         setInput('');
     };
 
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const val = e.target.value;
+        const newPos = e.target.selectionStart;
+        setInput(val);
+        setCursorPosition(e.target.selectionStart);
+
+        // Check for @ trigger
+        const textBeforeCursor = val.slice(0, newPos);
+        const match = /@([\w\-\/\.]*)$/.exec(textBeforeCursor);
+
+        if (match) {
+            setShowPicker(true);
+            setPickerQuery(match[1]);
+        } else {
+            setShowPicker(false);
+        }
+    };
+
+    const handleFileSelect = (file: string) => {
+        const textBefore = input.slice(0, cursorPosition);
+        const textAfter = input.slice(cursorPosition);
+        const match = /@([\w\-\/\.]*)$/.exec(textBefore);
+        
+        if (match) {
+            const prefix = textBefore.slice(0, match.index);
+            // Insert file path directly. 
+            // Ideally we'd use relative path but complete path is safer for CLI.
+            const newValue = prefix + file + ' ' + textAfter;
+            setInput(newValue);
+            setShowPicker(false);
+            
+            // Restore focus
+            textareaRef.current?.focus();
+        }
+    };
+
     const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+        if (showPicker) {
+            if (['ArrowUp', 'ArrowDown', 'Enter', 'Tab', 'Escape'].includes(e.key)) {
+                // Prevent InputArea default behavior (submit/newline)
+                // FilePicker handles selection via window listener
+                if (e.key === 'Enter') e.preventDefault();
+                return; 
+            }
+        }
+
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSubmit();
@@ -71,34 +125,48 @@ export function InputArea() {
 
     return (
         <div className="input-area">
+            {showPicker && (
+                <FilePicker
+                    files={workspaceFiles}
+                    searchQuery={pickerQuery}
+                    position={{ top: -300, left: 0 }} // Position above input
+                    onSelect={handleFileSelect}
+                    onClose={() => setShowPicker(false)}
+                />
+            )}
+            
             <div className="input-wrapper">
                 <textarea
                     ref={textareaRef}
                     className="input-field"
                     placeholder="Ask anything (⌘L), @ to mention, / for workflows"
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
                     disabled={isLoading}
                     rows={1}
+                    onClick={(e) => {
+                        setCursorPosition(e.currentTarget.selectionStart);
+                        setShowPicker(false); // Hide picker on click moving cursor
+                    }}
                 />
 
                 <div className="input-toolbar">
                     <div className="toolbar-left">
-                        <button className="tool-btn" title="添加文件" aria-label="添加文件">
-                            <span className="icon">+</span>
+                        <button className="tool-btn add-btn" title="Add context" aria-label="Add context" onClick={() => setShowPicker(true)}>
+                            +
                         </button>
 
                         <button
                             className={`dropdown-btn ${planMode ? 'active' : ''}`}
                             onClick={() => setPlanMode(!planMode)}
                         >
-                            <span className="dropdown-icon">▽</span>
+                            <span className="dropdown-arrow" aria-hidden="true">▲</span>
                             <span>{planMode ? 'Planning' : 'Normal'}</span>
                         </button>
 
                         <button className="dropdown-btn model-btn">
-                            <span className="dropdown-icon">▽</span>
+                            <span className="dropdown-arrow" aria-hidden="true">▲</span>
                             <span>{selectedModel?.name || 'Select Model'}</span>
                             <select
                                 className="model-select-overlay"
@@ -115,18 +183,18 @@ export function InputArea() {
                     </div>
 
                     <div className="toolbar-right">
-                        <button className="tool-btn mic-btn" title="语音输入" aria-label="语音输入">
-                            <span className="icon">🎤</span>
+                        <button className="tool-btn mic-btn" title="Voice" aria-label="Voice" disabled>
+                            <span aria-hidden="true">🎤</span>
                         </button>
 
                         <button
                             className="send-btn"
                             onClick={handleSubmit}
                             disabled={!input.trim() || isLoading}
-                            title="发送"
-                            aria-label="发送"
+                            title={isLoading ? 'Generating…' : 'Send'}
+                            aria-label={isLoading ? 'Generating…' : 'Send'}
                         >
-                            <span className="icon">→</span>
+                            {isLoading ? <span className="loader" aria-hidden="true" /> : '→'}
                         </button>
                     </div>
                 </div>

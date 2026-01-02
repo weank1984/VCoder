@@ -60,8 +60,10 @@ export class ACPServer {
         const rl = createInterface({ input: this.stdin });
 
         rl.on('line', async (line) => {
+            console.error('[ACPServer] Received:', line.slice(0, 200));
             try {
                 const request = JSON.parse(line) as JsonRpcRequest;
+                console.error('[ACPServer] Handling method:', request.method);
                 const response = await this.handleRequest(request);
                 this.sendResponse(response);
             } catch (err) {
@@ -125,7 +127,8 @@ export class ACPServer {
                     };
             }
 
-            return { jsonrpc: '2.0', id, result };
+            // JSON-RPC success responses should include a `result` key; use `null` for void methods.
+            return { jsonrpc: '2.0', id, result: result === undefined ? null : result };
         } catch (err) {
             return {
                 jsonrpc: '2.0',
@@ -191,7 +194,23 @@ export class ACPServer {
     }
 
     private async handlePrompt(params: PromptParams): Promise<void> {
-        await this.claudeCode.prompt(params.sessionId, params.content, params.attachments);
+        // Don't block the JSON-RPC response on the full model run; streaming happens via notifications.
+        void this.claudeCode
+            .prompt(params.sessionId, params.content, params.attachments)
+            .catch((err) => {
+                console.error('[ACPServer] Prompt error:', err);
+                this.sendNotification(ACPMethods.SESSION_UPDATE, {
+                    sessionId: params.sessionId,
+                    type: 'error',
+                    content: {
+                        code: 'CLI_ERROR',
+                        message: err instanceof Error ? err.message : String(err),
+                    },
+                } satisfies UpdateNotificationParams);
+                this.sendNotification(ACPMethods.SESSION_COMPLETE, {
+                    sessionId: params.sessionId,
+                } satisfies SessionCompleteParams);
+            });
     }
 
     private async handleSettingsChange(params: SettingsChangeParams): Promise<void> {
@@ -202,19 +221,19 @@ export class ACPServer {
     }
 
     private async handleFileAccept(params: FileAcceptParams): Promise<void> {
-        await this.claudeCode.acceptFileChange(params.path);
+        await this.claudeCode.acceptFileChange(params.sessionId, params.path);
     }
 
     private async handleFileReject(params: FileRejectParams): Promise<void> {
-        await this.claudeCode.rejectFileChange(params.path);
+        await this.claudeCode.rejectFileChange(params.sessionId, params.path);
     }
 
     private async handleBashConfirm(params: BashConfirmParams): Promise<void> {
-        await this.claudeCode.confirmBash(params.commandId);
+        await this.claudeCode.confirmBash(params.sessionId, params.commandId);
     }
 
     private async handleBashSkip(params: BashSkipParams): Promise<void> {
-        await this.claudeCode.skipBash(params.commandId);
+        await this.claudeCode.skipBash(params.sessionId, params.commandId);
     }
 
     private async handlePlanConfirm(params: PlanConfirmParams): Promise<void> {
@@ -224,7 +243,9 @@ export class ACPServer {
     // Communication helpers
 
     private sendResponse(response: JsonRpcResponse): void {
-        this.stdout.write(JSON.stringify(response) + '\n');
+        const respStr = JSON.stringify(response);
+        console.error('[ACPServer] Sending response:', respStr.slice(0, 200));
+        this.stdout.write(respStr + '\n');
     }
 
     private sendNotification<T>(method: string, params: T): void {
@@ -233,6 +254,8 @@ export class ACPServer {
             method,
             params,
         };
-        this.stdout.write(JSON.stringify(notification) + '\n');
+        const notifStr = JSON.stringify(notification);
+        console.error('[ACPServer] Sending notification:', method, notifStr.slice(0, 150));
+        this.stdout.write(notifStr + '\n');
     }
 }

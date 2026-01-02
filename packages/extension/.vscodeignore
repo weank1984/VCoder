@@ -1,0 +1,15 @@
+.vscode/**
+.gitignore
+vsc-extension-quickstart.md
+.eslintrc.json
+tsconfig.json
+**/*.map
+test/**
+src/**
+node_modules/**
+!node_modules/@vcoder/shared/**
+webview/src/**
+webview/node_modules/**
+webview/tsconfig.json
+webview/vite.config.ts
+webview/index.html

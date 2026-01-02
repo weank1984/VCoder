@@ -50,6 +50,9 @@ function App() {
         case 'currentSession':
           setCurrentSession(message.data.sessionId);
           break;
+        case 'workspaceFiles':
+          useStore.getState().setWorkspaceFiles(message.data);
+          break;
       }
     };
 
@@ -90,7 +93,23 @@ function App() {
       {error && (
         <div className="error-banner">
           <span className="error-icon">⚠️</span>
-          <span className="error-message">{error}</span>
+          <div className="error-content">
+            <span className="error-message">{error.message}</span>
+            {error.action && (
+              <button 
+                className="error-action-btn"
+                onClick={() => {
+                  postMessage({ 
+                    type: 'executeCommand', 
+                    command: error.action?.command 
+                  });
+                  useStore.getState().setError(null);
+                }}
+              >
+                {error.action.label}
+              </button>
+            )}
+          </div>
           <button className="error-dismiss" onClick={() => useStore.getState().setError(null)}>
             ×
           </button>

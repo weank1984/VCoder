@@ -11,11 +11,11 @@
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: var(--vcoder-space-3);
+  padding: var(--vcoder-space-2);
   background: var(--vcoder-surface);
   display: flex;
   flex-direction: column;
-  gap: var(--vcoder-space-3);
+  gap: var(--vcoder-space-2);
 }
 
 /* Empty State */
@@ -63,34 +63,59 @@
 
 /* Error Banner */
 .error-banner {
+  background-color: var(--vscode-inputValidation-errorBackground);
+  border: 1px solid var(--vscode-inputValidation-errorBorder);
+  padding: 8px 12px;
+  margin: 0 16px 16px 16px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center; /* Center items vertically */
+  gap: 8px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.error-content {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--vscode-inputValidation-errorBackground);
-  border-top: 1px solid var(--vscode-inputValidation-errorBorder);
-  color: var(--vscode-errorForeground);
-  font-size: 13px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .error-icon {
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .error-message {
-  flex: 1;
+  font-size: 13px;
+  color: var(--vscode-foreground);
+}
+
+.error-action-btn {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  padding: 4px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.error-action-btn:hover {
+  background-color: var(--vscode-button-hoverBackground);
 }
 
 .error-dismiss {
   background: none;
   border: none;
+  color: var(--vscode-foreground);
   cursor: pointer;
-  color: var(--vscode-errorForeground);
-  font-size: 16px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: 18px;
+  opacity: 0.7;
+  padding: 0 4px;
+  margin-left: auto; /* Ensure dismiss button stays right */
 }
 
 .error-dismiss:hover {
-  background: rgba(255, 255, 255, 0.1);
+  opacity: 1;
 }

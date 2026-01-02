@@ -5,6 +5,7 @@
 import type { ChatMessage } from '../types';
 import { ThoughtBlock } from './ThoughtBlock';
 import { ToolCallList } from './ToolCallList';
+import { MarkdownContent } from './MarkdownContent';
 import './ChatBubble.css';
 
 interface ChatBubbleProps {
@@ -32,11 +33,12 @@ export function ChatBubble({ message }: ChatBubbleProps) {
                     <ToolCallList toolCalls={message.toolCalls} />
                 )}
 
-                {/* Main message content */}
-                <div className="message-text">
-                    {message.content}
-                    {!message.isComplete && <span className="cursor">▊</span>}
-                </div>
+                {/* Main message content with Markdown rendering for assistant */}
+                {isUser ? (
+                    <div className="message-text">{message.content}</div>
+                ) : (
+                    <MarkdownContent content={message.content} isComplete={message.isComplete} />
+                )}
             </div>
         </div>
     );
