@@ -1,54 +1,189 @@
 $welcome-prefixCls: vc-chat-welcome;
 
 .#{$welcome-prefixCls} {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 20px 20px;
+  padding: 28px 22px 18px;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -120px;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.05) 0, transparent 42%),
+      radial-gradient(circle at 85% 18%, rgba(255, 255, 255, 0.04) 0, transparent 44%),
+      radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.035) 0, transparent 50%),
+      radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 520px 520px, 520px 520px, 520px 520px, 18px 18px;
+    background-position: 0 0, 0 0, 0 0, 0 0;
+    opacity: 0.55;
+    pointer-events: none;
+    filter: blur(0.2px);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at top, rgba(0, 0, 0, 0) 0%, var(--vc-bg) 68%);
+    opacity: 0.8;
+    pointer-events: none;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  &-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-top: 12px;
+  }
 
   .vc-logo {
-    margin-bottom: 20px;
+    margin-bottom: 18px;
     flex-shrink: 0;
-    width: 80px;
-    height: 80px;
+    width: 96px;
+    height: 96px;
+    min-width: 96px;
+    min-height: 96px;
+    opacity: 0.95;
   }
 
   &-title {
-    font-size: 24px;
-    font-weight: 600;
-    margin: 16px 0 8px;
-    color: var(--vc-color-text);
+    font-size: 28px;
+    font-weight: 650;
+    margin: 0 0 10px;
+    color: var(--vc-color-text-heading);
   }
 
   &-note {
-    font-size: 14px;
+    max-width: 460px;
+    font-size: 13px;
+    line-height: 1.6;
     color: var(--vc-color-text-description);
-    margin: 0 0 16px;
+    margin: 0;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    gap: 6px;
   }
 
   &-doc-link {
-    margin-inline-start: 2px;
     cursor: pointer;
     border: none;
     background: none;
     padding: 2px;
-    color: inherit;
+    color: var(--vc-color-link);
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+    opacity: 0.95;
+
+    &:hover {
+      color: var(--vc-color-link-active);
+      opacity: 1;
+    }
+  }
+
+  &-recents {
+    width: 100%;
+    max-width: 560px;
+    margin: 22px auto 0;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  &-recents-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px 10px;
+  }
+
+  &-recents-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--vc-color-text);
+  }
+
+  &-recents-action {
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 4px;
+    color: var(--vc-color-text-tertiary);
     display: inline-flex;
     align-items: center;
     line-height: 0;
 
-    .vc-icon {
-      color: inherit;
+    &:hover {
+      color: var(--vc-color-text);
     }
+  }
+
+  &-recents-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+    overflow: auto;
+    padding-bottom: 8px;
+  }
+
+  &-recents-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--vc-color-border-secondary);
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: var(--vc-box-shadow-tertiary);
+    color: var(--vc-color-text);
+    cursor: pointer;
+    text-align: left;
 
     &:hover {
-      color: var(--vc-color-link-active);
+      background: rgba(255, 255, 255, 0.04);
+      border-color: var(--vc-color-border);
     }
+  }
+
+  &-recents-item-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    color: var(--vc-color-text);
+  }
+
+  &-recents-item-time {
+    flex: none;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--vc-color-text-tertiary);
+    opacity: 0.95;
+  }
+
+  &-recents-empty {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px dashed var(--vc-color-border-secondary);
+    color: var(--vc-color-text-tertiary);
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.015);
   }
 }

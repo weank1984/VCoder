@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useStore } from '../store/useStore';
 import I18n, { resolveLanguage, type SupportedLanguage, type UiLanguage } from './index';
@@ -13,15 +13,14 @@ type I18nContextValue = {
 const I18nContext = createContext<I18nContextValue | null>(null);
 
 export function I18nProvider(props: { children?: ReactNode }) {
-  const uiLanguage = useStore((s) => s.uiLanguage);
-  const setUiLanguage = useStore((s) => s.setUiLanguage);
+  const { uiLanguage, setUiLanguage } = useStore();
 
   const vscodeDisplayLanguage = (globalThis as unknown as { __vscodeLanguage?: string }).__vscodeLanguage;
   const language = resolveLanguage(vscodeDisplayLanguage, uiLanguage);
 
-  useEffect(() => {
+  if (I18n.getCurrentLanguage() !== language) {
     I18n.init(language);
-  }, [language]);
+  }
 
   const value = useMemo<I18nContextValue>(
     () => ({

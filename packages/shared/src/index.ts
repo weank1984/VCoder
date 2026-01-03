@@ -26,6 +26,7 @@ export const ACPMethods = {
     // History API (read Claude Code CLI transcripts)
     HISTORY_LIST: 'history/list',
     HISTORY_LOAD: 'history/load',
+    HISTORY_DELETE: 'history/delete',
 
     // Server -> Client (Notifications)
     SESSION_UPDATE: 'session/update',

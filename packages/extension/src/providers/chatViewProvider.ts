@@ -91,6 +91,18 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                 case 'setPlanMode':
                     await this.acpClient.changeSettings({ planMode: message.enabled });
                     break;
+                case 'setUiLanguage':
+                    {
+                        const config = vscode.workspace.getConfiguration('vcoder');
+                        const uiLanguage = typeof message.uiLanguage === 'string' ? message.uiLanguage : 'auto';
+                        try {
+                            await config.update('uiLanguage', uiLanguage, vscode.ConfigurationTarget.Global);
+                        } catch (err) {
+                            console.warn('[VCoder] Failed to update uiLanguage setting:', err);
+                        }
+                        this.postMessage({ type: 'uiLanguage', data: { uiLanguage } });
+                    }
+                    break;
                 case 'confirmBash':
                     await this.acpClient.confirmBash(message.commandId);
                     break;
@@ -157,6 +169,23 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                         }
                     }
                     break;
+                case 'deleteHistory':
+                    {
+                        const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+                        try {
+                            await this.acpClient.deleteHistory(message.sessionId, root);
+                        } catch (err) {
+                            console.error('[VCoder] Failed to delete history:', err);
+                        }
+                        try {
+                            const sessions = await this.acpClient.listHistory(root);
+                            this.postMessage({ type: 'historySessions', data: sessions });
+                        } catch (err) {
+                            console.error('[VCoder] Failed to refresh history after delete:', err);
+                            this.postMessage({ type: 'historySessions', data: [] });
+                        }
+                    }
+                    break;
                 case 'insertText':
                     {
                         const editor = vscode.window.activeTextEditor;
@@ -192,6 +221,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         );
 
         const nonce = this.getNonce();
+        const config = vscode.workspace.getConfiguration('vcoder');
+        const uiLanguage = config.get<string>('uiLanguage', 'auto');
+        const vscodeLanguage = vscode.env.language;
 
         console.log('[VCoder] Webview styleUri:', styleUri.toString());
         console.log('[VCoder] Webview scriptUri:', scriptUri.toString());
@@ -207,6 +239,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   <div id="root"></div>
+  <script nonce="${nonce}">window.__vscodeLanguage=${JSON.stringify(vscodeLanguage)};window.__vcoderUiLanguage=${JSON.stringify(uiLanguage)};</script>
   <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;

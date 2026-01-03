@@ -8,9 +8,8 @@ import { postMessage } from '../utils/vscode';
 import { useStore } from '../store/useStore';
 import type { ModelId } from '@vcoder/shared';
 import { FilePicker } from './FilePicker';
-import { AddIcon, ArrowTopIcon, SendIcon, StopIcon, CloseIcon } from './Icon';
+import { AddIcon, ArrowBottomIcon, SendIcon, StopIcon, CloseIcon } from './Icon';
 import { useI18n } from '../i18n/I18nProvider';
-import type { UiLanguage } from '../types';
 
 interface Attachment {
     type: 'file' | 'selection';
@@ -28,7 +27,7 @@ const MODELS: { id: ModelId; name: string }[] = [
 ];
 
 export function InputArea() {
-    const { t, uiLanguage, setUiLanguage } = useI18n();
+    const { t } = useI18n();
     const [input, setInput] = useState('');
     const [showPicker, setShowPicker] = useState(false);
     const [pickerQuery, setPickerQuery] = useState('');
@@ -40,7 +39,7 @@ export function InputArea() {
     const wrapperRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const { planMode, model, isLoading, workspaceFiles, viewMode, setPlanMode, setModel, addMessage, setLoading, exitHistoryMode } = useStore();
+    const { model, isLoading, workspaceFiles, viewMode, setModel, addMessage, setLoading, exitHistoryMode } = useStore();
 
     // Request workspace files on mount
     useEffect(() => {
@@ -300,17 +299,9 @@ export function InputArea() {
                                 <AddIcon />
                             </button>
 
-                            <button
-                                className={`dropdown-btn ${planMode ? 'active' : ''}`}
-                                onClick={() => setPlanMode(!planMode)}
-                            >
-                                <span className="dropdown-arrow" aria-hidden="true"><ArrowTopIcon /></span>
-                                <span>{planMode ? t('Common.Planning') : t('Common.Normal')}</span>
-                            </button>
-
-                            <button className="dropdown-btn model-btn">
-                                <span className="dropdown-arrow" aria-hidden="true"><ArrowTopIcon /></span>
-                                <span>{selectedModel?.name || t('Common.SelectModel')}</span>
+                            <button type="button" className="dropdown-btn model-btn">
+                                <span className="model-label">{selectedModel?.name || t('Common.SelectModel')}</span>
+                                <span className="dropdown-arrow" aria-hidden="true"><ArrowBottomIcon /></span>
                                 <select
                                     className="model-select-overlay"
                                     value={model}
@@ -321,20 +312,6 @@ export function InputArea() {
                                             {m.name}
                                         </option>
                                     ))}
-                                </select>
-                            </button>
-
-                            <button className="dropdown-btn model-btn">
-                                <span className="dropdown-arrow" aria-hidden="true"><ArrowTopIcon /></span>
-                                <span>{uiLanguage === 'auto' ? t('Common.LanguageAuto') : uiLanguage}</span>
-                                <select
-                                    className="model-select-overlay"
-                                    value={uiLanguage}
-                                    onChange={(e) => setUiLanguage(e.target.value as UiLanguage)}
-                                >
-                                    <option value="auto">{t('Common.LanguageAuto')}</option>
-                                    <option value="en-US">{t('Common.LanguageEnglish')}</option>
-                                    <option value="zh-CN">{t('Common.LanguageChinese')}</option>
                                 </select>
                             </button>
                         </div>

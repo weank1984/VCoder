@@ -54,6 +54,11 @@
                 "icon": "$(ellipsis)"
             },
             {
+                "command": "vcoder.setUiLanguage",
+                "title": "Language",
+                "icon": "$(globe)"
+            },
+            {
                 "command": "vcoder.setApiKey",
                 "title": "V-Coder: Set API Key"
             },
@@ -131,6 +136,16 @@
                         "required": ["name", "command"]
                     },
                     "description": "List of MCP (Model Context Protocol) servers for extended tool capabilities"
+                },
+                "vcoder.uiLanguage": {
+                    "type": "string",
+                    "default": "auto",
+                    "enum": [
+                        "auto",
+                        "en-US",
+                        "zh-CN"
+                    ],
+                    "description": "UI language (auto follows VS Code display language)"
                 }
             }
         }

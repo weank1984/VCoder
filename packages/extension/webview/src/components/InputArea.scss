@@ -189,8 +189,7 @@ $input-prefixCls: 'vc-input';
 
 /* Base button styles */
 .tool-btn,
-.send-btn,
-.dropdown-btn {
+.send-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -216,7 +215,9 @@ $input-prefixCls: 'vc-input';
 }
 
 .tool-btn {
-  width: 24px;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
 }
 
 .add-btn {
@@ -225,23 +226,44 @@ $input-prefixCls: 'vc-input';
 }
 
 .dropdown-btn {
-  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--vc-color-border) 55%, transparent);
+  background: var(--vcoder-overlay-1);
+  color: var(--vc-color-text-secondary);
+  border-radius: 999px;
+  transition: all 0.2s;
+  font-family: inherit;
+  font-size: 12px;
+  height: 26px;
+  padding: 0 10px;
   gap: 4px;
   position: relative;
   
   &:hover {
-    background: var(--vc-control-item-bg-hover);
+    background: var(--vcoder-overlay-2);
+    color: var(--vc-color-text);
   }
 
   &.active {
-    color: var(--vc-color-primary);
+    color: var(--vc-color-primary-text);
     background: var(--vc-color-primary-bg);
+    border-color: var(--vc-color-primary-border);
   }
 }
 
 .dropdown-arrow {
   font-size: 8px;
   opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+
+  svg {
+    width: 10px;
+    height: 10px;
+  }
 }
 
 /* Model Selector Overlay */
@@ -250,7 +272,7 @@ $input-prefixCls: 'vc-input';
   max-width: 150px;
 }
 
-.model-btn span:nth-child(2) {
+.model-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

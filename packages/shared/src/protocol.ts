@@ -372,3 +372,14 @@ export interface HistoryChatMessage {
 export interface HistoryLoadResult {
     messages: HistoryChatMessage[];
 }
+
+export interface HistoryDeleteParams {
+    /** Session ID to delete */
+    sessionId: string;
+    /** Workspace path (needed to derive projectKey) */
+    workspacePath: string;
+}
+
+export interface HistoryDeleteResult {
+    deleted: boolean;
+}

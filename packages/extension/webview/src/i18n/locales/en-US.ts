@@ -9,10 +9,13 @@ export default {
     Exit: 'Exit',
     Close: 'Close',
     NewChat: 'New chat',
+    CurrentSession: 'Current session',
     Sessions: 'Sessions',
+    History: 'History',
     Refresh: 'Refresh',
     Settings: 'Settings',
     DeleteSession: 'Delete session',
+    DeleteHistory: 'Delete history',
     UntitledSession: 'Untitled session',
     RecentSessions: 'Recent sessions',
     NoOtherActiveSessions: 'No other active sessions',
@@ -33,9 +36,12 @@ export default {
   },
   Chat: {
     WelcomeTitle: 'Write with VCoder',
-    WelcomeNote: 'Ask your question and let AI help you write code, fix bugs, and refactor.',
+    WelcomeNote: 'Vcoder is powered by AI, so may make mistakes. Double-check all generated code.',
     InputPlaceholder: 'Ask anything (⌘L), @ to mention, / for workflows',
     ViewingHistoryReadonly: 'Viewing history (read-only)',
+    RecentConversations: 'Recent Conversations',
+    ViewAllConversations: 'View all conversations',
+    NoRecentConversations: 'No recent conversations yet',
   },
   Agent: {
     Plan: 'Plan',
@@ -55,6 +61,10 @@ export default {
     Pattern: 'Pattern',
     Subagent: 'subagent',
     PlanLabel: 'plan',
+    ToolCalls: 'Tool calls',
+    FailedCount: '{0} failed',
+    PendingCount: '{0} pending',
+    RunningCount: '{0} running',
   },
   ErrorBoundary: {
     Title: 'Something went wrong',
@@ -62,4 +72,3 @@ export default {
     Refresh: 'Refresh',
   },
 };
-

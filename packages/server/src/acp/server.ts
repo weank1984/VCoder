@@ -32,8 +32,10 @@ import {
     HistoryListResult,
     HistoryLoadParams,
     HistoryLoadResult,
+    HistoryDeleteParams,
+    HistoryDeleteResult,
 } from '@vcoder/shared';
-import { listHistorySessions, loadHistorySession } from '../history/transcriptStore';
+import { listHistorySessions, loadHistorySession, deleteHistorySession } from '../history/transcriptStore';
 import { ClaudeCodeWrapper } from '../claude/wrapper';
 
 export class ACPServer {
@@ -133,6 +135,9 @@ export class ACPServer {
                     break;
                 case ACPMethods.HISTORY_LOAD:
                     result = await this.handleLoadHistory(params as HistoryLoadParams);
+                    break;
+                case ACPMethods.HISTORY_DELETE:
+                    result = await this.handleDeleteHistory(params as HistoryDeleteParams);
                     break;
                 default:
                     return {
@@ -267,6 +272,11 @@ export class ACPServer {
     private async handleLoadHistory(params: HistoryLoadParams): Promise<HistoryLoadResult> {
         const messages = await loadHistorySession(params.sessionId, params.workspacePath);
         return { messages };
+    }
+
+    private async handleDeleteHistory(params: HistoryDeleteParams): Promise<HistoryDeleteResult> {
+        const deleted = await deleteHistorySession(params.sessionId, params.workspacePath);
+        return { deleted };
     }
 
     // Communication helpers

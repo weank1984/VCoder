@@ -76,7 +76,7 @@ const initialState: AppState = {
     messages: [],
     tasks: [],
     subagentRuns: [],
-    planMode: false,
+    planMode: true,
     model: 'claude-sonnet-4-20250514',
     isLoading: false,
     error: null,
@@ -105,7 +105,7 @@ function getInitialUiLanguage(): UiLanguage {
 const restoredState: AppState = {
     ...initialState,
     model: (persisted.model as ModelId) || initialState.model,
-    planMode: persisted.planMode ?? initialState.planMode,
+    planMode: true,
     currentSessionId: persisted.currentSessionId ?? initialState.currentSessionId,
     uiLanguage: getInitialUiLanguage(),
 };
@@ -410,4 +410,3 @@ useStore.subscribe(() => {
         savePersistedState(prevPersistedFields);
     }
 });
-

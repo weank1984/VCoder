@@ -27,7 +27,6 @@ function App() {
   const [showHistory, setShowHistory] = useState(false);
 
   const {
-    sessions,
     currentSessionId,
     messages,
     tasks,
@@ -131,6 +130,7 @@ function App() {
 
     // Request initial session list
     postMessage({ type: 'listSessions' });
+    postMessage({ type: 'setPlanMode', enabled: true });
 
     return () => window.removeEventListener('message', handleMessage);
   }, [handleUpdate, setCurrentSession, setLoading, setSessions]);
@@ -206,10 +206,8 @@ function App() {
         </div>
       )}
 
-      <HistoryPanel
-        sessions={sessions}
+  <HistoryPanel
         historySessions={historySessions}
-        currentSessionId={currentSessionId}
         visible={showHistory}
         onClose={() => setShowHistory(false)}
       />

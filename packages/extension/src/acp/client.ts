@@ -26,6 +26,7 @@ import {
     HistoryChatMessage,
     HistoryListResult,
     HistoryLoadResult,
+    HistoryDeleteResult,
 } from '@vcoder/shared';
 
 export class ACPClient extends EventEmitter {
@@ -229,6 +230,11 @@ export class ACPClient extends EventEmitter {
     async loadHistory(sessionId: string, workspacePath: string): Promise<HistoryChatMessage[]> {
         const result = await this.sendRequest<HistoryLoadResult>(ACPMethods.HISTORY_LOAD, { sessionId, workspacePath });
         return result.messages;
+    }
+
+    async deleteHistory(sessionId: string, workspacePath: string): Promise<boolean> {
+        const result = await this.sendRequest<HistoryDeleteResult>(ACPMethods.HISTORY_DELETE, { sessionId, workspacePath });
+        return Boolean(result.deleted);
     }
 
     private async syncDesiredSettings(): Promise<void> {

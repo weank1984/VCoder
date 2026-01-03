@@ -9,10 +9,13 @@ export default {
     Exit: '退出',
     Close: '关闭',
     NewChat: '新对话',
+    CurrentSession: '当前会话',
     Sessions: '会话',
+    History: '历史记录',
     Refresh: '刷新',
     Settings: '设置',
     DeleteSession: '删除会话',
+    DeleteHistory: '删除历史记录',
     UntitledSession: '未命名会话',
     RecentSessions: '最近会话',
     NoOtherActiveSessions: '无其他活动会话',
@@ -33,9 +36,12 @@ export default {
   },
   Chat: {
     WelcomeTitle: '使用 VCoder 编程',
-    WelcomeNote: '输入你的问题，让 AI 帮你写代码、修 Bug、做重构。',
+    WelcomeNote: 'Vcoder 由 AI 提供支持，因此可能会出现错误。请在使用前仔细检查生成的代码。',
     InputPlaceholder: '输入问题 (⌘L)，@ 添加上下文，/ 选择工作流',
     ViewingHistoryReadonly: '正在查看历史会话（只读）',
+    RecentConversations: '近期会话',
+    ViewAllConversations: '查看全部会话',
+    NoRecentConversations: '暂无近期会话',
   },
   Agent: {
     Plan: '计划',
@@ -55,6 +61,10 @@ export default {
     Pattern: '模式',
     Subagent: '子代理',
     PlanLabel: '计划',
+    ToolCalls: '工具调用',
+    FailedCount: '{0} 失败',
+    PendingCount: '{0} 待批准',
+    RunningCount: '{0} 执行中',
   },
   ErrorBoundary: {
     Title: '出错了',
@@ -62,4 +72,3 @@ export default {
     Refresh: '刷新页面',
   },
 };
-

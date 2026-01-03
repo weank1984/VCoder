@@ -154,6 +154,20 @@ function findSessionFileInAllProjects(sessionId: string): { filePath: string; pr
     return null;
 }
 
+function isSafeSessionId(sessionId: string): boolean {
+    if (!sessionId) return false;
+    if (sessionId !== path.basename(sessionId)) return false;
+    if (sessionId.includes('..')) return false;
+    // Claude session ids are typically UUID-ish; be permissive but exclude path separators and control chars.
+    return /^[a-zA-Z0-9._-]+$/.test(sessionId);
+}
+
+function isPathWithin(parentDir: string, childPath: string): boolean {
+    const parent = path.resolve(parentDir) + path.sep;
+    const child = path.resolve(childPath);
+    return child.startsWith(parent);
+}
+
 async function listSessionIdsFromHistoryIndex(workspacePath: string): Promise<string[]> {
     const historyIndexPath = getClaudeHistoryIndexPath();
     if (!fs.existsSync(historyIndexPath)) return [];
@@ -359,6 +373,11 @@ export async function loadHistorySession(
     sessionId: string,
     workspacePath: string
 ): Promise<HistoryChatMessage[]> {
+    if (!isSafeSessionId(sessionId)) {
+        console.error(`[TranscriptStore] Refusing to load unsafe sessionId="${sessionId}"`);
+        return [];
+    }
+
     const resolved = resolveProjectDir(workspacePath);
     const preferredPath = resolved ? path.join(resolved.projectDir, `${sessionId}.jsonl`) : '';
     let filePath = preferredPath;
@@ -373,6 +392,12 @@ export async function loadHistorySession(
             return [];
         }
         filePath = located.filePath;
+    }
+
+    const projectsDir = getClaudeProjectsDir();
+    if (!isPathWithin(projectsDir, filePath)) {
+        console.error(`[TranscriptStore] Refusing to read file outside projects dir: ${filePath}`);
+        return [];
     }
 
     const fileStream = fs.createReadStream(filePath);
@@ -415,6 +440,46 @@ export async function loadHistorySession(
     }
 
     return messages;
+}
+
+/**
+ * Delete a history session transcript file.
+ * Returns true when a file was found and deleted.
+ */
+export async function deleteHistorySession(sessionId: string, workspacePath: string): Promise<boolean> {
+    if (!isSafeSessionId(sessionId)) {
+        console.error(`[TranscriptStore] Refusing to delete unsafe sessionId="${sessionId}"`);
+        return false;
+    }
+
+    const resolved = resolveProjectDir(workspacePath);
+    const preferredPath = resolved ? path.join(resolved.projectDir, `${sessionId}.jsonl`) : '';
+    let filePath = preferredPath;
+
+    if (!filePath || !fs.existsSync(filePath)) {
+        const located = findSessionFileInAllProjects(sessionId);
+        if (!located) {
+            console.error(
+                `[TranscriptStore] Session file not found for delete sessionId="${sessionId}" (workspace="${workspacePath}"). ` +
+                `Tried: ${preferredPath || '(none)'}`
+            );
+            return false;
+        }
+        filePath = located.filePath;
+    }
+
+    try {
+        const projectsDir = getClaudeProjectsDir();
+        if (!isPathWithin(projectsDir, filePath)) {
+            console.error(`[TranscriptStore] Refusing to delete file outside projects dir: ${filePath}`);
+            return false;
+        }
+        await fs.promises.unlink(filePath);
+        return true;
+    } catch (err) {
+        console.error(`[TranscriptStore] Failed to delete ${filePath}:`, err);
+        return false;
+    }
 }
 
 /**

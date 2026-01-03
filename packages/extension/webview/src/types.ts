@@ -127,6 +127,11 @@ export interface LoadHistoryMessage {
     sessionId: string;
 }
 
+export interface DeleteHistoryMessage {
+    type: 'deleteHistory';
+    sessionId: string;
+}
+
 export interface SetUiLanguageMessage {
     type: 'setUiLanguage';
     uiLanguage: UiLanguage;
@@ -172,6 +177,7 @@ export type WebviewMessage =
     | GetWorkspaceFilesMessage
     | ListHistoryMessage
     | LoadHistoryMessage
+    | DeleteHistoryMessage
     | SetUiLanguageMessage;
 export interface ChatMessage {
     id: string;

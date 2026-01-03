@@ -170,8 +170,59 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
 
         vscode.commands.registerCommand('vcoder.openSettings', async () => {
-            // Open VSCode settings for vcoder
-            await vscode.commands.executeCommand('workbench.action.openSettings', 'vcoder');
+            const selection = await vscode.window.showQuickPick(
+                [
+                    { label: 'Open VS Code Settings', description: 'Open V-Coder settings in VS Code', value: 'vscodeSettings' },
+                    { label: 'UI Language', description: 'Switch webview language', value: 'uiLanguage' },
+                ],
+                { placeHolder: 'V-Coder Settings' }
+            );
+            if (!selection) return;
+
+            if (selection.value === 'vscodeSettings') {
+                await vscode.commands.executeCommand('workbench.action.openSettings', 'vcoder');
+                return;
+            }
+
+            if (selection.value === 'uiLanguage') {
+                const config = vscode.workspace.getConfiguration('vcoder');
+                const current = config.get<string>('uiLanguage', 'auto');
+                const picked = await vscode.window.showQuickPick(
+                    [
+                        { label: 'Auto', description: 'Follow VS Code display language', value: 'auto' },
+                        { label: 'English', value: 'en-US' },
+                        { label: '简体中文', value: 'zh-CN' },
+                    ],
+                    { placeHolder: `UI Language: ${current}` }
+                );
+                if (!picked) return;
+                try {
+                    await config.update('uiLanguage', picked.value, vscode.ConfigurationTarget.Global);
+                } catch (err) {
+                    console.warn('[VCoder] Failed to update uiLanguage setting:', err);
+                }
+                chatProvider.postMessage({ type: 'uiLanguage', data: { uiLanguage: picked.value } });
+            }
+        }),
+
+        vscode.commands.registerCommand('vcoder.setUiLanguage', async () => {
+            const config = vscode.workspace.getConfiguration('vcoder');
+            const current = config.get<string>('uiLanguage', 'auto');
+            const picked = await vscode.window.showQuickPick(
+                [
+                    { label: 'Auto', description: 'Follow VS Code display language', value: 'auto' },
+                    { label: 'English', value: 'en-US' },
+                    { label: '简体中文', value: 'zh-CN' },
+                ],
+                { placeHolder: `UI Language: ${current}` }
+            );
+            if (!picked) return;
+            try {
+                await config.update('uiLanguage', picked.value, vscode.ConfigurationTarget.Global);
+            } catch (err) {
+                console.warn('[VCoder] Failed to update uiLanguage setting:', err);
+            }
+            chatProvider.postMessage({ type: 'uiLanguage', data: { uiLanguage: picked.value } });
         }),
 
         vscode.commands.registerCommand('vcoder.setApiKey', async () => {
