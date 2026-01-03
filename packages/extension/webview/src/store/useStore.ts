@@ -10,7 +10,10 @@ let rafId: number | null = null;
 // Exported for use when immediate flush is needed (e.g., on completion)
 export function flushTextBuffer(store: { appendToLastMessage: (text: string) => void }) {
     if (rafId !== null) {
-        cancelAnimationFrame(rafId);
+        const anyGlobal = globalThis as unknown as { cancelAnimationFrame?: (id: number) => void };
+        if (typeof anyGlobal.cancelAnimationFrame === 'function') {
+            anyGlobal.cancelAnimationFrame(rafId);
+        }
         rafId = null;
     }
     if (textBuffer) {
@@ -20,9 +23,15 @@ export function flushTextBuffer(store: { appendToLastMessage: (text: string) => 
 }
 
 function queueTextUpdate(text: string, store: { appendToLastMessage: (text: string) => void }) {
+    const anyGlobal = globalThis as unknown as { requestAnimationFrame?: (cb: () => void) => number };
+    if (typeof anyGlobal.requestAnimationFrame !== 'function') {
+        // Node/test environments: apply immediately (no rAF available).
+        store.appendToLastMessage(text);
+        return;
+    }
     textBuffer += text;
     if (rafId !== null) return; // Already scheduled
-    rafId = requestAnimationFrame(() => {
+    rafId = anyGlobal.requestAnimationFrame(() => {
         rafId = null;
         if (textBuffer) {
             store.appendToLastMessage(textBuffer);
@@ -76,7 +85,7 @@ const initialState: AppState = {
     messages: [],
     tasks: [],
     subagentRuns: [],
-    planMode: true,
+    planMode: false,
     model: 'claude-sonnet-4-20250514',
     isLoading: false,
     error: null,
@@ -95,6 +104,10 @@ function isUiLanguage(value: unknown): value is UiLanguage {
     return value === 'auto' || value === 'en-US' || value === 'zh-CN';
 }
 
+function isBoolean(value: unknown): value is boolean {
+    return value === true || value === false;
+}
+
 function getInitialUiLanguage(): UiLanguage {
     if (isUiLanguage(persisted.uiLanguage)) return persisted.uiLanguage;
     const fromWindow = (globalThis as unknown as { __vcoderUiLanguage?: unknown }).__vcoderUiLanguage;
@@ -105,7 +118,7 @@ function getInitialUiLanguage(): UiLanguage {
 const restoredState: AppState = {
     ...initialState,
     model: (persisted.model as ModelId) || initialState.model,
-    planMode: true,
+    planMode: isBoolean(persisted.planMode) ? persisted.planMode : initialState.planMode,
     currentSessionId: persisted.currentSessionId ?? initialState.currentSessionId,
     uiLanguage: getInitialUiLanguage(),
 };
