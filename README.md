@@ -101,6 +101,10 @@ pnpm dev
 pnpm clean
 ```
 
+## CI/CD
+
+见 `docs/CI-CD.md`。
+
 ## 项目结构
 
 ```
