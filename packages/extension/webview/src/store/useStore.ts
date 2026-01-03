@@ -1,11 +1,35 @@
-/**
- * App State Store using Zustand
- */
-
 import { create } from './createStore';
-import type { AppState, ChatMessage, ToolCall } from '../types';
+import type { AppState, ChatMessage, ToolCall, UiLanguage } from '../types';
 import type { Task, ModelId, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
+
+// rAF batch processing for streaming text updates
+let textBuffer = '';
+let rafId: number | null = null;
+
+// Exported for use when immediate flush is needed (e.g., on completion)
+export function flushTextBuffer(store: { appendToLastMessage: (text: string) => void }) {
+    if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+    }
+    if (textBuffer) {
+        store.appendToLastMessage(textBuffer);
+        textBuffer = '';
+    }
+}
+
+function queueTextUpdate(text: string, store: { appendToLastMessage: (text: string) => void }) {
+    textBuffer += text;
+    if (rafId !== null) return; // Already scheduled
+    rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (textBuffer) {
+            store.appendToLastMessage(textBuffer);
+            textBuffer = '';
+        }
+    });
+}
 
 interface AppStore extends AppState {
     // Actions
@@ -25,6 +49,7 @@ interface AppStore extends AppState {
     setError: (error: ErrorUpdate | null) => void;
     handleUpdate: (update: UpdateNotificationParams) => void;
     setWorkspaceFiles: (files: string[]) => void;
+    setUiLanguage: (uiLanguage: UiLanguage, source?: 'user' | 'extension') => void;
     // History Actions
     setHistorySessions: (sessions: HistorySession[]) => void;
     loadHistorySession: (sessionId: string, messages: HistoryChatMessage[]) => void;
@@ -56,13 +81,38 @@ const initialState: AppState = {
     isLoading: false,
     error: null,
     workspaceFiles: [],
+    uiLanguage: 'auto',
     // History
     historySessions: [],
     viewMode: 'live',
 };
 
-export const useStore = create<AppStore>((set, get) => ({
+// Restore persisted state on load
+import { loadPersistedState, savePersistedState } from '../utils/persist';
+const persisted = loadPersistedState();
+
+function isUiLanguage(value: unknown): value is UiLanguage {
+    return value === 'auto' || value === 'en-US' || value === 'zh-CN';
+}
+
+function getInitialUiLanguage(): UiLanguage {
+    if (isUiLanguage(persisted.uiLanguage)) return persisted.uiLanguage;
+    const fromWindow = (globalThis as unknown as { __vcoderUiLanguage?: unknown }).__vcoderUiLanguage;
+    if (isUiLanguage(fromWindow)) return fromWindow;
+    return 'auto';
+}
+
+const restoredState: AppState = {
     ...initialState,
+    model: (persisted.model as ModelId) || initialState.model,
+    planMode: persisted.planMode ?? initialState.planMode,
+    currentSessionId: persisted.currentSessionId ?? initialState.currentSessionId,
+    uiLanguage: getInitialUiLanguage(),
+};
+
+export const useStore = create<AppStore>((set, get) => ({
+    ...restoredState,
+
 
     addMessage: (message) =>
         set((state) => ({ messages: [...state.messages, message] })),
@@ -212,7 +262,8 @@ export const useStore = create<AppStore>((set, get) => ({
             }
             case 'text': {
                 const { text } = content as { text: string };
-                get().appendToLastMessage(text);
+                // Use rAF batching to reduce render frequency
+                queueTextUpdate(text, get());
                 break;
             }
             case 'tool_use': {
@@ -294,6 +345,13 @@ export const useStore = create<AppStore>((set, get) => ({
 
     setWorkspaceFiles: (files) => set({ workspaceFiles: files }),
 
+    setUiLanguage: (uiLanguage, source = 'user') => {
+        set({ uiLanguage });
+        if (source === 'user') {
+            postMessage({ type: 'setUiLanguage', uiLanguage });
+        }
+    },
+
     setHistorySessions: (historySessions) => set({ historySessions }),
 
     loadHistorySession: (sessionId, historyMessages) => set({
@@ -325,3 +383,31 @@ export const useStore = create<AppStore>((set, get) => ({
 
     reset: () => set(initialState),
 }));
+
+// Subscribe to state changes and persist selected fields
+let prevPersistedFields = {
+    model: restoredState.model,
+    planMode: restoredState.planMode,
+    currentSessionId: restoredState.currentSessionId,
+    uiLanguage: restoredState.uiLanguage,
+};
+
+useStore.subscribe(() => {
+    const state = useStore.getState();
+    // Only persist when these specific fields change
+    if (
+        state.model !== prevPersistedFields.model ||
+        state.planMode !== prevPersistedFields.planMode ||
+        state.currentSessionId !== prevPersistedFields.currentSessionId ||
+        state.uiLanguage !== prevPersistedFields.uiLanguage
+    ) {
+        prevPersistedFields = {
+            model: state.model,
+            planMode: state.planMode,
+            currentSessionId: state.currentSessionId,
+            uiLanguage: state.uiLanguage,
+        };
+        savePersistedState(prevPersistedFields);
+    }
+});
+

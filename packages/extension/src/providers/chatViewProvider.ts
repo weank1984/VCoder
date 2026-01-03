@@ -157,6 +157,18 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                         }
                     }
                     break;
+                case 'insertText':
+                    {
+                        const editor = vscode.window.activeTextEditor;
+                        if (editor) {
+                            await editor.edit((editBuilder) => {
+                                editBuilder.insert(editor.selection.active, message.text);
+                            });
+                        } else {
+                            vscode.window.showWarningMessage('请先打开一个文件再插入代码');
+                        }
+                    }
+                    break;
             }
         });
     }

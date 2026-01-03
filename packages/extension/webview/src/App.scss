@@ -18,49 +18,9 @@
   gap: var(--vc-padding);
 }
 
-/* Empty State */
-.empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  text-align: center;
-  color: var(--vc-color-text-description);
-  padding: var(--vc-padding-xl);
-}
-
-.empty-card {
-  width: 100%;
-  max-width: 360px;
-  border: 1px solid var(--vc-color-border);
-  background: var(--vc-bg-container);
-  border-radius: 8px;
-  padding: 20px 18px;
-  box-shadow: var(--vc-box-shadow-card);
-}
-
-.empty-icon {
-  width: 56px;
-  height: 56px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 30px;
-  border-radius: 14px;
-  margin: 4px auto 14px;
-  background: var(--vc-control-item-bg-active);
-  color: var(--vc-color-primary-text);
-}
-
-.empty-state h2 {
-  font-size: var(--vc-font-size-heading-5);
-  font-weight: 600;
-  color: var(--vc-color-text-heading);
-  margin-bottom: 6px;
-}
-
-.empty-state p {
-  font-size: 13px;
+.messages-container--empty {
+  padding: 0;
+  gap: 0;
 }
 
 /* Error Banner */

@@ -9,6 +9,8 @@ import { useStore } from '../store/useStore';
 import type { ModelId } from '@vcoder/shared';
 import { FilePicker } from './FilePicker';
 import { AddIcon, ArrowTopIcon, SendIcon, StopIcon, CloseIcon } from './Icon';
+import { useI18n } from '../i18n/I18nProvider';
+import type { UiLanguage } from '../types';
 
 interface Attachment {
     type: 'file' | 'selection';
@@ -26,6 +28,7 @@ const MODELS: { id: ModelId; name: string }[] = [
 ];
 
 export function InputArea() {
+    const { t, uiLanguage, setUiLanguage } = useI18n();
     const [input, setInput] = useState('');
     const [showPicker, setShowPicker] = useState(false);
     const [pickerQuery, setPickerQuery] = useState('');
@@ -217,8 +220,8 @@ export function InputArea() {
             
             {viewMode === 'history' && (
                 <div className="history-mode-banner">
-                    <span>正在查看历史会话 (只读)</span>
-                    <button onClick={exitHistoryMode}>退出</button>
+                    <span>{t('Chat.ViewingHistoryReadonly')}</span>
+                    <button onClick={exitHistoryMode}>{t('Common.Exit')}</button>
                 </div>
             )}
 
@@ -277,7 +280,7 @@ export function InputArea() {
                     <textarea
                         ref={textareaRef}
                         className="input-field"
-                        placeholder="Ask anything (⌘L), @ to mention, / for workflows"
+                        placeholder={t('Chat.InputPlaceholder')}
                         value={input}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
@@ -293,7 +296,7 @@ export function InputArea() {
 
                     <div className="input-toolbar">
                         <div className="toolbar-left">
-                            <button className="tool-btn add-btn" title="Add files" aria-label="Add files" onClick={handleAddFiles}>
+                            <button className="tool-btn add-btn" title={t('Common.AddFiles')} aria-label={t('Common.AddFiles')} onClick={handleAddFiles}>
                                 <AddIcon />
                             </button>
 
@@ -302,12 +305,12 @@ export function InputArea() {
                                 onClick={() => setPlanMode(!planMode)}
                             >
                                 <span className="dropdown-arrow" aria-hidden="true"><ArrowTopIcon /></span>
-                                <span>{planMode ? 'Planning' : 'Normal'}</span>
+                                <span>{planMode ? t('Common.Planning') : t('Common.Normal')}</span>
                             </button>
 
                             <button className="dropdown-btn model-btn">
                                 <span className="dropdown-arrow" aria-hidden="true"><ArrowTopIcon /></span>
-                                <span>{selectedModel?.name || 'Select Model'}</span>
+                                <span>{selectedModel?.name || t('Common.SelectModel')}</span>
                                 <select
                                     className="model-select-overlay"
                                     value={model}
@@ -320,6 +323,20 @@ export function InputArea() {
                                     ))}
                                 </select>
                             </button>
+
+                            <button className="dropdown-btn model-btn">
+                                <span className="dropdown-arrow" aria-hidden="true"><ArrowTopIcon /></span>
+                                <span>{uiLanguage === 'auto' ? t('Common.LanguageAuto') : uiLanguage}</span>
+                                <select
+                                    className="model-select-overlay"
+                                    value={uiLanguage}
+                                    onChange={(e) => setUiLanguage(e.target.value as UiLanguage)}
+                                >
+                                    <option value="auto">{t('Common.LanguageAuto')}</option>
+                                    <option value="en-US">{t('Common.LanguageEnglish')}</option>
+                                    <option value="zh-CN">{t('Common.LanguageChinese')}</option>
+                                </select>
+                            </button>
                         </div>
 
                         <div className="toolbar-right">
@@ -329,8 +346,8 @@ export function InputArea() {
                                     onClick={() => {
                                         postMessage({ type: 'cancel' });
                                     }}
-                                    title="Stop generating"
-                                    aria-label="Stop generating"
+                                    title={t('Common.StopGenerating')}
+                                    aria-label={t('Common.StopGenerating')}
                                 >
                                     <StopIcon />
                                 </button>
@@ -339,8 +356,8 @@ export function InputArea() {
                                     className="send-btn"
                                     onClick={handleSubmit}
                                     disabled={!input.trim() && attachments.length === 0}
-                                    title="Send"
-                                    aria-label="Send"
+                                    title={t('Common.Send')}
+                                    aria-label={t('Common.Send')}
                                 >
                                     <SendIcon />
                                 </button>

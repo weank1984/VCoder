@@ -4,6 +4,8 @@
 
 import type { UpdateNotificationParams, Session, Task, ModelId, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage } from '@vcoder/shared';
 
+export type UiLanguage = 'auto' | 'en-US' | 'zh-CN';
+
 // Message types from Extension to Webview
 export interface UpdateMessage {
     type: 'update';
@@ -27,6 +29,11 @@ export interface CurrentSessionMessage {
 
 export interface ShowHistoryMessage {
     type: 'showHistory';
+}
+
+export interface UiLanguageMessage {
+    type: 'uiLanguage';
+    data: { uiLanguage: UiLanguage };
 }
 
 // Message types from Webview to Extension
@@ -120,6 +127,11 @@ export interface LoadHistoryMessage {
     sessionId: string;
 }
 
+export interface SetUiLanguageMessage {
+    type: 'setUiLanguage';
+    uiLanguage: UiLanguage;
+}
+
 export interface HistorySessionsMessage {
     type: 'historySessions';
     data: HistorySession[];
@@ -138,6 +150,7 @@ export type ExtensionMessage =
     | CurrentSessionMessage 
     | WorkspaceFilesMessage 
     | ShowHistoryMessage
+    | UiLanguageMessage
     | HistorySessionsMessage
     | HistoryMessagesMessage;
 
@@ -158,7 +171,8 @@ export type WebviewMessage =
     | ExecuteCommandMessage
     | GetWorkspaceFilesMessage
     | ListHistoryMessage
-    | LoadHistoryMessage;
+    | LoadHistoryMessage
+    | SetUiLanguageMessage;
 export interface ChatMessage {
     id: string;
     role: 'user' | 'assistant';
@@ -188,6 +202,7 @@ export interface AppState {
     isLoading: boolean;
     error: ErrorUpdate | null;
     workspaceFiles: string[];
+    uiLanguage: UiLanguage;
     // History
     historySessions: HistorySession[];
     viewMode: 'live' | 'history';

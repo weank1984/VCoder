@@ -11,6 +11,7 @@ import {
     ExpandIcon,
     CollapseIcon
 } from './Icon';
+import { useI18n } from '../i18n/I18nProvider';
 import './TaskList.scss';
 
 // Approximate PlanIcon
@@ -33,6 +34,7 @@ interface TaskListProps {
 
 export function TaskList({ tasks, visible }: TaskListProps) {
     const [isExpanded, setIsExpanded] = useState(true);
+    const { t } = useI18n();
 
     const counts = useMemo(() => {
         let completed = 0;
@@ -81,7 +83,7 @@ export function TaskList({ tasks, visible }: TaskListProps) {
             >
                 <div className="task-header-left">
                     <span className="task-header-icon"><PlanIcon /></span>
-                    <span className="task-list-title">Task Runs</span>
+                    <span className="task-list-title">{t('Agent.TaskRuns')}</span>
                 </div>
                 
                 <div className="task-header-right">

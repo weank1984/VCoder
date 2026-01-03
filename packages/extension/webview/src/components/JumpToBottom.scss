@@ -1,0 +1,39 @@
+.vc-jump-to-bottom {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+
+    background: var(--vc-color-primary);
+    color: var(--vc-color-white);
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+
+    font-size: var(--vc-font-size);
+    font-weight: 500;
+    box-shadow: var(--vc-box-shadow);
+
+    transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
+
+    &:hover {
+        background: var(--vc-color-primary-hover);
+        transform: translateX(-50%) translateY(-2px);
+        box-shadow: var(--vc-box-shadow-secondary);
+    }
+
+    &:active {
+        background: var(--vc-color-primary-active);
+        transform: translateX(-50%) translateY(0);
+    }
+
+    svg {
+        flex-shrink: 0;
+    }
+}

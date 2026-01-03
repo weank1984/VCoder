@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { Task } from '@vcoder/shared';
 import classNames from 'classnames';
 import { ArrowRightIcon, CheckIcon, ErrorIcon, LoadingIcon, ManageIcon } from '../Icon';
+import { useI18n } from '../../i18n/I18nProvider';
 import './index.scss';
 
 interface PlanBlockProps {
@@ -12,6 +13,7 @@ interface PlanBlockProps {
 
 export const PlanBlock: React.FC<PlanBlockProps> = ({ plan, explanation, sticky = false }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { t } = useI18n();
 
   if (!plan || plan.length === 0) {
     return null;
@@ -116,7 +118,7 @@ export const PlanBlock: React.FC<PlanBlockProps> = ({ plan, explanation, sticky 
     <div className={blockClass}>
       <div className="agent-block-header" onClick={() => setIsExpanded(!isExpanded)}>
         <span className="agent-block-icon"><ManageIcon /></span>
-        <span className="agent-block-title">Plan</span>
+        <span className="agent-block-title">{t('Agent.Plan')}</span>
         <div className="plan-progress-dots">
            {/* Simple dots for top level only to avoid clutter */}
            {plan.map((step, i) => (

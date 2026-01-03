@@ -20,6 +20,7 @@ import {
     WarningIcon,
     WebIcon
 } from './Icon';
+import { useI18n } from '../i18n/I18nProvider';
 import { postMessage } from '../utils/vscode';
 import './ToolCallList.scss';
 
@@ -47,7 +48,19 @@ function getToolIcon(name: string) {
     return <PlayIcon />;
 }
 
-function summarizeToolInput(name: string, input: unknown): { summary: string, detail?: string } {
+function summarizeToolInput(
+    name: string,
+    input: unknown,
+    labels: {
+        command: string;
+        file: string;
+        url: string;
+        path: string;
+        target: string;
+        query: string;
+        pattern: string;
+    }
+): { summary: string, detail?: string } {
     if (!input || typeof input !== 'object') return { summary: '' };
     const obj = input as Record<string, unknown>;
 
@@ -55,32 +68,32 @@ function summarizeToolInput(name: string, input: unknown): { summary: string, de
     if (name === 'Bash') {
         if (typeof obj.command === 'string') return { 
             summary: obj.command,
-            detail: 'Command'
+            detail: labels.command
         };
     }
     if (name === 'run_command' && typeof obj.CommandLine === 'string') {
         return {
             summary: obj.CommandLine,
-            detail: 'Command'
+            detail: labels.command
         };
     }
 
     // File Ops
     if ((name === 'Read' || name === 'Write' || name === 'Edit') && typeof obj.path === 'string') {
-        return { summary: obj.path, detail: 'File' };
+        return { summary: obj.path, detail: labels.file };
     }
     if (name === 'read_file' || name === 'read_url_content' || name === 'view_file') {
-         if (typeof obj.Url === 'string') return { summary: obj.Url, detail: 'URL' };
-         if (typeof obj.AbsolutePath === 'string') return { summary: obj.AbsolutePath, detail: 'Path' };
+         if (typeof obj.Url === 'string') return { summary: obj.Url, detail: labels.url };
+         if (typeof obj.AbsolutePath === 'string') return { summary: obj.AbsolutePath, detail: labels.path };
     }
     if (name === 'write_to_file' || name === 'replace_file_content' || name === 'multi_replace_file_content') {
-        if (typeof obj.TargetFile === 'string') return { summary: obj.TargetFile, detail: 'Target' };
+        if (typeof obj.TargetFile === 'string') return { summary: obj.TargetFile, detail: labels.target };
     }
     
     // Search
     if (name === 'grep_search' || name === 'find_by_name') {
-        if (typeof obj.Query === 'string') return { summary: obj.Query, detail: 'Query' };
-        if (typeof obj.Pattern === 'string') return { summary: obj.Pattern, detail: 'Pattern' };
+        if (typeof obj.Query === 'string') return { summary: obj.Query, detail: labels.query };
+        if (typeof obj.Pattern === 'string') return { summary: obj.Pattern, detail: labels.pattern };
     }
 
     // Task
@@ -99,6 +112,7 @@ function summarizeToolInput(name: string, input: unknown): { summary: string, de
 }
 
 export function ToolCallList({ toolCalls }: ToolCallListProps) {
+    const { t } = useI18n();
     const [isExpanded, setIsExpanded] = useState(true);
     const [expandedToolIds, setExpandedToolIds] = useState<Set<string>>(() => new Set());
     
@@ -149,6 +163,16 @@ export function ToolCallList({ toolCalls }: ToolCallListProps) {
 
     if (toolCalls.length === 0) return null;
 
+    const inputLabels = {
+        command: t('Agent.Command'),
+        file: t('Agent.File'),
+        url: t('Agent.URL'),
+        path: t('Agent.Path'),
+        target: t('Agent.Target'),
+        query: t('Agent.Query'),
+        pattern: t('Agent.Pattern'),
+    };
+
     return (
         <div className="tool-call-list">
             <button 
@@ -159,10 +183,10 @@ export function ToolCallList({ toolCalls }: ToolCallListProps) {
                     {headerStatusIcon}
                 </span>
                 <span className="tool-list-title">
-                    工具调用
-                    {failedCount > 0 && <span className="list-badge error">{failedCount} 失败</span>}
-                    {pendingCount > 0 && <span className="list-badge warning">{pendingCount} 待批准</span>}
-                    {runningCount > 0 && <span className="list-badge info">{runningCount} 执行中</span>}
+                    {t('Agent.ToolCalls')}
+                    {failedCount > 0 && <span className="list-badge error">{t('Agent.FailedCount', failedCount)}</span>}
+                    {pendingCount > 0 && <span className="list-badge warning">{t('Agent.PendingCount', pendingCount)}</span>}
+                    {runningCount > 0 && <span className="list-badge info">{t('Agent.RunningCount', runningCount)}</span>}
                 </span>
                 <span className="tool-count">{completedCount}/{toolCalls.length}</span>
                 <span className="expand-icon">{isExpanded ? <CollapseIcon /> : <ExpandIcon />}</span>
@@ -171,7 +195,7 @@ export function ToolCallList({ toolCalls }: ToolCallListProps) {
             {isExpanded && (
                 <div className="tool-list-content">
                     {toolCalls.map((tc) => {
-                        const { summary, detail } = summarizeToolInput(tc.name, tc.input);
+                        const { summary, detail } = summarizeToolInput(tc.name, tc.input, inputLabels);
                         const isExpandedItem = expandedToolIds.has(tc.id);
                         
                         return (
@@ -203,14 +227,14 @@ export function ToolCallList({ toolCalls }: ToolCallListProps) {
                                             <div className="tool-approval-actions">
                                                 <div className="approval-message">
                                                     <InfoIcon />
-                                                    <span>此操作需要您的批准</span>
+                                                    <span>{t('Agent.ApprovalRequired')}</span>
                                                 </div>
                                                 <div className="approval-buttons">
                                                     <button className="btn-approve" onClick={() => handleConfirm(tc, true)}>
-                                                        <CheckIcon /> 批准执行
+                                                        <CheckIcon /> {t('Agent.Approve')}
                                                     </button>
                                                     <button className="btn-reject" onClick={() => handleConfirm(tc, false)}>
-                                                        <StopIcon /> 拒绝
+                                                        <StopIcon /> {t('Agent.Reject')}
                                                     </button>
                                                 </div>
                                             </div>
@@ -218,7 +242,7 @@ export function ToolCallList({ toolCalls }: ToolCallListProps) {
                                         
                                         {tc.input !== undefined && (
                                             <div className="detail-section">
-                                                <div className="detail-header">Input</div>
+                                                <div className="detail-header">{t('Agent.ToolInput')}</div>
                                                 <div className="code-block">
                                                     <pre>{safeStringify(tc.input, true)}</pre>
                                                 </div>
@@ -227,7 +251,7 @@ export function ToolCallList({ toolCalls }: ToolCallListProps) {
                                         
                                         {tc.result !== undefined && (
                                             <div className="detail-section">
-                                                <div className="detail-header">Result</div>
+                                                <div className="detail-header">{t('Agent.ToolResult')}</div>
                                                 <div className="code-block result">
                                                     <pre>{safeStringify(tc.result, true)}</pre>
                                                 </div>
@@ -236,7 +260,7 @@ export function ToolCallList({ toolCalls }: ToolCallListProps) {
                                         
                                         {tc.error && (
                                             <div className="detail-section error">
-                                                <div className="detail-header">Error</div>
+                                                <div className="detail-header">{t('Agent.ToolError')}</div>
                                                 <div className="code-block error">
                                                     <pre>{tc.error}</pre>
                                                 </div>

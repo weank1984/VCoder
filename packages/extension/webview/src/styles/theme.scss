@@ -2,6 +2,7 @@
 .vscode-high-contrast {
     /** common */
     --vc-bg: var(--vscode-sideBar-background, #181818);
+    --vc-bg-container: var(--vscode-editorWidget-background, var(--vscode-editor-background));
     // base color
     --vc-blue: #1677FF;
     --vc-purple: #722ED1;
@@ -194,6 +195,7 @@
 .vscode-high-contrast-light {
     /** common */
     --vc-bg: var(--vscode-sideBar-background, #f8f8f8);
+    --vc-bg-container: var(--vscode-editorWidget-background, var(--vscode-editor-background));
     // Base color
     --vc-blue: #1677FF;
     --vc-purple: #722ED1;

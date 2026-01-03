@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { SubagentRunUpdate } from '@vcoder/shared';
 import classNames from 'classnames';
 import { ArrowRightIcon, CheckIcon, CodebaseIcon, ErrorIcon, LoadingIcon } from '../Icon';
+import { useI18n } from '../../i18n/I18nProvider';
 import './index.scss';
 
 interface TaskRunsBlockProps {
@@ -20,6 +21,7 @@ function safeJson(value: unknown): string {
 export const TaskRunsBlock: React.FC<TaskRunsBlockProps> = ({ runs, sticky = false }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [expandedRunIds, setExpandedRunIds] = useState<Set<string>>(() => new Set());
+  const { t } = useI18n();
 
   const counts = useMemo(() => {
     let total = 0;
@@ -83,7 +85,7 @@ export const TaskRunsBlock: React.FC<TaskRunsBlockProps> = ({ runs, sticky = fal
     <div className={blockClass}>
       <div className="agent-block-header" onClick={() => setIsExpanded(!isExpanded)}>
         <span className="agent-block-icon"><CodebaseIcon /></span>
-        <span className="agent-block-title">Task Runs</span>
+        <span className="agent-block-title">{t('Agent.TaskRuns')}</span>
         <span className="agent-block-badge">
           {counts.completed}/{counts.total}
         </span>
@@ -129,25 +131,25 @@ export const TaskRunsBlock: React.FC<TaskRunsBlockProps> = ({ runs, sticky = fal
                   <div className="task-runs-details">
                     {run.subagentType && (
                       <div className="task-runs-meta">
-                        <span className="task-runs-meta-label">subagent</span>
+                        <span className="task-runs-meta-label">{t('Agent.Subagent')}</span>
                         <span className="task-runs-meta-value">{run.subagentType}</span>
                       </div>
                     )}
                     {run.parentTaskId && (
                       <div className="task-runs-meta">
-                        <span className="task-runs-meta-label">plan</span>
+                        <span className="task-runs-meta-label">{t('Agent.PlanLabel')}</span>
                         <span className="task-runs-meta-value">{run.parentTaskId}</span>
                       </div>
                     )}
                     {run.input && (
                       <div className="task-runs-panel">
-                        <div className="task-runs-panel-title">Input</div>
+                        <div className="task-runs-panel-title">{t('Agent.ToolInput')}</div>
                         <pre className="task-runs-json">{safeJson(run.input)}</pre>
                       </div>
                     )}
                     {(run.result !== undefined || run.error) && (
                       <div className="task-runs-panel">
-                        <div className="task-runs-panel-title">{run.error ? 'Error' : 'Result'}</div>
+                        <div className="task-runs-panel-title">{run.error ? t('Agent.ToolError') : t('Agent.ToolResult')}</div>
                         <pre className="task-runs-json">{safeJson(run.error ? run.error : run.result)}</pre>
                       </div>
                     )}
@@ -161,4 +163,3 @@ export const TaskRunsBlock: React.FC<TaskRunsBlockProps> = ({ runs, sticky = fal
     </div>
   );
 };
-

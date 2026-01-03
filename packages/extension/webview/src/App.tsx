@@ -2,21 +2,28 @@
  * V-Coder Webview App
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useStore } from './store/useStore';
+import { useSmartScroll } from './hooks/useSmartScroll';
+import { useVirtualList, clearHeightCache } from './hooks/useVirtualList';
 import { PlanBlock } from './components/PlanBlock';
 import { TaskRunsBlock } from './components/TaskRunsBlock';
 import { ChatBubble } from './components/ChatBubble';
+import { VirtualMessageItem } from './components/VirtualMessageItem';
 import { InputArea } from './components/InputArea';
 import { HistoryPanel } from './components/HistoryPanel';
-import { VoyahIcon } from './components/Icon';
+import { JumpToBottom } from './components/JumpToBottom';
+import { Welcome } from './components/Welcome';
 import { postMessage } from './utils/vscode';
 import type { ExtensionMessage } from './types';
 import './styles/index.scss';
 import './App.scss';
 
+// Enable virtual list when message count exceeds this threshold
+const VIRTUAL_LIST_THRESHOLD = 50;
+const ESTIMATED_MESSAGE_HEIGHT = 120;
+
 function App() {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showHistory, setShowHistory] = useState(false);
 
   const {
@@ -27,6 +34,7 @@ function App() {
     subagentRuns,
     planMode,
     error,
+    setUiLanguage,
     setSessions,
     setCurrentSession,
     handleUpdate,
@@ -35,6 +43,44 @@ function App() {
     loadHistorySession,
     historySessions,
   } = useStore();
+
+  // Determine if virtual list should be enabled
+  const useVirtual = messages.length > VIRTUAL_LIST_THRESHOLD;
+
+  // Smart auto-scroll: only scroll when at bottom, show jump button when scrolled up
+  const { containerRef, endRef, onScroll: smartScrollHandler, autoScroll, jumpToBottom } = useSmartScroll(messages);
+
+  // Virtual list for long sessions
+  const { 
+    containerRef: virtualContainerRef, 
+    range, 
+    onScroll: virtualScrollHandler 
+  } = useVirtualList({
+    itemCount: messages.length,
+    estimatedItemHeight: ESTIMATED_MESSAGE_HEIGHT,
+    overscan: 5,
+  });
+
+  // Combine scroll handlers
+  const handleScroll = () => {
+    smartScrollHandler();
+    if (useVirtual) {
+      virtualScrollHandler();
+    }
+  };
+
+  // Clear height cache when session changes
+  useEffect(() => {
+    clearHeightCache();
+  }, [currentSessionId]);
+
+  // Messages to render (all or windowed)
+  const visibleMessages = useMemo(() => {
+    if (!useVirtual) {
+      return messages;
+    }
+    return messages.slice(range.start, range.end);
+  }, [messages, useVirtual, range.start, range.end]);
 
   // Listen for messages from extension
   useEffect(() => {
@@ -75,6 +121,9 @@ function App() {
           loadHistorySession(message.sessionId, message.data);
           setShowHistory(false);
           break;
+        case 'uiLanguage':
+          setUiLanguage(message.data.uiLanguage, 'extension');
+          break;
       }
     };
 
@@ -86,11 +135,8 @@ function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, [handleUpdate, setCurrentSession, setLoading, setSessions]);
 
-  // Auto-scroll to bottom on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
+  const isEmpty = messages.length === 0;
 
   return (
     <div className="app">
@@ -102,22 +148,37 @@ function App() {
           <TaskRunsBlock runs={subagentRuns} sticky={true} />
       )}
 
-      <div className="messages-container">
-        {messages.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-card">
-              <div className="empty-icon"><VoyahIcon style={{ fontSize: 48 }} /></div>
-              <h2>欢迎使用 VCoder</h2>
-              <p>输入你的问题，让 AI 帮你写代码、修 Bug、做重构</p>
-            </div>
-          </div>
+      <div 
+        className={`messages-container${isEmpty ? ' messages-container--empty' : ''}`} 
+        ref={useVirtual ? virtualContainerRef : containerRef}
+        onScroll={handleScroll}
+      >
+        {isEmpty ? (
+          <Welcome />
+        ) : useVirtual ? (
+          <>
+            {/* Top padding for virtual scrolling */}
+            <div style={{ height: range.topPadding }} />
+            {visibleMessages.map((msg, idx) => (
+              <VirtualMessageItem 
+                key={msg.id} 
+                message={msg} 
+                index={range.start + idx}
+              />
+            ))}
+            {/* Bottom padding for virtual scrolling */}
+            <div style={{ height: range.bottomPadding }} />
+          </>
         ) : (
           messages.map((msg) => (
             <ChatBubble key={msg.id} message={msg} />
           ))
         )}
-        <div ref={messagesEndRef} />
+        <div ref={endRef} />
       </div>
+
+      {/* Jump to bottom button - shows when user scrolls up */}
+      <JumpToBottom visible={!autoScroll && messages.length > 0} onClick={jumpToBottom} />
 
       {error && (
         <div className="error-banner">
