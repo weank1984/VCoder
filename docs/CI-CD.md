@@ -19,6 +19,7 @@
 - `pnpm install --frozen-lockfile`
 - `pnpm build`
 - `pnpm test`
+- 打包 VSIX（产物上传为 Actions artifact：`vcoder-ci-vsix`）
 
 > 说明：目前仓库内的 `lint` 脚本在部分包里依赖未补齐（`eslint` 未在对应 package 的依赖中声明），因此默认未放入 CI。若需要我也可以顺手把全仓 lint 配齐并加进 CI。
 
@@ -59,4 +60,3 @@ git push origin v0.1.0
 添加 Secret：
 
 - `OVSX_PAT`：Open VSX token
-
