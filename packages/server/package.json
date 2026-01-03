@@ -5,8 +5,8 @@
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "scripts": {
-        "build": "tsc",
-        "dev": "tsc --watch",
+        "build": "tsc -b",
+        "dev": "tsc -b -w",
         "start": "node dist/index.js",
         "clean": "rm -rf dist",
         "lint": "eslint src"

@@ -22,6 +22,10 @@ import {
     SessionCompleteParams,
     Session,
     ModelId,
+    HistorySession,
+    HistoryChatMessage,
+    HistoryListResult,
+    HistoryLoadResult,
 } from '@vcoder/shared';
 
 export class ACPClient extends EventEmitter {
@@ -215,6 +219,16 @@ export class ACPClient extends EventEmitter {
 
     getCurrentSession(): Session | null {
         return this.currentSession;
+    }
+
+    async listHistory(workspacePath: string): Promise<HistorySession[]> {
+        const result = await this.sendRequest<HistoryListResult>(ACPMethods.HISTORY_LIST, { workspacePath });
+        return result.sessions;
+    }
+
+    async loadHistory(sessionId: string, workspacePath: string): Promise<HistoryChatMessage[]> {
+        const result = await this.sendRequest<HistoryLoadResult>(ACPMethods.HISTORY_LOAD, { sessionId, workspacePath });
+        return result.messages;
     }
 
     private async syncDesiredSettings(): Promise<void> {

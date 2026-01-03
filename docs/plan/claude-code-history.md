@@ -6,8 +6,17 @@
 
 - Claude Code CLI 的“历史”主要分两类：**输入历史**与**完整会话转录**；VCoder 要展示“历史对话”，应读取 **完整会话转录**。
 - 在本机环境已确认：Claude Code CLI 会将会话按“项目/工作区”维度写入 `~/.claude/projects/<projectKey>/*.jsonl`（每个文件对应一个会话，JSONL 事件流包含 user/assistant 等）。
-- `~/.claude/history.jsonl` 仅记录用户在 CLI 输入过的内容（类似命令历史），不包含 assistant 回复，通常不适合作为对话回放数据源。
+- `~/.claude/history.jsonl` 仅记录用户在 CLI 输入过的内容（类似命令历史），不包含 assistant 回复；但它包含 `project`+`sessionId`，可作为**索引兜底**（当无法从 workspacePath 推导出 projectKey 时，用它反查会话文件）。
 - VCoder 当前会话列表为**内存态**（`packages/server/src/acp/server.ts`），无法跨重启持久化；因此“显示 CLI 历史”需要新增一层 **Transcript Store** 来读磁盘并向 Webview 提供会话/消息。
+
+## 现已实现（VCoder）
+
+- History API：`history/list`、`history/load`（ACP）。
+- TranscriptStore：从 `~/.claude/projects/<projectKey>/*.jsonl` 读取会话列表与消息，并在以下场景做兜底：
+  - `projectKey` 推导不一致（是否去掉前导 `/`、realpath 差异、大小写等）→ 尝试多种候选 key。
+  - 无法命中项目目录 → 使用 `~/.claude/history.jsonl` 按 `project` 匹配 workspacePath 后反查 `sessionId`，再在 `~/.claude/projects/*` 中定位对应 `<sessionId>.jsonl`。
+  - `workspacePath` 为空 → 聚合列出 `~/.claude/projects/*` 下全部会话（方便排查/兜底）。
+- Claude 目录可配置：支持通过 `VCODER_CLAUDE_DIR`（或 `CLAUDE_HOME` / `CLAUDE_DIR`）覆盖默认的 `~/.claude` 根目录。
 
 ## 现状确认（已验证）
 
@@ -48,6 +57,7 @@ head -n 30 ~/.claude/projects/<projectKey>/<sessionId>.jsonl
 
 - `type: "user"`：用户消息（`message.role === "user"`）
 - `type: "assistant"`：模型输出（`message.role === "assistant"`，`message.content` 为 block 数组）
+- `type: "message"`：部分版本会把 role 放在 `message.role` 里（需要按 `message.role` 识别 user/assistant）
 - `type: "queue-operation"`：队列/调度类事件（可忽略）
 
 ## 记录格式与解析要点
@@ -135,10 +145,27 @@ Claude Code 的 `~/.claude/projects` 下目录通常由“工作区路径”派�
 
 实现建议：
 
-- 以实际目录存在为准：若推导目录不存在，可回退为遍历 `~/.claude/projects/*` 并从会话文件中的 `cwd` 字段匹配当前 workspace root。
+- 以实际目录存在为准：优先尝试多种 projectKey 候选（含 realpath 变体、是否带前导 `-` 等）。
+- 若仍无法命中目录：可使用 `~/.claude/history.jsonl` 的 `project` 字段匹配当前 workspace root，再用 `sessionId` 在 `~/.claude/projects/*` 中定位具体会话文件。
 
 ## 备注（隐私与兼容性）
 
 - `~/.claude/projects` 中的转录可能包含敏感信息（路径、代码片段、工具输入输出）；在 UI 中展示时建议提供“清除/隐藏历史”的入口，或至少提示该数据来自本机磁盘。
 - 不同 Claude Code 版本可能在事件字段上有细微差异，解析需做容错（例如 `timestamp` 可能是 ISO 字符串或缺失；`message.content` 形态变化）。
 
+## 常见问题排查（UI 显示空）
+
+1) **确认扩展使用的是最新 server 产物**
+
+- VSIX/Production 会运行扩展内置的 `packages/extension/server/index.js`；如果只改了 `packages/server/src` 但没重新打包 server，UI 仍会是旧逻辑。
+- 修复方式：运行 `pnpm -C packages/extension package:server`，然后在 VSCode 执行 `V-Coder: Restart Server` 或 `Developer: Reload Window`。
+
+2) **不要把日志写到 stdout**
+
+- ACP server 的 stdout 是 JSON-RPC 通道；任何 `console.log` 都会污染协议流导致客户端解析失败。
+- 约定：server 侧诊断日志使用 `console.error`（stderr）。
+
+3) **远程/容器环境**
+
+- VSCode Remote / SSH / Dev Container 场景下，server 运行在远端，默认读取的是远端的 `~/.claude`；若 Claude 历史只存在本机，远端自然为空。
+- 需要把历史同步到远端，或通过环境变量把 `VCODER_CLAUDE_DIR` 指到实际存在数据的路径（前提是 server 进程可访问该路径）。

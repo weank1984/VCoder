@@ -74,29 +74,30 @@ export function TaskList({ tasks, visible }: TaskListProps) {
     );
 
     return (
-        <div className="task-list">
-            <div className="task-list-header-group">
-                <button
-                    className="task-list-header"
-                    onClick={() => setIsExpanded(!isExpanded)}
-                >
+        <div className={`task-list ${isExpanded ? 'expanded' : ''}`}>
+            <button
+                className="task-list-header"
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
+                <div className="task-header-left">
                     <span className="task-header-icon"><PlanIcon /></span>
-                    <div className="task-header-info">
-                        <span className="task-list-title">任务计划</span>
-                        <span className="task-progress-text">
-                            {counts.completed}/{counts.total}
-                        </span>
-                    </div>
+                    <span className="task-list-title">Task Runs</span>
+                </div>
+                
+                <div className="task-header-right">
+                    <span className="task-progress-badge">
+                        {counts.completed}/{counts.total}
+                    </span>
                     <span className="expand-toggle">
                         {isExpanded ? <CollapseIcon /> : <ExpandIcon />}
                     </span>
-                </button>
-                <div className="task-progress-bar">
-                    <div 
-                        className="progress-fill" 
-                        style={{ width: `${counts.total ? (counts.completed / counts.total) * 100 : 0}%` }} 
-                    />
                 </div>
+            </button>
+            <div className="task-progress-bar">
+                <div 
+                    className="progress-fill" 
+                    style={{ width: `${counts.total ? (counts.completed / counts.total) * 100 : 0}%` }} 
+                />
             </div>
 
             {isExpanded && (

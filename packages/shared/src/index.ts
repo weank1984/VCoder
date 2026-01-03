@@ -23,6 +23,9 @@ export const ACPMethods = {
     BASH_SKIP: 'bash/skip',
     PLAN_CONFIRM: 'plan/confirm',
     SESSION_CANCEL: 'session/cancel',
+    // History API (read Claude Code CLI transcripts)
+    HISTORY_LIST: 'history/list',
+    HISTORY_LOAD: 'history/load',
 
     // Server -> Client (Notifications)
     SESSION_UPDATE: 'session/update',

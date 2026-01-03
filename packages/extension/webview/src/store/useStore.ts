@@ -4,7 +4,7 @@
 
 import { create } from './createStore';
 import type { AppState, ChatMessage, ToolCall } from '../types';
-import type { Task, ModelId, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate } from '@vcoder/shared';
+import type { Task, ModelId, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
 
 interface AppStore extends AppState {
@@ -25,6 +25,10 @@ interface AppStore extends AppState {
     setError: (error: ErrorUpdate | null) => void;
     handleUpdate: (update: UpdateNotificationParams) => void;
     setWorkspaceFiles: (files: string[]) => void;
+    // History Actions
+    setHistorySessions: (sessions: HistorySession[]) => void;
+    loadHistorySession: (sessionId: string, messages: HistoryChatMessage[]) => void;
+    exitHistoryMode: () => void;
     reset: () => void;
 }
 
@@ -52,6 +56,9 @@ const initialState: AppState = {
     isLoading: false,
     error: null,
     workspaceFiles: [],
+    // History
+    historySessions: [],
+    viewMode: 'live',
 };
 
 export const useStore = create<AppStore>((set, get) => ({
@@ -173,7 +180,7 @@ export const useStore = create<AppStore>((set, get) => ({
             currentSessionId: state.currentSessionId ?? sessions[0]?.id ?? null,
         })),
 
-    setCurrentSession: (sessionId) => set({ currentSessionId: sessionId }),
+    setCurrentSession: (sessionId) => set({ currentSessionId: sessionId, viewMode: 'live' }),
 
     setPlanMode: (enabled) => {
         set((state) => ({
@@ -286,6 +293,35 @@ export const useStore = create<AppStore>((set, get) => ({
     },
 
     setWorkspaceFiles: (files) => set({ workspaceFiles: files }),
+
+    setHistorySessions: (historySessions) => set({ historySessions }),
+
+    loadHistorySession: (sessionId, historyMessages) => set({
+        viewMode: 'history',
+        currentSessionId: sessionId,
+        messages: historyMessages.map(msg => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            thought: msg.thought,
+            toolCalls: msg.toolCalls?.map(tc => ({
+                id: tc.id,
+                name: tc.name, // HistoryToolCall name matches ToolCall name
+                status: tc.status,
+                input: tc.input,
+                result: tc.result,
+                error: tc.error
+            })) as ToolCall[] | undefined,
+            isComplete: true, // History messages are always complete
+        })),
+        isLoading: false,
+    }),
+
+    exitHistoryMode: () => set({
+        viewMode: 'live',
+        currentSessionId: null, // Returning to live mode usually starts fresh or needs session restore (not implemented yet)
+        messages: [],
+    }),
 
     reset: () => set(initialState),
 }));

@@ -300,3 +300,75 @@ export interface SessionCompleteParams {
         outputTokens: number;
     };
 }
+
+// =============================================================================
+// History API (Read-only access to Claude Code CLI transcripts)
+// =============================================================================
+
+/**
+ * Historical session metadata, distinct from live ACP sessions.
+ * These are read from ~/.claude/projects/<projectKey>/*.jsonl files.
+ */
+export interface HistorySession {
+    /** Session ID (derived from jsonl filename) */
+    id: string;
+    /** Title derived from first user message */
+    title: string;
+    /** ISO timestamp of first event */
+    createdAt: string;
+    /** ISO timestamp of last event */
+    updatedAt: string;
+    /** Project key (derived from workspace path) */
+    projectKey: string;
+}
+
+export interface HistoryListParams {
+    /** Workspace path to find history for */
+    workspacePath: string;
+}
+
+export interface HistoryListResult {
+    sessions: HistorySession[];
+}
+
+export interface HistoryLoadParams {
+    /** Session ID to load */
+    sessionId: string;
+    /** Workspace path (needed to derive projectKey) */
+    workspacePath: string;
+}
+
+/**
+ * A single tool call within a history message
+ */
+export interface HistoryToolCall {
+    id: string;
+    name: string;
+    input?: Record<string, unknown>;
+    result?: unknown;
+    error?: string;
+    status: 'completed' | 'failed';
+}
+
+/**
+ * Unified chat message format for history replay.
+ * Converted from Claude Code CLI JSONL events.
+ */
+export interface HistoryChatMessage {
+    /** Unique message ID */
+    id: string;
+    /** Message role */
+    role: 'user' | 'assistant';
+    /** Text content (concatenated from text blocks) */
+    content: string;
+    /** Thinking content (from thinking blocks) */
+    thought?: string;
+    /** Tool calls (from tool_use/tool_result blocks) */
+    toolCalls?: HistoryToolCall[];
+    /** ISO timestamp */
+    timestamp?: string;
+}
+
+export interface HistoryLoadResult {
+    messages: HistoryChatMessage[];
+}

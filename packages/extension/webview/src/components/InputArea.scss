@@ -343,3 +343,29 @@ $input-prefixCls: 'vc-input';
         transform: rotate(1turn);
     }
 }
+
+.history-mode-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--vc-color-secondary-bg);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--vc-color-text-secondary);;
+
+    button {
+        background: transparent;
+        border: 1px solid var(--vc-color-border);
+        color: var(--vc-color-text);
+        padding: 2px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+
+        &:hover {
+            background: var(--vc-control-item-bg-hover);
+        }
+    }
+}

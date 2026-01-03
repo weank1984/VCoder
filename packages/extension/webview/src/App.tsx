@@ -31,6 +31,9 @@ function App() {
     setCurrentSession,
     handleUpdate,
     setLoading,
+    setHistorySessions,
+    loadHistorySession,
+    historySessions,
   } = useStore();
 
   // Listen for messages from extension
@@ -63,6 +66,14 @@ function App() {
           break;
         case 'showHistory':
           setShowHistory(true);
+          postMessage({ type: 'listHistory' }); // Refresh history list when opening
+          break;
+        case 'historySessions':
+          setHistorySessions(message.data);
+          break;
+        case 'historyMessages':
+          loadHistorySession(message.sessionId, message.data);
+          setShowHistory(false);
           break;
       }
     };
@@ -136,6 +147,7 @@ function App() {
 
       <HistoryPanel
         sessions={sessions}
+        historySessions={historySessions}
         currentSessionId={currentSessionId}
         visible={showHistory}
         onClose={() => setShowHistory(false)}

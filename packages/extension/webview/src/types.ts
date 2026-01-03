@@ -2,7 +2,7 @@
  * Webview Types
  */
 
-import type { UpdateNotificationParams, Session, Task, ModelId, ErrorUpdate, SubagentRunUpdate } from '@vcoder/shared';
+import type { UpdateNotificationParams, Session, Task, ModelId, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage } from '@vcoder/shared';
 
 // Message types from Extension to Webview
 export interface UpdateMessage {
@@ -28,8 +28,6 @@ export interface CurrentSessionMessage {
 export interface ShowHistoryMessage {
     type: 'showHistory';
 }
-
-export type ExtensionMessage = UpdateMessage | CompleteMessage | SessionsMessage | CurrentSessionMessage | WorkspaceFilesMessage | ShowHistoryMessage;
 
 // Message types from Webview to Extension
 export interface SendMessage {
@@ -104,6 +102,45 @@ export interface ExecuteCommandMessage {
     command: string;
 }
 
+export interface GetWorkspaceFilesMessage {
+    type: 'getWorkspaceFiles';
+}
+
+export interface WorkspaceFilesMessage {
+    type: 'workspaceFiles';
+    data: string[];
+}
+
+export interface ListHistoryMessage {
+    type: 'listHistory';
+}
+
+export interface LoadHistoryMessage {
+    type: 'loadHistory';
+    sessionId: string;
+}
+
+export interface HistorySessionsMessage {
+    type: 'historySessions';
+    data: HistorySession[];
+}
+
+export interface HistoryMessagesMessage {
+    type: 'historyMessages';
+    data: HistoryChatMessage[];
+    sessionId: string;
+}
+
+export type ExtensionMessage = 
+    | UpdateMessage 
+    | CompleteMessage 
+    | SessionsMessage 
+    | CurrentSessionMessage 
+    | WorkspaceFilesMessage 
+    | ShowHistoryMessage
+    | HistorySessionsMessage
+    | HistoryMessagesMessage;
+
 export type WebviewMessage =
     | SendMessage
     | NewSessionMessage
@@ -119,19 +156,9 @@ export type WebviewMessage =
     | ConfirmPlanMessage
     | CancelMessage
     | ExecuteCommandMessage
-    | GetWorkspaceFilesMessage;
-
-export interface GetWorkspaceFilesMessage {
-    type: 'getWorkspaceFiles';
-}
-
-export interface WorkspaceFilesMessage {
-    type: 'workspaceFiles';
-    data: string[];
-}
-
-
-// UI State
+    | GetWorkspaceFilesMessage
+    | ListHistoryMessage
+    | LoadHistoryMessage;
 export interface ChatMessage {
     id: string;
     role: 'user' | 'assistant';
@@ -161,4 +188,7 @@ export interface AppState {
     isLoading: boolean;
     error: ErrorUpdate | null;
     workspaceFiles: string[];
+    // History
+    historySessions: HistorySession[];
+    viewMode: 'live' | 'history';
 }

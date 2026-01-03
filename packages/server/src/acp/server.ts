@@ -28,7 +28,12 @@ import {
     UpdateNotificationParams,
     SessionCompleteParams,
     Session,
+    HistoryListParams,
+    HistoryListResult,
+    HistoryLoadParams,
+    HistoryLoadResult,
 } from '@vcoder/shared';
+import { listHistorySessions, loadHistorySession } from '../history/transcriptStore';
 import { ClaudeCodeWrapper } from '../claude/wrapper';
 
 export class ACPServer {
@@ -122,6 +127,12 @@ export class ACPServer {
                     break;
                 case ACPMethods.SESSION_CANCEL:
                     result = await this.handleSessionCancel(params as CancelSessionParams);
+                    break;
+                case ACPMethods.HISTORY_LIST:
+                    result = await this.handleListHistory(params as HistoryListParams);
+                    break;
+                case ACPMethods.HISTORY_LOAD:
+                    result = await this.handleLoadHistory(params as HistoryLoadParams);
                     break;
                 default:
                     return {
@@ -246,6 +257,16 @@ export class ACPServer {
 
     private async handleSessionCancel(params: CancelSessionParams): Promise<void> {
         await this.claudeCode.cancel(params.sessionId);
+    }
+
+    private async handleListHistory(params: HistoryListParams): Promise<HistoryListResult> {
+        const sessions = await listHistorySessions(params.workspacePath);
+        return { sessions };
+    }
+
+    private async handleLoadHistory(params: HistoryLoadParams): Promise<HistoryLoadResult> {
+        const messages = await loadHistorySession(params.sessionId, params.workspacePath);
+        return { messages };
     }
 
     // Communication helpers

@@ -130,6 +130,33 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                         }
                     }
                     break;
+                case 'listHistory':
+                    {
+                        const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+                        try {
+                            const sessions = await this.acpClient.listHistory(root);
+                            this.postMessage({ type: 'historySessions', data: sessions });
+                        } catch (err) {
+                            console.error('[VCoder] Failed to list history:', err);
+                            this.postMessage({ type: 'historySessions', data: [] });
+                        }
+                    }
+                    break;
+                case 'loadHistory':
+                    {
+                        const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+                        try {
+                            const messages = await this.acpClient.loadHistory(message.sessionId, root);
+                            this.postMessage({ 
+                                type: 'historyMessages', 
+                                data: messages,
+                                sessionId: message.sessionId 
+                            });
+                        } catch (err) {
+                            console.error('[VCoder] Failed to load history:', err);
+                        }
+                    }
+                    break;
             }
         });
     }

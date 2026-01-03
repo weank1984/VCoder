@@ -37,7 +37,7 @@ export function InputArea() {
     const wrapperRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const { planMode, model, isLoading, workspaceFiles, setPlanMode, setModel, addMessage, setLoading } = useStore();
+    const { planMode, model, isLoading, workspaceFiles, viewMode, setPlanMode, setModel, addMessage, setLoading, exitHistoryMode } = useStore();
 
     // Request workspace files on mount
     useEffect(() => {
@@ -214,6 +214,13 @@ export function InputArea() {
                 onChange={handleFileChange}
                 style={{ display: 'none' }}
             />
+            
+            {viewMode === 'history' && (
+                <div className="history-mode-banner">
+                    <span>正在查看历史会话 (只读)</span>
+                    <button onClick={exitHistoryMode}>退出</button>
+                </div>
+            )}
 
             {showPicker && (
                 <FilePicker
@@ -276,7 +283,7 @@ export function InputArea() {
                         onKeyDown={handleKeyDown}
                         onCompositionStart={() => setIsComposing(true)}
                         onCompositionEnd={() => setIsComposing(false)}
-                        disabled={isLoading}
+                        disabled={isLoading || viewMode === 'history'}
                         rows={1}
                         onClick={(e) => {
                             setCursorPosition(e.currentTarget.selectionStart);
