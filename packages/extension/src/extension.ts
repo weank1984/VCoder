@@ -14,6 +14,7 @@ import { FileChangeUpdate, UpdateNotificationParams, InitializeParams } from '@v
 let serverManager: ServerManager;
 let acpClient: ACPClient;
 let statusBarItem: vscode.StatusBarItem;
+let outputChannel: vscode.OutputChannel;
 let clientInitParams: InitializeParams;
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -26,9 +27,15 @@ export async function activate(context: vscode.ExtensionContext) {
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.command = 'vcoder.showServerStatus';
     context.subscriptions.push(statusBarItem);
+
+    // Output Channel for logs
+    outputChannel = vscode.window.createOutputChannel('VCoder');
+    context.subscriptions.push(outputChannel);
+    outputChannel.appendLine('[VCoder] Extension activated');
     
     serverManager.onStatusChange((status) => {
         updateStatusBar(status);
+        outputChannel.appendLine(`[VCoder] Server status: ${status}`);
         // Re-initialize client if server restarted to running state
         if (status === 'running' && acpClient && clientInitParams) {
              const { stdin, stdout } = serverManager.getStdio();
@@ -196,14 +203,20 @@ export async function activate(context: vscode.ExtensionContext) {
              const selection = await vscode.window.showQuickPick(
                  [
                      { label: 'Restart Server', description: 'Restarts the backend process' },
-                     { label: 'View Logs', description: 'Open hidden output channel (TODO)' }
+                     { label: 'View Logs', description: 'Open output channel' }
                  ], 
                  { placeHolder: `Server Status: ${status}` }
              );
              
              if (selection?.label === 'Restart Server') {
                  vscode.commands.executeCommand('vcoder.restart');
+             } else if (selection?.label === 'View Logs') {
+                 outputChannel.show();
              }
+        }),
+
+        vscode.commands.registerCommand('vcoder.showLogs', () => {
+            outputChannel.show();
         })
     );
 

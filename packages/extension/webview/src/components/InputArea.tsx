@@ -8,7 +8,14 @@ import { postMessage } from '../utils/vscode';
 import { useStore } from '../store/useStore';
 import type { ModelId } from '@vcoder/shared';
 import { FilePicker } from './FilePicker';
-import { AddIcon, ArrowTopIcon, LoadingIcon, SendIcon } from './Icon';
+import { AddIcon, ArrowTopIcon, SendIcon, StopIcon, CloseIcon } from './Icon';
+
+interface Attachment {
+    type: 'file' | 'selection';
+    path?: string;
+    name: string;
+    content?: string;
+}
 import './InputArea.scss';
 
 const MODELS: { id: ModelId; name: string }[] = [
@@ -24,9 +31,11 @@ export function InputArea() {
     const [pickerQuery, setPickerQuery] = useState('');
     const [cursorPosition, setCursorPosition] = useState(0);
     const [isComposing, setIsComposing] = useState(false);
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const rectRef = useRef<SVGRectElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const { planMode, model, isLoading, workspaceFiles, setPlanMode, setModel, addMessage, setLoading } = useStore();
 
@@ -34,7 +43,6 @@ export function InputArea() {
     useEffect(() => {
         postMessage({ type: 'getWorkspaceFiles' });
     }, []);
-
     // Calculate perimeter for SVG animation
     useEffect(() => {
         if (!wrapperRef.current) return;
@@ -61,8 +69,40 @@ export function InputArea() {
         return () => observer.disconnect();
     }, [isLoading]);
 
+
+    const handleAddFiles = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files) return;
+
+        Array.from(files).forEach((file) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                setAttachments((prev) => [
+                    ...prev,
+                    {
+                        type: 'file',
+                        name: file.name,
+                        content: reader.result as string,
+                    },
+                ]);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Reset input so same file can be selected again
+        e.target.value = '';
+    };
+
+    const removeAttachment = (index: number) => {
+        setAttachments((prev) => prev.filter((_, i) => i !== index));
+    };
+
     const handleSubmit = () => {
-        if (!input.trim() || isLoading) return;
+        if ((!input.trim() && attachments.length === 0) || isLoading) return;
 
         setLoading(true);
 
@@ -70,7 +110,7 @@ export function InputArea() {
         addMessage({
             id: crypto.randomUUID(),
             role: 'user',
-            content: input,
+            content: input || (attachments.length > 0 ? `[${attachments.map(a => a.name).join(', ')}]` : ''),
             isComplete: true,
         });
 
@@ -82,13 +122,19 @@ export function InputArea() {
             isComplete: false,
         });
 
-        // Send to extension
+        // Send to extension with attachments
         postMessage({
             type: 'send',
             content: input,
+            attachments: attachments.map((a) => ({
+                type: a.type,
+                path: a.path,
+                content: a.content,
+            })),
         });
 
         setInput('');
+        setAttachments([]);
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -159,6 +205,16 @@ export function InputArea() {
 
     return (
         <div className="input-area">
+            {/* Hidden file input for attachments */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,.pdf,.txt,.md,.json,.js,.ts,.tsx,.py,.go,.java,.c,.cpp,.h,.hpp,.css,.scss,.html"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+            />
+
             {showPicker && (
                 <FilePicker
                     files={workspaceFiles}
@@ -193,6 +249,24 @@ export function InputArea() {
                     </svg>
                 )}
                 <div className="input-content">
+                    {/* Attachment preview chips */}
+                    {attachments.length > 0 && (
+                        <div className="attachments-preview">
+                            {attachments.map((att, idx) => (
+                                <div key={idx} className="attachment-chip">
+                                    <span className="attachment-name">{att.name}</span>
+                                    <button 
+                                        className="attachment-remove" 
+                                        onClick={() => removeAttachment(idx)}
+                                        aria-label={`Remove ${att.name}`}
+                                    >
+                                        <CloseIcon />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     <textarea
                         ref={textareaRef}
                         className="input-field"
@@ -212,7 +286,7 @@ export function InputArea() {
 
                     <div className="input-toolbar">
                         <div className="toolbar-left">
-                            <button className="tool-btn add-btn" title="Add context" aria-label="Add context" onClick={() => setShowPicker(true)}>
+                            <button className="tool-btn add-btn" title="Add files" aria-label="Add files" onClick={handleAddFiles}>
                                 <AddIcon />
                             </button>
 
@@ -242,15 +316,28 @@ export function InputArea() {
                         </div>
 
                         <div className="toolbar-right">
-                            <button
-                                className="send-btn"
-                                onClick={handleSubmit}
-                                disabled={!input.trim() || isLoading}
-                                title={isLoading ? 'Generating…' : 'Send'}
-                                aria-label={isLoading ? 'Generating…' : 'Send'}
-                            >
-                                {isLoading ? <LoadingIcon className="icon-spin" /> : <SendIcon />}
-                            </button>
+                            {isLoading ? (
+                                <button
+                                    className="stop-btn"
+                                    onClick={() => {
+                                        postMessage({ type: 'cancel' });
+                                    }}
+                                    title="Stop generating"
+                                    aria-label="Stop generating"
+                                >
+                                    <StopIcon />
+                                </button>
+                            ) : (
+                                <button
+                                    className="send-btn"
+                                    onClick={handleSubmit}
+                                    disabled={!input.trim() && attachments.length === 0}
+                                    title="Send"
+                                    aria-label="Send"
+                                >
+                                    <SendIcon />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

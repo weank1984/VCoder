@@ -206,6 +206,13 @@ export class ACPClient extends EventEmitter {
         });
     }
 
+    async cancelSession(): Promise<void> {
+        if (!this.currentSession) return;
+        await this.sendRequest(ACPMethods.SESSION_CANCEL, {
+            sessionId: this.currentSession.id,
+        });
+    }
+
     getCurrentSession(): Session | null {
         return this.currentSession;
     }

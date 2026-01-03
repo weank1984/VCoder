@@ -79,3 +79,20 @@ $bubble-prefixCls: vc-bubble;
         transform: translateY(0);
     }
 }
+
+// 流式输出光标
+.streaming-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    margin-left: 2px;
+    background: var(--vc-color-primary);
+    animation: cursor-blink 1s infinite;
+    vertical-align: text-bottom;
+}
+
+@keyframes cursor-blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+

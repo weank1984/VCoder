@@ -60,6 +60,10 @@
             {
                 "command": "vcoder.restart",
                 "title": "V-Coder: Restart Server"
+            },
+            {
+                "command": "vcoder.showLogs",
+                "title": "V-Coder: Show Logs"
             }
         ],
         "menus": {
@@ -99,6 +103,34 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Skip bash command confirmation"
+                },
+                "vcoder.mcpServers": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Display name for the MCP server"
+                            },
+                            "command": {
+                                "type": "string",
+                                "description": "Command to start the MCP server"
+                            },
+                            "args": {
+                                "type": "array",
+                                "items": { "type": "string" },
+                                "description": "Arguments for the MCP server command"
+                            },
+                            "env": {
+                                "type": "object",
+                                "description": "Environment variables for the MCP server"
+                            }
+                        },
+                        "required": ["name", "command"]
+                    },
+                    "description": "List of MCP (Model Context Protocol) servers for extended tool capabilities"
                 }
             }
         }

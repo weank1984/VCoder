@@ -25,7 +25,11 @@ export interface CurrentSessionMessage {
     data: { sessionId: string };
 }
 
-export type ExtensionMessage = UpdateMessage | CompleteMessage | SessionsMessage | CurrentSessionMessage | WorkspaceFilesMessage;
+export interface ShowHistoryMessage {
+    type: 'showHistory';
+}
+
+export type ExtensionMessage = UpdateMessage | CompleteMessage | SessionsMessage | CurrentSessionMessage | WorkspaceFilesMessage | ShowHistoryMessage;
 
 // Message types from Webview to Extension
 export interface SendMessage {
@@ -91,6 +95,10 @@ export interface ConfirmPlanMessage {
     type: 'confirmPlan';
 }
 
+export interface CancelMessage {
+    type: 'cancel';
+}
+
 export interface ExecuteCommandMessage {
     type: 'executeCommand';
     command: string;
@@ -109,6 +117,7 @@ export type WebviewMessage =
     | ConfirmBashMessage
     | SkipBashMessage
     | ConfirmPlanMessage
+    | CancelMessage
     | ExecuteCommandMessage
     | GetWorkspaceFilesMessage;
 

@@ -100,6 +100,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                 case 'confirmPlan':
                     await this.acpClient.confirmPlan();
                     break;
+                case 'cancel':
+                    await this.acpClient.cancelSession();
+                    this.postMessage({ type: 'complete' });
+                    break;
                 case 'getWorkspaceFiles':
                     {
                         const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;

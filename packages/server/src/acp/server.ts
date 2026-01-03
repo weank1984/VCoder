@@ -17,6 +17,7 @@ import {
     ListSessionsResult,
     SwitchSessionParams,
     DeleteSessionParams,
+    CancelSessionParams,
     PromptParams,
     SettingsChangeParams,
     FileAcceptParams,
@@ -118,6 +119,9 @@ export class ACPServer {
                     break;
                 case ACPMethods.PLAN_CONFIRM:
                     result = await this.handlePlanConfirm(params as PlanConfirmParams);
+                    break;
+                case ACPMethods.SESSION_CANCEL:
+                    result = await this.handleSessionCancel(params as CancelSessionParams);
                     break;
                 default:
                     return {
@@ -238,6 +242,10 @@ export class ACPServer {
 
     private async handlePlanConfirm(params: PlanConfirmParams): Promise<void> {
         await this.claudeCode.confirmPlan(params.sessionId);
+    }
+
+    private async handleSessionCancel(params: CancelSessionParams): Promise<void> {
+        await this.claudeCode.cancel(params.sessionId);
     }
 
     // Communication helpers

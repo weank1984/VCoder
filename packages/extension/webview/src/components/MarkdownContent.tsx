@@ -70,8 +70,16 @@ function CodeBlock({ inline, className, children }: CodeBlockProps) {
     );
 }
 
-export function MarkdownContent({ content }: MarkdownContentProps) {
+export function MarkdownContent({ content, isComplete }: MarkdownContentProps) {
     if (!content) {
+        // 即使没有内容，如果正在加载也显示光标
+        if (!isComplete) {
+            return (
+                <div className="vc-markdown">
+                    <span className="streaming-cursor" />
+                </div>
+            );
+        }
         return null;
     }
 
@@ -84,6 +92,7 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
             >
                 {content}
             </ReactMarkdown>
+            {!isComplete && <span className="streaming-cursor" />}
         </div>
     );
 }

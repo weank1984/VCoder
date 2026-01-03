@@ -96,6 +96,10 @@ export interface DeleteSessionParams {
     sessionId: string;
 }
 
+export interface CancelSessionParams {
+    sessionId: string;
+}
+
 // =============================================================================
 // Prompt
 // =============================================================================

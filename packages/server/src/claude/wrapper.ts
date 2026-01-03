@@ -136,7 +136,9 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
         return new Promise((resolve, reject) => {
             child.on('close', (code) => {
-                if (code === 0) {
+                // Exit code 143 = SIGTERM (128+15), 137 = SIGKILL (128+9)
+                // These indicate successful cancellation, not errors
+                if (code === 0 || code === 143 || code === 137 || code === null) {
                      this.emit('complete', sessionId);
                      resolve();
                 } else {
@@ -730,6 +732,21 @@ export class ClaudeCodeWrapper extends EventEmitter {
         const process = this.processesByLocalSessionId.get(sessionId);
         if (process?.stdin && !process.stdin.destroyed && !process.stdin.writableEnded) {
              process.stdin.write('y\n');
+        }
+    }
+
+    async cancel(sessionId: string): Promise<void> {
+        const process = this.processesByLocalSessionId.get(sessionId);
+        if (process) {
+            try {
+                process.kill('SIGTERM');
+                console.error(`[ClaudeCode] Cancelled session ${sessionId}`);
+            } catch (err) {
+                console.error('[ClaudeCode] Failed to cancel process:', err);
+            }
+            this.processesByLocalSessionId.delete(sessionId);
+            this.toolNameByIdByLocalSessionId.delete(sessionId);
+            this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
         }
     }
 

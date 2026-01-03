@@ -22,6 +22,7 @@ export const ACPMethods = {
     BASH_CONFIRM: 'bash/confirm',
     BASH_SKIP: 'bash/skip',
     PLAN_CONFIRM: 'plan/confirm',
+    SESSION_CANCEL: 'session/cancel',
 
     // Server -> Client (Notifications)
     SESSION_UPDATE: 'session/update',

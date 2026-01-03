@@ -40,6 +40,7 @@ export { default as FileIcon } from "./icons/FileIcon";
 export { default as FolderIcon } from "./icons/FolderIcon";
 export { default as GeneralSettingIcon } from "./icons/GeneralSettingIcon";
 export { default as HelpIcon } from "./icons/HelpIcon";
+export { default as HistoryIcon } from "./icons/HistoryIcon";
 export { default as ImageIcon } from "./icons/ImageIcon";
 export { default as IndexIcon } from "./icons/IndexIcon";
 export { default as InfoIcon } from "./icons/InfoIcon";

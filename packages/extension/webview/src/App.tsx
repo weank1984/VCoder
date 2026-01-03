@@ -2,12 +2,13 @@
  * V-Coder Webview App
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore } from './store/useStore';
 import { PlanBlock } from './components/PlanBlock';
 import { TaskRunsBlock } from './components/TaskRunsBlock';
 import { ChatBubble } from './components/ChatBubble';
 import { InputArea } from './components/InputArea';
+import { HistoryPanel } from './components/HistoryPanel';
 import { VoyahIcon } from './components/Icon';
 import { postMessage } from './utils/vscode';
 import type { ExtensionMessage } from './types';
@@ -16,8 +17,11 @@ import './App.scss';
 
 function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const {
+    sessions,
+    currentSessionId,
     messages,
     tasks,
     subagentRuns,
@@ -57,6 +61,9 @@ function App() {
         case 'workspaceFiles':
           useStore.getState().setWorkspaceFiles(message.data);
           break;
+        case 'showHistory':
+          setShowHistory(true);
+          break;
       }
     };
 
@@ -72,6 +79,7 @@ function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
 
   return (
     <div className="app">
@@ -125,6 +133,13 @@ function App() {
           </button>
         </div>
       )}
+
+      <HistoryPanel
+        sessions={sessions}
+        currentSessionId={currentSessionId}
+        visible={showHistory}
+        onClose={() => setShowHistory(false)}
+      />
 
       <InputArea />
     </div>

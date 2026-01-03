@@ -89,6 +89,58 @@ $input-prefixCls: 'vc-input';
   background-clip: padding-box; 
 }
 
+/* Attachment Preview Chips */
+.attachments-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px 4px;
+  border-bottom: 1px solid var(--vc-color-border);
+}
+
+.attachment-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 10px;
+  background: var(--vc-control-item-bg-hover);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--vc-color-text);
+  max-width: 180px;
+}
+
+.attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vc-color-text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: var(--vc-color-danger-bg, rgba(255, 100, 100, 0.2));
+    color: var(--vc-color-danger, #ff6b6b);
+  }
+
+  svg {
+    width: 10px;
+    height: 10px;
+  }
+}
+
 /* Rest of styles remain same */
 .input-field {
   width: 100%;
@@ -242,6 +294,30 @@ $input-prefixCls: 'vc-input';
 .send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* Stop Button */
+.stop-btn {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 999px;
+    background: var(--vc-color-danger, #e74c3c);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.stop-btn:hover {
+    background: color-mix(in srgb, var(--vc-color-danger, #e74c3c) 85%, black);
+}
+
+.stop-btn:active {
+    transform: scale(0.95);
 }
 
 /* Loader */
