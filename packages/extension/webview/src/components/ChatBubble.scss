@@ -1,18 +1,17 @@
-$bubble-prefixCls: vc-bubble;
-
 .chat-bubble {
     width: 100%;
 }
 
-.#{$bubble-prefixCls} {
+.vc-bubble {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    row-gap: 4px;
+    row-gap: 6px;
     width: 100%;
+    margin-bottom: 24px;
     
     // Animation
-    animation: bubble-slide-in 0.25s ease-out;
+    animation: bubble-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     
     @media (prefers-reduced-motion: reduce) {
         animation: none;
@@ -23,33 +22,30 @@ $bubble-prefixCls: vc-bubble;
         align-items: center;
         column-gap: 8px;
         width: 100%;
-        margin-bottom: 2px;
-        color: var(--vc-color-text-label);
-        font-size: 12px;
+        margin-bottom: 4px;
+        color: var(--vscode-descriptionForeground);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        opacity: 0.8;
     }
 
     &-avatar {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 16px;
-    }
-
-    &-title {
-        font-weight: 500;
+        font-size: 14px;
     }
 
     &-content {
         position: relative;
         box-sizing: border-box;
         width: 100%;
-        padding: 8px 12px;
-        border-radius: 6px;
-        color: var(--vc-color-text);
-        background-color: var(--vc-bg-container);
-        border: 1px solid var(--vc-color-border-secondary);
-        line-height: var(--vc-line-height);
-        font-size: var(--vc-font-size);
+        padding: 0; /* Let internal components handle padding for better layout control */
+        color: var(--vscode-foreground);
+        line-height: 1.6;
+        font-size: 14px;
         word-break: break-word;
 
         pre {
@@ -58,21 +54,24 @@ $bubble-prefixCls: vc-bubble;
     }
 }
 
-// User bubble specific overrides
-.user .#{$bubble-prefixCls}-content {
-    background-color: var(--vc-control-item-bg-active);
-    border-color: var(--vc-color-primary-border);
+/* User bubble specific overrides */
+.user .vc-bubble-content {
+    background: var(--vcoder-overlay-subtle);
+    padding: 12px 16px;
+    border-radius: var(--vcoder-radius-lg);
+    border: 1px solid var(--vcoder-overlay-1);
 }
 
-// Assistant bubble specific overrides
-.assistant .#{$bubble-prefixCls}-content {
-    background-color: transparent;
+/* Assistant bubble specific overrides */
+.assistant .vc-bubble-content {
+    background: transparent;
+    padding: 0;
 }
 
 @keyframes bubble-slide-in {
     from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(12px);
     }
     to {
         opacity: 1;
@@ -80,19 +79,18 @@ $bubble-prefixCls: vc-bubble;
     }
 }
 
-// 流式输出光标
 .streaming-cursor {
     display: inline-block;
-    width: 2px;
-    height: 1em;
-    margin-left: 2px;
-    background: var(--vc-color-primary);
-    animation: cursor-blink 1s infinite;
-    vertical-align: text-bottom;
+    width: 6px;
+    height: 14px;
+    margin-left: 4px;
+    background: var(--vcoder-primary);
+    border-radius: 1px;
+    animation: cursor-blink 0.8s infinite;
+    vertical-align: middle;
 }
 
 @keyframes cursor-blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
 }
-

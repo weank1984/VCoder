@@ -1,98 +1,113 @@
 .session-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    background: var(--vscode-sideBarTitle-background, var(--vscode-sideBar-background));
-    border-bottom: 1px solid var(--vcoder-border);
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--vcoder-surface);
+    border-bottom: 1px solid var(--vcoder-overlay-1);
     position: relative;
+    z-index: 10;
 }
 
 .session-header-title {
-    font-weight: 600;
-    font-size: 13px;
-    color: var(--vscode-sideBarTitle-foreground, var(--vscode-foreground));
-    letter-spacing: 0.2px;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--vscode-foreground);
+    letter-spacing: -0.2px;
 }
 
 .header-actions {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
     margin-left: auto;
 }
 
 .action-btn {
     height: 28px;
-    padding: 0 10px;
-    background: var(--vscode-button-secondaryBackground);
-    border: none;
-    border-radius: var(--vcoder-radius-sm);
+    padding: 0 12px;
+    background: var(--vcoder-overlay-subtle);
+    border: 1px solid var(--vcoder-overlay-1);
+    border-radius: var(--vcoder-radius-full);
     cursor: pointer;
     font-size: 12px;
-    color: var(--vscode-button-secondaryForeground);
-}
+    color: var(--vscode-descriptionForeground);
+    font-weight: 500;
+    transition: all 0.2s;
 
-.action-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
-}
+    &:hover {
+        background: var(--vcoder-overlay-1);
+        color: var(--vscode-foreground);
+        border-color: var(--vcoder-overlay-2);
+    }
 
-.action-btn.primary {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-}
+    &.primary {
+        background: var(--vcoder-primary);
+        color: var(--vscode-button-foreground);
+        border: none;
 
-.action-btn.primary:hover {
-    background: var(--vscode-button-hoverBackground);
+        &:hover {
+            background: var(--vcoder-primary-hover);
+        }
+    }
 }
 
 .icon-btn {
     width: 28px;
-    padding: 0;
-    font-size: 14px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: transparent;
-    color: var(--vscode-foreground);
+    color: var(--vscode-descriptionForeground);
+    border-radius: var(--vcoder-radius-full);
+    transition: all 0.2s;
+
+    &:hover {
+        background: var(--vcoder-overlay-1);
+        color: var(--vscode-foreground);
+    }
 }
 
-.icon-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground);
-}
-
+/* 下拉菜单样式优化 */
 .session-list-dropdown {
     position: absolute;
-    top: 100%;
-    right: 12px;
-    width: 240px;
-    max-height: 300px;
+    top: calc(100% + 4px);
+    right: 16px;
+    width: 260px;
+    max-height: 400px;
     overflow-y: auto;
-    background: var(--vscode-quickInput-background, var(--vscode-dropdown-background));
-    border: 1px solid var(--vscode-widget-border, var(--vscode-dropdown-border));
+    background: var(--vcoder-surface-3);
+    border: 1px solid var(--vcoder-overlay-2);
     border-radius: var(--vcoder-radius-md);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
     z-index: 100;
+    animation: dropdown-fade-in 0.2s ease-out;
 }
 
-.session-empty {
-    padding: 16px;
-    text-align: center;
-    color: var(--vscode-descriptionForeground);
-    font-size: 12px;
+@keyframes dropdown-fade-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .session-item {
     display: flex;
     align-items: center;
-    padding: 8px 10px;
+    padding: 10px 12px;
     cursor: pointer;
-}
+    border-radius: var(--vcoder-radius-sm);
+    margin: 4px;
+    transition: all 0.15s;
 
-.session-item:hover {
-    background: var(--vscode-list-hoverBackground);
-}
+    &:hover {
+        background: var(--vcoder-overlay-1);
+    }
 
-.session-item.active {
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
+    &.active {
+        background: var(--vcoder-overlay-2);
+        color: var(--vscode-foreground);
+        font-weight: 600;
+    }
 }
 
 .session-title {
@@ -101,23 +116,4 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.session-delete {
-    width: 20px;
-    height: 20px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    color: var(--vscode-descriptionForeground);
-    font-size: 16px;
-    border-radius: var(--vcoder-radius-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.session-delete:hover {
-    background: var(--vscode-toolbar-hoverBackground);
-    color: var(--vscode-errorForeground);
 }
