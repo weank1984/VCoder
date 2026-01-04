@@ -280,6 +280,7 @@ export function InputArea() {
                         ref={textareaRef}
                         className="input-field"
                         placeholder={t('Chat.InputPlaceholder')}
+                        aria-label={t('Chat.InputPlaceholder')}
                         value={input}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
@@ -306,6 +307,7 @@ export function InputArea() {
                                     className="model-select-overlay"
                                     value={model}
                                     onChange={(e) => setModel(e.target.value as ModelId)}
+                                    aria-label={t('Common.SelectModel')}
                                 >
                                     {MODELS.map((m) => (
                                         <option key={m.id} value={m.id}>
