@@ -20,7 +20,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
     return (
         <div className={bubbleClass}>
             <div className="vc-bubble-header">
-                <span className="vc-bubble-avatar">
+                <span className="vc-bubble-avatar" aria-hidden="true">
                     {isUser ? <UserIcon /> : <VoyahIcon />}
                 </span>
                 <span className="vc-bubble-title">{isUser ? 'User' : 'VCoder'}</span>
