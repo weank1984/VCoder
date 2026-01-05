@@ -102,6 +102,20 @@ export default {
     Generated: 'Generated',
     Listed: 'Listed',
     Invoked: 'Invoked',
+    // New actions for Claude Code CLI tools
+    Delegated: 'Delegated',
+    Stopped: 'Stopped',
+    Deleted: 'Deleted',
+    // Entry types
+    TypeFile: 'File',
+    TypeCommand: 'Command',
+    TypeSearch: 'Search',
+    TypeBrowser: 'Web',
+    TypeTask: 'Task',
+    TypePlan: 'Plan',
+    TypeMcp: 'MCP',
+    TypeNotebook: 'Notebook',
+    TypeOther: 'Tool',
   },
   ErrorBoundary: {
     Title: 'Something went wrong',

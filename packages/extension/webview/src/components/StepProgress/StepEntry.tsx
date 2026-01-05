@@ -20,6 +20,10 @@ import {
     CollapseIcon,
     InfoIcon,
     StopIcon,
+    RocketIcon,
+    ListCheckIcon,
+    McpIcon,
+    NotebookIcon,
 } from '../Icon';
 
 interface StepEntryProps {
@@ -37,6 +41,10 @@ function getEntryIcon(type: StepEntryType['type']) {
         case 'command': return <TerminalIcon />;
         case 'search': return <SearchIcon />;
         case 'browser': return <WebIcon />;
+        case 'task': return <RocketIcon />;
+        case 'plan': return <ListCheckIcon />;
+        case 'mcp': return <McpIcon />;
+        case 'notebook': return <NotebookIcon />;
         default: return <PlayIcon />;
     }
 }

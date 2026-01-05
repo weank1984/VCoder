@@ -102,6 +102,20 @@ export default {
     Generated: '生成了',
     Listed: '列出了',
     Invoked: '调用了',
+    // 新增动作 - Claude Code CLI 工具
+    Delegated: '委派了',
+    Stopped: '停止了',
+    Deleted: '删除了',
+    // 条目类型
+    TypeFile: '文件',
+    TypeCommand: '命令',
+    TypeSearch: '搜索',
+    TypeBrowser: '网络',
+    TypeTask: '任务',
+    TypePlan: '计划',
+    TypeMcp: 'MCP',
+    TypeNotebook: '笔记本',
+    TypeOther: '工具',
   },
   ErrorBoundary: {
     Title: '出错了',
