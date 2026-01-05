@@ -67,3 +67,4 @@ packages/extension/server/
 demo/
 help.txt
 test-claude-raw.js
+.pnpm-store/
