@@ -2,6 +2,7 @@
  * Chat Bubble Component
  */
 
+import { memo } from 'react';
 import type { ChatMessage } from '../types';
 import { ThoughtBlock } from './ThoughtBlock';
 import { StepProgressList } from './StepProgress';
@@ -13,7 +14,7 @@ interface ChatBubbleProps {
     message: ChatMessage;
 }
 
-export function ChatBubble({ message }: ChatBubbleProps) {
+export const ChatBubble = memo(function ChatBubble({ message }: ChatBubbleProps) {
     const isUser = message.role === 'user';
     const bubbleClass = `vc-bubble ${isUser ? 'user' : 'assistant'}`;
     const hasThought = typeof message.thought === 'string' && message.thought.length > 0;
@@ -52,4 +53,4 @@ export function ChatBubble({ message }: ChatBubbleProps) {
             </div>
         </div>
     );
-}
+});
