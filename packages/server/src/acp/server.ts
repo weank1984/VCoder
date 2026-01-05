@@ -240,6 +240,7 @@ export class ACPServer {
             permissionMode: params.permissionMode,
             fallbackModel: params.fallbackModel,
             appendSystemPrompt: params.appendSystemPrompt,
+            maxThinkingTokens: params.maxThinkingTokens,
         });
     }
 
