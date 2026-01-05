@@ -2,7 +2,7 @@
  * Input Area Component - Redesigned based on Augment reference design
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
 import { postMessage } from '../utils/vscode';
 import { useStore } from '../store/useStore';
@@ -10,6 +10,7 @@ import type { ModelId } from '@vcoder/shared';
 import { FilePicker } from './FilePicker';
 import { AddIcon, ArrowBottomIcon, SendIcon, StopIcon, CloseIcon } from './Icon';
 import { useI18n } from '../i18n/I18nProvider';
+import { loadPersistedState, savePersistedState } from '../utils/persist';
 
 interface Attachment {
     type: 'file' | 'selection';
@@ -28,7 +29,11 @@ const MODELS: { id: ModelId; name: string }[] = [
 
 export function InputArea() {
     const { t } = useI18n();
-    const [input, setInput] = useState('');
+    // Initialize input from persisted draft
+    const [input, setInput] = useState(() => {
+        const persisted = loadPersistedState();
+        return persisted.inputDraft ?? '';
+    });
     const [showPicker, setShowPicker] = useState(false);
     const [pickerQuery, setPickerQuery] = useState('');
     const [cursorPosition, setCursorPosition] = useState(0);
@@ -38,8 +43,33 @@ export function InputArea() {
     const rectRef = useRef<SVGRectElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const { model, isLoading, workspaceFiles, viewMode, setModel, addMessage, setLoading, exitHistoryMode } = useStore();
+
+    // Debounced save for input draft
+    const saveDraft = useCallback((draft: string) => {
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(() => {
+            savePersistedState({ inputDraft: draft });
+        }, 500); // 500ms debounce
+    }, []);
+
+    // Save draft when input changes
+    useEffect(() => {
+        saveDraft(input);
+    }, [input, saveDraft]);
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // Request workspace files on mount
     useEffect(() => {
@@ -137,6 +167,8 @@ export function InputArea() {
 
         setInput('');
         setAttachments([]);
+        // Clear persisted draft immediately on send
+        savePersistedState({ inputDraft: '' });
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

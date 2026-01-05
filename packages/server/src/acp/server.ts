@@ -237,6 +237,9 @@ export class ACPServer {
         this.claudeCode.updateSettings({
             model: params.model,
             planMode: params.planMode,
+            permissionMode: params.permissionMode,
+            fallbackModel: params.fallbackModel,
+            appendSystemPrompt: params.appendSystemPrompt,
         });
     }
 

@@ -3,14 +3,18 @@
  */
 
 import { useState } from 'react';
+import { useI18n } from '../i18n/I18nProvider';
+import { ExpandIcon, CollapseIcon } from './Icon';
 import './ThoughtBlock.scss';
 
 interface ThoughtBlockProps {
     content: string;
+    defaultExpanded?: boolean;
 }
 
-export function ThoughtBlock({ content }: ThoughtBlockProps) {
-    const [isExpanded, setIsExpanded] = useState(false);
+export function ThoughtBlock({ content, defaultExpanded = false }: ThoughtBlockProps) {
+    const { t } = useI18n();
+    const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
     return (
         <div className="thought-block">
@@ -18,9 +22,10 @@ export function ThoughtBlock({ content }: ThoughtBlockProps) {
                 className="thought-header"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
-                <span className="thought-icon">💭</span>
-                <span className="thought-title">思考过程</span>
-                <span className="thought-expand-icon">{isExpanded ? '▼' : '▶'}</span>
+                <span className="thought-toggle-icon">
+                    {isExpanded ? <CollapseIcon /> : <ExpandIcon />}
+                </span>
+                <span className="thought-title">{t('Agent.Thought')}</span>
             </button>
 
             {isExpanded && (

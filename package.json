@@ -2,6 +2,7 @@
   "name": "vcoder",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "VSCode 智能编程助手插件 (支持 Claude Code / Codex CLI)",
   "author": "V-Coder Team",
   "license": "MIT",
@@ -22,6 +23,6 @@
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.19.0 || >=22.12.0"
   }
 }

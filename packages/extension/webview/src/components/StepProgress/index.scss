@@ -1,0 +1,393 @@
+// Step Progress Styles
+// Step-based progress view for tool execution display
+
+.step-progress-list {
+    margin: 8px 0;
+    border-radius: var(--vcoder-radius-md);
+    background: var(--vcoder-surface-3);
+    border: 1px solid var(--vcoder-border);
+    overflow: hidden;
+    font-family: var(--vscode-font-family);
+}
+
+// Header
+.step-progress-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--vcoder-surface-3);
+    border-bottom: 1px solid var(--vcoder-border);
+}
+
+.header-status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+    
+    &.completed { color: var(--vscode-terminal-ansiGreen); }
+    &.failed { color: var(--vscode-terminal-ansiRed); }
+    &.running { color: var(--vscode-terminal-ansiYellow); }
+}
+
+.header-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--vscode-foreground);
+}
+
+.header-count {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    font-family: var(--vscode-editor-font-family);
+}
+
+.collapse-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    cursor: pointer;
+    transition: all 0.15s;
+    
+    svg {
+        width: 12px;
+        height: 12px;
+    }
+    
+    &:hover {
+        background: var(--vscode-list-hoverBackground);
+        color: var(--vscode-foreground);
+    }
+}
+
+// Content
+.step-progress-content {
+    max-height: 500px;
+    overflow-y: auto;
+    background: var(--vcoder-surface-2);
+}
+
+// Step Item
+.step-item {
+    border-bottom: 1px solid var(--vcoder-border);
+    
+    &:last-child {
+        border-bottom: none;
+    }
+    
+    &.failed {
+        .step-header {
+            border-left: 3px solid var(--vscode-terminal-ansiRed);
+        }
+    }
+}
+
+.step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    
+    &:hover {
+        background: var(--vscode-list-hoverBackground);
+    }
+}
+
+.step-number {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--vscode-textLink-foreground);
+    opacity: 0.7;
+    min-width: 28px;
+    text-align: center;
+    font-family: var(--vscode-editor-font-family);
+}
+
+.step-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.step-title {
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--vscode-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.step-status-icon {
+    display: flex;
+    align-items: center;
+    
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    &.completed { color: var(--vscode-terminal-ansiGreen); }
+    &.failed { color: var(--vscode-terminal-ansiRed); }
+    &.running { color: var(--vscode-terminal-ansiYellow); }
+}
+
+.step-expand-icon {
+    display: flex;
+    align-items: center;
+    color: var(--vscode-descriptionForeground);
+    
+    svg {
+        width: 12px;
+        height: 12px;
+    }
+}
+
+// Step Entries
+.step-entries {
+    padding: 0 0 8px 42px;
+}
+
+// Step Entry
+.step-entry {
+    margin: 4px 0;
+    border-radius: 6px;
+    background: var(--vcoder-surface);
+    border: 1px solid transparent;
+    
+    &:hover {
+        border-color: var(--vcoder-border);
+    }
+    
+    &.error {
+        border-color: color-mix(in srgb, var(--vscode-terminal-ansiRed) 30%, transparent);
+    }
+}
+
+.entry-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+    
+    &:hover {
+        background: color-mix(in srgb, var(--vscode-list-hoverBackground) 50%, transparent);
+        
+        .entry-view-btn {
+            opacity: 1;
+        }
+    }
+}
+
+.entry-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--vscode-foreground);
+    opacity: 0.7;
+    
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+.entry-action {
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--vscode-foreground);
+}
+
+.entry-target {
+    flex: 1;
+    font-size: 12px;
+    color: var(--vscode-textLink-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.entry-line-range {
+    font-family: var(--vscode-editor-font-family);
+    font-size: 11px;
+    opacity: 0.7;
+    margin-left: 4px;
+}
+
+.entry-status-icon {
+    display: flex;
+    align-items: center;
+    
+    svg {
+        width: 12px;
+        height: 12px;
+    }
+    
+    &.success { color: var(--vscode-terminal-ansiGreen); }
+    &.error { color: var(--vscode-terminal-ansiRed); }
+    &.running, &.pending { color: var(--vscode-terminal-ansiYellow); }
+}
+
+.entry-view-btn {
+    opacity: 0;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--vscode-textLink-foreground);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    
+    &:hover {
+        background: var(--vscode-button-secondaryBackground);
+    }
+}
+
+.entry-expand-icon {
+    display: flex;
+    align-items: center;
+    color: var(--vscode-descriptionForeground);
+    
+    svg {
+        width: 10px;
+        height: 10px;
+    }
+}
+
+// Entry Details
+.entry-details {
+    padding: 0 10px 10px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+// Approval UI
+.entry-approval {
+    padding: 10px;
+    background: color-mix(in srgb, var(--vscode-button-secondaryBackground) 20%, transparent);
+    border: 1px solid var(--vscode-button-secondaryHoverBackground);
+    border-radius: 6px;
+}
+
+.approval-message {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--vscode-foreground);
+    font-weight: 500;
+    
+    svg {
+        width: 14px;
+        height: 14px;
+        color: var(--vscode-terminal-ansiBlue);
+    }
+}
+
+.approval-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-approve, .btn-reject {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    
+    svg {
+        width: 12px;
+        height: 12px;
+    }
+}
+
+.btn-approve {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    
+    &:hover {
+        background: var(--vscode-button-hoverBackground);
+    }
+}
+
+.btn-reject {
+    background: transparent;
+    border-color: var(--vcoder-border);
+    color: var(--vscode-foreground);
+    
+    &:hover {
+        background: var(--vscode-inputValidation-errorBackground);
+        color: var(--vscode-inputValidation-errorForeground);
+        border-color: var(--vscode-inputValidation-errorBorder);
+    }
+}
+
+// Code Blocks
+.detail-section {
+    border: 1px solid var(--vcoder-border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--vcoder-surface);
+    
+    &.error {
+        border-color: var(--vscode-inputValidation-errorBorder);
+    }
+}
+
+.detail-header {
+    padding: 4px 8px;
+    background: var(--vcoder-surface-3);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--vscode-descriptionForeground);
+    border-bottom: 1px solid var(--vcoder-border);
+}
+
+.code-block {
+    padding: 8px;
+    overflow-x: auto;
+    
+    pre {
+        margin: 0;
+        font-family: var(--vscode-editor-font-family);
+        font-size: 11px;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-break: break-all;
+        color: var(--vscode-editor-foreground);
+    }
+    
+    &.error pre {
+        color: var(--vscode-errorForeground);
+    }
+}

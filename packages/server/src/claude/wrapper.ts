@@ -11,6 +11,7 @@ import * as path from 'path';
 import {
     Attachment,
     ModelId,
+    PermissionMode,
     ThoughtUpdate,
     TextUpdate,
     ToolUseUpdate,
@@ -31,7 +32,14 @@ export interface ClaudeCodeOptions {
 
 export interface ClaudeCodeSettings {
     model?: ModelId;
-    planMode?: boolean;
+    planMode?: boolean; // Legacy, kept for compatibility
+    permissionMode?: PermissionMode;
+    fallbackModel?: ModelId;
+    appendSystemPrompt?: string;
+    mcpConfigPath?: string;
+    allowedTools?: string[];
+    disallowedTools?: string[];
+    additionalDirs?: string[];
 }
 
 export class ClaudeCodeWrapper extends EventEmitter {
@@ -41,6 +49,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
     private settings: ClaudeCodeSettings = {
         model: 'claude-sonnet-4-20250514',
         planMode: false,
+        permissionMode: 'default',
     };
     private pendingBashCommands: Map<string, (confirmed: boolean) => void> = new Map();
     private toolNameByIdByLocalSessionId: Map<string, Map<string, string>> = new Map();
@@ -60,6 +69,31 @@ export class ClaudeCodeWrapper extends EventEmitter {
         }
         if (settings.planMode !== undefined) {
             this.settings.planMode = settings.planMode;
+            // Sync planMode to permissionMode for backward compatibility
+            if (settings.planMode && !settings.permissionMode) {
+                this.settings.permissionMode = 'plan';
+            }
+        }
+        if (settings.permissionMode !== undefined) {
+            this.settings.permissionMode = settings.permissionMode;
+        }
+        if (settings.fallbackModel !== undefined) {
+            this.settings.fallbackModel = settings.fallbackModel;
+        }
+        if (settings.appendSystemPrompt !== undefined) {
+            this.settings.appendSystemPrompt = settings.appendSystemPrompt;
+        }
+        if (settings.mcpConfigPath !== undefined) {
+            this.settings.mcpConfigPath = settings.mcpConfigPath;
+        }
+        if (settings.allowedTools !== undefined) {
+            this.settings.allowedTools = settings.allowedTools;
+        }
+        if (settings.disallowedTools !== undefined) {
+            this.settings.disallowedTools = settings.disallowedTools;
+        }
+        if (settings.additionalDirs !== undefined) {
+            this.settings.additionalDirs = settings.additionalDirs;
         }
     }
 
@@ -87,16 +121,46 @@ export class ClaudeCodeWrapper extends EventEmitter {
             args.push('--model', this.settings.model);
         }
 
-        if (this.settings.planMode) {
-            args.push('--permission-mode', 'plan');
+        // Permission mode: handles plan mode and other permission configurations
+        const permissionMode = this.settings.permissionMode || (this.settings.planMode ? 'plan' : 'default');
+        if (permissionMode && permissionMode !== 'default') {
+            args.push('--permission-mode', permissionMode);
         }
 
-        // We currently do not support interactive question tools; force the CLI to ask in plain text instead.
-        args.push('--disallowed-tools', 'AskUserQuestion');
+        // Fallback model for when primary model is overloaded
+        if (this.settings.fallbackModel) {
+            args.push('--fallback-model', this.settings.fallbackModel);
+        }
 
-        // Optional: auto-approve tools (bypasses prompts). Keep off by default.
-        if (process.env.VCODER_ALLOWED_TOOLS && process.env.VCODER_ALLOWED_TOOLS.trim().length > 0) {
+        // Custom system prompt (appended to default)
+        if (this.settings.appendSystemPrompt) {
+            args.push('--append-system-prompt', this.settings.appendSystemPrompt);
+        }
+
+        // MCP server configuration
+        if (this.settings.mcpConfigPath) {
+            args.push('--mcp-config', this.settings.mcpConfigPath);
+        }
+
+        // Tool permissions: allowed tools
+        if (this.settings.allowedTools && this.settings.allowedTools.length > 0) {
+            args.push('--allowedTools', this.settings.allowedTools.join(' '));
+        } else if (process.env.VCODER_ALLOWED_TOOLS && process.env.VCODER_ALLOWED_TOOLS.trim().length > 0) {
+            // Fallback to environment variable
             args.push('--allowedTools', process.env.VCODER_ALLOWED_TOOLS.trim());
+        }
+
+        // Tool permissions: disallowed tools (default: disable interactive questions)
+        const disallowedTools = this.settings.disallowedTools || ['AskUserQuestion'];
+        if (disallowedTools.length > 0) {
+            args.push('--disallowed-tools', disallowedTools.join(' '));
+        }
+
+        // Additional directories to allow tool access
+        if (this.settings.additionalDirs && this.settings.additionalDirs.length > 0) {
+            for (const dir of this.settings.additionalDirs) {
+                args.push('--add-dir', dir);
+            }
         }
 
         // Claude's headless flow is: `claude -p "<prompt>" --continue` or `--resume <session_id>`.

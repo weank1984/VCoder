@@ -1,8 +1,8 @@
 .thought-block {
     margin: 8px 0;
     border-radius: var(--vcoder-radius-md);
-    background: var(--vscode-textBlockQuote-background);
-    border-left: 3px solid var(--vscode-terminal-ansiYellow);
+    background: color-mix(in srgb, var(--vscode-textBlockQuote-background) 50%, transparent);
+    border: 1px solid var(--vcoder-border);
     overflow: hidden;
 }
 
@@ -18,23 +18,26 @@
     color: var(--vscode-descriptionForeground);
     font-size: 12px;
     text-align: left;
+    transition: background 0.15s;
+    
+    &:hover {
+        background: var(--vscode-list-hoverBackground);
+    }
 }
 
-.thought-header:hover {
-    background: var(--vscode-list-hoverBackground);
-}
-
-.thought-icon {
-    font-size: 14px;
+.thought-toggle-icon {
+    display: flex;
+    align-items: center;
+    color: var(--vscode-descriptionForeground);
+    
+    svg {
+        width: 12px;
+        height: 12px;
+    }
 }
 
 .thought-title {
-    flex: 1;
-    font-style: italic;
-}
-
-.thought-expand-icon {
-    font-size: 10px;
+    font-weight: 500;
     color: var(--vscode-descriptionForeground);
 }
 
@@ -44,4 +47,6 @@
     color: var(--vscode-descriptionForeground);
     white-space: pre-wrap;
     border-top: 1px solid var(--vcoder-border);
+    line-height: 1.5;
 }
+

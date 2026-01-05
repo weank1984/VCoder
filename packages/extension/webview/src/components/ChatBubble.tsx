@@ -4,7 +4,7 @@
 
 import type { ChatMessage } from '../types';
 import { ThoughtBlock } from './ThoughtBlock';
-import { ToolCallList } from './ToolCallList';
+import { StepProgressList } from './StepProgress';
 import { MarkdownContent } from './MarkdownContent';
 import { UserIcon, VoyahIcon } from './Icon';
 import './ChatBubble.scss';
@@ -39,11 +39,12 @@ export function ChatBubble({ message }: ChatBubbleProps) {
                     <MarkdownContent content={message.content} isComplete={message.isComplete} />
                 )}
 
-                {/* Show tool calls for assistant */}
+                {/* Show tool calls for assistant - Step-based Progress View */}
                 {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
-                    <ToolCallList toolCalls={message.toolCalls} />
+                    <StepProgressList toolCalls={message.toolCalls} />
                 )}
             </div>
         </div>
     );
 }
+

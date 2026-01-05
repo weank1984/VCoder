@@ -127,10 +127,22 @@ export type ModelId =
     | 'claude-3-5-haiku-20241022'
     | 'claude-3-opus-20240229';
 
+/**
+ * Permission mode for Claude Code CLI.
+ * - 'default': Normal permission checks
+ * - 'plan': Plan mode - AI plans before executing
+ * - 'acceptEdits': Auto-accept file edits
+ * - 'bypassPermissions': Skip all permission checks (sandbox only)
+ */
+export type PermissionMode = 'default' | 'plan' | 'acceptEdits' | 'bypassPermissions';
+
 export interface SettingsChangeParams {
     sessionId: string;
     model?: ModelId;
-    planMode?: boolean;
+    planMode?: boolean; // Legacy, kept for compatibility
+    permissionMode?: PermissionMode;
+    fallbackModel?: ModelId;
+    appendSystemPrompt?: string;
 }
 
 // =============================================================================
