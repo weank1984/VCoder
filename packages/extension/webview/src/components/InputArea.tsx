@@ -253,7 +253,7 @@ export function InputArea() {
                             x="1" y="1" 
                             width="calc(100% - 2px)" 
                             height="calc(100% - 2px)" 
-                            rx="16" ry="16" 
+                            rx="8" ry="8" 
                         />
                     </svg>
                 )}

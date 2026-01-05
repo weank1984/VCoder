@@ -1,13 +1,26 @@
+/**
+ * Tool Call List Component
+ */
+
 import { useMemo, useState } from 'react';
 import type { ToolCall } from '../types';
 import { 
+    TerminalIcon, 
+    FileIcon, 
     CheckIcon, 
     ErrorIcon, 
     LoadingIcon, 
+    ExpandIcon,
     CollapseIcon,
-    FileIcon,
-    HistoryIcon
+    PlayIcon,
+    StopIcon,
+    EditIcon,
+    SearchIcon,
+    InfoIcon,
+    WarningIcon,
+    WebIcon
 } from './Icon';
+import { useI18n } from '../i18n/I18nProvider';
 import { postMessage } from '../utils/vscode';
 import './ToolCallList.scss';
 
@@ -15,89 +28,124 @@ interface ToolCallListProps {
     toolCalls: ToolCall[];
 }
 
-interface Step {
-    id: string;
-    title: string;
-    calls: ToolCall[];
-    status: ToolCall['status'];
-    thought?: string;
+function safeStringify(value: unknown, pretty: boolean): string {
+    if (value === undefined) return '';
+    if (typeof value === 'string') return value;
+    try {
+        return JSON.stringify(value, null, pretty ? 2 : 0);
+    } catch {
+        return String(value);
+    }
 }
 
-/**
- * 语义化动作映射
- */
-const ACTION_MAP: Record<string, string> = {
-    'read_file': 'Analyzed',
-    'view_file': 'Analyzed',
-    'read_url_content': 'Analyzed',
-    'grep_search': 'Searched',
-    'find_by_name': 'Found',
-    'write_to_file': 'Created',
-    'replace_file_content': 'Edited',
-    'multi_replace_file_content': 'Edited',
-    'run_command': 'Executed',
-    'bash': 'Executed',
-    'browser_subagent': 'Navigated'
-};
+function getToolIcon(name: string) {
+    const n = name.toLowerCase();
+    if (n.includes('bash') || n.includes('command') || n.includes('terminal')) return <TerminalIcon />;
+    if (n.includes('read') || n.includes('write') || n.includes('file')) return <FileIcon />;
+    if (n.includes('edit') || n.includes('replace')) return <EditIcon />;
+    if (n.includes('search') || n.includes('grep') || n.includes('find')) return <SearchIcon />;
+    if (n.includes('browser') || n.includes('web')) return <WebIcon />;
+    return <PlayIcon />;
+}
 
-/**
- * 获取文件图标后缀类名
- */
-const getFileExtClass = (path: string): string => {
-    const ext = path.split('.').pop()?.toLowerCase();
-    if (!ext) return '';
-    if (['ts', 'tsx', 'js', 'jsx'].includes(ext)) return 'tsx';
-    if (['css', 'scss', 'less'].includes(ext)) return 'scss';
-    if (['md', 'txt'].includes(ext)) return 'md';
-    if (['json', 'yaml', 'yml'].includes(ext)) return 'json';
-    return '';
-};
+function summarizeToolInput(
+    name: string,
+    input: unknown,
+    labels: {
+        command: string;
+        file: string;
+        url: string;
+        path: string;
+        target: string;
+        query: string;
+        pattern: string;
+    }
+): { summary: string, detail?: string } {
+    if (!input || typeof input !== 'object') return { summary: '' };
+    const obj = input as Record<string, unknown>;
+
+    // Bash / Command
+    if (name === 'Bash') {
+        if (typeof obj.command === 'string') return { 
+            summary: obj.command,
+            detail: labels.command
+        };
+    }
+    if (name === 'run_command' && typeof obj.CommandLine === 'string') {
+        return {
+            summary: obj.CommandLine,
+            detail: labels.command
+        };
+    }
+
+    // File Ops
+    if ((name === 'Read' || name === 'Write' || name === 'Edit') && typeof obj.path === 'string') {
+        return { summary: obj.path, detail: labels.file };
+    }
+    if (name === 'read_file' || name === 'read_url_content' || name === 'view_file') {
+         if (typeof obj.Url === 'string') return { summary: obj.Url, detail: labels.url };
+         if (typeof obj.AbsolutePath === 'string') return { summary: obj.AbsolutePath, detail: labels.path };
+    }
+    if (name === 'write_to_file' || name === 'replace_file_content' || name === 'multi_replace_file_content') {
+        if (typeof obj.TargetFile === 'string') return { summary: obj.TargetFile, detail: labels.target };
+    }
+    
+    // Search
+    if (name === 'grep_search' || name === 'find_by_name') {
+        if (typeof obj.Query === 'string') return { summary: obj.Query, detail: labels.query };
+        if (typeof obj.Pattern === 'string') return { summary: obj.Pattern, detail: labels.pattern };
+    }
+
+    // Task
+    if (name === 'Task' || name === 'task_boundary') {
+        if (typeof obj.description === 'string') return { summary: obj.description };
+        if (typeof obj.TaskStatus === 'string') return { summary: obj.TaskStatus };
+        if (typeof obj.TaskName === 'string') return { summary: obj.TaskName };
+    }
+
+    // Default fallback
+    const fallback = safeStringify(input, false).replace(/\s+/g, ' ').trim();
+    const maxLen = 80;
+    return { 
+        summary: fallback.length > maxLen ? `${fallback.slice(0, maxLen)}…` : fallback 
+    };
+}
 
 export function ToolCallList({ toolCalls }: ToolCallListProps) {
-    const [isAllCollapsed, setIsAllCollapsed] = useState(false);
-    const [collapsedSteps, setCollapsedSteps] = useState<Set<string>>(new Set());
-    const [expandedThoughts, setExpandedThoughts] = useState<Set<string>>(new Set());
-
-    // 步骤分组逻辑
-    const steps = useMemo(() => {
-        const result: Step[] = [];
-        let currentStep: Step | null = null;
-
-        toolCalls.forEach((tc) => {
-            const isBoundary = tc.name === 'task_boundary' || tc.name === 'Task';
-            
-            if (isBoundary) {
-                const input = tc.input as any;
-                const title = input?.TaskName || input?.description || input?.TaskStatus || 'Executing Task';
-                
-                currentStep = {
-                    id: tc.id,
-                    title,
-                    calls: [],
-                    status: tc.status
-                };
-                result.push(currentStep);
-            } else {
-                if (!currentStep) {
-                    currentStep = {
-                        id: 'initial-step',
-                        title: 'Initialization',
-                        calls: [],
-                        status: 'completed'
-                    };
-                    result.push(currentStep);
-                }
-                currentStep.calls.push(tc);
-                if (tc.status === 'failed') currentStep.status = 'failed';
-                else if (tc.status === 'running' && currentStep.status !== 'failed') currentStep.status = 'running';
+    const { t } = useI18n();
+    const [isExpanded, setIsExpanded] = useState(true);
+    const [expandedToolIds, setExpandedToolIds] = useState<Set<string>>(() => new Set());
+    
+    // Auto-expand pending or failed tools on initial load or update
+    useMemo(() => {
+        const toExpand = new Set<string>();
+        toolCalls.forEach(tc => {
+            if (tc.status === 'pending' || tc.status === 'failed' || tc.status === 'running') {
+                toExpand.add(tc.id);
             }
         });
+        if (toExpand.size > 0) {
+            setExpandedToolIds(prev => {
+                const next = new Set(prev);
+                toExpand.forEach(id => next.add(id));
+                return next;
+            });
+        }
+    }, [toolCalls.length]); 
 
-        return result;
-    }, [toolCalls]);
+    const completedCount = toolCalls.filter(tc => tc.status === 'completed').length;
+    const failedCount = toolCalls.filter(tc => tc.status === 'failed').length;
+    const runningCount = toolCalls.filter(tc => tc.status === 'running').length;
+    const pendingCount = toolCalls.filter(tc => tc.status === 'pending').length;
 
-    const toggleStep = (id: string) => {
-        setCollapsedSteps(prev => {
+    const headerStatusIcon = useMemo(() => {
+        if (failedCount > 0) return <WarningIcon />;
+        if (runningCount > 0 || pendingCount > 0) return <LoadingIcon />;
+        return <CheckIcon />;
+    }, [failedCount, runningCount, pendingCount]);
+
+    const toggleTool = (id: string) => {
+        setExpandedToolIds((prev) => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id);
             else next.add(id);
@@ -105,100 +153,126 @@ export function ToolCallList({ toolCalls }: ToolCallListProps) {
         });
     };
 
-    const toggleThought = (id: string) => {
-        setExpandedThoughts(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-    };
-
-    const handleAction = (tc: ToolCall) => {
-        // 模拟 "View" 操作，根据不同工具跳转
-        const input = tc.input as any;
-        const path = input?.TargetFile || input?.AbsolutePath || input?.Path || input?.path;
-        if (path) {
-            postMessage({ type: 'executeCommand', command: `vscode.open ${path}` });
+    const handleConfirm = (tc: ToolCall, approve: boolean) => {
+        if (approve) {
+            postMessage({ type: 'confirmBash', commandId: tc.id });
+        } else {
+            postMessage({ type: 'skipBash', commandId: tc.id });
         }
     };
 
     if (toolCalls.length === 0) return null;
 
+    const inputLabels = {
+        command: t('Agent.Command'),
+        file: t('Agent.File'),
+        url: t('Agent.URL'),
+        path: t('Agent.Path'),
+        target: t('Agent.Target'),
+        query: t('Agent.Query'),
+        pattern: t('Agent.Pattern'),
+    };
+
     return (
         <div className="tool-call-list">
-            <div className="tool-list-controls">
-                <button className="collapse-all-btn" onClick={() => setIsAllCollapsed(!isAllCollapsed)}>
-                    <HistoryIcon />
-                    {isAllCollapsed ? 'Expand all' : 'Collapse all'}
-                </button>
-            </div>
+            <button 
+                className={`tool-list-header ${failedCount > 0 ? 'has-error' : ''}`}
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
+                <span className={`status-icon-wrapper ${failedCount > 0 ? 'failed' : (runningCount > 0 || pendingCount > 0) ? 'running' : 'completed'}`}>
+                    {headerStatusIcon}
+                </span>
+                <span className="tool-list-title">
+                    {t('Agent.ToolCalls')}
+                    {failedCount > 0 && <span className="list-badge error">{t('Agent.FailedCount', failedCount)}</span>}
+                    {pendingCount > 0 && <span className="list-badge warning">{t('Agent.PendingCount', pendingCount)}</span>}
+                    {runningCount > 0 && <span className="list-badge info">{t('Agent.RunningCount', runningCount)}</span>}
+                </span>
+                <span className="tool-count">{completedCount}/{toolCalls.length}</span>
+                <span className="expand-icon">{isExpanded ? <CollapseIcon /> : <ExpandIcon />}</span>
+            </button>
 
-            {steps.map((step, index) => {
-                const isCollapsed = isAllCollapsed || collapsedSteps.has(step.id);
-                
-                return (
-                    <div key={step.id} className="step-item">
-                        <div className="step-header" onClick={() => toggleStep(step.id)}>
-                            <span className="step-number">{index + 1}</span>
-                            <span className="step-title">{step.title}</span>
-                            <span className="step-status">
-                                {step.status === 'running' && <LoadingIcon />}
-                            </span>
-                        </div>
-
-                        {!isCollapsed && (
-                            <div className="step-content">
-                                {step.calls.map((tc) => {
-                                    const input = tc.input as any;
-                                    const action = ACTION_MAP[tc.name] || 'Used';
-                                    const target = input?.TargetFile || input?.AbsolutePath || input?.Url || input?.CommandLine || input?.Query || tc.name;
-                                    const basename = typeof target === 'string' ? target.split('/').pop() : tc.name;
-                                    const extClass = typeof target === 'string' ? getFileExtClass(target) : '';
-
-                                    return (
-                                        <div key={tc.id} className="progress-entry">
-                                            <span className={`entry-icon ${extClass} status-${tc.status}`}>
-                                                {tc.status === 'completed' ? (
-                                                    extClass ? <FileIcon /> : <CheckIcon />
-                                                ) : tc.status === 'failed' ? (
-                                                    <ErrorIcon />
-                                                ) : (
-                                                    <LoadingIcon />
-                                                )}
+            {isExpanded && (
+                <div className="tool-list-content">
+                    {toolCalls.map((tc) => {
+                        const { summary, detail } = summarizeToolInput(tc.name, tc.input, inputLabels);
+                        const isExpandedItem = expandedToolIds.has(tc.id);
+                        
+                        return (
+                            <div key={tc.id} className={`tool-call-item ${tc.status}`}>
+                                <div className="tool-item-summary" onClick={() => toggleTool(tc.id)}>
+                                    <span className="tool-icon">{getToolIcon(tc.name)}</span>
+                                    <div className="tool-info">
+                                        <div className="tool-name-row">
+                                            <span className="tool-name">{tc.name}</span>
+                                            <span className="tool-status-badge">
+                                                {tc.status === 'completed' && <CheckIcon />}
+                                                {tc.status === 'failed' && <ErrorIcon />}
+                                                {(tc.status === 'running' || tc.status === 'pending') && <LoadingIcon />}
                                             </span>
-                                            <span className="entry-action-label">{action}</span>
-                                            <span className="entry-target-name" title={String(target)}>
-                                                {basename}
-                                                {input?.StartLine && <span className="line-range">#L{input.StartLine}{input.EndLine ? `-L${input.EndLine}` : ''}</span>}
-                                            </span>
-                                            <span className="entry-actions" onClick={() => handleAction(tc)}>View</span>
                                         </div>
-                                    );
-                                })}
+                                        <div className="tool-args-preview" title={summary}>
+                                            {detail && <span className="arg-label">{detail}:</span>}
+                                            {summary}
+                                        </div>
+                                    </div>
+                                    <span className="item-expand-toggle">
+                                        {isExpandedItem ? <CollapseIcon /> : <ExpandIcon />}
+                                    </span>
+                                </div>
 
-                                {/* 模拟的 Thought 块，如果该步骤有思考过程 */}
-                                {step.calls.length > 0 && (
-                                    <div className="thought-compact">
-                                        <button 
-                                            className={`thought-trigger ${expandedThoughts.has(step.id) ? 'expanded' : ''}`}
-                                            onClick={(e) => { e.stopPropagation(); toggleThought(step.id); }}
-                                        >
-                                            <CollapseIcon />
-                                            Thought for 2s
-                                        </button>
-                                        {expandedThoughts.has(step.id) && (
-                                            <div className="thought-details">
-                                                I am processing the logic for this step. This involves analyzing the provided context and determining the best course of action.
+                                {isExpandedItem && (
+                                    <div className="tool-item-details">
+                                        {tc.status === 'pending' && (
+                                            <div className="tool-approval-actions">
+                                                <div className="approval-message">
+                                                    <InfoIcon />
+                                                    <span>{t('Agent.ApprovalRequired')}</span>
+                                                </div>
+                                                <div className="approval-buttons">
+                                                    <button className="btn-approve" onClick={() => handleConfirm(tc, true)}>
+                                                        <CheckIcon /> {t('Agent.Approve')}
+                                                    </button>
+                                                    <button className="btn-reject" onClick={() => handleConfirm(tc, false)}>
+                                                        <StopIcon /> {t('Agent.Reject')}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {tc.input !== undefined && (
+                                            <div className="detail-section">
+                                                <div className="detail-header">{t('Agent.ToolInput')}</div>
+                                                <div className="code-block">
+                                                    <pre>{safeStringify(tc.input, true)}</pre>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {tc.result !== undefined && (
+                                            <div className="detail-section">
+                                                <div className="detail-header">{t('Agent.ToolResult')}</div>
+                                                <div className="code-block result">
+                                                    <pre>{safeStringify(tc.result, true)}</pre>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {tc.error && (
+                                            <div className="detail-section error">
+                                                <div className="detail-header">{t('Agent.ToolError')}</div>
+                                                <div className="code-block error">
+                                                    <pre>{tc.error}</pre>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
                                 )}
                             </div>
-                        )}
-                    </div>
-                );
-            })}
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }
