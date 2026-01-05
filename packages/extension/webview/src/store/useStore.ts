@@ -1,7 +1,10 @@
 import { create } from './createStore';
 import type { AppState, ChatMessage, ToolCall, UiLanguage } from '../types';
-import type { Task, ModelId, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage } from '@vcoder/shared';
+import type { Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
+
+const debugThinking = (globalThis as unknown as { __vcoderDebugThinking?: boolean }).__vcoderDebugThinking === true;
+const DEFAULT_MAX_THINKING_TOKENS = 16000;
 
 // rAF batch processing for streaming text updates
 let textBuffer = '';
@@ -53,6 +56,8 @@ interface AppStore extends AppState {
     setSessions: (sessions: AppState['sessions']) => void;
     setCurrentSession: (sessionId: string | null) => void;
     setPlanMode: (enabled: boolean) => void;
+    setPermissionMode: (mode: PermissionMode) => void;
+    setThinkingEnabled: (enabled: boolean) => void;
     setModel: (model: ModelId) => void;
     setLoading: (loading: boolean) => void;
     setError: (error: ErrorUpdate | null) => void;
@@ -86,6 +91,8 @@ const initialState: AppState = {
     tasks: [],
     subagentRuns: [],
     planMode: false,
+    permissionMode: 'default',
+    thinkingEnabled: false,
     model: 'claude-sonnet-4-20250514',
     isLoading: false,
     error: null,
@@ -108,6 +115,10 @@ function isBoolean(value: unknown): value is boolean {
     return value === true || value === false;
 }
 
+function isPermissionMode(value: unknown): value is PermissionMode {
+    return value === 'default' || value === 'plan' || value === 'acceptEdits' || value === 'bypassPermissions';
+}
+
 function getInitialUiLanguage(): UiLanguage {
     if (isUiLanguage(persisted.uiLanguage)) return persisted.uiLanguage;
     const fromWindow = (globalThis as unknown as { __vcoderUiLanguage?: unknown }).__vcoderUiLanguage;
@@ -119,6 +130,8 @@ const restoredState: AppState = {
     ...initialState,
     model: (persisted.model as ModelId) || initialState.model,
     planMode: isBoolean(persisted.planMode) ? persisted.planMode : initialState.planMode,
+    permissionMode: isPermissionMode(persisted.permissionMode) ? persisted.permissionMode : initialState.permissionMode,
+    thinkingEnabled: isBoolean(persisted.thinkingEnabled) ? persisted.thinkingEnabled : initialState.thinkingEnabled,
     currentSessionId: persisted.currentSessionId ?? initialState.currentSessionId,
     uiLanguage: getInitialUiLanguage(),
 };
@@ -157,6 +170,12 @@ export const useStore = create<AppStore>((set, get) => ({
 
     setThought: (thought, isComplete) =>
         set((state) => {
+            if (debugThinking) {
+                console.debug('[VCoder][thinking] setThought', {
+                    length: thought.length,
+                    isComplete,
+                });
+            }
             const messages = [...state.messages];
             const last = messages[messages.length - 1];
             const target: ChatMessage =
@@ -170,6 +189,7 @@ export const useStore = create<AppStore>((set, get) => ({
                       });
 
             target.thought = isComplete ? thought : (target.thought || '') + thought;
+            target.thoughtIsComplete = isComplete;
             return { messages };
         }),
 
@@ -253,6 +273,27 @@ export const useStore = create<AppStore>((set, get) => ({
             subagentRuns: enabled && !state.planMode ? [] : state.subagentRuns,
         }));
         postMessage({ type: 'setPlanMode', enabled });
+    },
+
+    setPermissionMode: (mode) => {
+        set((state) => ({
+            permissionMode: mode,
+            // Update planMode for backward compatibility
+            planMode: mode === 'plan',
+            // Clear tasks/subagentRuns when switching to plan mode
+            tasks: mode === 'plan' && state.permissionMode !== 'plan' ? [] : state.tasks,
+            subagentRuns: mode === 'plan' && state.permissionMode !== 'plan' ? [] : state.subagentRuns,
+        }));
+        postMessage({ type: 'setPermissionMode', mode });
+    },
+
+    setThinkingEnabled: (enabled) => {
+        set({ thinkingEnabled: enabled });
+        postMessage({
+            type: 'setThinking',
+            enabled,
+            maxThinkingTokens: enabled ? DEFAULT_MAX_THINKING_TOKENS : 0,
+        });
     },
 
     setModel: (model) => {
@@ -375,6 +416,7 @@ export const useStore = create<AppStore>((set, get) => ({
             role: msg.role,
             content: msg.content,
             thought: msg.thought,
+            thoughtIsComplete: msg.thought ? true : undefined,
             toolCalls: msg.toolCalls?.map(tc => ({
                 id: tc.id,
                 name: tc.name, // HistoryToolCall name matches ToolCall name
@@ -401,6 +443,8 @@ export const useStore = create<AppStore>((set, get) => ({
 let prevPersistedFields = {
     model: restoredState.model,
     planMode: restoredState.planMode,
+    permissionMode: restoredState.permissionMode,
+    thinkingEnabled: restoredState.thinkingEnabled,
     currentSessionId: restoredState.currentSessionId,
     uiLanguage: restoredState.uiLanguage,
 };
@@ -411,12 +455,16 @@ useStore.subscribe(() => {
     if (
         state.model !== prevPersistedFields.model ||
         state.planMode !== prevPersistedFields.planMode ||
+        state.permissionMode !== prevPersistedFields.permissionMode ||
+        state.thinkingEnabled !== prevPersistedFields.thinkingEnabled ||
         state.currentSessionId !== prevPersistedFields.currentSessionId ||
         state.uiLanguage !== prevPersistedFields.uiLanguage
     ) {
         prevPersistedFields = {
             model: state.model,
             planMode: state.planMode,
+            permissionMode: state.permissionMode,
+            thinkingEnabled: state.thinkingEnabled,
             currentSessionId: state.currentSessionId,
             uiLanguage: state.uiLanguage,
         };

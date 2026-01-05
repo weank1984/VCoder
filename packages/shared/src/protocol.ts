@@ -143,6 +143,7 @@ export interface SettingsChangeParams {
     permissionMode?: PermissionMode;
     fallbackModel?: ModelId;
     appendSystemPrompt?: string;
+    maxThinkingTokens?: number;
 }
 
 // =============================================================================

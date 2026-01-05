@@ -41,6 +41,19 @@
     color: var(--vscode-descriptionForeground);
 }
 
+.thought-status {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.thought-status .vc-icon-loading {
+    font-size: 12px;
+}
+
 .thought-content {
     padding: 8px 12px;
     font-size: 13px;
@@ -50,3 +63,7 @@
     line-height: 1.5;
 }
 
+.thought-content.placeholder {
+    opacity: 0.7;
+    font-style: italic;
+}

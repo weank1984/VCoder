@@ -22,6 +22,7 @@ import {
     SessionCompleteParams,
     Session,
     ModelId,
+    PermissionMode,
     HistorySession,
     HistoryChatMessage,
     HistoryListResult,
@@ -37,7 +38,7 @@ export class ACPClient extends EventEmitter {
     }> = new Map();
 
     private currentSession: Session | null = null;
-    private desiredSettings: Pick<SettingsChangeParams, 'model' | 'planMode'> = {};
+    private desiredSettings: Pick<SettingsChangeParams, 'model' | 'planMode' | 'permissionMode' | 'maxThinkingTokens'> = {};
 
     constructor(private stdio: { stdin: Writable; stdout: Readable }) {
         super();
@@ -163,7 +164,7 @@ export class ACPClient extends EventEmitter {
         });
     }
 
-    async changeSettings(settings: { model?: ModelId; planMode?: boolean }): Promise<void> {
+    async changeSettings(settings: { model?: ModelId; planMode?: boolean; permissionMode?: PermissionMode; maxThinkingTokens?: number }): Promise<void> {
         this.desiredSettings = { ...this.desiredSettings, ...settings };
         if (!this.currentSession) return;
         await this.sendRequest(ACPMethods.SETTINGS_CHANGE, {
@@ -239,7 +240,12 @@ export class ACPClient extends EventEmitter {
 
     private async syncDesiredSettings(): Promise<void> {
         if (!this.currentSession) return;
-        if (this.desiredSettings.model === undefined && this.desiredSettings.planMode === undefined) return;
+        if (
+            this.desiredSettings.model === undefined &&
+            this.desiredSettings.planMode === undefined &&
+            this.desiredSettings.permissionMode === undefined &&
+            this.desiredSettings.maxThinkingTokens === undefined
+        ) return;
 
         await this.sendRequest<void>(ACPMethods.SETTINGS_CHANGE, {
             sessionId: this.currentSession.id,

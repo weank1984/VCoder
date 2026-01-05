@@ -69,6 +69,7 @@ export { default as SendIcon } from "./icons/SendIcon";
 export { default as StopIcon } from "./icons/StopIcon";
 export { default as SyncIcon } from "./icons/SyncIcon";
 export { default as TerminalIcon } from "./icons/TerminalIcon";
+export { default as ThinkIcon } from "./icons/ThinkIcon";
 export { default as TrashIcon } from "./icons/TrashIcon";
 export { default as UserIcon } from "./icons/UserIcon";
 export { default as VoyahIcon } from "./icons/VoyahIcon";

@@ -40,6 +40,7 @@ export interface ClaudeCodeSettings {
     allowedTools?: string[];
     disallowedTools?: string[];
     additionalDirs?: string[];
+    maxThinkingTokens?: number;
 }
 
 export class ClaudeCodeWrapper extends EventEmitter {
@@ -58,9 +59,16 @@ export class ClaudeCodeWrapper extends EventEmitter {
         string,
         Map<string, { title: string; subagentType?: string; parentTaskId?: string; input?: Record<string, unknown> }>
     > = new Map();
+    private thinkingContentByLocalSessionId: Map<string, string> = new Map();
+    private readonly debugThinking = process.env.VCODER_DEBUG_THINKING === '1';
 
     constructor(private options: ClaudeCodeOptions) {
         super();
+    }
+
+    private logThinking(sessionId: string, message: string): void {
+        if (!this.debugThinking) return;
+        console.error(`[ClaudeCode][thinking] ${sessionId} ${message}`);
     }
 
     updateSettings(settings: ClaudeCodeSettings): void {
@@ -95,6 +103,9 @@ export class ClaudeCodeWrapper extends EventEmitter {
         if (settings.additionalDirs !== undefined) {
             this.settings.additionalDirs = settings.additionalDirs;
         }
+        if (settings.maxThinkingTokens !== undefined) {
+            this.settings.maxThinkingTokens = settings.maxThinkingTokens;
+        }
     }
 
     /**
@@ -114,7 +125,8 @@ export class ClaudeCodeWrapper extends EventEmitter {
             fullMessage,
             '--output-format',
             'stream-json',
-            '--verbose'
+            '--verbose',
+            '--include-partial-messages'
         ];
 
         if (this.settings.model) {
@@ -173,6 +185,8 @@ export class ClaudeCodeWrapper extends EventEmitter {
             args.push('--continue');
         }
 
+        this.logThinking(sessionId, `spawn include_partial=${args.includes('--include-partial-messages')} max_tokens=${this.settings.maxThinkingTokens ?? 'unset'}`);
+
         // Start Claude Code CLI subprocess
         const claudePath = this.resolveClaudePath();
         console.error(`[ClaudeCode] Spawning session ${sessionId} with args:`, args.join(' '));
@@ -184,6 +198,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 ...process.env,
                 TERM: 'xterm-256color',
                 HOME: process.env.HOME || os.homedir(),
+                ...(this.settings.maxThinkingTokens ? { MAX_THINKING_TOKENS: String(this.settings.maxThinkingTokens) } : {}),
             },
         });
 
@@ -403,6 +418,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
                 for (const block of content) {
                     if (block.type === 'thinking' && typeof block.thinking === 'string' && block.thinking) {
+                        this.logThinking(sessionId, `assistant_block len=${block.thinking.length}`);
                         const update: ThoughtUpdate = {
                             content: block.thinking,
                             isComplete: true,
@@ -471,6 +487,54 @@ export class ClaudeCodeWrapper extends EventEmitter {
                     text: event.text as string,
                 };
                 this.emit('update', sessionId, update, 'text');
+                break;
+            }
+
+            // Streaming thinking events (with --include-partial-messages)
+            case 'content_block_start': {
+                const contentBlock = event.content_block as Record<string, unknown> | undefined;
+                if (contentBlock?.type === 'thinking') {
+                    // Start of a new thinking block - initialize accumulator
+                    this.thinkingContentByLocalSessionId.set(sessionId, '');
+                    this.logThinking(sessionId, 'stream_start');
+                }
+                break;
+            }
+
+            case 'content_block_delta': {
+                const delta = event.delta as Record<string, unknown> | undefined;
+                if (delta?.type === 'thinking_delta' && typeof delta.thinking === 'string') {
+                    // Accumulate thinking content
+                    const existing = this.thinkingContentByLocalSessionId.get(sessionId) || '';
+                    const next = existing + delta.thinking;
+                    this.thinkingContentByLocalSessionId.set(sessionId, next);
+                    this.logThinking(sessionId, `stream_delta len=${delta.thinking.length} total=${next.length}`);
+
+                    // Emit incremental update
+                    const update: ThoughtUpdate = {
+                        content: delta.thinking,
+                        isComplete: false,
+                    };
+                    this.emit('update', sessionId, update, 'thought');
+                }
+                break;
+            }
+
+            case 'content_block_stop': {
+                // Finalize thinking block if we were accumulating
+                const thinking = this.thinkingContentByLocalSessionId.get(sessionId);
+                if (thinking !== undefined) {
+                    // Emit final complete update if there was content
+                    if (thinking.length > 0) {
+                        this.logThinking(sessionId, `stream_end total=${thinking.length}`);
+                        const update: ThoughtUpdate = {
+                            content: thinking,
+                            isComplete: true,
+                        };
+                        this.emit('update', sessionId, update, 'thought');
+                    }
+                    this.thinkingContentByLocalSessionId.delete(sessionId);
+                }
                 break;
             }
 

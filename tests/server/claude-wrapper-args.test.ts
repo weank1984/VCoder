@@ -46,4 +46,33 @@ describe('ClaudeCodeWrapper spawn args', () => {
     expect(disallowedIndex).toBeGreaterThan(-1);
     expect(args[disallowedIndex + 1]).toBe('AskUserQuestion');
   });
+
+  it('includes MAX_THINKING_TOKENS env and --include-partial-messages when maxThinkingTokens is set', async () => {
+    vi.resetModules();
+
+    const fakeChild = createFakeChildProcess();
+    const spawnMock = vi.fn(() => {
+      process.nextTick(() => fakeChild.emit('close', 0));
+      return fakeChild;
+    });
+
+    vi.doMock('child_process', () => ({ spawn: spawnMock }));
+
+    const { ClaudeCodeWrapper } = await import('../../packages/server/src/claude/wrapper');
+
+    const wrapper = new ClaudeCodeWrapper({ workingDirectory: '/tmp' });
+    wrapper.updateSettings({ maxThinkingTokens: 16000 });
+
+    await wrapper.prompt('s1', 'hello');
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    
+    // Verify args include --include-partial-messages
+    const args = spawnMock.mock.calls[0][1] as string[];
+    expect(args).toContain('--include-partial-messages');
+    
+    // Verify env includes MAX_THINKING_TOKENS
+    const options = spawnMock.mock.calls[0][2] as { env: Record<string, string | undefined> };
+    expect(options.env.MAX_THINKING_TOKENS).toBe('16000');
+  });
 });

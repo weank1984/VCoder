@@ -6,9 +6,9 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
 import { postMessage } from '../utils/vscode';
 import { useStore } from '../store/useStore';
-import type { ModelId } from '@vcoder/shared';
+import type { ModelId, PermissionMode } from '@vcoder/shared';
 import { FilePicker } from './FilePicker';
-import { AddIcon, ArrowBottomIcon, SendIcon, StopIcon, CloseIcon } from './Icon';
+import { AddIcon, ArrowBottomIcon, SendIcon, StopIcon, CloseIcon, ThinkIcon } from './Icon';
 import { useI18n } from '../i18n/I18nProvider';
 import { loadPersistedState, savePersistedState } from '../utils/persist';
 
@@ -25,6 +25,13 @@ const MODELS: { id: ModelId; name: string }[] = [
     { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
     { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
     { id: 'claude-3-opus-20240229', name: 'Claude Opus 4.5 (Thinking)' },
+];
+
+const PERMISSION_MODES: { id: PermissionMode; labelKey: string; descKey: string; icon: string }[] = [
+    { id: 'default', labelKey: 'Common.ModeDefault', descKey: 'Common.ModeDefaultDesc', icon: '🔒' },
+    { id: 'plan', labelKey: 'Common.ModePlan', descKey: 'Common.ModePlanDesc', icon: '📋' },
+    { id: 'acceptEdits', labelKey: 'Common.ModeAcceptEdits', descKey: 'Common.ModeAcceptEditsDesc', icon: '✏️' },
+    { id: 'bypassPermissions', labelKey: 'Common.ModeBypass', descKey: 'Common.ModeBypassDesc', icon: '⚡' },
 ];
 
 export function InputArea() {
@@ -45,7 +52,20 @@ export function InputArea() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const { model, isLoading, workspaceFiles, viewMode, setModel, addMessage, setLoading, exitHistoryMode } = useStore();
+    const {
+        model,
+        isLoading,
+        workspaceFiles,
+        viewMode,
+        thinkingEnabled,
+        permissionMode,
+        setModel,
+        setThinkingEnabled,
+        setPermissionMode,
+        addMessage,
+        setLoading,
+        exitHistoryMode,
+    } = useStore();
 
     // Debounced save for input draft
     const saveDraft = useCallback((draft: string) => {
@@ -236,6 +256,7 @@ export function InputArea() {
     }, [input]);
 
     const selectedModel = MODELS.find(m => m.id === model);
+    const selectedMode = PERMISSION_MODES.find(m => m.id === permissionMode) || PERMISSION_MODES[0];
 
     return (
         <div className="input-area">
@@ -329,6 +350,40 @@ export function InputArea() {
                         <div className="toolbar-left">
                             <button className="tool-btn add-btn" title={t('Common.AddFiles')} aria-label={t('Common.AddFiles')} onClick={handleAddFiles}>
                                 <AddIcon />
+                            </button>
+
+                            <button
+                                className={`tool-btn think-btn ${thinkingEnabled ? 'is-active' : ''}`}
+                                title={thinkingEnabled ? t('Common.ThinkOn') : t('Common.ThinkOff')}
+                                aria-label={thinkingEnabled ? t('Common.ThinkOn') : t('Common.ThinkOff')}
+                                aria-pressed={thinkingEnabled}
+                                onClick={() => setThinkingEnabled(!thinkingEnabled)}
+                                disabled={isLoading || viewMode === 'history'}
+                                type="button"
+                            >
+                                <ThinkIcon />
+                            </button>
+
+                            <button 
+                                type="button" 
+                                className={`dropdown-btn mode-btn ${permissionMode !== 'default' ? 'mode-active' : ''} mode-${permissionMode}`}
+                                title={t('Common.PermissionMode')}
+                            >
+                                <span className="mode-icon">{selectedMode.icon}</span>
+                                <span className="mode-label">{t(selectedMode.labelKey)}</span>
+                                <span className="dropdown-arrow" aria-hidden="true"><ArrowBottomIcon /></span>
+                                <select
+                                    className="mode-select-overlay"
+                                    value={permissionMode}
+                                    onChange={(e) => setPermissionMode(e.target.value as PermissionMode)}
+                                    disabled={isLoading || viewMode === 'history'}
+                                >
+                                    {PERMISSION_MODES.map((m) => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.icon} {t(m.labelKey)}
+                                        </option>
+                                    ))}
+                                </select>
                             </button>
 
                             <button type="button" className="dropdown-btn model-btn">

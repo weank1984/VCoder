@@ -2,7 +2,7 @@
  * Webview Types
  */
 
-import type { UpdateNotificationParams, Session, Task, ModelId, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage } from '@vcoder/shared';
+import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage } from '@vcoder/shared';
 
 export type UiLanguage = 'auto' | 'en-US' | 'zh-CN';
 
@@ -84,6 +84,17 @@ export interface SetModelMessage {
 export interface SetPlanModeMessage {
     type: 'setPlanMode';
     enabled: boolean;
+}
+
+export interface SetPermissionModeMessage {
+    type: 'setPermissionMode';
+    mode: PermissionMode;
+}
+
+export interface SetThinkingMessage {
+    type: 'setThinking';
+    enabled: boolean;
+    maxThinkingTokens?: number;
 }
 
 export interface ConfirmBashMessage {
@@ -169,6 +180,8 @@ export type WebviewMessage =
     | RejectChangeMessage
     | SetModelMessage
     | SetPlanModeMessage
+    | SetPermissionModeMessage
+    | SetThinkingMessage
     | ConfirmBashMessage
     | SkipBashMessage
     | ConfirmPlanMessage
@@ -184,6 +197,7 @@ export interface ChatMessage {
     role: 'user' | 'assistant';
     content: string;
     thought?: string;
+    thoughtIsComplete?: boolean;
     toolCalls?: ToolCall[];
     isComplete: boolean;
 }
@@ -204,6 +218,8 @@ export interface AppState {
     tasks: Task[];
     subagentRuns: SubagentRunUpdate[];
     planMode: boolean;
+    permissionMode: PermissionMode;
+    thinkingEnabled: boolean;
     model: ModelId;
     isLoading: boolean;
     error: ErrorUpdate | null;

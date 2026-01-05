@@ -21,7 +21,7 @@ export function VirtualMessageItem({ message, index }: VirtualMessageItemProps) 
             const height = ref.current.getBoundingClientRect().height;
             setItemHeight(index, height);
         }
-    }, [index, message.content, message.toolCalls?.length]);
+    }, [index, message.content, message.thought, message.thoughtIsComplete, message.toolCalls?.length]);
 
     return (
         <div ref={ref} className="virtual-message-item">

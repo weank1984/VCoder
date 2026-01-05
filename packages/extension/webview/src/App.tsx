@@ -32,6 +32,7 @@ function App() {
     tasks,
     subagentRuns,
     planMode,
+    permissionMode,
     error,
     setUiLanguage,
     setSessions,
@@ -130,7 +131,20 @@ function App() {
 
     // Request initial session list
     postMessage({ type: 'listSessions' });
-    postMessage({ type: 'setPlanMode', enabled: true });
+    
+    // Sync all persisted settings to backend on startup
+    const state = useStore.getState();
+    // Sync model
+    postMessage({ type: 'setModel', model: state.model });
+    // Sync permission mode
+    postMessage({ type: 'setPermissionMode', mode: state.permissionMode });
+    // Sync thinking mode
+    const DEFAULT_MAX_THINKING_TOKENS = 16000;
+    postMessage({ 
+      type: 'setThinking', 
+      enabled: state.thinkingEnabled,
+      maxThinkingTokens: state.thinkingEnabled ? DEFAULT_MAX_THINKING_TOKENS : 0,
+    });
 
     return () => window.removeEventListener('message', handleMessage);
   }, [handleUpdate, setCurrentSession, setLoading, setSessions]);
@@ -140,11 +154,11 @@ function App() {
 
   return (
     <div className="app">
-      {tasks.length > 0 && planMode && (
+      {tasks.length > 0 && (planMode || permissionMode === 'plan') && (
           <PlanBlock plan={tasks} sticky={true} />
       )}
 
-      {subagentRuns.length > 0 && planMode && (
+      {subagentRuns.length > 0 && (planMode || permissionMode === 'plan') && (
           <TaskRunsBlock runs={subagentRuns} sticky={true} />
       )}
 

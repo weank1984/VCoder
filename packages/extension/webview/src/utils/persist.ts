@@ -5,10 +5,14 @@
 
 import { getState, setState } from './vscode';
 
+import type { PermissionMode } from '@vcoder/shared';
+
 // Keys to persist
 export type PersistedState = {
     model?: string;
     planMode?: boolean;
+    permissionMode?: PermissionMode;
+    thinkingEnabled?: boolean;
     currentSessionId?: string | null;
     uiLanguage?: string;
     inputDraft?: string;

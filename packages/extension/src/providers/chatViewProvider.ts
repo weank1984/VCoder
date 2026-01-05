@@ -11,6 +11,7 @@ import { UpdateNotificationParams } from '@vcoder/shared';
 export class ChatViewProvider implements vscode.WebviewViewProvider {
     private webviewView?: vscode.WebviewView;
     private readonly distRoot: vscode.Uri;
+    private readonly debugThinking = process.env.VCODER_DEBUG_THINKING === '1';
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -20,6 +21,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
         // Listen to ACP updates and forward to Webview
         this.acpClient.on('session/update', (params: UpdateNotificationParams) => {
+            if (this.debugThinking && params.type === 'thought') {
+                const thought = params.content as { content?: string; isComplete?: boolean };
+                const length = typeof thought.content === 'string' ? thought.content.length : 0;
+                console.log('[VCoder][thinking] update', {
+                    sessionId: params.sessionId,
+                    isComplete: thought.isComplete,
+                    length,
+                });
+            }
             this.postMessage({ type: 'update', data: params });
         });
 
@@ -90,6 +100,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'setPlanMode':
                     await this.acpClient.changeSettings({ planMode: message.enabled });
+                    break;
+                case 'setPermissionMode':
+                    await this.acpClient.changeSettings({ permissionMode: message.mode });
+                    break;
+                case 'setThinking':
+                    await this.acpClient.changeSettings({
+                        maxThinkingTokens: message.enabled ? (message.maxThinkingTokens ?? 16000) : 0,
+                    });
                     break;
                 case 'setUiLanguage':
                     {
@@ -224,6 +242,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         const config = vscode.workspace.getConfiguration('vcoder');
         const uiLanguage = config.get<string>('uiLanguage', 'auto');
         const vscodeLanguage = vscode.env.language;
+        const debugThinking = process.env.VCODER_DEBUG_THINKING === '1';
 
         console.log('[VCoder] Webview styleUri:', styleUri.toString());
         console.log('[VCoder] Webview scriptUri:', scriptUri.toString());
@@ -239,7 +258,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   <div id="root"></div>
-  <script nonce="${nonce}">window.__vscodeLanguage=${JSON.stringify(vscodeLanguage)};window.__vcoderUiLanguage=${JSON.stringify(uiLanguage)};</script>
+  <script nonce="${nonce}">window.__vscodeLanguage=${JSON.stringify(vscodeLanguage)};window.__vcoderUiLanguage=${JSON.stringify(uiLanguage)};window.__vcoderDebugThinking=${JSON.stringify(debugThinking)};</script>
   <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;

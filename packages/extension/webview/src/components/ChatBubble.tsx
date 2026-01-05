@@ -16,6 +16,8 @@ interface ChatBubbleProps {
 export function ChatBubble({ message }: ChatBubbleProps) {
     const isUser = message.role === 'user';
     const bubbleClass = `vc-bubble ${isUser ? 'user' : 'assistant'}`;
+    const hasThought = typeof message.thought === 'string' && message.thought.length > 0;
+    const thoughtComplete = message.thoughtIsComplete !== false;
 
     return (
         <div className={bubbleClass}>
@@ -28,8 +30,12 @@ export function ChatBubble({ message }: ChatBubbleProps) {
 
             <div className="vc-bubble-content">
                 {/* Show thought process for assistant */}
-                {!isUser && message.thought && (
-                    <ThoughtBlock content={message.thought} />
+                {!isUser && (hasThought || message.thoughtIsComplete === false) && (
+                    <ThoughtBlock
+                        content={message.thought || ''}
+                        defaultExpanded={!thoughtComplete}
+                        isComplete={thoughtComplete}
+                    />
                 )}
 
                 {/* Main message content with Markdown rendering for assistant */}
@@ -47,4 +53,3 @@ export function ChatBubble({ message }: ChatBubbleProps) {
         </div>
     );
 }
-
