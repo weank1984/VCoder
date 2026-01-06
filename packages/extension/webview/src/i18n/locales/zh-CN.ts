@@ -79,6 +79,48 @@ export default {
     RunningCount: '{0} 执行中',
     Thought: '思考',
     Thinking: '思考中',
+    // 确认标题
+    ConfirmBash: '命令执行需要批准',
+    ConfirmFileWrite: '文件修改需要确认',
+    ConfirmFileDelete: '文件删除需要确认',
+    ConfirmPlan: '执行计划需要确认',
+    ConfirmMcp: 'MCP 工具调用需要确认',
+    ConfirmDangerous: '危险操作需要确认',
+    // 风险等级
+    RiskLow: '低风险',
+    RiskMedium: '中等风险',
+    RiskHigh: '高风险',
+    RiskHint: '风险提示',
+    // 操作按钮
+    ApproveAndRun: '批准执行',
+    AcceptChanges: '接受修改',
+    RejectChanges: '拒绝',
+    ConfirmDelete: '确认删除',
+    RunPlan: '执行计划',
+    EditPlan: '编辑计划',
+    EditThenAccept: '编辑后接受',
+    TrustAlways: '始终信任此类操作',
+    Skip: '跳过',
+    Cancel: '取消',
+    // Diff 相关
+    ViewFullDiff: '查看完整 Diff',
+    OpenInEditor: '在编辑器中打开',
+    LinesAdded: '+{0} 行',
+    LinesRemoved: '-{0} 行',
+    LinesChanged: '{0} 行变更',
+    // 计划相关
+    PlanSteps: 'AI 计划执行以下 {0} 个步骤',
+    PlanImpact: '预计影响: {0} 个新文件, {1} 个修改, {2} 个命令',
+    // 文件删除
+    FileDeleteWarning: '即将删除以下文件',
+    FileDeleteIrreversible: '此操作不可撤销，请确认是否继续。',
+    // 风险原因
+    RiskModifyNodeModules: '会修改 node_modules 目录',
+    RiskPublishPackage: '会发布包到 registry',
+    RiskPipeCommand: '命令包含管道操作',
+    RiskSudoCommand: '命令包含 sudo 提权',
+    RiskDeleteFiles: '会删除文件',
+    RiskNetworkAccess: '会访问网络',
   },
   StepProgress: {
     Title: '执行进度',

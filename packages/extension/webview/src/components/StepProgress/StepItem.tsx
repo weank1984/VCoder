@@ -7,7 +7,6 @@ import { useMemo } from 'react';
 import type { Step } from '../../utils/stepAggregator';
 import type { ToolCall } from '../../types';
 import { StepEntry } from './StepEntry';
-import { getErrorSummary } from '../../utils/pathUtils';
 import { useI18n } from '../../i18n/I18nProvider';
 import { 
     CheckIcon, 
@@ -44,7 +43,18 @@ export function StepItem({
         return step.title;
     }, [step, t]);
     
-    // Step status icon
+    // Get error message for failed steps
+    const errorMessage = useMemo(() => {
+        if (step.status !== 'failed') return null;
+        
+        // Find first error in entries
+        const errorEntry = step.entries.find(e => e.status === 'error' && e.toolCall.error);
+        if (!errorEntry) return null;
+        
+        return errorEntry.toolCall.error;
+    }, [step.status, step.entries]);
+    
+    // Step status icon with tooltip for errors
     const statusIcon = useMemo(() => {
         switch (step.status) {
             case 'completed': return <CheckIcon />;
@@ -54,24 +64,16 @@ export function StepItem({
         }
     }, [step.status]);
     
-    // Get error summary for failed steps
-    const errorSummary = useMemo(() => {
-        if (step.status !== 'failed') return null;
-        
-        // Find first error in entries
-        const errorEntry = step.entries.find(e => e.status === 'error' && e.toolCall.error);
-        if (!errorEntry) return null;
-        
-        return getErrorSummary(errorEntry.toolCall.error, 50);
-    }, [step.status, step.entries]);
-    
     return (
         <div className={`step-item ${step.status}`}>
             <div className="step-header" onClick={onToggle}>
                 <span className={`step-number ${step.status}`}>{step.index}</span>
                 <div className="step-info">
                     <span className="step-title" title={displayTitle}>{displayTitle}</span>
-                    <span className={`step-status-icon ${step.status}`}>
+                    <span 
+                        className={`step-status-icon ${step.status}`}
+                        title={errorMessage || undefined}
+                    >
                         {statusIcon}
                     </span>
                 </div>
@@ -79,13 +81,6 @@ export function StepItem({
                     {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
                 </span>
             </div>
-            
-            {step.status === 'failed' && errorSummary && (
-                <div className="step-error-preview">
-                    <span className="error-badge">错误</span>
-                    <span className="error-summary">{errorSummary}</span>
-                </div>
-            )}
             
             {!isCollapsed && (
                 <div className="step-entries">

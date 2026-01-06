@@ -32,6 +32,7 @@ import { ToolResultDisplay } from './ToolResultDisplay';
 import { SmartToolInput } from './SmartToolInput';
 import { TodoWriteEntry } from './TodoWriteEntry';
 import { TaskEntry } from './TaskEntry';
+import { ApprovalUI } from './ApprovalUI';
 
 interface StepEntryProps {
     entry: StepEntryType;
@@ -111,6 +112,7 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
     const tc = entry.toolCall;
     const isPending = tc.status === 'pending';
     const isCommandPending = isPending && (tc.name === 'Bash' || tc.name === 'run_command');
+    const isAwaitingConfirmation = tc.status === 'awaiting_confirmation';
     
     // Specialized rendering for certain tool types
     // TodoWrite - show as task list
@@ -204,7 +206,10 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
                             </span>
                         )}
                     </span>
-                    <span className={`entry-status-icon ${entry.status}`}>
+                    <span 
+                        className={`entry-status-icon ${entry.status}`}
+                        title={tc.error || undefined}
+                    >
                         {statusIcon}
                     </span>
                     {showViewBtn && (
@@ -224,8 +229,17 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
             
             {(isExpanded || hideSummary) && (
                 <div className="entry-details">
-                    {/* Approval UI for pending bash commands */}
-                    {isCommandPending && (
+                    {/* New Approval UI for awaiting confirmation */}
+                    {isAwaitingConfirmation && onConfirm && (
+                        <ApprovalUI 
+                            toolCall={tc}
+                            onApprove={() => onConfirm(tc, true)}
+                            onReject={() => onConfirm(tc, false)}
+                        />
+                    )}
+                    
+                    {/* Legacy approval UI for pending bash commands (backward compatibility) */}
+                    {!isAwaitingConfirmation && isCommandPending && onConfirm && (
                         <div className="entry-approval">
                             <div className="approval-message">
                                 <InfoIcon />
@@ -286,16 +300,6 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
                             </div>
                             <div className="detail-content">
                                 <ToolResultDisplay result={tc.result} toolName={tc.name} />
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* Tool Error */}
-                    {tc.error && (
-                        <div className="detail-section error">
-                            <div className="detail-header">{t('Agent.ToolError')}</div>
-                            <div className="detail-content error-content">
-                                <pre>{tc.error}</pre>
                             </div>
                         </div>
                     )}

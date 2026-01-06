@@ -79,6 +79,48 @@ export default {
     RunningCount: '{0} running',
     Thought: 'Thought',
     Thinking: 'Thinking',
+    // Confirmation titles
+    ConfirmBash: 'Command execution requires approval',
+    ConfirmFileWrite: 'File modification requires confirmation',
+    ConfirmFileDelete: 'File deletion requires confirmation',
+    ConfirmPlan: 'Execution plan requires confirmation',
+    ConfirmMcp: 'MCP tool call requires confirmation',
+    ConfirmDangerous: 'Dangerous operation requires confirmation',
+    // Risk levels
+    RiskLow: 'Low risk',
+    RiskMedium: 'Medium risk',
+    RiskHigh: 'High risk',
+    RiskHint: 'Risk hints',
+    // Action buttons
+    ApproveAndRun: 'Approve & Run',
+    AcceptChanges: 'Accept Changes',
+    RejectChanges: 'Reject',
+    ConfirmDelete: 'Confirm Delete',
+    RunPlan: 'Run Plan',
+    EditPlan: 'Edit Plan',
+    EditThenAccept: 'Edit & Accept',
+    TrustAlways: 'Always trust this type',
+    Skip: 'Skip',
+    Cancel: 'Cancel',
+    // Diff related
+    ViewFullDiff: 'View Full Diff',
+    OpenInEditor: 'Open in Editor',
+    LinesAdded: '+{0} lines',
+    LinesRemoved: '-{0} lines',
+    LinesChanged: '{0} lines changed',
+    // Plan related
+    PlanSteps: 'AI plans to execute {0} steps',
+    PlanImpact: 'Expected impact: {0} new files, {1} modified, {2} commands',
+    // File deletion
+    FileDeleteWarning: 'About to delete the following file',
+    FileDeleteIrreversible: 'This action cannot be undone. Are you sure?',
+    // Risk reasons
+    RiskModifyNodeModules: 'Will modify node_modules directory',
+    RiskPublishPackage: 'Will publish package to registry',
+    RiskPipeCommand: 'Command contains pipe operations',
+    RiskSudoCommand: 'Command contains sudo',
+    RiskDeleteFiles: 'Will delete files',
+    RiskNetworkAccess: 'Will access network',
   },
   StepProgress: {
     Title: 'Progress Updates',

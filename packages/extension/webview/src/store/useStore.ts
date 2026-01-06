@@ -51,6 +51,7 @@ interface AppStore extends AppState {
     setThought: (thought: string, isComplete: boolean) => void;
     addToolCall: (toolCall: ToolCall) => void;
     updateToolCall: (id: string, updates: Partial<ToolCall>) => void;
+    confirmTool: (toolCallId: string, confirmed: boolean, options?: { trustAlways?: boolean; editedContent?: string }) => void;
     setTasks: (tasks: Task[]) => void;
     setSubagentRuns: (runs: SubagentRunUpdate[]) => void;
     setSessions: (sessions: AppState['sessions']) => void;
@@ -253,6 +254,33 @@ export const useStore = create<AppStore>((set, get) => ({
             return { messages };
         }),
 
+    confirmTool: (toolCallId, confirmed, options) => {
+        // Update tool call status
+        set((state) => {
+            const messages = [...state.messages];
+            for (const msg of messages) {
+                if (msg.toolCalls) {
+                    const tc = msg.toolCalls.find(t => t.id === toolCallId);
+                    if (tc) {
+                        tc.status = confirmed ? 'running' : 'failed';
+                        delete tc.confirmationType;
+                        delete tc.confirmationData;
+                        break;
+                    }
+                }
+            }
+            return { messages };
+        });
+        
+        // Send message to extension
+        postMessage({
+            type: 'confirmTool',
+            toolCallId,
+            confirmed,
+            options,
+        });
+    },
+
     setTasks: (tasks) => set({ tasks }),
 
     setSubagentRuns: (subagentRuns) => set({ subagentRuns }),
@@ -392,6 +420,32 @@ export const useStore = create<AppStore>((set, get) => ({
                 const errorUpdate = content as ErrorUpdate;
                 get().setError(errorUpdate);
                 get().setLoading(false);
+                break;
+            }
+            case 'confirmation_request': {
+                const request = content as {
+                    id: string;
+                    type: string;
+                    toolCallId: string;
+                    summary: string;
+                    details?: {
+                        command?: string;
+                        filePath?: string;
+                        diff?: string;
+                        content?: string;
+                        tasks?: Task[];
+                        planSummary?: string;
+                        riskLevel?: 'low' | 'medium' | 'high';
+                        riskReasons?: string[];
+                    };
+                };
+                
+                // Update the corresponding ToolCall status
+                get().updateToolCall(request.toolCallId, {
+                    status: 'awaiting_confirmation',
+                    confirmationType: request.type as ToolCall['confirmationType'],
+                    confirmationData: request.details,
+                });
                 break;
             }
         }

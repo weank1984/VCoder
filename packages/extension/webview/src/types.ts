@@ -148,6 +148,18 @@ export interface SetUiLanguageMessage {
     uiLanguage: UiLanguage;
 }
 
+export interface ConfirmToolMessage {
+    type: 'confirmTool';
+    toolCallId: string;
+    confirmed: boolean;
+    options?: {
+        /** 对此类工具始终信任 */
+        trustAlways?: boolean;
+        /** 用户编辑后的内容（用于文件修改） */
+        editedContent?: string;
+    };
+}
+
 export interface HistorySessionsMessage {
     type: 'historySessions';
     data: HistorySession[];
@@ -191,7 +203,8 @@ export type WebviewMessage =
     | ListHistoryMessage
     | LoadHistoryMessage
     | DeleteHistoryMessage
-    | SetUiLanguageMessage;
+    | SetUiLanguageMessage
+    | ConfirmToolMessage;
 export interface ChatMessage {
     id: string;
     role: 'user' | 'assistant';
@@ -205,12 +218,52 @@ export interface ChatMessage {
 export interface ToolCall {
     id: string;
     name: string;
-    status: 'pending' | 'running' | 'completed' | 'failed';
+    status: 'pending' | 'running' | 'completed' | 'failed' | 'awaiting_confirmation';
     input?: unknown;
     result?: unknown;
     error?: string;
     /** Parent tool use ID for nested tool calls (e.g., Task subagent) */
     parentToolUseId?: string;
+    
+    /** 需要确认的操作类型 */
+    confirmationType?: ConfirmationType;
+    
+    /** 确认相关的额外信息 */
+    confirmationData?: ConfirmationData;
+}
+
+export type ConfirmationType = 
+    | 'bash'         // Shell 命令执行
+    | 'file_write'   // 文件创建/修改
+    | 'file_delete'  // 文件删除
+    | 'plan'         // 计划模式确认
+    | 'mcp'          // MCP 工具调用
+    | 'dangerous';   // 其他危险操作
+
+export interface ConfirmationData {
+    /** Bash 命令内容 */
+    command?: string;
+    
+    /** 文件路径 */
+    filePath?: string;
+    
+    /** 文件 diff 内容 */
+    diff?: string;
+    
+    /** 完整文件内容（用于预览） */
+    content?: string;
+    
+    /** 计划任务列表 */
+    tasks?: Task[];
+    
+    /** 计划摘要 */
+    planSummary?: string;
+    
+    /** 风险等级 */
+    riskLevel?: 'low' | 'medium' | 'high';
+    
+    /** 风险原因列表 */
+    riskReasons?: string[];
 }
 
 export interface AppState {

@@ -2,9 +2,9 @@
 
 > 全面梳理 Claude Code CLI 提供的工具类型及其输出格式，制定统一的 UI 显示规范
 
-**版本**: v1.0  
-**日期**: 2026-01-05  
-**状态**: 草稿
+**版本**: v1.1  
+**日期**: 2026-01-06  
+**状态**: 基本完成
 
 ---
 
@@ -464,23 +464,36 @@ const TYPE_ICONS: Record<StepEntryType, string> = {
 
 ## 6. 特殊工具 UI 处理
 
-### 6.1 Task (子代理) 的展示
+### 6.1 Task (子代理) 的展示 ✅ 已实现
 
 Task 工具需要特殊处理，因为它会启动子代理并产生嵌套的工具调用。
 
-**展示方案：**
-1. 当检测到 `Task` 工具时，创建一个可折叠的"子任务"区块
-2. 后续具有相同 `parent_tool_use_id` 的工具调用归入该区块
-3. 展示子代理类型 (如 `Explore`, `CodeReview`)
+**已实现方案（`TaskEntry.tsx`）：**
+1. 当检测到 `Task` 工具时，使用专用 `TaskEntry` 组件渲染
+2. 展示子代理类型标签 (如 `Explore`, `CodeReview`)
+3. 可折叠显示 prompt 和 result
 
 ```typescript
-interface TaskStepEntry extends StepEntry {
+// TaskEntry.tsx - 实际实现
+function parseTaskInfo(input: unknown): {
+    description: string;
     subagentType?: string;
-    childEntries?: StepEntry[];
+    prompt?: string;
+} { /* ... */ }
+
+export function TaskEntry({ toolCall, status }: TaskEntryProps) {
+    // 解析任务信息、显示类型标签、折叠展开详情
 }
 ```
 
-**UI 效果：**
+**当前 UI 效果：**
+```
+🚀 委派了 Explore codebase [Explore]
+   └─ Prompt: ...
+   └─ Result: ...
+```
+
+**⚠️ 待实现：** `parent_tool_use_id` 关联，将子工具调用嵌套显示：
 ```
 ▶ Task: Explore codebase
    ├─ Read package.json
@@ -488,24 +501,41 @@ interface TaskStepEntry extends StepEntry {
    └─ Read src/index.ts
 ```
 
-### 6.2 TodoWrite (任务列表) 的展示
+### 6.2 TodoWrite (任务列表) 的展示 ✅ 已实现
 
 TodoWrite 产生的任务列表需要结构化展示。
 
-**展示方案：**
-1. 在 Step Progress 中显示为"计划"类型
-2. 点击展开后显示任务列表，支持嵌套
-3. 任务状态用不同颜色/图标区分
+**已实现方案（`TodoWriteEntry.tsx`）：**
+1. 专用组件解析和渲染任务列表
+2. 显示任务统计（completed/in_progress/pending/cancelled）
+3. 任务状态用不同图标和颜色区分
+4. 支持折叠/展开
 
-**UI 效果：**
+```typescript
+// TodoWriteEntry.tsx - 实际实现
+interface TodoItem {
+    id: string;
+    content: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+    priority?: 'high' | 'medium' | 'low';
+}
+
+export function TodoWriteEntry({ input, isExpanded, onToggle }: TodoWriteEntryProps) {
+    // 解析任务、计算统计、渲染列表
+}
 ```
-▼ Planned 5 tasks
-   ☑ Implement login API         [completed]
-   ◷ Add validation              [in_progress]
-   ○ Write tests                 [pending]
-   ○ Update documentation        [pending]
-   ✗ Deploy to staging           [failed]
+
+**当前 UI 效果：**
 ```
+▼ 规划了 5 tasks  [✓2 ◷1 ○2]
+   ✓ Implement login API         
+   ◷ Add validation              
+   ○ Write tests                 
+   ○ Update documentation        
+   ✗ Deploy to staging           
+```
+
+**⚠️ 待实现：** 嵌套任务支持（子任务层级展示）
 
 ### 6.3 MCP 工具的展示
 
@@ -541,11 +571,12 @@ Bash 命令需要特殊处理：
 
 ---
 
-## 7. 输出结果展示优化
+## 7. 输出结果展示优化 ✅ 已实现
 
-### 7.1 结果类型识别
+### 7.1 结果类型识别（`ToolResultDisplay.tsx`）
 
 ```typescript
+// 实际实现
 type ResultDisplayType = 
     | 'text'        // 普通文本
     | 'json'        // JSON 对象
@@ -555,40 +586,63 @@ type ResultDisplayType =
     | 'search'      // 搜索结果
     | 'truncated';  // 截断内容
 
-function detectResultType(result: unknown): ResultDisplayType {
+function detectResultType(result: unknown, toolName?: string): ResultDisplayType {
     if (!result) return 'text';
+    
     if (typeof result === 'string') {
-        if (result.startsWith('Error:') || result.includes('error')) return 'error';
-        if (result.length > 5000) return 'truncated';
+        // 检测错误模式
+        if (result.startsWith('Error:') || result.toLowerCase().includes('error:')) {
+            return 'error';
+        }
+        // 检测 diff 模式
+        if (result.includes('@@') && (result.includes('+++') || result.includes('---'))) {
+            return 'diff';
+        }
+        // 长内容
+        if (result.length > 3000) return 'truncated';
         return 'text';
     }
+    
     if (Array.isArray(result)) {
-        if (result.every(r => typeof r === 'string' && r.includes('/'))) return 'files';
+        // 文件列表检测
+        if (result.every(r => typeof r === 'string' && (r.includes('/') || r.includes('\\')))) {
+            return 'files';
+        }
+        // 搜索结果检测
+        if (toolName === 'Grep' || toolName === 'codebase_search') {
+            return 'search';
+        }
         return 'json';
     }
     return 'json';
 }
 ```
 
-### 7.2 结果渲染组件
+### 7.2 结果渲染组件（已实现）
+
+| 组件 | 功能 | 特性 |
+|------|------|------|
+| `TextResult` | 普通文本 | 自动清理行号前缀 |
+| `FileListResult` | 文件列表 | 目录分组、折叠展开 |
+| `SearchResult` | 搜索结果 | 结构化展示、文件路径 |
+| `DiffView` | Diff 视图 | 添加/删除行高亮 |
+| `ErrorResult` | 错误信息 | 错误图标样式 |
+| `TruncatedResult` | 长内容 | 显示大小、折叠展开 |
+| `JsonView` | JSON 对象 | 格式化、折叠展开 |
 
 ```typescript
-function ToolResultDisplay({ result, type }: { result: unknown; type: ResultDisplayType }) {
-    switch (type) {
-        case 'files':
-            return <FileListResult files={result as string[]} />;
-        case 'search':
-            return <SearchResult matches={result as SearchMatch[]} />;
-        case 'diff':
-            return <DiffView diff={result as string} />;
-        case 'error':
-            return <ErrorResult message={result as string} />;
-        case 'truncated':
-            return <TruncatedResult content={result as string} />;
-        case 'json':
-            return <JsonView data={result} />;
-        default:
-            return <TextResult text={String(result)} />;
+// 实际主组件
+export function ToolResultDisplay({ result, toolName, maxLength = 3000 }: ToolResultDisplayProps) {
+    const resultType = useMemo(() => detectResultType(result, toolName), [result, toolName]);
+    
+    switch (resultType) {
+        case 'files': return <FileListResult files={result as string[]} />;
+        case 'search': return <SearchResult results={result as unknown[]} />;
+        case 'diff': return <DiffView diff={result as string} />;
+        case 'error': return <ErrorResult message={result as string} />;
+        case 'truncated': return <TruncatedResult content={result as string} maxLength={maxLength} />;
+        case 'json': return <JsonView data={result} />;
+        default: return <TextResult text={safeStringify(result, false)} />;
     }
 }
 ```
@@ -597,54 +651,60 @@ function ToolResultDisplay({ result, type }: { result: unknown; type: ResultDisp
 
 ## 8. 实施计划
 
-### Phase 1: 工具映射完善 (0.5 天)
+### Phase 1: 工具映射完善 ✅ 已完成
 - [x] 更新 `actionMapper.ts` 添加所有工具
 - [x] 更新 `extractTargetInfo` 支持新工具
 - [x] 添加 MCP 动态处理
 
-### Phase 2: i18n 和图标 (0.5 天)
+### Phase 2: i18n 和图标 ✅ 已完成
 - [x] 添加新的 i18n 键
 - [x] 添加新图标组件 (Rocket, ListCheck, Plug, Notebook)
 - [x] 更新类型图标映射
 
-### Phase 3: 信息重复问题修复 (已完成)
+### Phase 3: 信息重复问题修复 ✅ 已完成
 - [x] 在 `Step` 接口添加 `isSingleEntry` 标志
 - [x] 修改 `StepItem` 显示丰富标题（action + target）
 - [x] 修改 `StepEntry` 支持 `hideSummary` 属性
 - [x] 单 entry 时自动隐藏 summary 行，直接展示详情
 - [x] 添加 CSS 样式支持 `summary-hidden` 模式
 
-### Phase 4: Task 子代理 UI (待实现)
-- [ ] 实现 Task 嵌套展示
-- [ ] 处理 `parent_tool_use_id` 关联
-- [ ] 子代理类型标签
+### Phase 4: Task 子代理 UI ⚠️ 部分完成
+- [x] 实现 Task 基本展示 (`TaskEntry.tsx`)
+- [ ] 处理 `parent_tool_use_id` 关联（嵌套子工具调用）
+- [x] 子代理类型标签 (`task-type-badge`)
 
-### Phase 5: TodoWrite UI (待实现)
-- [ ] 实现任务列表折叠展示
-- [ ] 任务状态图标
-- [ ] 嵌套任务支持
+### Phase 5: TodoWrite UI ⚠️ 部分完成
+- [x] 实现任务列表折叠展示 (`TodoWriteEntry.tsx`)
+- [x] 任务状态图标 (completed/in_progress/pending/cancelled)
+- [ ] 嵌套任务支持（当前为扁平列表）
 
-### Phase 6: 结果展示优化 (待实现)
-- [ ] 结果类型检测
-- [ ] 文件列表渲染
-- [ ] 搜索结果高亮
-- [ ] 长内容截断
+### Phase 6: 结果展示优化 ✅ 已完成
+- [x] 结果类型检测 (`detectResultType`)
+- [x] 文件列表渲染 (`FileListResult` + 目录分组)
+- [x] 搜索结果展示 (`SearchResult`)
+- [x] Diff 视图 (`DiffView`)
+- [x] 长内容截断 (`TruncatedResult`)
 
-**预计总工期**: 3.5 天
+**实际总工期**: 约 3 天（剩余 0.5 天完成嵌套功能）
 
 ---
 
 ## 9. 验证清单
 
-- [ ] 所有 15+ 内置工具正确映射
-- [ ] MCP 工具动态识别正常
-- [ ] Task 子代理嵌套显示正确
-- [ ] TodoWrite 任务列表渲染正确
-- [ ] Bash 确认 UI 可用
-- [ ] 图标正确显示
-- [ ] i18n 中英文完整
-- [ ] 长结果正确截断
-- [ ] 错误状态清晰可辨
+- [x] 所有 15+ 内置工具正确映射
+- [x] MCP 工具动态识别正常
+- [⚠️] Task 子代理嵌套显示（基本展示有，缺少 parent_tool_use_id 关联）
+- [⚠️] TodoWrite 任务列表渲染（基本展示有，缺少嵌套任务支持）
+- [x] Bash 确认 UI 可用
+- [x] 图标正确显示
+- [x] i18n 中英文完整
+- [x] 长结果正确截断
+- [x] 错误状态清晰可辨
+
+### 待完成功能
+
+1. **Task 嵌套关联**：处理 `parent_tool_use_id`，将子工具调用归入父 Task 步骤显示
+2. **TodoWrite 嵌套任务**：支持任务的层级结构展示（如子任务）
 
 ---
 

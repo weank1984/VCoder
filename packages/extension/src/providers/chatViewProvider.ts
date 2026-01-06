@@ -130,6 +130,47 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                 case 'confirmPlan':
                     await this.acpClient.confirmPlan();
                     break;
+                case 'confirmTool':
+                    {
+                        const { toolCallId, confirmed, options } = message;
+                        
+                        // Determine action type based on toolCallId
+                        // Bash commands are tracked with their IDs
+                        // File changes use path as ID
+                        // Plan uses 'plan' as ID
+                        
+                        if (confirmed) {
+                            // Try bash confirmation first
+                            try {
+                                await this.acpClient.confirmBash(toolCallId);
+                            } catch (err) {
+                                // If not bash, might be file change or plan
+                                if (toolCallId === 'plan') {
+                                    await this.acpClient.confirmPlan();
+                                } else {
+                                    // Assume it's a file path
+                                    await this.acpClient.acceptFileChange(toolCallId);
+                                }
+                            }
+                        } else {
+                            // Rejection
+                            try {
+                                await this.acpClient.skipBash(toolCallId);
+                            } catch (err) {
+                                // If not bash, might be file change
+                                if (toolCallId !== 'plan') {
+                                    await this.acpClient.rejectFileChange(toolCallId);
+                                }
+                            }
+                        }
+                        
+                        // Handle trustAlways option if needed
+                        if (options?.trustAlways) {
+                            // TODO: Save to configuration
+                            console.log('[VCoder] Trust always requested for:', toolCallId);
+                        }
+                    }
+                    break;
                 case 'cancel':
                     await this.acpClient.cancelSession();
                     this.postMessage({ type: 'complete' });

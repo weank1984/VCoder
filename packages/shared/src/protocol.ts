@@ -197,7 +197,8 @@ export type UpdateType =
     | 'subagent_run'
     | 'bash_request'
     | 'plan_ready'
-    | 'error';
+    | 'error'
+    | 'confirmation_request';
 
 export interface UpdateNotificationParams {
     sessionId: string;
@@ -213,7 +214,8 @@ export interface UpdateNotificationParams {
     | SubagentRunUpdate
     | BashRequestUpdate
     | PlanReadyUpdate
-    | ErrorUpdate;
+    | ErrorUpdate
+    | ConfirmationRequestUpdate;
 }
 
 export interface ThoughtUpdate {
@@ -299,6 +301,40 @@ export interface ErrorUpdate {
     action?: {
         label: string;
         command: string;
+    };
+}
+
+export type ConfirmationType = 
+    | 'bash'
+    | 'file_write'
+    | 'file_delete'
+    | 'plan'
+    | 'mcp'
+    | 'dangerous';
+
+export interface ConfirmationRequestUpdate {
+    /** 确认请求唯一 ID */
+    id: string;
+    
+    /** 确认类型 */
+    type: ConfirmationType;
+    
+    /** 关联的工具调用 ID */
+    toolCallId: string;
+    
+    /** 简短摘要 */
+    summary: string;
+    
+    /** 详细信息 */
+    details?: {
+        command?: string;
+        filePath?: string;
+        diff?: string;
+        content?: string;
+        tasks?: Task[];
+        planSummary?: string;
+        riskLevel?: 'low' | 'medium' | 'high';
+        riskReasons?: string[];
     };
 }
 

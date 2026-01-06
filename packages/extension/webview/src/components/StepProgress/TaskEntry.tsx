@@ -90,7 +90,10 @@ export function TaskEntry({ toolCall, status }: TaskEntryProps) {
                         </span>
                     )}
                 </div>
-                <span className={`task-status-icon ${status}`}>
+                <span 
+                    className={`task-status-icon ${status}`}
+                    title={toolCall.error || undefined}
+                >
                     {getStatusIcon(status)}
                 </span>
                 <span className="task-expand-icon">
@@ -111,13 +114,6 @@ export function TaskEntry({ toolCall, status }: TaskEntryProps) {
                         <div className="task-result">
                             <div className="result-header">{t('Agent.ToolResult')}</div>
                             <ToolResultDisplay result={toolCall.result} toolName="Task" />
-                        </div>
-                    )}
-                    
-                    {toolCall.error && (
-                        <div className="task-error">
-                            <div className="error-header">{t('Agent.ToolError')}</div>
-                            <pre className="error-content">{toolCall.error}</pre>
                         </div>
                     )}
                 </div>
