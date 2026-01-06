@@ -189,6 +189,31 @@
     --vc-motion-duration-fast: 0.1s;
     --vc-motion-duration-mid: 0.2s;
     --vc-motion-duration-slow: 0.3s;
+    
+    // V-Coder specific semantic colors
+    --vcoder-status-success: var(--vscode-terminal-ansiGreen);
+    --vcoder-status-warning: var(--vscode-terminal-ansiYellow);
+    --vcoder-status-error: var(--vscode-terminal-ansiRed);
+    --vcoder-status-info: var(--vscode-terminal-ansiBlue);
+    --vcoder-status-running: var(--vscode-terminal-ansiYellow);
+    
+    // Background layers
+    --vcoder-bg-elevated: color-mix(in srgb, var(--vc-bg) 90%, white 10%);
+    --vcoder-bg-sunken: color-mix(in srgb, var(--vc-bg) 95%, black 5%);
+    
+    // Surface colors (for cards, panels)
+    --vcoder-surface: var(--vscode-editor-background);
+    --vcoder-surface-2: color-mix(in srgb, var(--vscode-editor-background) 95%, var(--vscode-foreground) 5%);
+    --vcoder-surface-3: color-mix(in srgb, var(--vscode-editor-background) 90%, var(--vscode-foreground) 10%);
+    
+    // Border colors
+    --vcoder-border: var(--vc-color-border);
+    --vcoder-border-light: var(--vc-color-border-secondary);
+    
+    // Radius
+    --vcoder-radius-sm: 4px;
+    --vcoder-radius-md: 6px;
+    --vcoder-radius-lg: 8px;
 }
 
 .vscode-light,
@@ -385,4 +410,29 @@
     --vc-motion-duration-fast: 0.1s;
     --vc-motion-duration-mid: 0.2s;
     --vc-motion-duration-slow: 0.3s;
+    
+    // V-Coder specific semantic colors
+    --vcoder-status-success: var(--vscode-terminal-ansiGreen);
+    --vcoder-status-warning: var(--vscode-terminal-ansiYellow);
+    --vcoder-status-error: var(--vscode-terminal-ansiRed);
+    --vcoder-status-info: var(--vscode-terminal-ansiBlue);
+    --vcoder-status-running: var(--vscode-terminal-ansiYellow);
+    
+    // Background layers
+    --vcoder-bg-elevated: color-mix(in srgb, var(--vc-bg) 90%, black 10%);
+    --vcoder-bg-sunken: color-mix(in srgb, var(--vc-bg) 95%, white 5%);
+    
+    // Surface colors (for cards, panels)
+    --vcoder-surface: var(--vscode-editor-background);
+    --vcoder-surface-2: color-mix(in srgb, var(--vscode-editor-background) 95%, var(--vscode-foreground) 5%);
+    --vcoder-surface-3: color-mix(in srgb, var(--vscode-editor-background) 90%, var(--vscode-foreground) 10%);
+    
+    // Border colors
+    --vcoder-border: var(--vc-color-border);
+    --vcoder-border-light: var(--vc-color-border-secondary);
+    
+    // Radius
+    --vcoder-radius-sm: 4px;
+    --vcoder-radius-md: 6px;
+    --vcoder-radius-lg: 8px;
 }

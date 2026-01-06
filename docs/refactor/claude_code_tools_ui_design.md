@@ -8,6 +8,98 @@
 
 ---
 
+## 0. 信息重复问题修复（已实现）
+
+### 0.1 问题描述
+
+原有设计中，工具列表存在信息重复问题：
+- **折叠标题**：显示工具名或目标（如 `Read`、`ls -la`）
+- **展开内容**：显示动作 + 工具名（如 `分析了 Read`、`执行了 ls -la`）
+
+这导致用户展开后看到的是重复信息，而非更多详细信息。
+
+### 0.2 解决方案
+
+采用**单层结构 + 条件显示**策略：
+
+1. **单 entry 步骤**（最常见情况）：
+   - 标题显示：`[动作] [目标]`（如 `分析了 package.json`）
+   - 展开时：**隐藏 summary 行**，直接显示输入/输出详情
+   - 避免重复：标题已包含完整信息，展开只显示额外内容
+
+2. **多 entry 步骤**（有 task_boundary）：
+   - 标题显示：任务名称（如 `Explore project structure`）
+   - 展开时：显示每个 entry 的 summary + 详情
+   - 层级清晰：任务 → 子工具调用
+
+### 0.3 实现细节
+
+**数据层（stepAggregator.ts）**：
+```typescript
+export interface Step {
+    // ... existing fields
+    isSingleEntry: boolean;  // 新增标志
+}
+```
+
+**展示层（StepItem.tsx）**：
+```typescript
+// 生成丰富标题
+const displayTitle = useMemo(() => {
+    if (step.isSingleEntry && step.entries.length === 1) {
+        const entry = step.entries[0];
+        const actionText = t(entry.actionKey);
+        return `${actionText} ${entry.target.name}`;
+    }
+    return step.title;
+}, [step, t]);
+```
+
+**条目层（StepEntry.tsx）**：
+```typescript
+// 单 entry 时隐藏 summary，自动展开
+const [isExpanded, setIsExpanded] = useState(hideSummary);
+
+return (
+    <div className={`step-entry ${hideSummary ? 'summary-hidden' : ''}`}>
+        {!hideSummary && <div className="entry-summary">...</div>}
+        {(isExpanded || hideSummary) && <div className="entry-details">...</div>}
+    </div>
+);
+```
+
+**样式层（index.scss）**：
+```scss
+.step-entry.summary-hidden {
+    background: transparent;
+    border: none;
+    margin: 0;
+    
+    .entry-details {
+        padding: 0;
+    }
+}
+```
+
+### 0.4 效果对比
+
+**修改前**：
+```
+③ Read ✓                          ← 只显示工具名
+   └─ 📄 分析了 Read               ← 展开后重复
+      输入: { path: "package.json" }
+      结果: { ... }
+```
+
+**修改后**：
+```
+③ 分析了 package.json ✓           ← 标题包含完整信息
+   输入: { path: "package.json" }  ← 展开直接显示详情
+   结果: { ... }
+```
+
+---
+
 ## 1. 工具全景图
 
 ### 1.1 Claude Code CLI 内置工具完整列表
@@ -506,26 +598,33 @@ function ToolResultDisplay({ result, type }: { result: unknown; type: ResultDisp
 ## 8. 实施计划
 
 ### Phase 1: 工具映射完善 (0.5 天)
-- [ ] 更新 `actionMapper.ts` 添加所有工具
-- [ ] 更新 `extractTargetInfo` 支持新工具
-- [ ] 添加 MCP 动态处理
+- [x] 更新 `actionMapper.ts` 添加所有工具
+- [x] 更新 `extractTargetInfo` 支持新工具
+- [x] 添加 MCP 动态处理
 
 ### Phase 2: i18n 和图标 (0.5 天)
-- [ ] 添加新的 i18n 键
-- [ ] 添加新图标组件 (Rocket, ListCheck, Plug, Notebook)
-- [ ] 更新类型图标映射
+- [x] 添加新的 i18n 键
+- [x] 添加新图标组件 (Rocket, ListCheck, Plug, Notebook)
+- [x] 更新类型图标映射
 
-### Phase 3: Task 子代理 UI (1 天)
+### Phase 3: 信息重复问题修复 (已完成)
+- [x] 在 `Step` 接口添加 `isSingleEntry` 标志
+- [x] 修改 `StepItem` 显示丰富标题（action + target）
+- [x] 修改 `StepEntry` 支持 `hideSummary` 属性
+- [x] 单 entry 时自动隐藏 summary 行，直接展示详情
+- [x] 添加 CSS 样式支持 `summary-hidden` 模式
+
+### Phase 4: Task 子代理 UI (待实现)
 - [ ] 实现 Task 嵌套展示
 - [ ] 处理 `parent_tool_use_id` 关联
 - [ ] 子代理类型标签
 
-### Phase 4: TodoWrite UI (0.5 天)
+### Phase 5: TodoWrite UI (待实现)
 - [ ] 实现任务列表折叠展示
 - [ ] 任务状态图标
 - [ ] 嵌套任务支持
 
-### Phase 5: 结果展示优化 (1 天)
+### Phase 6: 结果展示优化 (待实现)
 - [ ] 结果类型检测
 - [ ] 文件列表渲染
 - [ ] 搜索结果高亮

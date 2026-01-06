@@ -32,6 +32,8 @@ export interface Step {
     entries: StepEntry[];
     startTime: number;
     endTime?: number;
+    /** Whether this step has a single entry (used for UI optimization) */
+    isSingleEntry: boolean;
 }
 
 /**
@@ -105,6 +107,7 @@ export function aggregateToSteps(toolCalls: ToolCall[]): Step[] {
             if (currentStep && currentStep.entries.length > 0) {
                 currentStep.title = generateStepTitle(currentTaskBoundary, currentStep.entries, currentStep.index);
                 currentStep.status = deriveStepStatus(currentStep.entries);
+                currentStep.isSingleEntry = currentStep.entries.length === 1;
                 steps.push(currentStep);
                 stepIndex++;
             }
@@ -118,6 +121,7 @@ export function aggregateToSteps(toolCalls: ToolCall[]): Step[] {
                 status: 'running',
                 entries: [],
                 startTime: Date.now(),
+                isSingleEntry: false, // Will be set when finalized
             };
         } else {
             // Non-task-boundary tool call
@@ -146,6 +150,7 @@ export function aggregateToSteps(toolCalls: ToolCall[]): Step[] {
                             mapStatus(tc.status) === 'success' ? 'completed' : 'running',
                     entries: [entry],
                     startTime: Date.now(),
+                    isSingleEntry: true,
                 };
                 steps.push(singleStep);
                 stepIndex++;
@@ -157,6 +162,7 @@ export function aggregateToSteps(toolCalls: ToolCall[]): Step[] {
     if (currentStep && currentStep.entries.length > 0) {
         currentStep.title = generateStepTitle(currentTaskBoundary, currentStep.entries, currentStep.index);
         currentStep.status = deriveStepStatus(currentStep.entries);
+        currentStep.isSingleEntry = currentStep.entries.length === 1;
         steps.push(currentStep);
     }
     

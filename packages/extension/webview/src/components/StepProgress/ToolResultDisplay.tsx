@@ -86,11 +86,21 @@ function safeStringify(value: unknown, pretty = true): string {
     }
 }
 
+/**
+ * Clean line number prefixes from text content
+ * Removes patterns like "1→", "2|", "3:" from the start of lines
+ */
+function cleanLineNumbers(text: string): string {
+    return text.replace(/^\s*\d+[→|:]\s?/gm, '');
+}
+
 /** Text Result Component */
 function TextResult({ text }: { text: string }) {
+    const cleanedText = cleanLineNumbers(text);
+    
     return (
         <div className="result-text">
-            <pre>{text}</pre>
+            <pre>{cleanedText}</pre>
         </div>
     );
 }

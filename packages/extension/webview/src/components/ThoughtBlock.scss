@@ -1,7 +1,7 @@
 .thought-block {
     margin: 8px 0;
     border-radius: var(--vcoder-radius-md);
-    background: color-mix(in srgb, var(--vscode-textBlockQuote-background) 50%, transparent);
+    background: var(--vcoder-surface-2);
     border: 1px solid var(--vcoder-border);
     overflow: hidden;
 }

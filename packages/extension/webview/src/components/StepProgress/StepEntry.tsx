@@ -25,8 +25,11 @@ import {
     ListCheckIcon,
     McpIcon,
     NotebookIcon,
+    CopyIcon,
+    EditorIcon,
 } from '../Icon';
 import { ToolResultDisplay } from './ToolResultDisplay';
+import { SmartToolInput } from './SmartToolInput';
 import { TodoWriteEntry } from './TodoWriteEntry';
 import { TaskEntry } from './TaskEntry';
 
@@ -34,6 +37,8 @@ interface StepEntryProps {
     entry: StepEntryType;
     onViewFile?: (path: string, lineRange?: [number, number]) => void;
     onConfirm?: (tc: ToolCall, approve: boolean) => void;
+    /** Hide the summary line (for single-entry steps to avoid duplication) */
+    hideSummary?: boolean;
 }
 
 /**
@@ -76,9 +81,32 @@ function mapEntryStatus(status: StepEntryType['status']): 'pending' | 'running' 
     }
 }
 
-export function StepEntry({ entry, onViewFile, onConfirm }: StepEntryProps) {
+/**
+ * Safe JSON stringify for copying
+ */
+function safeStringify(value: unknown): string {
+    if (value === undefined) return '';
+    if (typeof value === 'string') return value;
+    try {
+        return JSON.stringify(value, null, 2);
+    } catch {
+        return String(value);
+    }
+}
+
+/**
+ * Copy to clipboard helper
+ */
+function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).catch(err => {
+        console.error('Failed to copy:', err);
+    });
+}
+
+export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }: StepEntryProps) {
     const { t } = useI18n();
-    const [isExpanded, setIsExpanded] = useState(false);
+    // Auto-expand if hideSummary is true (single entry mode)
+    const [isExpanded, setIsExpanded] = useState(hideSummary);
     
     const tc = entry.toolCall;
     const isPending = tc.status === 'pending';
@@ -158,41 +186,43 @@ export function StepEntry({ entry, onViewFile, onConfirm }: StepEntryProps) {
     }, [tc.name, isMcp]);
     
     return (
-        <div className={`step-entry ${entry.status} ${entry.type}`}>
-            <div className="entry-summary" onClick={() => setIsExpanded(!isExpanded)}>
-                <span className="entry-icon">{getEntryIcon(entry.type)}</span>
-                <span className="entry-action">{actionText}</span>
-                <span className="entry-target" title={entry.target.fullPath}>
-                    {isMcp && mcpInfo && (
-                        <span className="mcp-badge" title={`MCP: ${mcpInfo.server}`}>
-                            [{mcpInfo.server}]
-                        </span>
+        <div className={`step-entry ${entry.status} ${entry.type} ${hideSummary ? 'summary-hidden' : ''}`}>
+            {!hideSummary && (
+                <div className="entry-summary" onClick={() => setIsExpanded(!isExpanded)}>
+                    <span className="entry-icon">{getEntryIcon(entry.type)}</span>
+                    <span className="entry-action">{actionText}</span>
+                    <span className="entry-target" title={entry.target.fullPath}>
+                        {isMcp && mcpInfo && (
+                            <span className="mcp-badge" title={`MCP: ${mcpInfo.server}`}>
+                                [{mcpInfo.server}]
+                            </span>
+                        )}
+                        {entry.target.name}
+                        {entry.target.lineRange && (
+                            <span className="entry-line-range">
+                                {formatLineRange(entry.target.lineRange)}
+                            </span>
+                        )}
+                    </span>
+                    <span className={`entry-status-icon ${entry.status}`}>
+                        {statusIcon}
+                    </span>
+                    {showViewBtn && (
+                        <button 
+                            className="entry-view-btn"
+                            onClick={handleView}
+                            title={t('StepProgress.View')}
+                        >
+                            {t('StepProgress.View')}
+                        </button>
                     )}
-                    {entry.target.name}
-                    {entry.target.lineRange && (
-                        <span className="entry-line-range">
-                            {formatLineRange(entry.target.lineRange)}
-                        </span>
-                    )}
-                </span>
-                <span className={`entry-status-icon ${entry.status}`}>
-                    {statusIcon}
-                </span>
-                {showViewBtn && (
-                    <button 
-                        className="entry-view-btn"
-                        onClick={handleView}
-                        title={t('StepProgress.View')}
-                    >
-                        {t('StepProgress.View')}
-                    </button>
-                )}
-                <span className="entry-expand-icon">
-                    {isExpanded ? <CollapseIcon /> : <ExpandIcon />}
-                </span>
-            </div>
+                    <span className="entry-expand-icon">
+                        {isExpanded ? <CollapseIcon /> : <ExpandIcon />}
+                    </span>
+                </div>
+            )}
             
-            {isExpanded && (
+            {(isExpanded || hideSummary) && (
                 <div className="entry-details">
                     {/* Approval UI for pending bash commands */}
                     {isCommandPending && (
@@ -212,20 +242,48 @@ export function StepEntry({ entry, onViewFile, onConfirm }: StepEntryProps) {
                         </div>
                     )}
                     
-                    {/* Tool Input */}
+                    {/* Tool Input - using smart display */}
                     {tc.input !== undefined && (
                         <div className="detail-section input">
                             <div className="detail-header">{t('Agent.ToolInput')}</div>
                             <div className="detail-content">
-                                <ToolResultDisplay result={tc.input} toolName={tc.name} />
+                                <SmartToolInput input={tc.input} toolName={tc.name} />
                             </div>
                         </div>
                     )}
                     
-                    {/* Tool Result - using enhanced display */}
+                    {/* Tool Result - using enhanced display with action buttons */}
                     {tc.result !== undefined && (
                         <div className="detail-section result">
-                            <div className="detail-header">{t('Agent.ToolResult')}</div>
+                            <div className="detail-header">
+                                <span>{t('Agent.ToolResult')}</span>
+                                <div className="header-actions">
+                                    <button 
+                                        className="action-btn"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            copyToClipboard(safeStringify(tc.result));
+                                        }}
+                                        title="复制内容"
+                                    >
+                                        <CopyIcon />
+                                    </button>
+                                    {entry.target.fullPath && (
+                                        <button 
+                                            className="action-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (onViewFile) {
+                                                    onViewFile(entry.target.fullPath!, entry.target.lineRange);
+                                                }
+                                            }}
+                                            title="在编辑器中打开"
+                                        >
+                                            <EditorIcon />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                             <div className="detail-content">
                                 <ToolResultDisplay result={tc.result} toolName={tc.name} />
                             </div>
