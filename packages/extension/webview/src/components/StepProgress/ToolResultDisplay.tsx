@@ -5,13 +5,13 @@
 
 import { useMemo, useState } from 'react';
 import { 
-    FileIcon, 
     ExpandIcon, 
     CollapseIcon,
     ErrorIcon,
     WarningIcon,
     FolderIcon,
 } from '../Icon';
+import { FilePath } from '../FilePath';
 
 /** Result display types */
 type ResultDisplayType = 
@@ -140,12 +140,17 @@ function FileListResult({ files }: { files: string[] }) {
                                 <span className="group-count">{dirFiles.length}</span>
                             </div>
                             <div className="group-files">
-                                {dirFiles.slice(0, isExpanded ? undefined : 5).map((file, i) => (
-                                    <div key={i} className="file-item">
-                                        <FileIcon />
-                                        <span className="file-name">{file}</span>
-                                    </div>
-                                ))}
+                                {dirFiles.slice(0, isExpanded ? undefined : 5).map((file, i) => {
+                                    const fullPath = dir === '.' ? file : `${dir}/${file}`;
+                                    return (
+                                        <FilePath 
+                                            key={i}
+                                            path={fullPath}
+                                            variant="compact"
+                                            className="file-item"
+                                        />
+                                    );
+                                })}
                                 {!isExpanded && dirFiles.length > 5 && (
                                     <div className="file-more">+{dirFiles.length - 5} more</div>
                                 )}
@@ -156,10 +161,12 @@ function FileListResult({ files }: { files: string[] }) {
             ) : (
                 <div className="files-list">
                     {displayFiles.map((file, i) => (
-                        <div key={i} className="file-item">
-                            <FileIcon />
-                            <span className="file-path">{file}</span>
-                        </div>
+                        <FilePath 
+                            key={i}
+                            path={file}
+                            variant="compact"
+                            className="file-item"
+                        />
                     ))}
                 </div>
             )}
@@ -201,14 +208,18 @@ function SearchResult({ results }: { results: unknown[] }) {
                     const hasLine = obj.line !== undefined && obj.line !== null;
                     const hasContent = obj.content !== undefined && obj.content !== null;
                     const hasMatch = obj.match !== undefined && obj.match !== null;
+                    const filePath = hasFile ? String(obj.file) : undefined;
+                    const lineNum = hasLine ? Number(obj.line) : undefined;
+                    
                     return (
                         <div key={i} className="search-item structured">
-                            {hasFile && (
-                                <div className="search-file">
-                                    <FileIcon />
-                                    <span>{String(obj.file)}</span>
-                                    {hasLine && <span className="search-line">:{String(obj.line)}</span>}
-                                </div>
+                            {hasFile && filePath && (
+                                <FilePath 
+                                    path={filePath}
+                                    lineRange={lineNum ? [lineNum, lineNum] : undefined}
+                                    variant="compact"
+                                    className="search-file"
+                                />
                             )}
                             {hasContent && (
                                 <pre className="search-content">{String(obj.content)}</pre>

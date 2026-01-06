@@ -9,7 +9,10 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useState, useCallback } from 'react';
 import { useThemeMode } from '../hooks/useThemeMode';
+import { useI18n } from '../i18n/I18nProvider';
 import { postMessage } from '../utils/vscode';
+import { CopyIcon, InsertIcon, CheckIcon } from './Icon';
+import { FilePath, isFilePath } from './FilePath';
 import './MarkdownContent.scss';
 
 interface MarkdownContentProps {
@@ -23,7 +26,7 @@ interface CodeBlockProps {
     children?: React.ReactNode;
 }
 
-function CodeBlock({ inline, className, children, isComplete, syntaxTheme }: CodeBlockProps & { isComplete?: boolean; syntaxTheme: Record<string, React.CSSProperties> }) {
+function CodeBlock({ inline, className, children, isComplete, syntaxTheme, t }: CodeBlockProps & { isComplete?: boolean; syntaxTheme: Record<string, React.CSSProperties>; t: (key: string) => string }) {
     const [copied, setCopied] = useState(false);
     const [inserted, setInserted] = useState(false);
     
@@ -48,16 +51,30 @@ function CodeBlock({ inline, className, children, isComplete, syntaxTheme }: Cod
         setTimeout(() => setInserted(false), 2000);
     }, [codeString]);
 
+    // For inline code, check if it's a file path
     if (inline) {
+        if (isFilePath(codeString)) {
+            return <FilePath path={codeString} variant="inline" />;
+        }
         return <code className="inline-code">{children}</code>;
+    }
+    
+    // For code blocks without language, check if entire content is a file path
+    if (!language && isFilePath(codeString)) {
+        return <FilePath path={codeString} variant="block" />;
     }
 
     // 流式渲染时使用简化渲染，避免频繁重渲染导致的性能问题
     if (!isComplete) {
         return (
-            <div className="vc-markdown-code-block">
+            <div className="vc-code-block">
                 <div className="code-block-header">
-                    {language && <span className="code-language">{language}</span>}
+                    {language && (
+                        <div className="code-language-badge">
+                            <span className="language-dot" />
+                            <span className="language-name">{language}</span>
+                        </div>
+                    )}
                 </div>
                 <pre className="code-block-simple">
                     <code>{codeString}</code>
@@ -67,23 +84,30 @@ function CodeBlock({ inline, className, children, isComplete, syntaxTheme }: Cod
     }
 
     return (
-        <div className="vc-markdown-code-block">
+        <div className="vc-code-block">
             <div className="code-block-header">
-                {language && <span className="code-language">{language}</span>}
+                {language && (
+                    <div className="code-language-badge">
+                        <span className="language-dot" />
+                        <span className="language-name">{language}</span>
+                    </div>
+                )}
                 <div className="code-block-actions">
                     <button 
-                        className="code-action-btn" 
+                        className={`code-action-btn ${inserted ? 'is-success' : ''}`}
                         onClick={handleInsert}
-                        title={inserted ? '已插入!' : '插入编辑器'}
+                        title={inserted ? t('Agent.CodeInserted') : t('Agent.InsertToEditor')}
+                        aria-label={inserted ? t('Agent.CodeInserted') : t('Agent.InsertToEditor')}
                     >
-                        {inserted ? '✓' : '⤵️'}
+                        {inserted ? <CheckIcon /> : <InsertIcon />}
                     </button>
                     <button 
-                        className="code-action-btn" 
+                        className={`code-action-btn ${copied ? 'is-success' : ''}`}
                         onClick={handleCopy}
-                        title={copied ? '已复制!' : '复制代码'}
+                        title={copied ? t('Agent.CodeCopied') : t('Agent.CopyCode')}
+                        aria-label={copied ? t('Agent.CodeCopied') : t('Agent.CopyCode')}
                     >
-                        {copied ? '✓' : '📋'}
+                        {copied ? <CheckIcon /> : <CopyIcon />}
                     </button>
                 </div>
             </div>
@@ -104,6 +128,7 @@ function CodeBlock({ inline, className, children, isComplete, syntaxTheme }: Cod
 }
 
 export function MarkdownContent({ content, isComplete = true }: MarkdownContentProps) {
+    const { t } = useI18n();
     const themeMode = useThemeMode();
     const syntaxTheme = themeMode === 'light' ? vs : vscDarkPlus;
 
@@ -129,6 +154,7 @@ export function MarkdownContent({ content, isComplete = true }: MarkdownContentP
                             {...props} 
                             isComplete={isComplete} 
                             syntaxTheme={syntaxTheme}
+                            t={t}
                         />
                     ),
                 }}

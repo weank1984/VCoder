@@ -214,6 +214,17 @@
     --vcoder-radius-sm: 4px;
     --vcoder-radius-md: 6px;
     --vcoder-radius-lg: 8px;
+    
+    // Thought Block colors
+    --thought-bg: color-mix(in srgb, var(--vscode-textLink-foreground) 4%, var(--vcoder-surface));
+    --thought-border: color-mix(in srgb, var(--vscode-textLink-foreground) 12%, var(--vcoder-border));
+    --thought-border-hover: color-mix(in srgb, var(--vscode-textLink-foreground) 25%, var(--vcoder-border));
+    --thought-active-border: color-mix(in srgb, var(--vscode-textLink-foreground) 40%, var(--vcoder-border));
+    --thought-icon-color: var(--vscode-textLink-foreground);
+    
+    // User bubble colors
+    --vc-user-bubble-bg: color-mix(in srgb, var(--vc-color-primary) 12%, var(--vcoder-surface));
+    --vc-user-bubble-border: color-mix(in srgb, var(--vc-color-primary) 25%, var(--vcoder-border));
 }
 
 .vscode-light,
@@ -435,4 +446,15 @@
     --vcoder-radius-sm: 4px;
     --vcoder-radius-md: 6px;
     --vcoder-radius-lg: 8px;
+    
+    // Thought Block colors
+    --thought-bg: color-mix(in srgb, var(--vscode-textLink-foreground) 5%, white);
+    --thought-border: color-mix(in srgb, var(--vscode-textLink-foreground) 15%, var(--vcoder-border));
+    --thought-border-hover: color-mix(in srgb, var(--vscode-textLink-foreground) 30%, var(--vcoder-border));
+    --thought-active-border: color-mix(in srgb, var(--vscode-textLink-foreground) 50%, var(--vcoder-border));
+    --thought-icon-color: var(--vscode-textLink-foreground);
+    
+    // User bubble colors
+    --vc-user-bubble-bg: color-mix(in srgb, var(--vc-color-primary) 8%, white);
+    --vc-user-bubble-border: color-mix(in srgb, var(--vc-color-primary) 20%, var(--vcoder-border));
 }

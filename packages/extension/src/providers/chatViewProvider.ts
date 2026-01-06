@@ -257,6 +257,51 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                         }
                     }
                     break;
+                case 'openFile':
+                    {
+                        const filePath = message.path;
+                        const lineRange = message.lineRange as [number, number] | undefined;
+                        
+                        if (!filePath) {
+                            console.warn('[VCoder] openFile: no path provided');
+                            break;
+                        }
+                        
+                        try {
+                            // Resolve absolute path
+                            let absolutePath = filePath;
+                            if (!path.isAbsolute(filePath)) {
+                                const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                                if (root) {
+                                    absolutePath = path.join(root, filePath);
+                                }
+                            }
+                            
+                            // Open file in editor
+                            const uri = vscode.Uri.file(absolutePath);
+                            const doc = await vscode.workspace.openTextDocument(uri);
+                            const editor = await vscode.window.showTextDocument(doc, {
+                                preview: false,
+                                preserveFocus: false,
+                            });
+                            
+                            // Jump to line if specified
+                            if (lineRange && lineRange.length === 2) {
+                                const [startLine, endLine] = lineRange;
+                                const start = new vscode.Position(Math.max(0, startLine - 1), 0);
+                                const end = new vscode.Position(Math.max(0, endLine - 1), 0);
+                                editor.selection = new vscode.Selection(start, end);
+                                editor.revealRange(
+                                    new vscode.Range(start, end),
+                                    vscode.TextEditorRevealType.InCenter
+                                );
+                            }
+                        } catch (err) {
+                            console.error('[VCoder] Failed to open file:', filePath, err);
+                            vscode.window.showErrorMessage(`无法打开文件: ${filePath}`);
+                        }
+                    }
+                    break;
             }
         });
     }

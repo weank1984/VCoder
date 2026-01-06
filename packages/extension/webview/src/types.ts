@@ -148,6 +148,12 @@ export interface SetUiLanguageMessage {
     uiLanguage: UiLanguage;
 }
 
+export interface OpenFileMessage {
+    type: 'openFile';
+    path: string;
+    lineRange?: [number, number];
+}
+
 export interface ConfirmToolMessage {
     type: 'confirmTool';
     toolCallId: string;
@@ -204,6 +210,7 @@ export type WebviewMessage =
     | LoadHistoryMessage
     | DeleteHistoryMessage
     | SetUiLanguageMessage
+    | OpenFileMessage
     | ConfirmToolMessage;
 export interface ChatMessage {
     id: string;
@@ -213,7 +220,15 @@ export interface ChatMessage {
     thoughtIsComplete?: boolean;
     toolCalls?: ToolCall[];
     isComplete: boolean;
+    /** 按时间顺序的内容块序列（用于按时序混合显示文本和工具） */
+    contentBlocks?: ContentBlock[];
 }
+
+/** 内容块类型 - 按时间顺序混合显示 */
+export type ContentBlock = 
+    | { type: 'text'; content: string }
+    | { type: 'thought'; content: string; isComplete: boolean }
+    | { type: 'tools'; toolCallIds: string[] };
 
 export interface ToolCall {
     id: string;

@@ -2,9 +2,9 @@
  * Thought Block Component - Collapsible AI thinking process
  */
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useI18n } from '../i18n/I18nProvider';
-import { ExpandIcon, CollapseIcon, LoadingIcon } from './Icon';
+import { ChevronRightIcon, ThinkIcon, LoadingIcon } from './Icon';
 import './ThoughtBlock.scss';
 
 interface ThoughtBlockProps {
@@ -13,36 +13,73 @@ interface ThoughtBlockProps {
     isComplete?: boolean;
 }
 
+function truncate(str: string, maxLen: number): string {
+    if (str.length <= maxLen) return str;
+    return str.slice(0, maxLen).trim() + '...';
+}
+
 export function ThoughtBlock({ content, defaultExpanded = false, isComplete = true }: ThoughtBlockProps) {
     const { t } = useI18n();
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const [contentHeight, setContentHeight] = useState<number | undefined>();
+    
     const isThinking = !isComplete;
     const thinkingLabel = t('Agent.Thinking');
     const displayContent = content || (isThinking ? `${thinkingLabel}...` : '');
 
+    // Calculate content height for animation
+    useEffect(() => {
+        if (contentRef.current) {
+            setContentHeight(contentRef.current.scrollHeight);
+        }
+    }, [content]);
+
     return (
-        <div className={`thought-block ${isThinking ? 'is-streaming' : ''}`}>
+        <div className={`thought-block ${isThinking ? 'is-thinking' : ''} ${isExpanded ? 'is-expanded' : ''}`}>
+            {/* Thinking pulse background */}
+            {isThinking && <div className="thought-pulse" />}
+            
             <button
                 className="thought-header"
                 onClick={() => setIsExpanded(!isExpanded)}
+                aria-expanded={isExpanded}
             >
-                <span className="thought-toggle-icon">
-                    {isExpanded ? <CollapseIcon /> : <ExpandIcon />}
+                <span className={`thought-expand-icon ${isExpanded ? 'rotated' : ''}`}>
+                    <ChevronRightIcon />
                 </span>
-                <span className="thought-title">{t('Agent.Thought')}</span>
+                
+                <span className="thought-icon">
+                    <ThinkIcon />
+                </span>
+                
+                <span className="thought-title">
+                    {isThinking ? thinkingLabel : t('Agent.Thought')}
+                </span>
+                
                 {isThinking && (
-                    <span className="thought-status">
+                    <span className="thought-loading">
                         <LoadingIcon />
-                        <span>{thinkingLabel}</span>
+                    </span>
+                )}
+                
+                {!isThinking && content && !isExpanded && (
+                    <span className="thought-preview">
+                        {truncate(content, 60)}
                     </span>
                 )}
             </button>
 
-            {isExpanded && (
-                <div className={`thought-content ${isThinking && !content ? 'placeholder' : ''}`}>
+            <div 
+                className="thought-content-wrapper"
+                style={{ 
+                    maxHeight: isExpanded ? (contentHeight || 500) : 0,
+                }}
+            >
+                <div className="thought-content" ref={contentRef}>
                     {displayContent}
                 </div>
-            )}
+            </div>
         </div>
     );
 }

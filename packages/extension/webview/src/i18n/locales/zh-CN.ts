@@ -54,6 +54,7 @@ export default {
     RecentConversations: '近期会话',
     ViewAllConversations: '查看全部会话',
     NoRecentConversations: '暂无近期会话',
+    You: '你',
   },
   Agent: {
     Plan: '计划',
@@ -121,6 +122,15 @@ export default {
     RiskSudoCommand: '命令包含 sudo 提权',
     RiskDeleteFiles: '会删除文件',
     RiskNetworkAccess: '会访问网络',
+    // 消息操作
+    CopyMessage: '复制消息',
+    MessageCopied: '已复制',
+    MoreActions: '更多操作',
+    // 代码块
+    InsertToEditor: '插入到编辑器',
+    CodeInserted: '已插入',
+    CopyCode: '复制代码',
+    CodeCopied: '已复制',
   },
   StepProgress: {
     Title: '执行进度',

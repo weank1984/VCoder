@@ -1,0 +1,182 @@
+/**
+ * FilePath Component Styles
+ * Shared styles for file/directory path display
+ */
+
+// ========== Base FilePath Component ==========
+.file-path {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--vscode-editor-font-family);
+    font-size: 12px;
+    color: var(--vscode-foreground);
+    border-radius: 4px;
+    transition: all 0.15s;
+    
+    &__icon {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        opacity: 0.7;
+        
+        svg {
+            width: 12px;
+            height: 12px;
+        }
+    }
+    
+    &__text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    &__line-range {
+        font-size: 10px;
+        opacity: 0.7;
+        flex-shrink: 0;
+    }
+    
+    // Clickable state
+    &--clickable {
+        cursor: pointer;
+        
+        &:hover {
+            .file-path__icon {
+                opacity: 1;
+            }
+            
+            .file-path__text {
+                text-decoration: underline;
+            }
+        }
+    }
+    
+    // File type (clickable)
+    &--file {
+        color: var(--vscode-textLink-foreground);
+        
+        &:hover {
+            color: var(--vscode-textLink-activeForeground);
+        }
+    }
+    
+    // Directory type
+    &--directory {
+        color: var(--vscode-terminal-ansiYellow);
+        cursor: default;
+        
+        .file-path__icon {
+            color: var(--vscode-terminal-ansiYellow);
+        }
+    }
+    
+    // ========== Variants ==========
+    
+    // Inline variant (for use in text)
+    &--inline {
+        background: var(--vcoder-surface-3);
+        padding: 2px 6px;
+        border: 1px solid var(--vcoder-border-light);
+        
+        &.file-path--clickable:hover {
+            background: var(--vscode-list-hoverBackground);
+            border-color: var(--vscode-textLink-foreground);
+        }
+    }
+    
+    // Block variant (standalone)
+    &--block {
+        display: flex;
+        padding: 8px 12px;
+        background: var(--vcoder-surface-2);
+        border-radius: 6px;
+        
+        &.file-path--clickable:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+    }
+    
+    // Compact variant (for lists)
+    &--compact {
+        padding: 2px 4px;
+        
+        &.file-path--clickable:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+    }
+}
+
+// ========== FilePathWithDetails Component ==========
+.file-path-details {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: var(--vcoder-surface-2);
+    transition: all 0.15s;
+    
+    &__icon {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        
+        svg {
+            width: 14px;
+            height: 14px;
+            color: var(--vscode-descriptionForeground);
+        }
+    }
+    
+    &__info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    &__name {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--vscode-foreground);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        transition: color 0.15s;
+    }
+    
+    &__dir {
+        font-size: 10px;
+        color: var(--vscode-descriptionForeground);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-family: var(--vscode-editor-font-family);
+    }
+    
+    &__range {
+        font-size: 10px;
+        font-family: var(--vscode-editor-font-family);
+        color: var(--vscode-descriptionForeground);
+        background: var(--vcoder-surface-3);
+        padding: 2px 6px;
+        border-radius: 3px;
+        flex-shrink: 0;
+    }
+    
+    // Clickable state
+    &--clickable {
+        cursor: pointer;
+        
+        &:hover {
+            background: var(--vscode-list-hoverBackground);
+            
+            .file-path-details__name {
+                color: var(--vscode-textLink-activeForeground);
+            }
+        }
+    }
+}

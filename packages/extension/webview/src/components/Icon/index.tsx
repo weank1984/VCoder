@@ -16,6 +16,7 @@ export { default as BackBottomIcon } from "./icons/BackBottomIcon";
 export { default as BackIcon } from "./icons/BackIcon";
 export { default as CancelIcon } from "./icons/CancelIcon";
 export { default as ChatIcon } from "./icons/ChatIcon";
+export { default as ChevronRightIcon } from "./icons/RightIcon"; // Alias
 export { default as ClearIcon } from "./icons/ClearIcon";
 export { default as CloseIcon } from "./icons/CloseIcon";
 export { default as CloudDownloadIcon } from "./icons/CloudDownloadIcon";
@@ -56,6 +57,7 @@ export { default as LoadingIcon } from "./icons/LoadingIcon";
 export { default as LogoutIcon } from "./icons/LogoutIcon";
 export { default as ManageIcon } from "./icons/ManageIcon";
 export { default as McpIcon } from "./icons/McpIcon";
+export { default as MoreIcon } from "./icons/MoreIcon";
 export { default as NotebookIcon } from "./icons/NotebookIcon";
 export { default as PauseIcon } from "./icons/PauseIcon";
 export { default as PlayIcon } from "./icons/PlayIcon";

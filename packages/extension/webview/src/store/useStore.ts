@@ -1,5 +1,5 @@
 import { create } from './createStore';
-import type { AppState, ChatMessage, ToolCall, UiLanguage } from '../types';
+import type { AppState, ChatMessage, ContentBlock, ToolCall, UiLanguage } from '../types';
 import type { Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
 
@@ -85,6 +85,49 @@ function formatBashName(command: string): string {
     return normalized.length > maxLen ? `Bash: ${normalized.slice(0, maxLen)}…` : `Bash: ${normalized}`;
 }
 
+/**
+ * Append to content blocks with merging strategy:
+ * - Consecutive text blocks are merged
+ * - Consecutive tool blocks are merged (tool IDs appended)
+ * - Thought blocks are merged (content appended)
+ */
+function appendContentBlock(target: ChatMessage, block: ContentBlock): void {
+    if (!target.contentBlocks) {
+        target.contentBlocks = [];
+    }
+    const blocks = target.contentBlocks;
+    const last = blocks[blocks.length - 1];
+    
+    if (block.type === 'text') {
+        // Merge with last text block if exists
+        if (last?.type === 'text') {
+            last.content += block.content;
+        } else {
+            blocks.push(block);
+        }
+    } else if (block.type === 'tools') {
+        // Merge with last tools block if exists
+        if (last?.type === 'tools') {
+            // Add new tool IDs that don't already exist
+            for (const id of block.toolCallIds) {
+                if (!last.toolCallIds.includes(id)) {
+                    last.toolCallIds.push(id);
+                }
+            }
+        } else {
+            blocks.push(block);
+        }
+    } else if (block.type === 'thought') {
+        // Merge with last thought block if exists
+        if (last?.type === 'thought') {
+            last.content += block.content;
+            last.isComplete = block.isComplete;
+        } else {
+            blocks.push(block);
+        }
+    }
+}
+
 const initialState: AppState = {
     sessions: [],
     currentSessionId: null,
@@ -166,6 +209,8 @@ export const useStore = create<AppStore>((set, get) => ({
                       });
 
             target.content += text;
+            // Track content block for chronological display
+            appendContentBlock(target, { type: 'text', content: text });
             return { messages };
         }),
 
@@ -191,6 +236,8 @@ export const useStore = create<AppStore>((set, get) => ({
 
             target.thought = isComplete ? thought : (target.thought || '') + thought;
             target.thoughtIsComplete = isComplete;
+            // Track content block for chronological display
+            appendContentBlock(target, { type: 'thought', content: thought, isComplete });
             return { messages };
         }),
 
@@ -213,6 +260,8 @@ export const useStore = create<AppStore>((set, get) => ({
                 Object.assign(existing, toolCall);
             } else {
                 target.toolCalls = [...(target.toolCalls || []), toolCall];
+                // Track content block for chronological display (only for new tools)
+                appendContentBlock(target, { type: 'tools', toolCallIds: [toolCall.id] });
             }
             return { messages };
         }),

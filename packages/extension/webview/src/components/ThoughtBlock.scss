@@ -1,78 +1,154 @@
 .thought-block {
-    margin: 6px 0;
-    border-radius: 4px;
-    background: color-mix(in srgb, var(--vscode-textLink-foreground) 3%, transparent);
-    border: 1px solid color-mix(in srgb, var(--vscode-textLink-foreground) 8%, transparent);
+    position: relative;
+    margin: 8px 0;
+    border-radius: 8px;
+    background: var(--thought-bg);
+    border: 1px solid var(--thought-border);
     overflow: hidden;
-    opacity: 0.85;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    
+    &:hover {
+        border-color: var(--thought-border-hover);
+    }
+    
+    // Thinking state
+    &.is-thinking {
+        border-color: var(--thought-active-border);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-textLink-foreground) 10%, transparent);
+    }
 }
 
+// Pulse animation background
+.thought-pulse {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        color-mix(in srgb, var(--vscode-textLink-foreground) 8%, transparent) 50%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: thought-pulse-anim 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes thought-pulse-anim {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+// Header
 .thought-header {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     width: 100%;
-    padding: 4px 8px;
-    background: none;
+    padding: 8px 12px;
+    background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--vscode-descriptionForeground);
-    font-size: 11px;
+    color: var(--vc-color-text-secondary);
+    font-size: 12px;
     text-align: left;
     transition: background 0.15s;
+    position: relative;
+    z-index: 1;
     
     &:hover {
         background: color-mix(in srgb, var(--vscode-list-hoverBackground) 50%, transparent);
     }
 }
 
-.thought-toggle-icon {
+.thought-expand-icon {
     display: flex;
     align-items: center;
-    color: var(--vscode-descriptionForeground);
-    opacity: 0.6;
+    color: var(--vc-color-text-tertiary);
+    transition: transform 0.2s var(--vc-motion-ease-out, ease-out);
+    flex-shrink: 0;
+    
+    &.rotated {
+        transform: rotate(90deg);
+    }
     
     svg {
-        width: 10px;
-        height: 10px;
+        width: 12px;
+        height: 12px;
+    }
+}
+
+.thought-icon {
+    display: flex;
+    align-items: center;
+    color: var(--thought-icon-color);
+    flex-shrink: 0;
+    
+    svg {
+        width: 14px;
+        height: 14px;
     }
 }
 
 .thought-title {
     font-weight: 500;
-    font-size: 11px;
-    color: var(--vscode-descriptionForeground);
-    opacity: 0.8;
+    color: var(--vc-color-text-secondary);
+    flex-shrink: 0;
 }
 
-.thought-status {
-    margin-left: auto;
-    display: inline-flex;
+.thought-loading {
+    display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    color: var(--vscode-descriptionForeground);
-    opacity: 0.7;
+    color: var(--thought-icon-color);
+    flex-shrink: 0;
+    
+    svg {
+        width: 12px;
+        height: 12px;
+        animation: spin 1s linear infinite;
+    }
 }
 
-.thought-status .vc-icon-loading {
-    font-size: 10px;
+.thought-preview {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--vc-color-text-tertiary);
+    max-width: 40%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 1;
+}
+
+// Content area - with animation
+.thought-content-wrapper {
+    overflow: hidden;
+    transition: max-height 0.25s var(--vc-motion-ease-out, ease-out);
 }
 
 .thought-content {
-    padding: 4px 8px 4px 16px;
-    font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    padding: 0 12px 12px 34px;  // Left aligned with icon
+    font-size: 12px;
+    color: var(--vc-color-text-secondary);
+    line-height: 1.6;
     white-space: pre-wrap;
-    border-top: 1px solid color-mix(in srgb, var(--vscode-textLink-foreground) 15%, transparent);
-    border-left: 1px solid color-mix(in srgb, var(--vscode-textLink-foreground) 20%, transparent);
-    line-height: 1.5;
-    opacity: 0.75;
-    max-height: 160px;
+    border-top: 1px solid var(--thought-border);
+    max-height: 200px;
     overflow-y: auto;
+    
+    // Scrollbar style
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+        background: var(--vcoder-border);
+        border-radius: 2px;
+    }
 }
 
-.thought-content.placeholder {
-    opacity: 0.6;
-    font-style: italic;
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }

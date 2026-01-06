@@ -54,6 +54,7 @@ export default {
     RecentConversations: 'Recent Conversations',
     ViewAllConversations: 'View all conversations',
     NoRecentConversations: 'No recent conversations yet',
+    You: 'You',
   },
   Agent: {
     Plan: 'Plan',
@@ -121,6 +122,15 @@ export default {
     RiskSudoCommand: 'Command contains sudo',
     RiskDeleteFiles: 'Will delete files',
     RiskNetworkAccess: 'Will access network',
+    // Message actions
+    CopyMessage: 'Copy message',
+    MessageCopied: 'Copied',
+    MoreActions: 'More actions',
+    // Code block
+    InsertToEditor: 'Insert to editor',
+    CodeInserted: 'Inserted',
+    CopyCode: 'Copy code',
+    CodeCopied: 'Copied',
   },
   StepProgress: {
     Title: 'Progress Updates',

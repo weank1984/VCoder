@@ -4,8 +4,9 @@
  */
 
 import { useMemo } from 'react';
-import { formatPath, getFileName, getDirPath } from '../../utils/pathUtils';
-import { FileIcon, TerminalIcon, SearchIcon, CopyIcon } from '../Icon';
+import { formatPath } from '../../utils/pathUtils';
+import { TerminalIcon, SearchIcon, CopyIcon } from '../Icon';
+import { FilePathWithDetails } from '../FilePath';
 
 interface SmartToolInputProps {
     input: unknown;
@@ -42,22 +43,16 @@ function ReadToolInput({ input }: { input: Record<string, unknown> }) {
     const offset = input.offset as number | undefined;
     const limit = input.limit as number | undefined;
     
-    const fileName = getFileName(filePath);
-    const dirPath = getDirPath(filePath);
+    const lineRange: [number, number] | undefined = offset 
+        ? [offset, (offset || 0) + (limit || 0)] 
+        : undefined;
     
     return (
-        <div className="input-file-read">
-            <FileIcon />
-            <div className="file-info">
-                <span className="file-name">{fileName}</span>
-                <span className="file-dir" title={filePath}>{formatPath(dirPath, 30, 2)}</span>
-            </div>
-            {(offset !== undefined || limit !== undefined) && (
-                <span className="line-range">
-                    L{offset || 1}-{(offset || 0) + (limit || 0)}
-                </span>
-            )}
-        </div>
+        <FilePathWithDetails 
+            path={filePath}
+            lineRange={lineRange}
+            className="input-file-read"
+        />
     );
 }
 
@@ -106,17 +101,12 @@ function SearchInput({ input }: { input: Record<string, unknown> }) {
  */
 function WriteToolInput({ input }: { input: Record<string, unknown> }) {
     const filePath = String(input.file_path || input.target_file || '');
-    const fileName = getFileName(filePath);
-    const dirPath = getDirPath(filePath);
     
     return (
-        <div className="input-file-write">
-            <FileIcon />
-            <div className="file-info">
-                <span className="file-name">{fileName}</span>
-                <span className="file-dir" title={filePath}>{formatPath(dirPath, 30, 2)}</span>
-            </div>
-        </div>
+        <FilePathWithDetails 
+            path={filePath}
+            className="input-file-write"
+        />
     );
 }
 

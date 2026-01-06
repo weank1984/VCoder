@@ -5,6 +5,7 @@ $bubble-prefixCls: vc-bubble;
 }
 
 .#{$bubble-prefixCls} {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -12,12 +13,64 @@ $bubble-prefixCls: vc-bubble;
     width: 100%;
     
     // Animation
-    animation: bubble-slide-in 0.25s ease-out;
+    animation: bubble-enter 0.3s var(--vc-motion-ease-out, ease-out);
     
     @media (prefers-reduced-motion: reduce) {
         animation: none;
     }
 
+    // ========== User message styles ==========
+    &--user {
+        .vc-bubble-header {
+            .vc-bubble-title {
+                color: var(--vc-color-text);
+                font-weight: 600;
+            }
+        }
+        
+        .vc-bubble-content {
+            background: var(--vc-user-bubble-bg);
+            border: 1px solid var(--vc-user-bubble-border);
+            border-radius: 12px 12px 4px 12px;  // Right bottom small corner - "I said"
+            padding: 12px 14px;
+            color: var(--vc-color-text);
+        }
+    }
+
+    // ========== Assistant message styles ==========
+    &--assistant {
+        .vc-bubble-header {
+            .vc-bubble-title {
+                color: var(--vc-color-text-secondary);
+                font-weight: 500;
+            }
+        }
+        
+        .vc-bubble-content {
+            background: transparent;
+            border: none;
+            padding: 8px 0;
+        }
+        
+        // Optional gradient background
+        .vc-bubble-bg {
+            position: absolute;
+            top: 0;
+            left: -12px;
+            right: -12px;
+            bottom: 0;
+            background: linear-gradient(
+                135deg,
+                color-mix(in srgb, var(--vscode-textLink-foreground) 3%, transparent) 0%,
+                transparent 60%
+            );
+            border-radius: 12px;
+            pointer-events: none;
+            z-index: 0;
+        }
+    }
+
+    // ========== Header styles ==========
     &-header {
         display: flex;
         align-items: center;
@@ -26,53 +79,109 @@ $bubble-prefixCls: vc-bubble;
         margin-bottom: 2px;
         color: var(--vc-color-text-label);
         font-size: 12px;
+        position: relative;
+        z-index: 1;
     }
 
+    // Avatar design
     &-avatar {
-        display: inline-flex;
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 16px;
+        font-size: 14px;
+        flex-shrink: 0;
+        
+        &.avatar--user {
+            background: var(--vc-color-primary-bg);
+            color: var(--vc-color-primary-text);
+        }
+        
+        &.avatar--assistant {
+            background: linear-gradient(135deg, 
+                var(--vcoder-surface-3) 0%, 
+                color-mix(in srgb, var(--vscode-textLink-foreground) 15%, var(--vcoder-surface-3)) 100%
+            );
+            color: var(--vscode-textLink-foreground);
+        }
+        
+        svg {
+            width: 14px;
+            height: 14px;
+        }
     }
 
     &-title {
         font-weight: 500;
+        letter-spacing: 0.2px;
     }
 
+    // Message action buttons
+    &-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 2px;
+        opacity: 0;
+        transition: opacity 0.15s;
+        
+        .#{$bubble-prefixCls}:hover & {
+            opacity: 1;
+        }
+        
+        .action-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            color: var(--vc-color-text-tertiary);
+            cursor: pointer;
+            transition: all 0.15s;
+            
+            &:hover {
+                background: var(--vc-control-item-bg-hover);
+                color: var(--vc-color-text);
+            }
+            
+            svg {
+                width: 14px;
+                height: 14px;
+            }
+        }
+    }
+
+    // ========== Content area ==========
     &-content {
         position: relative;
         box-sizing: border-box;
         width: 100%;
-        padding: 8px 12px;
-        border-radius: 6px;
         color: var(--vc-color-text);
-        background-color: var(--vc-bg-container);
-        border: 1px solid var(--vc-color-border-secondary);
         line-height: var(--vc-line-height);
         font-size: var(--vc-font-size);
         word-break: break-word;
+        z-index: 1;
 
         pre {
+            white-space: pre-wrap;
+        }
+        
+        // User message text
+        .message-text {
             white-space: pre-wrap;
         }
     }
 }
 
-// User bubble specific overrides
-.user .#{$bubble-prefixCls}-content {
-    background-color: var(--vc-control-item-bg-active);
-    border-color: var(--vc-color-primary-border);
-}
-
-// Assistant bubble specific overrides
-.assistant .#{$bubble-prefixCls}-content {
-    background-color: transparent;
-}
-
-@keyframes bubble-slide-in {
+// ========== Animations ==========
+@keyframes bubble-enter {
     from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(12px);
     }
     to {
         opacity: 1;
@@ -80,19 +189,23 @@ $bubble-prefixCls: vc-bubble;
     }
 }
 
-// 流式输出光标
+// Streaming cursor improvement
 .streaming-cursor {
     display: inline-block;
     width: 2px;
-    height: 1em;
+    height: 1.1em;
     margin-left: 2px;
-    background: var(--vc-color-primary);
-    animation: cursor-blink 1s infinite;
+    background: linear-gradient(
+        180deg,
+        var(--vc-color-primary) 0%,
+        var(--vscode-textLink-foreground) 100%
+    );
+    border-radius: 1px;
+    animation: cursor-blink 0.8s ease-in-out infinite;
     vertical-align: text-bottom;
 }
 
 @keyframes cursor-blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
 }
-
