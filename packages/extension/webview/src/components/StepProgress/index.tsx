@@ -120,3 +120,6 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
 
 export { StepItem } from './StepItem';
 export { StepEntry } from './StepEntry';
+export { ToolResultDisplay } from './ToolResultDisplay';
+export { TodoWriteEntry } from './TodoWriteEntry';
+export { TaskEntry } from './TaskEntry';

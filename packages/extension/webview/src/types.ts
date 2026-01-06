@@ -209,6 +209,8 @@ export interface ToolCall {
     input?: unknown;
     result?: unknown;
     error?: string;
+    /** Parent tool use ID for nested tool calls (e.g., Task subagent) */
+    parentToolUseId?: string;
 }
 
 export interface AppState {

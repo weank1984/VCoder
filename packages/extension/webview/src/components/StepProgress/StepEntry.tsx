@@ -1,6 +1,7 @@
 /**
  * Step Entry Component
  * Displays a single tool call entry within a step
+ * Supports specialized rendering for different tool types
  */
 
 import { useMemo, useState } from 'react';
@@ -25,6 +26,9 @@ import {
     McpIcon,
     NotebookIcon,
 } from '../Icon';
+import { ToolResultDisplay } from './ToolResultDisplay';
+import { TodoWriteEntry } from './TodoWriteEntry';
+import { TaskEntry } from './TaskEntry';
 
 interface StepEntryProps {
     entry: StepEntryType;
@@ -59,13 +63,16 @@ function formatLineRange(lineRange?: [number, number]): string {
     return `:L${start}-${end}`;
 }
 
-function safeStringify(value: unknown, pretty: boolean): string {
-    if (value === undefined) return '';
-    if (typeof value === 'string') return value;
-    try {
-        return JSON.stringify(value, null, pretty ? 2 : 0);
-    } catch {
-        return String(value);
+/**
+ * Map entry status to task entry status
+ */
+function mapEntryStatus(status: StepEntryType['status']): 'pending' | 'running' | 'success' | 'error' {
+    switch (status) {
+        case 'success': return 'success';
+        case 'error': return 'error';
+        case 'running': return 'running';
+        case 'pending': return 'pending';
+        default: return 'pending';
     }
 }
 
@@ -75,6 +82,29 @@ export function StepEntry({ entry, onViewFile, onConfirm }: StepEntryProps) {
     
     const tc = entry.toolCall;
     const isPending = tc.status === 'pending';
+    const isCommandPending = isPending && (tc.name === 'Bash' || tc.name === 'run_command');
+    
+    // Specialized rendering for certain tool types
+    // TodoWrite - show as task list
+    if (tc.name === 'TodoWrite') {
+        return (
+            <TodoWriteEntry 
+                input={tc.input} 
+                isExpanded={isExpanded}
+                onToggle={() => setIsExpanded(!isExpanded)}
+            />
+        );
+    }
+    
+    // Task (subagent) - show with special styling
+    if (tc.name === 'Task') {
+        return (
+            <TaskEntry 
+                toolCall={tc}
+                status={mapEntryStatus(entry.status)}
+            />
+        );
+    }
     
     // Get localized action text
     const actionText = useMemo(() => {
@@ -110,12 +140,34 @@ export function StepEntry({ entry, onViewFile, onConfirm }: StepEntryProps) {
         }
     };
     
+    // Check if we should show View button
+    const showViewBtn = entry.target.fullPath && (
+        entry.type === 'file' || 
+        entry.type === 'notebook'
+    );
+    
+    // Check if it's an MCP tool
+    const isMcp = tc.name.startsWith('mcp__');
+    const mcpInfo = useMemo(() => {
+        if (!isMcp) return null;
+        const parts = tc.name.split('__');
+        return {
+            server: parts[1] || 'unknown',
+            tool: parts.slice(2).join('__') || tc.name,
+        };
+    }, [tc.name, isMcp]);
+    
     return (
-        <div className={`step-entry ${entry.status}`}>
+        <div className={`step-entry ${entry.status} ${entry.type}`}>
             <div className="entry-summary" onClick={() => setIsExpanded(!isExpanded)}>
                 <span className="entry-icon">{getEntryIcon(entry.type)}</span>
                 <span className="entry-action">{actionText}</span>
                 <span className="entry-target" title={entry.target.fullPath}>
+                    {isMcp && mcpInfo && (
+                        <span className="mcp-badge" title={`MCP: ${mcpInfo.server}`}>
+                            [{mcpInfo.server}]
+                        </span>
+                    )}
                     {entry.target.name}
                     {entry.target.lineRange && (
                         <span className="entry-line-range">
@@ -126,7 +178,7 @@ export function StepEntry({ entry, onViewFile, onConfirm }: StepEntryProps) {
                 <span className={`entry-status-icon ${entry.status}`}>
                     {statusIcon}
                 </span>
-                {entry.target.fullPath && entry.type === 'file' && (
+                {showViewBtn && (
                     <button 
                         className="entry-view-btn"
                         onClick={handleView}
@@ -142,7 +194,8 @@ export function StepEntry({ entry, onViewFile, onConfirm }: StepEntryProps) {
             
             {isExpanded && (
                 <div className="entry-details">
-                    {isPending && (
+                    {/* Approval UI for pending bash commands */}
+                    {isCommandPending && (
                         <div className="entry-approval">
                             <div className="approval-message">
                                 <InfoIcon />
@@ -159,28 +212,31 @@ export function StepEntry({ entry, onViewFile, onConfirm }: StepEntryProps) {
                         </div>
                     )}
                     
+                    {/* Tool Input */}
                     {tc.input !== undefined && (
-                        <div className="detail-section">
+                        <div className="detail-section input">
                             <div className="detail-header">{t('Agent.ToolInput')}</div>
-                            <div className="code-block">
-                                <pre>{safeStringify(tc.input, true)}</pre>
+                            <div className="detail-content">
+                                <ToolResultDisplay result={tc.input} toolName={tc.name} />
                             </div>
                         </div>
                     )}
                     
+                    {/* Tool Result - using enhanced display */}
                     {tc.result !== undefined && (
-                        <div className="detail-section">
+                        <div className="detail-section result">
                             <div className="detail-header">{t('Agent.ToolResult')}</div>
-                            <div className="code-block result">
-                                <pre>{safeStringify(tc.result, true)}</pre>
+                            <div className="detail-content">
+                                <ToolResultDisplay result={tc.result} toolName={tc.name} />
                             </div>
                         </div>
                     )}
                     
+                    {/* Tool Error */}
                     {tc.error && (
                         <div className="detail-section error">
                             <div className="detail-header">{t('Agent.ToolError')}</div>
-                            <div className="code-block error">
+                            <div className="detail-content error-content">
                                 <pre>{tc.error}</pre>
                             </div>
                         </div>
