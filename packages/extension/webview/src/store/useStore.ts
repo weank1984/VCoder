@@ -90,42 +90,54 @@ function formatBashName(command: string): string {
  * - Consecutive text blocks are merged
  * - Consecutive tool blocks are merged (tool IDs appended)
  * - Thought blocks are merged (content appended)
+ * 
+ * IMPORTANT: Creates new array/object references to ensure React detects changes
  */
 function appendContentBlock(target: ChatMessage, block: ContentBlock): void {
-    if (!target.contentBlocks) {
-        target.contentBlocks = [];
-    }
-    const blocks = target.contentBlocks;
-    const last = blocks[blocks.length - 1];
+    // Create new array reference to trigger React re-render
+    const blocks = target.contentBlocks ? [...target.contentBlocks] : [];
+    const lastIndex = blocks.length - 1;
+    const last = blocks[lastIndex];
     
     if (block.type === 'text') {
         // Merge with last text block if exists
         if (last?.type === 'text') {
-            last.content += block.content;
+            // Create new object instead of mutating
+            blocks[lastIndex] = { ...last, content: last.content + block.content };
         } else {
             blocks.push(block);
         }
     } else if (block.type === 'tools') {
         // Merge with last tools block if exists
         if (last?.type === 'tools') {
-            // Add new tool IDs that don't already exist
+            // Create new array of tool IDs
+            const newToolCallIds = [...last.toolCallIds];
             for (const id of block.toolCallIds) {
-                if (!last.toolCallIds.includes(id)) {
-                    last.toolCallIds.push(id);
+                if (!newToolCallIds.includes(id)) {
+                    newToolCallIds.push(id);
                 }
             }
+            // Create new object instead of mutating
+            blocks[lastIndex] = { ...last, toolCallIds: newToolCallIds };
         } else {
             blocks.push(block);
         }
     } else if (block.type === 'thought') {
         // Merge with last thought block if exists
         if (last?.type === 'thought') {
-            last.content += block.content;
-            last.isComplete = block.isComplete;
+            // Create new object instead of mutating
+            blocks[lastIndex] = { 
+                ...last, 
+                content: last.content + block.content, 
+                isComplete: block.isComplete 
+            };
         } else {
             blocks.push(block);
         }
     }
+    
+    // Assign new array reference to trigger React re-render
+    target.contentBlocks = blocks;
 }
 
 const initialState: AppState = {
@@ -197,20 +209,33 @@ export const useStore = create<AppStore>((set, get) => ({
     appendToLastMessage: (text) =>
         set((state) => {
             const messages = [...state.messages];
-            const last = messages[messages.length - 1];
-            const target: ChatMessage =
-                last && last.role === 'assistant' && !last.isComplete
-                    ? last
-                    : (messages[messages.length] = {
-                          id: createId(),
-                          role: 'assistant',
-                          content: '',
-                          isComplete: false,
-                      });
+            const lastIndex = messages.length - 1;
+            const last = messages[lastIndex];
+            
+            let target: ChatMessage;
+            let targetIndex: number;
+            
+            if (last && last.role === 'assistant' && !last.isComplete) {
+                // Clone the existing message to create a new reference
+                target = { ...last };
+                targetIndex = lastIndex;
+            } else {
+                // Create new message
+                target = {
+                    id: createId(),
+                    role: 'assistant',
+                    content: '',
+                    isComplete: false,
+                };
+                targetIndex = messages.length;
+            }
 
-            target.content += text;
+            target.content = (target.content || '') + text;
             // Track content block for chronological display
             appendContentBlock(target, { type: 'text', content: text });
+            
+            // Replace with new object reference to trigger React re-render
+            messages[targetIndex] = target;
             return { messages };
         }),
 
@@ -223,46 +248,75 @@ export const useStore = create<AppStore>((set, get) => ({
                 });
             }
             const messages = [...state.messages];
-            const last = messages[messages.length - 1];
-            const target: ChatMessage =
-                last && last.role === 'assistant' && !last.isComplete
-                    ? last
-                    : (messages[messages.length] = {
-                          id: createId(),
-                          role: 'assistant',
-                          content: '',
-                          isComplete: false,
-                      });
+            const lastIndex = messages.length - 1;
+            const last = messages[lastIndex];
+            
+            let target: ChatMessage;
+            let targetIndex: number;
+            
+            if (last && last.role === 'assistant' && !last.isComplete) {
+                // Clone the existing message to create a new reference
+                target = { ...last };
+                targetIndex = lastIndex;
+            } else {
+                // Create new message
+                target = {
+                    id: createId(),
+                    role: 'assistant',
+                    content: '',
+                    isComplete: false,
+                };
+                targetIndex = messages.length;
+            }
 
             target.thought = isComplete ? thought : (target.thought || '') + thought;
             target.thoughtIsComplete = isComplete;
             // Track content block for chronological display
             appendContentBlock(target, { type: 'thought', content: thought, isComplete });
+            
+            // Replace with new object reference to trigger React re-render
+            messages[targetIndex] = target;
             return { messages };
         }),
 
     addToolCall: (toolCall) =>
         set((state) => {
             const messages = [...state.messages];
-            const last = messages[messages.length - 1];
-            const target: ChatMessage =
-                last && last.role === 'assistant' && !last.isComplete
-                    ? last
-                    : (messages[messages.length] = {
-                          id: createId(),
-                          role: 'assistant',
-                          content: '',
-                          isComplete: false,
-                      });
+            const lastIndex = messages.length - 1;
+            const last = messages[lastIndex];
+            
+            let target: ChatMessage;
+            let targetIndex: number;
+            
+            if (last && last.role === 'assistant' && !last.isComplete) {
+                // Clone the existing message to create a new reference
+                target = { ...last };
+                targetIndex = lastIndex;
+            } else {
+                // Create new message
+                target = {
+                    id: createId(),
+                    role: 'assistant',
+                    content: '',
+                    isComplete: false,
+                };
+                targetIndex = messages.length;
+            }
 
             const existing = target.toolCalls?.find((tc) => tc.id === toolCall.id);
             if (existing) {
-                Object.assign(existing, toolCall);
+                // Create new toolCalls array with updated tool
+                target.toolCalls = target.toolCalls!.map((tc) =>
+                    tc.id === toolCall.id ? { ...tc, ...toolCall } : tc
+                );
             } else {
                 target.toolCalls = [...(target.toolCalls || []), toolCall];
                 // Track content block for chronological display (only for new tools)
                 appendContentBlock(target, { type: 'tools', toolCallIds: [toolCall.id] });
             }
+            
+            // Replace with new object reference to trigger React re-render
+            messages[targetIndex] = target;
             return { messages };
         }),
 
@@ -274,20 +328,33 @@ export const useStore = create<AppStore>((set, get) => ({
                 if (message.role !== 'assistant' || !message.toolCalls?.length) continue;
                 const idx = message.toolCalls.findIndex((tc) => tc.id === id);
                 if (idx === -1) continue;
-                message.toolCalls[idx] = { ...message.toolCalls[idx], ...updates };
+                
+                // Clone the message and update toolCalls to create new references
+                const newToolCalls = [...message.toolCalls];
+                newToolCalls[idx] = { ...newToolCalls[idx], ...updates };
+                messages[i] = { ...message, toolCalls: newToolCalls };
                 return { messages };
             }
 
-            const last = messages[messages.length - 1];
-            const target: ChatMessage =
-                last && last.role === 'assistant' && !last.isComplete
-                    ? last
-                    : (messages[messages.length] = {
-                          id: createId(),
-                          role: 'assistant',
-                          content: '',
-                          isComplete: false,
-                      });
+            // Tool not found - create new message with tool
+            const lastIndex = messages.length - 1;
+            const last = messages[lastIndex];
+            
+            let target: ChatMessage;
+            let targetIndex: number;
+            
+            if (last && last.role === 'assistant' && !last.isComplete) {
+                target = { ...last };
+                targetIndex = lastIndex;
+            } else {
+                target = {
+                    id: createId(),
+                    role: 'assistant',
+                    content: '',
+                    isComplete: false,
+                };
+                targetIndex = messages.length;
+            }
 
             target.toolCalls = [
                 ...(target.toolCalls || []),
@@ -300,6 +367,7 @@ export const useStore = create<AppStore>((set, get) => ({
                     error: updates.error,
                 },
             ];
+            messages[targetIndex] = target;
             return { messages };
         }),
 
@@ -307,13 +375,19 @@ export const useStore = create<AppStore>((set, get) => ({
         // Update tool call status
         set((state) => {
             const messages = [...state.messages];
-            for (const msg of messages) {
+            for (let i = 0; i < messages.length; i++) {
+                const msg = messages[i];
                 if (msg.toolCalls) {
-                    const tc = msg.toolCalls.find(t => t.id === toolCallId);
-                    if (tc) {
-                        tc.status = confirmed ? 'running' : 'failed';
-                        delete tc.confirmationType;
-                        delete tc.confirmationData;
+                    const tcIdx = msg.toolCalls.findIndex(t => t.id === toolCallId);
+                    if (tcIdx !== -1) {
+                        // Create new references for immutable update
+                        const newToolCalls = [...msg.toolCalls];
+                        const updatedTc = { ...newToolCalls[tcIdx] };
+                        updatedTc.status = confirmed ? 'running' : 'failed';
+                        delete updatedTc.confirmationType;
+                        delete updatedTc.confirmationData;
+                        newToolCalls[tcIdx] = updatedTc;
+                        messages[i] = { ...msg, toolCalls: newToolCalls };
                         break;
                     }
                 }
