@@ -1,27 +1,28 @@
 .thought-block {
-    margin: 8px 0;
-    border-radius: var(--vcoder-radius-md);
-    background: var(--vcoder-surface-2);
-    border: 1px solid var(--vcoder-border);
+    margin: 6px 0;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--vscode-textLink-foreground) 3%, transparent);
+    border: 1px solid color-mix(in srgb, var(--vscode-textLink-foreground) 8%, transparent);
     overflow: hidden;
+    opacity: 0.85;
 }
 
 .thought-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
-    padding: 8px 12px;
+    padding: 4px 8px;
     background: none;
     border: none;
     cursor: pointer;
     color: var(--vscode-descriptionForeground);
-    font-size: 12px;
+    font-size: 11px;
     text-align: left;
     transition: background 0.15s;
     
     &:hover {
-        background: var(--vscode-list-hoverBackground);
+        background: color-mix(in srgb, var(--vscode-list-hoverBackground) 50%, transparent);
     }
 }
 
@@ -29,41 +30,49 @@
     display: flex;
     align-items: center;
     color: var(--vscode-descriptionForeground);
+    opacity: 0.6;
     
     svg {
-        width: 12px;
-        height: 12px;
+        width: 10px;
+        height: 10px;
     }
 }
 
 .thought-title {
     font-weight: 500;
+    font-size: 11px;
     color: var(--vscode-descriptionForeground);
+    opacity: 0.8;
 }
 
 .thought-status {
     margin-left: auto;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
+    gap: 4px;
+    font-size: 10px;
     color: var(--vscode-descriptionForeground);
+    opacity: 0.7;
 }
 
 .thought-status .vc-icon-loading {
-    font-size: 12px;
+    font-size: 10px;
 }
 
 .thought-content {
-    padding: 8px 12px;
-    font-size: 13px;
+    padding: 4px 8px 4px 16px;
+    font-size: 11px;
     color: var(--vscode-descriptionForeground);
     white-space: pre-wrap;
-    border-top: 1px solid var(--vcoder-border);
+    border-top: 1px solid color-mix(in srgb, var(--vscode-textLink-foreground) 15%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--vscode-textLink-foreground) 20%, transparent);
     line-height: 1.5;
+    opacity: 0.75;
+    max-height: 160px;
+    overflow-y: auto;
 }
 
 .thought-content.placeholder {
-    opacity: 0.7;
+    opacity: 0.6;
     font-style: italic;
 }
