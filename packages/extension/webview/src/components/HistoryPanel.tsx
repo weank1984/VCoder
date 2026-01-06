@@ -2,7 +2,7 @@
  * History Panel Component - Slide-out sidebar for session management
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { HistorySession } from '@vcoder/shared';
 import { CloseIcon, TrashIcon } from './Icon';
 import { postMessage } from '../utils/vscode';
@@ -20,6 +20,17 @@ export function HistoryPanel({ historySessions, visible, onClose }: HistoryPanel
     const { t, language } = useI18n();
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const { viewMode, currentSessionId, exitHistoryMode } = useStore();
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && visible) {
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [visible, onClose]);
 
     const handleNewSession = () => {
         postMessage({ type: 'newSession' });
@@ -75,12 +86,17 @@ export function HistoryPanel({ historySessions, visible, onClose }: HistoryPanel
     };
 
     return (
-        <div className={`history-panel ${visible ? 'history-panel--visible' : ''}`}>
-            <div className="history-panel-backdrop" onClick={onClose} />
+        <div
+            className={`history-panel ${visible ? 'history-panel--visible' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="history-panel-title"
+        >
+            <div className="history-panel-backdrop" onClick={onClose} aria-hidden="true" />
             <div className="history-panel-content">
                 <div className="history-panel-header">
                     <div className="history-header-title">
-                        <span>{t('Common.History')}</span>
+                        <span id="history-panel-title">{t('Common.History')}</span>
                     </div>
                     <button className="history-close-btn" onClick={onClose} aria-label={t('Common.Close')}>
                         <CloseIcon />
