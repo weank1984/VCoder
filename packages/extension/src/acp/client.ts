@@ -13,7 +13,6 @@ import {
     ACPMethods,
     InitializeParams,
     InitializeResult,
-    NewSessionParams,
     NewSessionResult,
     ListSessionsResult,
     PromptParams,

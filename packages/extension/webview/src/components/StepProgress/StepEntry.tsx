@@ -113,6 +113,35 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
     const isPending = tc.status === 'pending';
     const isCommandPending = isPending && (tc.name === 'Bash' || tc.name === 'run_command');
     const isAwaitingConfirmation = tc.status === 'awaiting_confirmation';
+
+    // Get localized action text
+    const actionText = useMemo(() => {
+        // actionKey is like 'StepProgress.Analyzed'
+        const key = entry.actionKey;
+        return t(key);
+    }, [entry.actionKey, t]);
+    
+    // Status icon
+    const statusIcon = useMemo(() => {
+        switch (entry.status) {
+            case 'success': return <CheckIcon />;
+            case 'error': return <ErrorIcon />;
+            case 'running':
+            case 'pending': return <LoadingIcon />;
+            default: return null;
+        }
+    }, [entry.status]);
+    
+    // Check if it's an MCP tool
+    const isMcp = tc.name.startsWith('mcp__');
+    const mcpInfo = useMemo(() => {
+        if (!isMcp) return null;
+        const parts = tc.name.split('__');
+        return {
+            server: parts[1] || 'unknown',
+            tool: parts.slice(2).join('__') || tc.name,
+        };
+    }, [tc.name, isMcp]);
     
     // Specialized rendering for certain tool types
     // TodoWrite - show as task list
@@ -136,24 +165,6 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
         );
     }
     
-    // Get localized action text
-    const actionText = useMemo(() => {
-        // actionKey is like 'StepProgress.Analyzed'
-        const key = entry.actionKey;
-        return t(key);
-    }, [entry.actionKey, t]);
-    
-    // Status icon
-    const statusIcon = useMemo(() => {
-        switch (entry.status) {
-            case 'success': return <CheckIcon />;
-            case 'error': return <ErrorIcon />;
-            case 'running':
-            case 'pending': return <LoadingIcon />;
-            default: return null;
-        }
-    }, [entry.status]);
-    
     // Handle view button click
     const handleView = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -175,17 +186,6 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
         entry.type === 'file' || 
         entry.type === 'notebook'
     );
-    
-    // Check if it's an MCP tool
-    const isMcp = tc.name.startsWith('mcp__');
-    const mcpInfo = useMemo(() => {
-        if (!isMcp) return null;
-        const parts = tc.name.split('__');
-        return {
-            server: parts[1] || 'unknown',
-            tool: parts.slice(2).join('__') || tc.name,
-        };
-    }, [tc.name, isMcp]);
     
     return (
         <div className={`step-entry ${entry.status} ${entry.type} ${hideSummary ? 'summary-hidden' : ''}`}>

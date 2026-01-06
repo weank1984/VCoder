@@ -156,7 +156,7 @@ export function detectLanguage(ext: string): string {
 export function getErrorSummary(error: unknown, maxLen = 50): string {
     if (!error) return 'Unknown error';
     
-    let errorStr = typeof error === 'string' ? error : String(error);
+    const errorStr = typeof error === 'string' ? error : String(error);
     
     // Extract first line if multi-line
     const firstLine = errorStr.split('\n')[0];

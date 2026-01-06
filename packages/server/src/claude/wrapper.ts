@@ -20,10 +20,7 @@ import {
     McpCallUpdate,
     TaskListUpdate,
     SubagentRunUpdate,
-    BashRequestUpdate,
-    PlanReadyUpdate,
     ErrorUpdate,
-    UpdateType,
 } from '@vcoder/shared';
 
 export interface ClaudeCodeOptions {
@@ -265,7 +262,6 @@ export class ClaudeCodeWrapper extends EventEmitter {
         let depth = 0;
         let inString = false;
         let escaped = false;
-        let sawAnyOutput = false;
         let stderrTail = '';
 
         const handleJsonText = (jsonText: string) => {
@@ -319,35 +315,41 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
         process.stdout?.setEncoding('utf8');
         process.stdout?.on('data', (chunk: string) => {
-            sawAnyOutput = true;
             buffer += chunk;
             processBuffer();
         });
 
         process.stderr?.on('data', (data) => {
-             const text = data.toString();
-             stderrTail = (stderrTail + text).slice(-8000);
-             console.error(`[ClaudeCode stderr]`, text);
-             // Error detection logic... (omitted for brevity but kept in original)
-             // I should probably keep the error detection logic if I can
-        });
-        
-        // Re-adding error detection for Auth/CLI Not Found
-        process.stderr?.on('data', (data) => {
-             const text = data.toString();
-             if (text.includes('Please run `claude login`')) {
-                  this.emit('update', sessionId, {
-                      code: 'AUTH_REQUIRED',
-                      message: 'Authentication required. Please set your API Key or run `claude login`.',
-                      action: { label: 'Set API Key', command: 'vcoder.setApiKey' }
-                  } as ErrorUpdate, 'error');
-             } else if (text.includes('command not found')) {
-                  this.emit('update', sessionId, {
-                      code: 'CLI_NOT_FOUND',
-                      message: 'Claude Code CLI not found.',
-                      action: { label: 'Install', command: 'vcoder.openInstallGuide' }
-                  } as ErrorUpdate, 'error');
-             }
+            const text = data.toString();
+            stderrTail = (stderrTail + text).slice(-8000);
+            console.error(`[ClaudeCode stderr]`, text);
+
+            if (text.includes('Please run `claude login`')) {
+                this.emit(
+                    'update',
+                    sessionId,
+                    {
+                        code: 'AUTH_REQUIRED',
+                        message: 'Authentication required. Please set your API Key or run `claude login`.',
+                        action: { label: 'Set API Key', command: 'vcoder.setApiKey' },
+                    } as ErrorUpdate,
+                    'error'
+                );
+                return;
+            }
+
+            if (text.includes('command not found')) {
+                this.emit(
+                    'update',
+                    sessionId,
+                    {
+                        code: 'CLI_NOT_FOUND',
+                        message: 'Claude Code CLI not found.',
+                        action: { label: 'Install', command: 'vcoder.openInstallGuide' },
+                    } as ErrorUpdate,
+                    'error'
+                );
+            }
         });
     }
 
@@ -757,7 +759,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
         this.emit('update', sessionId, update, 'tool_use');
     }
 
-    async acceptFileChange(sessionId: string, path: string): Promise<void> {
+    async acceptFileChange(_sessionId: string, _path: string): Promise<void> {
         // Since we are stateless, we can't write to stdin of a closed process.
         // We need to send a NEW command to accept the change if the CLI supports it via args?
         // Or does accepting a change require an active session?
@@ -790,11 +792,11 @@ export class ClaudeCodeWrapper extends EventEmitter {
         // If `proposed: true`, DiffManager expects `accept` to trigger the write.
     }
 
-    async rejectFileChange(sessionId: string, path: string): Promise<void> {
+    async rejectFileChange(_sessionId: string, _path: string): Promise<void> {
         // No-op for stateless mode if we just don't apply the edit.
     }
 
-    async confirmBash(sessionId: string, commandId: string): Promise<void> {
+    async confirmBash(sessionId: string, _commandId: string): Promise<void> {
         // Bash confirmation in stateless mode?
         // If CLI outputs a Bash tool call, does it wait?
         // In -p mode, it likely outputs the tool call and STOPS if it needs confirmation, or it just outputs "I want to run X".
@@ -848,7 +850,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
         }
     }
 
-    async skipBash(sessionId: string, commandId: string): Promise<void> {
+    async skipBash(sessionId: string, _commandId: string): Promise<void> {
         const process = this.processesByLocalSessionId.get(sessionId);
         if (process?.stdin && !process.stdin.destroyed && !process.stdin.writableEnded) {
              process.stdin.write('n\n');

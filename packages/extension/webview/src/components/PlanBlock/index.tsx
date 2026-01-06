@@ -11,13 +11,12 @@ interface PlanBlockProps {
   sticky?: boolean;
 }
 
+const EMPTY_PLAN: Task[] = [];
+
 export const PlanBlock: React.FC<PlanBlockProps> = ({ plan, explanation, sticky = false }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { t } = useI18n();
-
-  if (!plan || plan.length === 0) {
-    return null;
-  }
+  const safePlan = plan ?? EMPTY_PLAN;
 
   // Flatten tasks for simple counting/display if needed, or just iterate top level
   // For now let's handle top-level tasks primarily to match PlanBlock design
@@ -39,9 +38,13 @@ export const PlanBlock: React.FC<PlanBlockProps> = ({ plan, explanation, sticky 
         if (t.children) traverse(t.children);
       });
     };
-    traverse(plan);
+    traverse(safePlan);
     return { total, pending, inProgress, completed, failed };
-  }, [plan]);
+  }, [safePlan]);
+
+  if (safePlan.length === 0) {
+    return null;
+  }
 
   const isRunning = counts.inProgress > 0;
   const isAllCompleted = counts.completed === counts.total && counts.failed === 0 && counts.total > 0;
@@ -58,7 +61,7 @@ export const PlanBlock: React.FC<PlanBlockProps> = ({ plan, explanation, sticky 
     }
     return null;
   };
-  const currentTask = findCurrentTask(plan);
+  const currentTask = findCurrentTask(safePlan);
 
   const getStatusIcon = (status: Task['status']) => {
     switch (status) {
@@ -109,7 +112,7 @@ export const PlanBlock: React.FC<PlanBlockProps> = ({ plan, explanation, sticky 
     <div className="plan-content-inner">
       {explanation && <div className="plan-explanation">{explanation}</div>}
       <div className="agent-block-list">
-        {plan.map((task, index) => renderTaskItem(task, index))}
+        {safePlan.map((task, index) => renderTaskItem(task, index))}
       </div>
     </div>
   );
@@ -121,7 +124,7 @@ export const PlanBlock: React.FC<PlanBlockProps> = ({ plan, explanation, sticky 
         <span className="agent-block-title">{t('Agent.Plan')}</span>
         <div className="plan-progress-dots">
            {/* Simple dots for top level only to avoid clutter */}
-           {plan.map((step, i) => (
+           {safePlan.map((step, i) => (
             <span 
               key={i} 
               className={classNames('progress-dot', getStatusClass(step.status))}

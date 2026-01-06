@@ -5,7 +5,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useStore } from './store/useStore';
 import { useSmartScroll } from './hooks/useSmartScroll';
-import { useVirtualList, clearHeightCache } from './hooks/useVirtualList';
+import { useVirtualList } from './hooks/useVirtualList';
 import { PlanBlock } from './components/PlanBlock';
 import { TaskRunsBlock } from './components/TaskRunsBlock';
 import { ChatBubble } from './components/ChatBubble';
@@ -42,10 +42,12 @@ function App() {
     setHistorySessions,
     loadHistorySession,
     historySessions,
+    viewMode,
   } = useStore();
 
   // Determine if virtual list should be enabled
-  const useVirtual = messages.length > VIRTUAL_LIST_THRESHOLD;
+  // Disable virtual list for history mode to avoid height estimation issues
+  const useVirtual = viewMode === 'live' && messages.length > VIRTUAL_LIST_THRESHOLD;
 
   // Smart auto-scroll: only scroll when at bottom, show jump button when scrolled up
   const { containerRef, endRef, onScroll: smartScrollHandler, autoScroll, jumpToBottom } = useSmartScroll(messages);
@@ -54,7 +56,8 @@ function App() {
   const { 
     containerRef: virtualContainerRef, 
     range, 
-    onScroll: virtualScrollHandler 
+    onScroll: virtualScrollHandler,
+    reset: resetVirtualList,
   } = useVirtualList({
     itemCount: messages.length,
     estimatedItemHeight: ESTIMATED_MESSAGE_HEIGHT,
@@ -69,10 +72,14 @@ function App() {
     }
   };
 
-  // Clear height cache when session changes
+  // Reset virtual list state when session changes
   useEffect(() => {
-    clearHeightCache();
-  }, [currentSessionId]);
+    resetVirtualList();
+    // Also reset smart scroll to top
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+    }
+  }, [currentSessionId, resetVirtualList]);
 
   // Messages to render (all or windowed)
   const visibleMessages = useMemo(() => {

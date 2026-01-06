@@ -40,8 +40,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
     async resolveWebviewView(
         webviewView: vscode.WebviewView,
-        context: vscode.WebviewViewResolveContext,
-        token: vscode.CancellationToken
+        _context: vscode.WebviewViewResolveContext,
+        _token: vscode.CancellationToken
     ): Promise<void> {
         console.log('[VCoder] Resolving webview...');
         this.webviewView = webviewView;
@@ -73,14 +73,18 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                     await this.acpClient.prompt(message.content, message.attachments);
                     break;
                 case 'newSession':
-                    const session = await this.acpClient.newSession(message.title);
-                    this.postMessage({ type: 'currentSession', data: { sessionId: session.id } });
-                    this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() });
-                    break;
+                    {
+                        const session = await this.acpClient.newSession(message.title);
+                        this.postMessage({ type: 'currentSession', data: { sessionId: session.id } });
+                        this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() });
+                        break;
+                    }
                 case 'listSessions':
-                    const sessions = await this.acpClient.listSessions();
-                    this.postMessage({ type: 'sessions', data: sessions });
-                    break;
+                    {
+                        const sessions = await this.acpClient.listSessions();
+                        this.postMessage({ type: 'sessions', data: sessions });
+                        break;
+                    }
                 case 'switchSession':
                     await this.acpClient.switchSession(message.sessionId);
                     this.postMessage({ type: 'currentSession', data: { sessionId: message.sessionId } });
@@ -143,7 +147,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                             // Try bash confirmation first
                             try {
                                 await this.acpClient.confirmBash(toolCallId);
-                            } catch (err) {
+                            } catch (_err) {
                                 // If not bash, might be file change or plan
                                 if (toolCallId === 'plan') {
                                     await this.acpClient.confirmPlan();
@@ -156,7 +160,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                             // Rejection
                             try {
                                 await this.acpClient.skipBash(toolCallId);
-                            } catch (err) {
+                            } catch (_err) {
                                 // If not bash, might be file change
                                 if (toolCallId !== 'plan') {
                                     await this.acpClient.rejectFileChange(toolCallId);

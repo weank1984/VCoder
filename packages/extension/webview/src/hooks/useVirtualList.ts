@@ -25,6 +25,8 @@ interface VirtualListResult {
     range: VirtualRange;
     onScroll: () => void;
     totalHeight: number;
+    /** Reset scroll state and height cache - call when session changes */
+    reset: () => void;
 }
 
 // Height cache for measured items
@@ -126,7 +128,17 @@ export function useVirtualList(options: VirtualListOptions): VirtualListResult {
         return { start, end, topPadding, bottomPadding };
     }, [itemCount, scrollTop, containerHeight, overscan, getItemHeight]);
 
-    return { containerRef, range, onScroll, totalHeight };
+    // Reset scroll state and height cache - use when session changes
+    const reset = useCallback(() => {
+        setScrollTop(0);
+        heightCache.clear();
+        // Also reset container scroll position
+        if (containerRef.current) {
+            containerRef.current.scrollTop = 0;
+        }
+    }, []);
+
+    return { containerRef, range, onScroll, totalHeight, reset };
 }
 
 /**

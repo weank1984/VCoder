@@ -46,7 +46,7 @@ export function isFilePath(text: string): boolean {
     // Should not contain spaces (unless escaped) - paths usually don't have spaces
     if (trimmed.includes(' ') && !trimmed.includes('\\ ')) return false;
     // Match common path patterns (with optional line number suffix like :14 or :14-20 or :14:5)
-    const pathPattern = /^\.{0,2}[\/\\]?[\w\-_.@]+([\/\\][\w\-_.@]*)*(:\d+(-\d+)?(:\d+)?)?[\/\\]?$/;
+    const pathPattern = /^\.{0,2}[/\\]?[\w\-_.@]+([/\\][\w\-_.@]*)*(:\d+(-\d+)?(:\d+)?)?[/\\]?$/;
     return pathPattern.test(trimmed);
 }
 

@@ -19,5 +19,9 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Many modules intentionally export utilities alongside components; don't block CI on HMR-only constraints.
+      'react-refresh/only-export-components': 'warn',
+    },
   },
 ])

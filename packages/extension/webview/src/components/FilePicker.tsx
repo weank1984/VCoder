@@ -3,7 +3,7 @@
  * Dropdown for selecting workspace files when @ is typed
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import './FilePicker.scss';
 
 interface FilePickerProps {
@@ -19,16 +19,17 @@ export function FilePicker({ files, searchQuery, position, onSelect, onClose }: 
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Filter files by search query
-    const filteredFiles = files.filter((file) => {
-        const fileName = file.split('/').pop()?.toLowerCase() || '';
+    const filteredFiles = useMemo(() => {
         const query = searchQuery.toLowerCase();
-        return fileName.includes(query) || file.toLowerCase().includes(query);
-    }).slice(0, 10); // Limit to 10 results
+        return files
+            .filter((file) => {
+                const fileName = file.split('/').pop()?.toLowerCase() || '';
+                return fileName.includes(query) || file.toLowerCase().includes(query);
+            })
+            .slice(0, 10); // Limit to 10 results
+    }, [files, searchQuery]);
 
-    // Reset selection when search changes
-    useEffect(() => {
-        setSelectedIndex(0);
-    }, [searchQuery]);
+    const effectiveSelectedIndex = Math.min(selectedIndex, Math.max(filteredFiles.length - 1, 0));
 
     // Handle keyboard navigation
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -49,8 +50,8 @@ export function FilePicker({ files, searchQuery, position, onSelect, onClose }: 
                 break;
             case 'Enter':
                 e.preventDefault();
-                if (filteredFiles[selectedIndex]) {
-                    onSelect(filteredFiles[selectedIndex]);
+                if (filteredFiles[effectiveSelectedIndex]) {
+                    onSelect(filteredFiles[effectiveSelectedIndex]);
                 }
                 break;
             case 'Escape':
@@ -58,7 +59,7 @@ export function FilePicker({ files, searchQuery, position, onSelect, onClose }: 
                 onClose();
                 break;
         }
-    }, [filteredFiles, selectedIndex, onSelect, onClose]);
+    }, [filteredFiles, effectiveSelectedIndex, onSelect, onClose]);
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
@@ -103,7 +104,7 @@ export function FilePicker({ files, searchQuery, position, onSelect, onClose }: 
                 return (
                     <div
                         key={file}
-                        className={`file-picker-item ${index === selectedIndex ? 'selected' : ''}`}
+                        className={`file-picker-item ${index === effectiveSelectedIndex ? 'selected' : ''}`}
                         onClick={() => onSelect(file)}
                         onMouseEnter={() => setSelectedIndex(index)}
                     >

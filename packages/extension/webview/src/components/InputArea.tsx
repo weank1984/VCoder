@@ -199,7 +199,7 @@ export function InputArea() {
 
         // Check for @ trigger
         const textBeforeCursor = val.slice(0, newPos);
-        const match = /@([\w\-\/\.]*)$/.exec(textBeforeCursor);
+        const match = /@([\w./-]*)$/.exec(textBeforeCursor);
 
         if (match) {
             setShowPicker(true);
@@ -212,7 +212,7 @@ export function InputArea() {
     const handleFileSelect = (file: string) => {
         const textBefore = input.slice(0, cursorPosition);
         const textAfter = input.slice(cursorPosition);
-        const match = /@([\w\-\/\.]*)$/.exec(textBefore);
+        const match = /@([\w./-]*)$/.exec(textBefore);
         
         if (match) {
             const prefix = textBefore.slice(0, match.index);
