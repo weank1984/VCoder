@@ -3,7 +3,7 @@
  * Renders message content in chronological order based on contentBlocks
  */
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, memo } from 'react';
 import type { ChatMessage, ContentBlock, ToolCall } from '../types';
 import { ThoughtBlock } from './ThoughtBlock';
 import { StepProgressList } from './StepProgress';
@@ -95,7 +95,7 @@ function renderContentBlock(
     }
 }
 
-export function ChatBubble({ message }: ChatBubbleProps) {
+export const ChatBubble = memo(function ChatBubble({ message }: ChatBubbleProps) {
     const { t } = useI18n();
     const isUser = message.role === 'user';
     const bubbleClass = `vc-bubble ${isUser ? 'vc-bubble--user' : 'vc-bubble--assistant'}`;
@@ -174,4 +174,4 @@ export function ChatBubble({ message }: ChatBubbleProps) {
             </div>
         </div>
     );
-}
+});
