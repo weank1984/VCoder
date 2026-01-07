@@ -22,6 +22,7 @@ import {
     SubagentRunUpdate,
     ErrorUpdate,
 } from '@vcoder/shared';
+import { PersistentSession, PersistentSessionSettings } from './persistentSession';
 
 export interface ClaudeCodeOptions {
     workingDirectory: string;
@@ -58,6 +59,9 @@ export class ClaudeCodeWrapper extends EventEmitter {
     > = new Map();
     private thinkingContentByLocalSessionId: Map<string, string> = new Map();
     private readonly debugThinking = process.env.VCODER_DEBUG_THINKING === '1';
+    
+    // Persistent sessions for bidirectional streaming
+    private readonly persistentSessions: Map<string, PersistentSession> = new Map();
 
     constructor(private options: ClaudeCodeOptions) {
         super();
@@ -881,6 +885,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
     }
 
     async shutdown(): Promise<void> {
+        // Shutdown one-shot processes
         for (const [sessionId, process] of this.processesByLocalSessionId.entries()) {
             try {
                 process.kill('SIGTERM');
@@ -889,5 +894,100 @@ export class ClaudeCodeWrapper extends EventEmitter {
             }
         }
         this.processesByLocalSessionId.clear();
+        
+        // Shutdown persistent sessions
+        for (const [sessionId, session] of this.persistentSessions.entries()) {
+            try {
+                await session.stop();
+            } catch (err) {
+                console.error('[ClaudeCode] Failed to stop persistent session', sessionId, err);
+            }
+        }
+        this.persistentSessions.clear();
+    }
+
+    // =========================================================================
+    // Persistent Session Mode (Bidirectional Streaming)
+    // =========================================================================
+
+    /**
+     * Send a prompt using persistent session mode (bidirectional streaming).
+     * The session is kept alive for subsequent messages.
+     */
+    async promptPersistent(sessionId: string, message: string, attachments?: Attachment[]): Promise<void> {
+        let session = this.persistentSessions.get(sessionId);
+        
+        if (!session) {
+            // Create new persistent session
+            const settings: PersistentSessionSettings = {
+                model: this.settings.model,
+                permissionMode: this.settings.permissionMode,
+                fallbackModel: this.settings.fallbackModel,
+                appendSystemPrompt: this.settings.appendSystemPrompt,
+                mcpConfigPath: this.settings.mcpConfigPath,
+                allowedTools: this.settings.allowedTools,
+                disallowedTools: this.settings.disallowedTools,
+                additionalDirs: this.settings.additionalDirs,
+                maxThinkingTokens: this.settings.maxThinkingTokens,
+            };
+            
+            session = new PersistentSession(sessionId, this.options, settings);
+            this.forwardPersistentSessionEvents(sessionId, session);
+            this.persistentSessions.set(sessionId, session);
+            
+            try {
+                await session.start();
+            } catch (err) {
+                this.persistentSessions.delete(sessionId);
+                throw err;
+            }
+        }
+        
+        session.sendMessage(message, attachments);
+    }
+
+    /**
+     * Check if a session is using persistent mode
+     */
+    isPersistentSession(sessionId: string): boolean {
+        return this.persistentSessions.has(sessionId);
+    }
+
+    /**
+     * Get persistent session status
+     */
+    getPersistentSessionStatus(sessionId: string): { running: boolean; cliSessionId: string | null } | null {
+        const session = this.persistentSessions.get(sessionId);
+        if (!session) return null;
+        return {
+            running: session.running,
+            cliSessionId: session.cliSessionId,
+        };
+    }
+
+    /**
+     * Stop a persistent session
+     */
+    async stopPersistentSession(sessionId: string): Promise<void> {
+        const session = this.persistentSessions.get(sessionId);
+        if (session) {
+            await session.stop();
+            this.persistentSessions.delete(sessionId);
+        }
+    }
+
+    private forwardPersistentSessionEvents(sessionId: string, session: PersistentSession): void {
+        session.on('update', (update: unknown, type: string) => {
+            this.emit('update', sessionId, update, type);
+        });
+
+        session.on('complete', () => {
+            this.emit('complete', sessionId);
+        });
+
+        session.on('close', (code: number) => {
+            console.error(`[ClaudeCode] Persistent session ${sessionId} closed with code ${code}`);
+            this.persistentSessions.delete(sessionId);
+        });
     }
 }

@@ -139,6 +139,16 @@ export class ACPServer {
                 case ACPMethods.HISTORY_DELETE:
                     result = await this.handleDeleteHistory(params as HistoryDeleteParams);
                     break;
+                // Persistent Session Mode (Bidirectional Streaming)
+                case ACPMethods.SESSION_PROMPT_PERSISTENT:
+                    result = await this.handlePromptPersistent(params as PromptParams);
+                    break;
+                case ACPMethods.SESSION_MODE_STATUS:
+                    result = await this.handleModeStatus(params as { sessionId: string });
+                    break;
+                case ACPMethods.SESSION_STOP_PERSISTENT:
+                    result = await this.handleStopPersistent(params as { sessionId: string });
+                    break;
                 default:
                     return {
                         jsonrpc: '2.0',
@@ -293,6 +303,61 @@ export class ACPServer {
         const deleted = await deleteHistorySession(params.sessionId, params.workspacePath);
         return { deleted };
     }
+
+    // =========================================================================
+    // Persistent Session Mode Handlers
+    // =========================================================================
+
+    private async handlePromptPersistent(params: PromptParams): Promise<void> {
+        // Update session title from first user message if still default
+        const session = this.sessions.get(params.sessionId);
+        if (session && session.title === 'New Chat' && params.content) {
+            const cleanContent = params.content.trim();
+            if (cleanContent) {
+                session.title = cleanContent.slice(0, 50) + (cleanContent.length > 50 ? '...' : '');
+                session.updatedAt = new Date().toISOString();
+            }
+        }
+
+        // Use persistent session mode
+        void this.claudeCode
+            .promptPersistent(params.sessionId, params.content, params.attachments)
+            .catch((err) => {
+                console.error('[ACPServer] Persistent prompt error:', err);
+                this.sendNotification(ACPMethods.SESSION_UPDATE, {
+                    sessionId: params.sessionId,
+                    type: 'error',
+                    content: {
+                        code: 'CLI_ERROR',
+                        message: err instanceof Error ? err.message : String(err),
+                    },
+                } satisfies UpdateNotificationParams);
+                this.sendNotification(ACPMethods.SESSION_COMPLETE, {
+                    sessionId: params.sessionId,
+                } satisfies SessionCompleteParams);
+            });
+    }
+
+    private async handleModeStatus(params: { sessionId: string }): Promise<{ isPersistent: boolean; running: boolean; cliSessionId: string | null }> {
+        const status = this.claudeCode.getPersistentSessionStatus(params.sessionId);
+        if (status) {
+            return {
+                isPersistent: true,
+                running: status.running,
+                cliSessionId: status.cliSessionId,
+            };
+        }
+        return {
+            isPersistent: false,
+            running: false,
+            cliSessionId: null,
+        };
+    }
+
+    private async handleStopPersistent(params: { sessionId: string }): Promise<void> {
+        await this.claudeCode.stopPersistentSession(params.sessionId);
+    }
+
 
     // Communication helpers
 

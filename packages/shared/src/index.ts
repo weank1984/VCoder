@@ -27,10 +27,15 @@ export const ACPMethods = {
     HISTORY_LIST: 'history/list',
     HISTORY_LOAD: 'history/load',
     HISTORY_DELETE: 'history/delete',
+    // Persistent Session Mode (Bidirectional Streaming)
+    SESSION_PROMPT_PERSISTENT: 'session/promptPersistent',
+    SESSION_MODE_STATUS: 'session/modeStatus',
+    SESSION_STOP_PERSISTENT: 'session/stopPersistent',
 
     // Server -> Client (Notifications)
     SESSION_UPDATE: 'session/update',
     SESSION_COMPLETE: 'session/complete',
 } as const;
+
 
 export type ACPMethod = typeof ACPMethods[keyof typeof ACPMethods];
