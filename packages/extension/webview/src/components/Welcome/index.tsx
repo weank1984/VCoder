@@ -28,23 +28,14 @@ function formatUpdatedAt(updatedAt: string | undefined, locale: string): string 
 
 export function Welcome() {
   const { t, language } = useI18n();
-  const { sessions, historySessions, currentSessionId } = useStore();
+  const { historySessions } = useStore();
 
   useEffect(() => {
     postMessage({ type: 'listHistory' });
   }, []);
 
-  const merged = [
-    ...sessions.map((s) => ({ ...s, kind: 'live' as const })),
-    ...historySessions.map((s) => ({ ...s, kind: 'history' as const })),
-  ];
-
-  const uniqueById = new Map<string, (typeof merged)[number]>();
-  for (const item of merged) {
-    if (!uniqueById.has(item.id) || item.kind === 'live') uniqueById.set(item.id, item);
-  }
-
-  const sorted = [...uniqueById.values()].sort((a, b) => {
+  // Only use historySessions (Claude CLI history) - same as history panel
+  const sorted = [...historySessions].sort((a, b) => {
     const at = new Date(a.updatedAt).getTime();
     const bt = new Date(b.updatedAt).getTime();
     if (Number.isNaN(at) && Number.isNaN(bt)) return 0;
@@ -53,8 +44,8 @@ export function Welcome() {
     return bt - at;
   });
 
-  const withoutCurrent = sorted.filter((s) => s.id !== currentSessionId);
-  const items = (withoutCurrent.length > 0 ? withoutCurrent : sorted).slice(0, 3);
+  // Show top 3 recent sessions
+  const items = sorted.slice(0, 3);
 
   return (
     <div className={prefixClass}>
@@ -100,11 +91,7 @@ export function Welcome() {
                 type="button"
                 key={s.id}
                 className={`${prefixClass}-recents-item`}
-                onClick={() =>
-                  postMessage(
-                    s.kind === 'history' ? { type: 'loadHistory', sessionId: s.id } : { type: 'switchSession', sessionId: s.id }
-                  )
-                }
+                onClick={() => postMessage({ type: 'loadHistory', sessionId: s.id })}
                 title={s.title || t('Common.UntitledSession')}
               >
                 <span className={`${prefixClass}-recents-item-title`}>{s.title || t('Common.UntitledSession')}</span>

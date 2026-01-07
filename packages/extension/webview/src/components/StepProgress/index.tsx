@@ -3,11 +3,12 @@
  * Displays tool executions as a step-based progress view
  */
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import type { ToolCall } from '../../types';
-import { aggregateToSteps, getProgressStats } from '../../utils/stepAggregator';
+import { aggregateToSteps, getProgressStats, type Step } from '../../utils/stepAggregator';
 import { useI18n } from '../../i18n/I18nProvider';
 import { postMessage } from '../../utils/vscode';
+import { useStore } from '../../store/useStore';
 import { StepItem } from './StepItem';
 import { 
     CheckIcon, 
@@ -25,14 +26,43 @@ interface StepProgressListProps {
 
 export function StepProgressList({ toolCalls }: StepProgressListProps) {
     const { t } = useI18n();
-    const [allCollapsed, setAllCollapsed] = useState(false);
+    const { viewMode } = useStore();
+    // 历史对话默认全部折叠，实时对话默认展开
+    const [allCollapsed, setAllCollapsed] = useState(viewMode === 'history');
     const [collapsedSteps, setCollapsedSteps] = useState<Set<string>>(new Set());
+    // 记录之前每个步骤的状态，用于检测状态变化
+    const prevStepStatusRef = useRef<Map<string, Step['status']>>(new Map());
     
     // Aggregate tool calls into steps
     const steps = useMemo(() => aggregateToSteps(toolCalls), [toolCalls]);
     
     // Get progress stats
     const stats = useMemo(() => getProgressStats(steps), [steps]);
+    
+    // 当步骤从 running 变为 completed/failed 时，自动折叠该步骤
+    // When a step transitions from running to completed/failed, auto-collapse it
+    useEffect(() => {
+        const prevStatusMap = prevStepStatusRef.current;
+        const stepsToCollapse: string[] = [];
+        
+        steps.forEach(step => {
+            const prevStatus = prevStatusMap.get(step.id);
+            // 如果之前是 running，现在变成 completed 或 failed，则自动折叠
+            if (prevStatus === 'running' && (step.status === 'completed' || step.status === 'failed')) {
+                stepsToCollapse.push(step.id);
+            }
+            // 更新状态记录
+            prevStatusMap.set(step.id, step.status);
+        });
+        
+        if (stepsToCollapse.length > 0) {
+            setCollapsedSteps(prev => {
+                const next = new Set(prev);
+                stepsToCollapse.forEach(id => next.add(id));
+                return next;
+            });
+        }
+    }, [steps]);
     
     // Header status icon
     const headerIcon = useMemo(() => {

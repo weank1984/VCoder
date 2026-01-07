@@ -214,6 +214,17 @@ export class ACPServer {
     }
 
     private async handlePrompt(params: PromptParams): Promise<void> {
+        // Update session title from first user message if still default
+        const session = this.sessions.get(params.sessionId);
+        if (session && session.title === 'New Chat' && params.content) {
+            // Use first 50 characters of user message as title
+            const cleanContent = params.content.trim();
+            if (cleanContent) {
+                session.title = cleanContent.slice(0, 50) + (cleanContent.length > 50 ? '...' : '');
+                session.updatedAt = new Date().toISOString();
+            }
+        }
+
         // Don't block the JSON-RPC response on the full model run; streaming happens via notifications.
         void this.claudeCode
             .prompt(params.sessionId, params.content, params.attachments)

@@ -213,7 +213,10 @@ export async function listHistorySessions(workspacePath: string): Promise<Histor
         for (const projectDir of listProjectDirs()) {
             const projectKey = path.basename(projectDir);
             try {
-                const files = fs.readdirSync(projectDir).filter((f) => f.endsWith('.jsonl'));
+                // Filter out agent-*.jsonl files (Claude CLI internal warmup/sidechain files)
+                const files = fs.readdirSync(projectDir).filter((f) => 
+                    f.endsWith('.jsonl') && !f.startsWith('agent-')
+                );
                 for (const file of files) {
                     const sessionId = file.replace('.jsonl', '');
                     const filePath = path.join(projectDir, file);
@@ -239,8 +242,10 @@ export async function listHistorySessions(workspacePath: string): Promise<Histor
 
     // Check if directory exists
     if (resolved && fs.existsSync(projectDir)) {
-        // Read all .jsonl files
-        const files = fs.readdirSync(projectDir).filter(f => f.endsWith('.jsonl'));
+        // Read all .jsonl files, excluding agent-*.jsonl (Claude CLI internal warmup/sidechain files)
+        const files = fs.readdirSync(projectDir).filter(f => 
+            f.endsWith('.jsonl') && !f.startsWith('agent-')
+        );
         console.error(`[TranscriptStore] Found ${files.length} history files in ${projectDir}`);
 
         const sessions: HistorySession[] = [];
@@ -326,6 +331,11 @@ async function extractSessionMetadata(
         try {
             const event = JSON.parse(line);
             
+            // Skip sidechain events (Claude CLI internal messages like "Warmup")
+            if (event.isSidechain === true) {
+                continue;
+            }
+            
             if (!firstEvent) {
                 firstEvent = event;
             }
@@ -335,7 +345,13 @@ async function extractSessionMetadata(
             if (!title || title === '未命名会话') {
                 const role = getEventRole(event);
                 if (role === 'user' && event.message) {
-                    const content = extractTextContent(event.message.content);
+                    let content = extractTextContent(event.message.content);
+                    // Clean up "Attachments:" suffix from user messages
+                    content = cleanAttachmentsFromContent(content);
+                    // Skip internal warmup messages as title source
+                    if (content && content.trim().toLowerCase() === 'warmup') {
+                        continue;
+                    }
                     if (content) {
                         // Take first 50 characters as title
                         title = content.slice(0, 50) + (content.length > 50 ? '...' : '');
@@ -490,6 +506,11 @@ function parseEventToMessage(
     generateId: () => string,
     toolResultsById: Map<string, { result?: unknown; error?: string }>
 ): HistoryChatMessage | null {
+    // Skip sidechain events (Claude CLI internal messages like "Warmup")
+    if (event?.isSidechain === true) {
+        return null;
+    }
+
     const timestamp = extractTimestamp(event);
 
     // Some transcript formats emit tool_result as standalone events; capture and skip.
@@ -504,7 +525,10 @@ function parseEventToMessage(
     const role = getEventRole(event);
 
     if (role === 'user' && event.message) {
-        const content = extractTextContent(event.message.content);
+        let content = extractTextContent(event.message.content);
+        
+        // Clean up "Attachments:" suffix from user messages
+        content = cleanAttachmentsFromContent(content);
         
         // Check for tool_result in user message (Claude stores them here)
         if (Array.isArray(event.message.content)) {
@@ -597,6 +621,29 @@ function extractTextContent(content: unknown): string {
     }
 
     return '';
+}
+
+/**
+ * Clean up "Attachments:" suffix from user message content.
+ * The wrapper.ts appends "\n\nAttachments:\n..." when sending messages with attachments.
+ * We want to strip this metadata when displaying in history.
+ * Also handles edge cases like single newline or missing trailing newline.
+ */
+function cleanAttachmentsFromContent(content: string): string {
+    if (!content) return content;
+    
+    // Match various "Attachments:" patterns:
+    // - "\n\nAttachments:\n" (original format from wrapper.ts)
+    // - "\nAttachments:\n" (single newline)
+    // - "\n\nAttachments:" or "\nAttachments:" (no trailing newline)
+    // - " Attachments:" (space before, for edge cases)
+    const attachmentsRegex = /(\n{1,2}|\s)Attachments:\s*(\n|$)/;
+    const match = content.match(attachmentsRegex);
+    if (match && match.index !== undefined) {
+        return content.slice(0, match.index).trim();
+    }
+    
+    return content;
 }
 
 /**

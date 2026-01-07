@@ -21,10 +21,20 @@ function truncate(str: string, maxLen: number): string {
 export function ThoughtBlock({ content, defaultExpanded = false, isComplete = true }: ThoughtBlockProps) {
     const { t } = useI18n();
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+    const [wasComplete, setWasComplete] = useState(isComplete);
     const contentRef = useRef<HTMLDivElement>(null);
     const [contentHeight, setContentHeight] = useState<number | undefined>();
     
     const isThinking = !isComplete;
+    
+    // 当思考从进行中变为完成时，自动折叠
+    // When thinking transitions from in-progress to complete, auto-collapse
+    useEffect(() => {
+        if (isComplete && !wasComplete) {
+            setIsExpanded(false);
+        }
+        setWasComplete(isComplete);
+    }, [isComplete, wasComplete]);
     const thinkingLabel = t('Agent.Thinking');
     const displayContent = content || (isThinking ? `${thinkingLabel}...` : '');
 
