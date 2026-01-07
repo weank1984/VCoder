@@ -1,0 +1,129 @@
+/* MermaidBlock Styles */
+
+.vc-mermaid-block {
+    margin: 0.8em 0;
+    padding: 16px;
+    border-radius: 8px;
+    background: var(--vcoder-surface-2);
+    border: 1px solid var(--vcoder-border);
+    overflow: auto;
+    
+    // Center the diagram
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    // Hover effect
+    transition: border-color 0.2s, box-shadow 0.2s;
+    
+    &:hover {
+        border-color: color-mix(in srgb, var(--vscode-textLink-foreground) 40%, var(--vcoder-border));
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--vscode-textLink-foreground) 10%, transparent);
+    }
+    
+    // SVG styling
+    svg {
+        max-width: 100%;
+        height: auto;
+    }
+    
+    // Loading state
+    &--loading {
+        min-height: 100px;
+    }
+    
+    // Error state
+    &--error {
+        border-color: var(--vscode-inputValidation-errorBorder);
+        background: color-mix(in srgb, var(--vscode-inputValidation-errorBackground) 20%, var(--vcoder-surface-2));
+    }
+}
+
+// Loading indicator
+.mermaid-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--vc-color-text-secondary);
+    font-size: 12px;
+}
+
+.mermaid-loading-icon {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--vcoder-border);
+    border-top-color: var(--vscode-textLink-foreground);
+    border-radius: 50%;
+    animation: mermaid-spin 0.8s linear infinite;
+}
+
+@keyframes mermaid-spin {
+    to { transform: rotate(360deg); }
+}
+
+// Error display
+.mermaid-error {
+    width: 100%;
+    color: var(--vscode-inputValidation-errorForeground);
+    font-size: 12px;
+}
+
+.mermaid-error-title {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.mermaid-error-message {
+    margin: 0;
+    padding: 8px;
+    background: var(--vcoder-surface-3);
+    border-radius: 4px;
+    font-family: var(--vc-font-family-code);
+    font-size: 11px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.mermaid-error-code {
+    margin-top: 8px;
+    
+    summary {
+        cursor: pointer;
+        color: var(--vc-color-text-tertiary);
+        font-size: 11px;
+        
+        &:hover {
+            color: var(--vc-color-text-secondary);
+        }
+    }
+    
+    pre {
+        margin: 8px 0 0;
+        padding: 8px;
+        background: var(--vcoder-surface-3);
+        border-radius: 4px;
+        font-family: var(--vc-font-family-code);
+        font-size: 11px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+    }
+}
+
+// Theme-specific adjustments
+.vscode-dark,
+.vscode-high-contrast {
+    .vc-mermaid-block {
+        // Mermaid dark theme colors are already handled by initialization
+        
+        svg {
+            // Ensure text is visible in dark mode
+            .nodeLabel,
+            .edgeLabel,
+            .label {
+                fill: var(--vscode-foreground);
+            }
+        }
+    }
+}

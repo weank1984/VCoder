@@ -13,6 +13,7 @@ import { useI18n } from '../i18n/I18nProvider';
 import { postMessage } from '../utils/vscode';
 import { CopyIcon, InsertIcon, CheckIcon } from './Icon';
 import { FilePath, isFilePath } from './FilePath';
+import { MermaidBlock } from './MermaidBlock';
 import './MarkdownContent.scss';
 
 interface MarkdownContentProps {
@@ -62,6 +63,11 @@ function CodeBlock({ inline, className, children, isComplete, syntaxTheme, t }: 
     // For code blocks without language, check if entire content is a file path
     if (!language && isFilePath(codeString)) {
         return <FilePath path={codeString} variant="block" />;
+    }
+
+    // Mermaid diagrams
+    if (language === 'mermaid') {
+        return <MermaidBlock code={codeString} />;
     }
 
     // 流式渲染时使用简化渲染，避免频繁重渲染导致的性能问题

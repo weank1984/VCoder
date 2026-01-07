@@ -215,12 +215,16 @@
     --vcoder-radius-md: 6px;
     --vcoder-radius-lg: 8px;
     
-    // Thought Block colors
-    --thought-bg: color-mix(in srgb, var(--vscode-textLink-foreground) 4%, var(--vcoder-surface));
-    --thought-border: color-mix(in srgb, var(--vscode-textLink-foreground) 12%, var(--vcoder-border));
-    --thought-border-hover: color-mix(in srgb, var(--vscode-textLink-foreground) 25%, var(--vcoder-border));
-    --thought-active-border: color-mix(in srgb, var(--vscode-textLink-foreground) 40%, var(--vcoder-border));
-    --thought-icon-color: var(--vscode-textLink-foreground);
+    // Thought Block colors - Purple gradient theme
+    --thought-accent: #a855f7;
+    --thought-accent-end: #6366f1;
+    --thought-bg: color-mix(in srgb, var(--thought-accent) 5%, var(--vcoder-surface));
+    --thought-border: color-mix(in srgb, var(--thought-accent) 15%, var(--vcoder-border));
+    --thought-border-hover: color-mix(in srgb, var(--thought-accent) 30%, var(--vcoder-border));
+    --thought-active-border: color-mix(in srgb, var(--thought-accent) 50%, var(--vcoder-border));
+    --thought-icon-color: var(--thought-accent);
+    --thought-title-color: var(--vc-color-text-secondary);
+    --thought-content-border: color-mix(in srgb, var(--thought-accent) 10%, var(--thought-border));
     
     // User bubble colors
     --vc-user-bubble-bg: color-mix(in srgb, var(--vc-color-primary) 12%, var(--vcoder-surface));
@@ -447,12 +451,16 @@
     --vcoder-radius-md: 6px;
     --vcoder-radius-lg: 8px;
     
-    // Thought Block colors
-    --thought-bg: color-mix(in srgb, var(--vscode-textLink-foreground) 5%, white);
-    --thought-border: color-mix(in srgb, var(--vscode-textLink-foreground) 15%, var(--vcoder-border));
-    --thought-border-hover: color-mix(in srgb, var(--vscode-textLink-foreground) 30%, var(--vcoder-border));
-    --thought-active-border: color-mix(in srgb, var(--vscode-textLink-foreground) 50%, var(--vcoder-border));
-    --thought-icon-color: var(--vscode-textLink-foreground);
+    // Thought Block colors - Purple gradient theme
+    --thought-accent: #9333ea;
+    --thought-accent-end: #4f46e5;
+    --thought-bg: color-mix(in srgb, var(--thought-accent) 4%, white);
+    --thought-border: color-mix(in srgb, var(--thought-accent) 12%, var(--vcoder-border));
+    --thought-border-hover: color-mix(in srgb, var(--thought-accent) 25%, var(--vcoder-border));
+    --thought-active-border: color-mix(in srgb, var(--thought-accent) 40%, var(--vcoder-border));
+    --thought-icon-color: var(--thought-accent);
+    --thought-title-color: var(--vc-color-text-secondary);
+    --thought-content-border: color-mix(in srgb, var(--thought-accent) 8%, var(--thought-border));
     
     // User bubble colors
     --vc-user-bubble-bg: color-mix(in srgb, var(--vc-color-primary) 8%, white);

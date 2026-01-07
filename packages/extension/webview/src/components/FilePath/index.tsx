@@ -24,30 +24,86 @@ export interface FilePathProps {
     onClick?: (path: string) => void;
 }
 
+// Common file extensions for heuristic path detection
+const COMMON_EXTENSIONS = new Set([
+    'ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs', 'json', 'md', 'mdx',
+    'py', 'pyw', 'pyi', 'go', 'rs', 'java', 'kt', 'kts', 'scala',
+    'c', 'cpp', 'cc', 'cxx', 'h', 'hpp', 'hxx', 'cs', 'fs',
+    'rb', 'php', 'swift', 'm', 'mm', 'pl', 'pm', 'lua',
+    'html', 'htm', 'css', 'scss', 'sass', 'less', 'styl',
+    'vue', 'svelte', 'astro', 'jsx', 'tsx',
+    'yaml', 'yml', 'toml', 'xml', 'ini', 'cfg', 'conf',
+    'sh', 'bash', 'zsh', 'fish', 'ps1', 'bat', 'cmd',
+    'txt', 'log', 'env', 'gitignore', 'dockerignore',
+    'sql', 'graphql', 'gql', 'proto', 'thrift',
+    'lock', 'sum', 'mod', 'gradle', 'cmake',
+    'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'webp',
+    'woff', 'woff2', 'ttf', 'eot', 'otf',
+    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+]);
+
 /**
- * Check if text looks like a file/directory path
- * Matches patterns like:
- * - src/services/pr-agent/
- * - pr_agent/settings/pr_reviewer_prompts.toml
- * - ./config.json
- * - ../parent/file.ts
- * - file.py:14 (with line number)
- * - file.py:14-20 (with line range)
- * - file.py:14:5 (with line and column)
+ * Check if text looks like a file path (not directory)
+ * Uses heuristic rules to detect file paths in various formats:
+ * - Absolute Unix paths: /Users/xxx/file.ts
+ * - Absolute Windows paths: C:\Users\xxx\file.ts
+ * - Relative paths: ./src/App.tsx, ../package.json
+ * - Project paths with extensions: src/components/Button.tsx
+ * - Paths with line numbers: file.py:14, file.py:14-20
+ * 
+ * NOTE: Only matches files (must have extension), not directories
  */
 export function isFilePath(text: string): boolean {
     const trimmed = text.trim();
-    // Must be single line
+    
+    // Basic exclusion checks
     if (trimmed.includes('\n')) return false;
-    // Must contain path separator
+    if (trimmed.length > 300 || trimmed.length < 2) return false;
     if (!trimmed.includes('/') && !trimmed.includes('\\')) return false;
-    // Should not be too long (likely not just a path)
-    if (trimmed.length > 200) return false;
-    // Should not contain spaces (unless escaped) - paths usually don't have spaces
-    if (trimmed.includes(' ') && !trimmed.includes('\\ ')) return false;
-    // Match common path patterns (with optional line number suffix like :14 or :14-20 or :14:5)
-    const pathPattern = /^\.{0,2}[/\\]?[\w\-_.@]+([/\\][\w\-_.@]*)*(:\d+(-\d+)?(:\d+)?)?[/\\]?$/;
-    return pathPattern.test(trimmed);
+    
+    // Exclude URLs
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) return false;
+    
+    // Remove optional line number suffix for validation
+    const pathWithoutLine = trimmed.replace(/:\d+(-\d+)?$/, '');
+    
+    // Exclude directories (paths ending with / or \)
+    if (pathWithoutLine.endsWith('/') || pathWithoutLine.endsWith('\\')) return false;
+    
+    // Must have a file extension
+    const extMatch = pathWithoutLine.match(/\.([a-zA-Z0-9]+)$/);
+    if (!extMatch) return false;
+    
+    const hasKnownExtension = COMMON_EXTENSIONS.has(extMatch[1].toLowerCase());
+    
+    // 1. Absolute Unix path (starts with /)
+    if (pathWithoutLine.startsWith('/')) {
+        if (pathWithoutLine === '/') return false;
+        // Valid Unix path: no spaces, no invalid chars, must have extension
+        return /^\/[^\s<>"|?*\0]+\.[a-zA-Z0-9]+$/.test(pathWithoutLine);
+    }
+    
+    // 2. Absolute Windows path (C:\ or C:/)
+    if (/^[A-Za-z]:[\\/]/.test(pathWithoutLine)) {
+        return /^[A-Za-z]:[\\/][^\s<>"|?*\0]*\.[a-zA-Z0-9]+$/.test(pathWithoutLine);
+    }
+    
+    // 3. Relative path starting with ./ or ../
+    if (/^\.\.?[\\/]/.test(pathWithoutLine)) {
+        return /^\.\.?[\\/][^\s<>"|?*\0]+\.[a-zA-Z0-9]+$/.test(pathWithoutLine);
+    }
+    
+    // 4. Other cases: require known file extension
+    if (!hasKnownExtension) return false;
+    
+    // No spaces allowed in implicit paths
+    if (pathWithoutLine.includes(' ')) return false;
+    
+    // Validate characters: allow word chars, dots, dashes, underscores, @, path separators
+    // Also allow some unicode for international filenames
+    if (!/^[\w\u4e00-\u9fff\u00C0-\u024F\-_.@/\\]+$/.test(pathWithoutLine)) return false;
+    
+    return true;
 }
 
 /**

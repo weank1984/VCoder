@@ -89,12 +89,35 @@
     // Block variant (standalone)
     &--block {
         display: flex;
-        padding: 8px 12px;
+        padding: 10px 14px;
         background: var(--vcoder-surface-2);
-        border-radius: 6px;
+        border: 1px solid var(--vcoder-border);
+        border-radius: 8px;
+        margin: 0.4em 0;
         
-        &.file-path--clickable:hover {
-            background: var(--vscode-list-hoverBackground);
+        // Subtle gradient background
+        background: linear-gradient(
+            135deg,
+            var(--vcoder-surface-2) 0%,
+            color-mix(in srgb, var(--vscode-textLink-foreground) 3%, var(--vcoder-surface-2)) 100%
+        );
+        
+        .file-path__icon {
+            svg {
+                width: 14px;
+                height: 14px;
+            }
+        }
+        
+        &.file-path--clickable {
+            transition: all 0.2s;
+            
+            &:hover {
+                background: var(--vscode-list-hoverBackground);
+                border-color: color-mix(in srgb, var(--vscode-textLink-foreground) 50%, var(--vcoder-border));
+                box-shadow: 0 2px 8px color-mix(in srgb, var(--vscode-textLink-foreground) 8%, transparent);
+                transform: translateX(2px);
+            }
         }
     }
     
