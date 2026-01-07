@@ -4,6 +4,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { postMessage } from '../utils/vscode';
 import { useStore } from '../store/useStore';
 import type { ModelId, PermissionMode } from '@vcoder/shared';
@@ -65,7 +66,20 @@ export function InputArea() {
         addMessage,
         setLoading,
         exitHistoryMode,
-    } = useStore();
+    } = useStore(useShallow((state) => ({
+        model: state.model,
+        isLoading: state.isLoading,
+        workspaceFiles: state.workspaceFiles,
+        viewMode: state.viewMode,
+        thinkingEnabled: state.thinkingEnabled,
+        permissionMode: state.permissionMode,
+        setModel: state.setModel,
+        setThinkingEnabled: state.setThinkingEnabled,
+        setPermissionMode: state.setPermissionMode,
+        addMessage: state.addMessage,
+        setLoading: state.setLoading,
+        exitHistoryMode: state.exitHistoryMode,
+    })));
 
     // Debounced save for input draft
     const saveDraft = useCallback((draft: string) => {
