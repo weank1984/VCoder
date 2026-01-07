@@ -1,0 +1,184 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/extension",
+        "--disable-extensions"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/packages/extension/out/**/*.js"
+      ],
+      "preLaunchTask": "prepare:extension",
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/packages/extension/out/**/*.js",
+        "${workspaceFolder}/packages/extension/out/**/*.js.map"
+      ]
+    },
+    {
+      "name": "Run Extension (With Extensions)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/extension"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/packages/extension/out/**/*.js"
+      ],
+      "preLaunchTask": "prepare:extension",
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/packages/extension/out/**/*.js",
+        "${workspaceFolder}/packages/extension/out/**/*.js.map"
+      ]
+    },
+    {
+      "name": "Run Webview",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/extension",
+        "${workspaceFolder}/packages/extension/test-fixtures",
+        "--disable-extensions"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/packages/extension/out/**/*.js",
+        "${workspaceFolder}/packages/extension/webview/dist/**/*.js"
+      ],
+      "preLaunchTask": "prepare:webview",
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/packages/extension/out/**/*.js",
+        "${workspaceFolder}/packages/extension/webview/dist/**/*.js"
+      ],
+      "env": {
+        "VSCODE_FORCE_USE_TURBO": "1"
+      }
+    },
+    {
+      "name": "Run Webview (With Extensions)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/extension",
+        "${workspaceFolder}/packages/extension/test-fixtures"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/packages/extension/out/**/*.js",
+        "${workspaceFolder}/packages/extension/webview/dist/**/*.js"
+      ],
+      "preLaunchTask": "prepare:webview",
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/packages/extension/out/**/*.js",
+        "${workspaceFolder}/packages/extension/webview/dist/**/*.js"
+      ],
+      "env": {
+        "VSCODE_FORCE_USE_TURBO": "1"
+      }
+    },
+    {
+      "name": "Debug Server",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/server/dist/index.js",
+      "preLaunchTask": "dev:server",
+      "outFiles": [
+        "${workspaceFolder}/packages/server/dist/**/*.js"
+      ],
+      "console": "integratedTerminal",
+      "restart": true,
+      "sourceMaps": true
+    },
+    {
+      "name": "Debug Server (Current File)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/server/dist/index.js",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "dev:server",
+      "outFiles": [
+        "${workspaceFolder}/packages/server/dist/**/*.js"
+      ],
+      "console": "integratedTerminal",
+      "sourceMaps": true
+    },
+    {
+      "name": "Attach to Server",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "name": "Run Tests (Extension)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/.bin/vitest",
+      "args": [
+        "run",
+        "tests/extension"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Run Tests (Server)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/.bin/vitest",
+      "args": [
+        "run",
+        "tests/server"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Run Tests (Shared)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/.bin/vitest",
+      "args": [
+        "run",
+        "tests/shared"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Debug Webview (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/packages/extension/webview",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "webpack:///*": "${webRoot}/*"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Extension + Server",
+      "configurations": [
+        "Run Extension",
+        "Debug Server"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "Extension + Server (Debug All)",
+      "configurations": [
+        "Run Extension",
+        "Debug Server"
+      ]
+    }
+  ]
+}

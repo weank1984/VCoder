@@ -1,0 +1,79 @@
+{
+  // TypeScript 配置
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  // 排除文件
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/out": true,
+    "**/.turbo": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/out": true,
+    "**/.turbo": true,
+    "**/pnpm-lock.yaml": false
+  },
+
+  // 监视文件
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/out/**": true,
+    "**/.turbo/**": true
+  },
+
+  // 编辑器配置
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // ESLint 配置
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "eslint.workingDirectories": [
+    { "directory": "packages/extension", "changeProcessCWD": true },
+    { "directory": "packages/server", "changeProcessCWD": true },
+    { "directory": "packages/shared", "changeProcessCWD": true },
+    { "directory": "packages/extension/webview", "changeProcessCWD": true }
+  ],
+
+  // Vitest 配置
+  "vitest.enable": true,
+
+  // 调试配置
+  "debug.node.autoAttach": "on",
+  "debug.javascript.autoAttachFilter": "smart",
+
+  // 调试时禁用扩展
+  "debug.extensionDebugConsole": {
+    "suppressExtensionDebugWarning": true
+  },
+
+  // 禁用调试时的扩展建议
+  "extensions.ignoreRecommendations": [
+    // 当使用 --disable-extensions 时忽略推荐
+  ],
+
+  // Monorepo 支持
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+
+  // 文件关联
+  "files.associations": {
+    "*.css": "css"
+  },
+  "git.ignoreLimitWarning": true
+}

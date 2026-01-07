@@ -1,0 +1,305 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev:extension",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "--filter",
+        "vcoder",
+        "dev"
+      ],
+      "isBackground": true,
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$tsc-watch"
+      ]
+    },
+    {
+      "label": "dev:server",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "--filter",
+        "@vcoder/server",
+        "dev"
+      ],
+      "isBackground": true,
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$tsc-watch"
+      ]
+    },
+    {
+      "label": "dev:webview",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "dev"
+      ],
+      "isBackground": true,
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/packages/extension/webview"
+      },
+      "problemMatcher": [
+        {
+          "owner": "vite",
+          "source": "vite",
+          "fileLocation": [
+            "relative",
+            "${workspaceFolder}/packages/extension/webview"
+          ],
+          "pattern": {
+            "regexp": "^(.*)\\.(\\d+),(\\d+):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "message": 4
+          },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "VITE",
+            "endsPattern": "Local:"
+          }
+        }
+      ]
+    },
+    {
+      "label": "build:webview",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "build"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/packages/extension/webview"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "prepare:extension",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "dev:extension",
+        "build:webview"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "prepare:webview",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "dev:extension",
+        "dev:webview",
+        "build:webview"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "build:extension",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "--filter",
+        "vcoder",
+        "build"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$tsc"
+      ]
+    },
+    {
+      "label": "build:server",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "--filter",
+        "@vcoder/server",
+        "build"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$tsc"
+      ]
+    },
+    {
+      "label": "build:all",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "build"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$tsc"
+      ]
+    },
+    {
+      "label": "watch:extension",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "--filter",
+        "vcoder",
+        "dev"
+      ],
+      "isBackground": true,
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$tsc-watch"
+      ]
+    },
+    {
+      "label": "watch:server",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "--filter",
+        "@vcoder/server",
+        "dev"
+      ],
+      "isBackground": true,
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$tsc-watch"
+      ]
+    },
+    {
+      "label": "test",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "test"
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "test:watch",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "test:watch"
+      ],
+      "isBackground": true,
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        {
+          "owner": "vitest",
+          "source": "vitest",
+          "fileLocation": [
+            "relative",
+            "${workspaceFolder}"
+          ],
+          "pattern": {
+            "regexp": "^FAIL\\s+(.*)$",
+            "file": 1,
+            "severity": "error"
+          },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "RUN",
+            "endsPattern": "Test Files\\s+\\d+\\s+failed"
+          }
+        }
+      ]
+    },
+    {
+      "label": "clean",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "clean"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

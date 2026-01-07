@@ -13,7 +13,6 @@ build/
 .turbo/
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo
