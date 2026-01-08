@@ -155,7 +155,7 @@ export function MarkdownContent({ content, isComplete = true }: MarkdownContentP
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                    code: (props) => (
+                    code: (props: CodeBlockProps) => (
                         <CodeBlock 
                             {...props} 
                             isComplete={isComplete} 
