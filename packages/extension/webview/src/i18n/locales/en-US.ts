@@ -55,6 +55,7 @@ export default {
     ViewAllConversations: 'View all conversations',
     NoRecentConversations: 'No recent conversations yet',
     You: 'You',
+    JumpToBottom: 'Jump to bottom',
   },
   Agent: {
     Plan: 'Plan',
