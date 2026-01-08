@@ -6,9 +6,12 @@ import { postMessage } from '../utils/vscode';
 const debugThinking = (globalThis as unknown as { __vcoderDebugThinking?: boolean }).__vcoderDebugThinking === true;
 const DEFAULT_MAX_THINKING_TOKENS = 16000;
 
-// rAF batch processing for streaming text updates
+// Streaming text update batching with adaptive throttling
 let textBuffer = '';
 let rafId: number | null = null;
+let lastFlushTime = 0;
+const MIN_FLUSH_INTERVAL = 16; // ~60fps, minimum time between flushes
+const MAX_BUFFER_SIZE = 100; // Force flush if buffer gets too large (for responsiveness)
 
 // Exported for use when immediate flush is needed (e.g., on completion)
 export function flushTextBuffer(store: { appendToLastMessage: (text: string) => void }) {
@@ -22,23 +25,48 @@ export function flushTextBuffer(store: { appendToLastMessage: (text: string) => 
     if (textBuffer) {
         store.appendToLastMessage(textBuffer);
         textBuffer = '';
+        lastFlushTime = Date.now();
     }
 }
 
 function queueTextUpdate(text: string, store: { appendToLastMessage: (text: string) => void }) {
     const anyGlobal = globalThis as unknown as { requestAnimationFrame?: (cb: () => void) => number };
+    
+    // Node/test environments: apply immediately (no rAF available).
     if (typeof anyGlobal.requestAnimationFrame !== 'function') {
-        // Node/test environments: apply immediately (no rAF available).
         store.appendToLastMessage(text);
         return;
     }
+    
     textBuffer += text;
+    
+    // Force immediate flush for large buffers or when enough time has passed
+    const now = Date.now();
+    const timeSinceLastFlush = now - lastFlushTime;
+    
+    if (textBuffer.length >= MAX_BUFFER_SIZE || timeSinceLastFlush >= MIN_FLUSH_INTERVAL * 2) {
+        // Immediate flush for better responsiveness
+        if (rafId !== null) {
+            const caf = anyGlobal as unknown as { cancelAnimationFrame?: (id: number) => void };
+            if (typeof caf.cancelAnimationFrame === 'function') {
+                caf.cancelAnimationFrame(rafId);
+            }
+            rafId = null;
+        }
+        store.appendToLastMessage(textBuffer);
+        textBuffer = '';
+        lastFlushTime = now;
+        return;
+    }
+    
     if (rafId !== null) return; // Already scheduled
+    
     rafId = anyGlobal.requestAnimationFrame(() => {
         rafId = null;
         if (textBuffer) {
             store.appendToLastMessage(textBuffer);
             textBuffer = '';
+            lastFlushTime = Date.now();
         }
     });
 }

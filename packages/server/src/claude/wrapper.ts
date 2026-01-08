@@ -21,6 +21,8 @@ import {
     TaskListUpdate,
     SubagentRunUpdate,
     ErrorUpdate,
+    ConfirmationRequestUpdate,
+    ConfirmationType,
 } from '@vcoder/shared';
 import { PersistentSession, PersistentSessionSettings } from './persistentSession';
 
@@ -58,7 +60,12 @@ export class ClaudeCodeWrapper extends EventEmitter {
         Map<string, { title: string; subagentType?: string; parentTaskId?: string; input?: Record<string, unknown> }>
     > = new Map();
     private thinkingContentByLocalSessionId: Map<string, string> = new Map();
+    // Track if we've received streaming events (content_block_delta) for a session
+    // If we have, we should ignore the final assistant message to avoid duplication
+    private receivedStreamingTextByLocalSessionId: Map<string, boolean> = new Map();
     private readonly debugThinking = process.env.VCODER_DEBUG_THINKING === '1';
+    private lastToolIdByLocalSessionId: Map<string, string> = new Map();
+    
     
     // Persistent sessions for bidirectional streaming
     private readonly persistentSessions: Map<string, PersistentSession> = new Map();
@@ -121,10 +128,13 @@ export class ClaudeCodeWrapper extends EventEmitter {
             ? `${message}\n\nAttachments:\n${attachments.map((a) => `${a.name}: ${a.content}`).join('\n')}`
             : message;
 
+        // Use stream-json for input to allow keeping stdin open safely
         const args: string[] = [
             '-p',
-            fullMessage,
+            '', // Empty prompt, we will send via stdin
             '--output-format',
+            'stream-json',
+            '--input-format',
             'stream-json',
             '--verbose',
             '--include-partial-messages'
@@ -183,6 +193,8 @@ export class ClaudeCodeWrapper extends EventEmitter {
         if (claudeSessionId) {
             args.push('--resume', claudeSessionId);
         } else if (this.startedLocalSessions.has(sessionId)) {
+            // Note: with -p "", --continue might be less relevant if we use session resumption, 
+            // but we keep it for consistency with old behavior just in case.
             args.push('--continue');
         }
 
@@ -203,15 +215,24 @@ export class ClaudeCodeWrapper extends EventEmitter {
             },
         });
 
-        // CRITICAL: Claude CLI in `-p` mode waits for stdin EOF before processing.
-        // We do not stream prompts via stdin, so close it immediately to unblock output.
-        child.stdin?.end();
+        // IMPORTANT: We keep stdin open to support interactive permissions!
+        // We send the message as a JSON object.
+        const userMessage = JSON.stringify({
+            type: 'user',
+            message: {
+                role: 'user',
+                content: fullMessage,
+            },
+        }) + '\n';
+        
+        child.stdin?.write(userMessage);
 
         // Setup Listeners
         this.processesByLocalSessionId.set(sessionId, child);
         this.startedLocalSessions.add(sessionId);
         this.toolNameByIdByLocalSessionId.set(sessionId, new Map());
         this.subagentRunMetaByIdByLocalSessionId.set(sessionId, new Map());
+        this.lastToolIdByLocalSessionId.set(sessionId, ''); // Reset last tool
         this.setupProcessListeners(sessionId, child);
 
         return new Promise((resolve, reject) => {
@@ -227,11 +248,15 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 this.processesByLocalSessionId.delete(sessionId);
                 this.toolNameByIdByLocalSessionId.delete(sessionId);
                 this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
+                this.receivedStreamingTextByLocalSessionId.delete(sessionId);
+                this.lastToolIdByLocalSessionId.delete(sessionId);
             });
              child.on('error', (err) => {
                 this.processesByLocalSessionId.delete(sessionId);
                 this.toolNameByIdByLocalSessionId.delete(sessionId);
                 this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
+                this.receivedStreamingTextByLocalSessionId.delete(sessionId);
+                this.lastToolIdByLocalSessionId.delete(sessionId);
                 reject(err);
             });
         });
@@ -271,6 +296,12 @@ export class ClaudeCodeWrapper extends EventEmitter {
         const handleJsonText = (jsonText: string) => {
             try {
                 const event = JSON.parse(jsonText);
+                // Log event types for debugging streaming issues
+                if (this.debugThinking) {
+                    const eventType = event.type as string;
+                    const deltaType = (event.delta as Record<string, unknown>)?.type;
+                    console.error(`[ClaudeCode][event] type=${eventType}${deltaType ? ` delta.type=${deltaType}` : ''}`);
+                }
                 this.handleClaudeCodeEvent(sessionId, event);
             } catch (err) {
                 console.error('[ClaudeCode] JSON parse error:', err);
@@ -327,6 +358,25 @@ export class ClaudeCodeWrapper extends EventEmitter {
             const text = data.toString();
             stderrTail = (stderrTail + text).slice(-8000);
             console.error(`[ClaudeCode stderr]`, text);
+
+            // Detect permission requests in stderr
+            const lastToolId = this.lastToolIdByLocalSessionId.get(sessionId);
+            if (lastToolId) {
+                const toolName = this.toolNameByIdByLocalSessionId.get(sessionId)?.get(lastToolId);
+                const permissionRequest = this.detectPermissionRequest(text, toolName);
+                if (permissionRequest) {
+                    // Emit confirmation_request
+                    const confirmUpdate: ConfirmationRequestUpdate = {
+                        id: `confirm-${lastToolId}-${Date.now()}`,
+                        type: permissionRequest.type,
+                        toolCallId: lastToolId,
+                        summary: permissionRequest.summary,
+                        details: permissionRequest.details,
+                    };
+                    this.emit('update', sessionId, confirmUpdate, 'confirmation_request');
+                    console.error(`[ClaudeCode] Permission request detected via stderr for tool ${lastToolId}: ${permissionRequest.summary}`);
+                }
+            }
 
             if (text.includes('Please run `claude login`')) {
                 this.emit(
@@ -408,6 +458,10 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
                         const isError = (block.is_error as boolean | undefined) === true;
                         const result = block.content;
+                        // Clear last tool ID on result
+                        // this.lastToolIdByLocalSessionId.set(sessionId, ''); 
+                        // Actually, keep it until next tool use? No, clear it to avoid stale checks.
+                        
                         this.emitToolResult(sessionId, toolUseId, result, isError ? this.formatToolError(result) : undefined);
                     }
                 }
@@ -422,6 +476,13 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 const content = message.content as Array<Record<string, unknown>> | undefined;
                 if (!content || !Array.isArray(content)) break;
 
+                // Check if we've already received streaming text for this session
+                // If so, skip text blocks to avoid duplication
+                const receivedStreaming = this.receivedStreamingTextByLocalSessionId.get(sessionId) ?? false;
+                if (this.debugThinking && receivedStreaming) {
+                    console.error(`[ClaudeCode] assistant event: skipping text blocks (already streamed)`);
+                }
+
                 for (const block of content) {
                     if (block.type === 'thinking' && typeof block.thinking === 'string' && block.thinking) {
                         this.logThinking(sessionId, `assistant_block len=${block.thinking.length}`);
@@ -431,18 +492,33 @@ export class ClaudeCodeWrapper extends EventEmitter {
                         };
                         this.emit('update', sessionId, update, 'thought');
                     } else if (block.type === 'text' && typeof block.text === 'string' && block.text) {
-                        const update: TextUpdate = {
-                            text: block.text,
-                        };
-                        this.emit('update', sessionId, update, 'text');
+                        // Only emit text if we haven't received streaming updates
+                        // This handles the case where CLI doesn't support streaming
+                        if (!receivedStreaming) {
+                            if (this.debugThinking) {
+                                console.error(`[ClaudeCode] assistant event: emitting text (no streaming) len=${block.text.length}`);
+                            }
+                            const update: TextUpdate = {
+                                text: block.text,
+                            };
+                            this.emit('update', sessionId, update, 'text');
+                        }
                     } else if (block.type === 'tool_use') {
                         const toolName = block.name as string | undefined;
                         const toolId = block.id as string | undefined;
                         const toolInput = block.input as Record<string, unknown> | undefined;
                         if (!toolName || !toolId || !toolInput) continue;
+                        
+                        // Track last tool ID for permission handling in stderr
+                        this.lastToolIdByLocalSessionId.set(sessionId, toolId);
+                        
                         this.emitToolUse(sessionId, toolName, toolInput, toolId);
                     }
                 }
+                
+                // Reset streaming flag after processing assistant message
+                // (for next turn in multi-turn conversations)
+                this.receivedStreamingTextByLocalSessionId.delete(sessionId);
                 break;
             }
 
@@ -453,6 +529,10 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
                 const toolName = tool.name || 'unknown';
                 const toolId = tool.id || (event.uuid as string) || crypto.randomUUID();
+                
+                // Track last tool ID
+                this.lastToolIdByLocalSessionId.set(sessionId, toolId);
+                
                 this.emitToolUse(sessionId, toolName, tool.input, toolId);
                 break;
             }
@@ -474,7 +554,15 @@ export class ClaudeCodeWrapper extends EventEmitter {
                     };
                     this.emit('update', sessionId, update, 'error');
                 }
-                // success result is handled via process close
+                
+                // For one-shot prompt sessions, 'result' indicates the end of the turn.
+                // Since we are keeping stdin open, the process won't exit by itself.
+                // We must forcibly kill the process to signal completion to 'prompt' promise.
+                if (this.processesByLocalSessionId.has(sessionId)) {
+                    console.error(`[ClaudeCode] One-shot session ${sessionId} completed, closing process.`);
+                    const child = this.processesByLocalSessionId.get(sessionId);
+                    child?.kill('SIGTERM'); 
+                }
                 break;
             }
 
@@ -522,6 +610,20 @@ export class ClaudeCodeWrapper extends EventEmitter {
                         isComplete: false,
                     };
                     this.emit('update', sessionId, update, 'thought');
+                } else if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
+                    // Streaming text content - emit incremental updates for typewriter effect
+                    // Mark that we've received streaming text, so we can skip duplicates in assistant event
+                    this.receivedStreamingTextByLocalSessionId.set(sessionId, true);
+                    if (this.debugThinking) {
+                        console.error(`[ClaudeCode][stream] text_delta len=${delta.text.length}`);
+                    }
+                    const update: TextUpdate = {
+                        text: delta.text,
+                    };
+                    this.emit('update', sessionId, update, 'text');
+                } else if (delta) {
+                    // Log unhandled delta types for debugging
+                    console.error(`[ClaudeCode] Unhandled delta type: ${delta.type}`);
                 }
                 break;
             }
@@ -605,6 +707,23 @@ export class ClaudeCodeWrapper extends EventEmitter {
         if (toolName === 'AskUserQuestion') {
             error = undefined;
         }
+        
+        // Detect permission requests in tool results
+        const permissionRequest = this.detectPermissionRequest(result, toolName);
+        if (permissionRequest) {
+            // Emit confirmation_request instead of tool_result
+            const confirmUpdate: ConfirmationRequestUpdate = {
+                id: `confirm-${toolId}-${Date.now()}`,
+                type: permissionRequest.type,
+                toolCallId: toolId,
+                summary: permissionRequest.summary,
+                details: permissionRequest.details,
+            };
+            this.emit('update', sessionId, confirmUpdate, 'confirmation_request');
+            console.error(`[ClaudeCode] Permission request detected for tool ${toolId}: ${permissionRequest.summary}`);
+            return; // Don't emit tool_result for permission requests
+        }
+        
         const update: ToolResultUpdate = {
             id: toolId,
             result,
@@ -632,6 +751,177 @@ export class ClaudeCodeWrapper extends EventEmitter {
             this.emitSubagentRun(sessionId, runUpdate);
             this.subagentRunMetaByIdByLocalSessionId.get(sessionId)?.delete(toolId);
         }
+    }
+
+    /**
+     * Detect if a tool result indicates a permission request from Claude CLI.
+     * Returns parsed permission info if detected, null otherwise.
+     */
+    private detectPermissionRequest(
+        result: unknown, 
+        toolName?: string
+    ): { type: ConfirmationType; summary: string; details: ConfirmationRequestUpdate['details'] } | null {
+        // Convert result to string for pattern matching
+        let text: string;
+        if (typeof result === 'string') {
+            text = result;
+        } else if (result && typeof result === 'object') {
+            try {
+                text = JSON.stringify(result);
+            } catch {
+                return null;
+            }
+        } else {
+            return null;
+        }
+
+        // Pattern: "Claude requested permissions to write to <path>"
+        const writeMatch = text.match(/Claude requested permissions? to write to ([^\n,]+)/i);
+        if (writeMatch) {
+            const filePath = writeMatch[1].trim().replace(/['"]/g, '');
+            return {
+                type: 'file_write',
+                summary: `写入文件需要权限确认: ${filePath}`,
+                details: { 
+                    filePath,
+                    riskLevel: 'medium',
+                },
+            };
+        }
+
+        // Pattern: "Claude requested permissions to edit <path>"
+        const editMatch = text.match(/Claude requested permissions? to edit ([^\n,]+)/i);
+        if (editMatch) {
+            const filePath = editMatch[1].trim().replace(/['"]/g, '');
+            return {
+                type: 'file_write',
+                summary: `编辑文件需要权限确认: ${filePath}`,
+                details: { 
+                    filePath,
+                    riskLevel: 'medium',
+                },
+            };
+        }
+
+        // Pattern: "Claude requested permissions to delete <path>"
+        const deleteMatch = text.match(/Claude requested permissions? to delete ([^\n,]+)/i);
+        if (deleteMatch) {
+            const filePath = deleteMatch[1].trim().replace(/['"]/g, '');
+            return {
+                type: 'file_delete',
+                summary: `删除文件需要权限确认: ${filePath}`,
+                details: { 
+                    filePath,
+                    riskLevel: 'high',
+                },
+            };
+        }
+
+        // Pattern: "Claude requested permissions to run: <command>"
+        const bashMatch = text.match(/Claude requested permissions? to run:?\s*([^\n]+)/i);
+        if (bashMatch) {
+            const command = bashMatch[1].trim();
+            return {
+                type: 'bash',
+                summary: `执行命令需要权限确认: ${command.slice(0, 50)}${command.length > 50 ? '...' : ''}`,
+                details: { 
+                    command,
+                    riskLevel: this.assessBashRisk(command),
+                    riskReasons: this.getBashRiskReasons(command),
+                },
+            };
+        }
+
+        // Generic permission denial patterns
+        if (text.includes("haven't granted it yet") || 
+            text.includes("permission denied") ||
+            text.includes("requires user permission") ||
+            text.includes("waiting for user approval")) {
+            // Infer type from tool name
+            const inferredType = this.inferConfirmationType(toolName);
+            return {
+                type: inferredType,
+                summary: '操作需要权限确认',
+                details: {
+                    riskLevel: 'medium',
+                },
+            };
+        }
+
+        return null;
+    }
+
+    /**
+     * Infer confirmation type from tool name
+     */
+    private inferConfirmationType(toolName?: string): ConfirmationType {
+        if (!toolName) return 'dangerous';
+        const name = toolName.toLowerCase();
+        
+        if (name === 'bash' || name === 'run_command' || name.includes('bash')) {
+            return 'bash';
+        }
+        if (name === 'write' || name === 'edit' || name.includes('write') || name.includes('edit')) {
+            return 'file_write';
+        }
+        if (name.includes('delete') || name.includes('remove')) {
+            return 'file_delete';
+        }
+        if (name.startsWith('mcp__') || name.startsWith('mcp_')) {
+            return 'mcp';
+        }
+        
+        return 'dangerous';
+    }
+
+    /**
+     * Assess risk level of a bash command
+     */
+    private assessBashRisk(command: string): 'low' | 'medium' | 'high' {
+        const lowerCmd = command.toLowerCase();
+        
+        // High risk patterns
+        if (lowerCmd.includes('sudo') || 
+            lowerCmd.includes('rm -rf') ||
+            lowerCmd.includes('rm -r') ||
+            lowerCmd.includes('> /') ||
+            lowerCmd.includes('chmod') ||
+            lowerCmd.includes('chown') ||
+            lowerCmd.includes('mkfs') ||
+            lowerCmd.includes('dd if=')) {
+            return 'high';
+        }
+        
+        // Medium risk patterns
+        if (lowerCmd.includes('npm publish') ||
+            lowerCmd.includes('npm install') ||
+            lowerCmd.includes('pip install') ||
+            lowerCmd.includes('yarn add') ||
+            lowerCmd.includes('curl') ||
+            lowerCmd.includes('wget') ||
+            lowerCmd.includes('git push')) {
+            return 'medium';
+        }
+        
+        return 'low';
+    }
+
+    /**
+     * Get risk reasons for a bash command
+     */
+    private getBashRiskReasons(command: string): string[] {
+        const reasons: string[] = [];
+        const lowerCmd = command.toLowerCase();
+        
+        if (lowerCmd.includes('sudo')) reasons.push('命令包含 sudo 提权');
+        if (lowerCmd.includes('rm ')) reasons.push('会删除文件');
+        if (lowerCmd.includes('node_modules')) reasons.push('会修改 node_modules 目录');
+        if (lowerCmd.includes('npm publish')) reasons.push('会发布包到 npm registry');
+        if (lowerCmd.includes('|') || lowerCmd.includes('&&')) reasons.push('命令包含管道或链式操作');
+        if (lowerCmd.includes('curl') || lowerCmd.includes('wget')) reasons.push('会访问网络');
+        if (lowerCmd.includes('git push')) reasons.push('会推送代码到远程仓库');
+        
+        return reasons;
     }
 
     private emitToolUse(sessionId: string, toolName: string, toolInput: Record<string, unknown>, toolId: string): void {
@@ -869,6 +1159,34 @@ export class ClaudeCodeWrapper extends EventEmitter {
         }
     }
 
+    /**
+     * Confirm or reject a tool operation that requires user approval.
+     * This is the unified method for handling all permission confirmations.
+     */
+    async confirmTool(
+        sessionId: string, 
+        toolCallId: string, 
+        confirmed: boolean,
+        _options?: { trustAlways?: boolean; editedContent?: string }
+    ): Promise<void> {
+        const process = this.processesByLocalSessionId.get(sessionId);
+        if (process?.stdin && !process.stdin.destroyed && !process.stdin.writableEnded) {
+            // Claude CLI in interactive mode accepts y/n for confirmations
+            const input = confirmed ? 'y\n' : 'n\n';
+            process.stdin.write(input);
+            console.error(`[ClaudeCode] confirmTool: sent "${input.trim()}" for tool ${toolCallId} (confirmed=${confirmed})`);
+        } else {
+            // Try persistent session as fallback
+            const persistentSession = this.persistentSessions.get(sessionId);
+            if (persistentSession?.running) {
+                // TODO: Implement confirmation for persistent sessions when supported
+                console.warn(`[ClaudeCode] confirmTool: persistent session mode confirmation not yet implemented for ${toolCallId}`);
+            } else {
+                console.warn(`[ClaudeCode] confirmTool: no active process for session ${sessionId}`);
+            }
+        }
+    }
+
     async cancel(sessionId: string): Promise<void> {
         const process = this.processesByLocalSessionId.get(sessionId);
         if (process) {
@@ -881,6 +1199,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
             this.processesByLocalSessionId.delete(sessionId);
             this.toolNameByIdByLocalSessionId.delete(sessionId);
             this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
+            this.receivedStreamingTextByLocalSessionId.delete(sessionId);
         }
     }
 

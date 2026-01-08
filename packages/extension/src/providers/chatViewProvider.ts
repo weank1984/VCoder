@@ -21,14 +21,23 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
         // Listen to ACP updates and forward to Webview
         this.acpClient.on('session/update', (params: UpdateNotificationParams) => {
-            if (this.debugThinking && params.type === 'thought') {
-                const thought = params.content as { content?: string; isComplete?: boolean };
-                const length = typeof thought.content === 'string' ? thought.content.length : 0;
-                console.log('[VCoder][thinking] update', {
-                    sessionId: params.sessionId,
-                    isComplete: thought.isComplete,
-                    length,
-                });
+            if (this.debugThinking) {
+                if (params.type === 'thought') {
+                    const thought = params.content as { content?: string; isComplete?: boolean };
+                    const length = typeof thought.content === 'string' ? thought.content.length : 0;
+                    console.log('[VCoder][thinking] update', {
+                        sessionId: params.sessionId,
+                        isComplete: thought.isComplete,
+                        length,
+                    });
+                } else if (params.type === 'text') {
+                    const text = params.content as { text?: string };
+                    const length = typeof text.text === 'string' ? text.text.length : 0;
+                    console.log('[VCoder][stream] text update', {
+                        sessionId: params.sessionId,
+                        length,
+                    });
+                }
             }
             this.postMessage({ type: 'update', data: params });
         });
@@ -137,42 +146,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                 case 'confirmTool':
                     {
                         const { toolCallId, confirmed, options } = message;
-                        
-                        // Determine action type based on toolCallId
-                        // Bash commands are tracked with their IDs
-                        // File changes use path as ID
-                        // Plan uses 'plan' as ID
-                        
-                        if (confirmed) {
-                            // Try bash confirmation first
-                            try {
-                                await this.acpClient.confirmBash(toolCallId);
-                            } catch (_err) {
-                                // If not bash, might be file change or plan
-                                if (toolCallId === 'plan') {
-                                    await this.acpClient.confirmPlan();
-                                } else {
-                                    // Assume it's a file path
-                                    await this.acpClient.acceptFileChange(toolCallId);
-                                }
-                            }
-                        } else {
-                            // Rejection
-                            try {
-                                await this.acpClient.skipBash(toolCallId);
-                            } catch (_err) {
-                                // If not bash, might be file change
-                                if (toolCallId !== 'plan') {
-                                    await this.acpClient.rejectFileChange(toolCallId);
-                                }
-                            }
-                        }
-                        
-                        // Handle trustAlways option if needed
-                        if (options?.trustAlways) {
-                            // TODO: Save to configuration
-                            console.log('[VCoder] Trust always requested for:', toolCallId);
-                        }
+                        await this.acpClient.confirmTool(toolCallId, confirmed, options);
                     }
                     break;
                 case 'cancel':

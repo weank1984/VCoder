@@ -31,6 +31,8 @@ export const ACPMethods = {
     SESSION_PROMPT_PERSISTENT: 'session/promptPersistent',
     SESSION_MODE_STATUS: 'session/modeStatus',
     SESSION_STOP_PERSISTENT: 'session/stopPersistent',
+    // Tool confirmation (unified)
+    TOOL_CONFIRM: 'tool/confirm',
 
     // Server -> Client (Notifications)
     SESSION_UPDATE: 'session/update',

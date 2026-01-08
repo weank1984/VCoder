@@ -34,6 +34,7 @@ import {
     HistoryLoadResult,
     HistoryDeleteParams,
     HistoryDeleteResult,
+    ConfirmToolParams,
 } from '@vcoder/shared';
 import { listHistorySessions, loadHistorySession, deleteHistorySession } from '../history/transcriptStore';
 import { ClaudeCodeWrapper } from '../claude/wrapper';
@@ -148,6 +149,9 @@ export class ACPServer {
                     break;
                 case ACPMethods.SESSION_STOP_PERSISTENT:
                     result = await this.handleStopPersistent(params as { sessionId: string });
+                    break;
+                case ACPMethods.TOOL_CONFIRM:
+                    result = await this.handleToolConfirm(params as ConfirmToolParams);
                     break;
                 default:
                     return {
@@ -283,6 +287,15 @@ export class ACPServer {
 
     private async handlePlanConfirm(params: PlanConfirmParams): Promise<void> {
         await this.claudeCode.confirmPlan(params.sessionId);
+    }
+
+    private async handleToolConfirm(params: ConfirmToolParams): Promise<void> {
+        await this.claudeCode.confirmTool(
+            params.sessionId,
+            params.toolCallId,
+            params.confirmed,
+            params.options
+        );
     }
 
     private async handleSessionCancel(params: CancelSessionParams): Promise<void> {

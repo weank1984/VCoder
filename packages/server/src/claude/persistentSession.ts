@@ -425,6 +425,12 @@ export class PersistentSession extends EventEmitter {
                         isComplete: false,
                     };
                     this.emit('update', update, 'thought');
+                } else if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
+                    // Streaming text content - emit incremental updates for typewriter effect
+                    const update: TextUpdate = {
+                        text: delta.text,
+                    };
+                    this.emit('update', update, 'text');
                 }
                 break;
             }

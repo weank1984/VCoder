@@ -338,6 +338,21 @@ export interface ConfirmationRequestUpdate {
     };
 }
 
+/**
+ * Parameters for confirming/rejecting a tool that requires user approval.
+ */
+export interface ConfirmToolParams {
+    sessionId: string;
+    toolCallId: string;
+    confirmed: boolean;
+    options?: {
+        /** Trust this type of tool always */
+        trustAlways?: boolean;
+        /** User-edited content (for file modifications) */
+        editedContent?: string;
+    };
+}
+
 // =============================================================================
 // Session Complete Notification
 // =============================================================================

@@ -211,6 +211,24 @@ export class ACPClient extends EventEmitter {
         });
     }
 
+    /**
+     * Confirm or reject a tool operation that requires user approval.
+     * This is the unified method for all tool confirmations.
+     */
+    async confirmTool(
+        toolCallId: string, 
+        confirmed: boolean, 
+        options?: { trustAlways?: boolean; editedContent?: string }
+    ): Promise<void> {
+        if (!this.currentSession) return;
+        await this.sendRequest(ACPMethods.TOOL_CONFIRM, {
+            sessionId: this.currentSession.id,
+            toolCallId,
+            confirmed,
+            options,
+        });
+    }
+
     async cancelSession(): Promise<void> {
         if (!this.currentSession) return;
         await this.sendRequest(ACPMethods.SESSION_CANCEL, {

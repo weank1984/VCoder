@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useState, useMemo } from 'react';
-import { useStore } from './store/useStore';
+import { useStore, flushTextBuffer } from './store/useStore';
 import { useSmartScroll } from './hooks/useSmartScroll';
 import { useVirtualList } from './hooks/useVirtualList';
 import { PlanBlock } from './components/PlanBlock';
@@ -100,8 +100,11 @@ function App() {
           break;
         case 'complete':
           {
-            setLoading(false);
+            // Flush any pending text updates before marking complete
             const state = useStore.getState();
+            flushTextBuffer(state);
+            
+            setLoading(false);
             const lastMsg = state.messages[state.messages.length - 1];
             if (lastMsg) {
               state.updateMessage(lastMsg.id, { isComplete: true });
