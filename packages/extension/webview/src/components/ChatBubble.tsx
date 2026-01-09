@@ -8,7 +8,7 @@ import type { ChatMessage, ContentBlock, ToolCall } from '../types';
 import { ThoughtBlock } from './ThoughtBlock';
 import { StepProgressList } from './StepProgress';
 import { MarkdownContent } from './MarkdownContent';
-import { UserIcon, VoyahIcon, CopyIcon, MoreIcon, CheckIcon } from './Icon';
+import { UserIcon, VoyahIcon, CopyIcon, CheckIcon } from './Icon';
 import { useI18n } from '../i18n/I18nProvider';
 import './ChatBubble.scss';
 
@@ -149,13 +149,6 @@ export function ChatBubble({ message }: ChatBubbleProps) {
                             aria-label={copied ? t('Agent.MessageCopied') : t('Agent.CopyMessage')}
                         >
                             {copied ? <CheckIcon /> : <CopyIcon />}
-                        </button>
-                        <button 
-                            className="action-btn" 
-                            title={t('Agent.MoreActions')}
-                            aria-label={t('Agent.MoreActions')}
-                        >
-                            <MoreIcon />
                         </button>
                     </div>
                 )}

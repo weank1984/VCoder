@@ -340,6 +340,8 @@ export function InputArea() {
                         onCompositionEnd={() => setIsComposing(false)}
                         disabled={isLoading || viewMode === 'history'}
                         rows={1}
+                        aria-haspopup="listbox"
+                        aria-expanded={showPicker}
                         onClick={(e) => {
                             setCursorPosition(e.currentTarget.selectionStart);
                             setShowPicker(false); // Hide picker on click moving cursor
