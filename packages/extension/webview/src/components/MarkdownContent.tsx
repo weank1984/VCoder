@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { useThemeMode } from '../hooks/useThemeMode';
 import { useI18n } from '../i18n/I18nProvider';
 import { postMessage } from '../utils/vscode';
@@ -133,7 +133,7 @@ function CodeBlock({ inline, className, children, isComplete, syntaxTheme, t }: 
     );
 }
 
-export function MarkdownContent({ content, isComplete = true }: MarkdownContentProps) {
+export const MarkdownContent = memo(function MarkdownContent({ content, isComplete = true }: MarkdownContentProps) {
     const { t } = useI18n();
     const themeMode = useThemeMode();
     const syntaxTheme = themeMode === 'light' ? vs : vscDarkPlus;
@@ -170,6 +170,6 @@ export function MarkdownContent({ content, isComplete = true }: MarkdownContentP
             {!isComplete && <span className="streaming-cursor" />}
         </div>
     );
-}
+});
 
 
