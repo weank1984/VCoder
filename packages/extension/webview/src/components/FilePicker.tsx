@@ -83,8 +83,15 @@ export function FilePicker({ files, searchQuery, position, onSelect, onClose }: 
                 className="file-picker" 
                 style={{ top: position.top, left: position.left }}
                 ref={containerRef}
+                role="listbox"
+                aria-label="File picker"
+                id="file-picker-listbox"
             >
-                <div className="file-picker-empty">
+                <div
+                    className="file-picker-empty"
+                    role="alert"
+                    aria-live="polite"
+                >
                     {files.length === 0 ? '加载文件中...' : '未找到匹配文件'}
                 </div>
             </div>
@@ -96,19 +103,27 @@ export function FilePicker({ files, searchQuery, position, onSelect, onClose }: 
             className="file-picker" 
             style={{ top: position.top, left: position.left }}
             ref={containerRef}
+            role="listbox"
+            aria-label="File picker"
+            id="file-picker-listbox"
         >
             {filteredFiles.map((file, index) => {
                 const fileName = file.split('/').pop() || file;
                 const dirPath = file.split('/').slice(0, -1).join('/');
+                const isSelected = index === effectiveSelectedIndex;
+                const itemId = `file-picker-option-${index}`;
                 
                 return (
                     <div
                         key={file}
-                        className={`file-picker-item ${index === effectiveSelectedIndex ? 'selected' : ''}`}
+                        id={itemId}
+                        className={`file-picker-item ${isSelected ? 'selected' : ''}`}
                         onClick={() => onSelect(file)}
                         onMouseEnter={() => setSelectedIndex(index)}
+                        role="option"
+                        aria-selected={isSelected}
                     >
-                        <span className="file-icon">📄</span>
+                        <span className="file-icon" aria-hidden="true">📄</span>
                         <div className="file-info">
                             <span className="file-name">{fileName}</span>
                             {dirPath && <span className="file-path">{dirPath}</span>}
