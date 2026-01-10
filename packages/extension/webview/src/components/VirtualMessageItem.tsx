@@ -3,7 +3,7 @@
  * Wraps ChatBubble with height measurement for virtual list
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
 import { ChatBubble } from './ChatBubble';
 import { setItemHeight } from '../hooks/useVirtualList';
 import type { ChatMessage } from '../types';
@@ -13,7 +13,7 @@ interface VirtualMessageItemProps {
     index: number;
 }
 
-export function VirtualMessageItem({ message, index }: VirtualMessageItemProps) {
+export const VirtualMessageItem = memo(function VirtualMessageItem({ message, index }: VirtualMessageItemProps) {
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -28,4 +28,4 @@ export function VirtualMessageItem({ message, index }: VirtualMessageItemProps) 
             <ChatBubble message={message} />
         </div>
     );
-}
+});
