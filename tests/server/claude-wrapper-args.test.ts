@@ -45,6 +45,10 @@ describe('ClaudeCodeWrapper spawn args', () => {
     const disallowedIndex = args.indexOf('--disallowed-tools');
     expect(disallowedIndex).toBeGreaterThan(-1);
     expect(args[disallowedIndex + 1]).toBe('AskUserQuestion');
+
+    const permissionPromptIndex = args.indexOf('--permission-prompt-tool');
+    expect(permissionPromptIndex).toBeGreaterThan(-1);
+    expect(args[permissionPromptIndex + 1]).toBe('stdio');
   });
 
   it('includes MAX_THINKING_TOKENS env and --include-partial-messages when maxThinkingTokens is set', async () => {
@@ -70,6 +74,11 @@ describe('ClaudeCodeWrapper spawn args', () => {
     // Verify args include --include-partial-messages
     const args = spawnMock.mock.calls[0][1] as string[];
     expect(args).toContain('--include-partial-messages');
+
+    // Verify args include --permission-prompt-tool stdio
+    const permissionPromptIndex = args.indexOf('--permission-prompt-tool');
+    expect(permissionPromptIndex).toBeGreaterThan(-1);
+    expect(args[permissionPromptIndex + 1]).toBe('stdio');
     
     // Verify env includes MAX_THINKING_TOKENS
     const options = spawnMock.mock.calls[0][2] as { env: Record<string, string | undefined> };

@@ -103,13 +103,10 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
         });
     }, []);
     
-    // Handle confirm/reject actions
-    const handleConfirm = useCallback((tc: ToolCall, approve: boolean) => {
-        if (approve) {
-            postMessage({ type: 'confirmBash', commandId: tc.id });
-        } else {
-            postMessage({ type: 'skipBash', commandId: tc.id });
-        }
+    // Handle confirm/reject actions using the unified confirmTool method
+    const handleConfirm = useCallback((tc: ToolCall, approve: boolean, options?: { trustAlways?: boolean; editedContent?: string }) => {
+        // Use confirmTool for all tool confirmations (including bash, file operations, etc.)
+        useStore.getState().confirmTool(tc.id, approve, options);
     }, []);
     
     if (steps.length === 0) return null;

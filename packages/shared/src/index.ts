@@ -37,6 +37,9 @@ export const ACPMethods = {
     // Server -> Client (Notifications)
     SESSION_UPDATE: 'session/update',
     SESSION_COMPLETE: 'session/complete',
+
+    // Agent -> Client (Requests - bidirectional)
+    SESSION_REQUEST_PERMISSION: 'session/request_permission',
 } as const;
 
 

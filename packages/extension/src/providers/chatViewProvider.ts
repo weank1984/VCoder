@@ -5,10 +5,11 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { EventEmitter } from 'events';
 import { ACPClient } from '../acp/client';
-import { UpdateNotificationParams } from '@vcoder/shared';
+import { UpdateNotificationParams, McpServerConfig } from '@vcoder/shared';
 
-export class ChatViewProvider implements vscode.WebviewViewProvider {
+export class ChatViewProvider extends EventEmitter implements vscode.WebviewViewProvider {
     private webviewView?: vscode.WebviewView;
     private readonly distRoot: vscode.Uri;
     private readonly debugThinking = process.env.VCODER_DEBUG_THINKING === '1';
@@ -17,10 +18,17 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         private context: vscode.ExtensionContext,
         private acpClient: ACPClient
     ) {
+        super();
         this.distRoot = vscode.Uri.joinPath(this.context.extensionUri, 'webview', 'dist');
 
         // Listen to ACP updates and forward to Webview
         this.acpClient.on('session/update', (params: UpdateNotificationParams) => {
+            // Validate params structure
+            if (!params?.type || !params?.sessionId) {
+                console.warn('[VCoder] Invalid session/update params, skipping:', params);
+                return;
+            }
+
             if (this.debugThinking) {
                 if (params.type === 'thought') {
                     const thought = params.content as { content?: string; isComplete?: boolean };
@@ -75,7 +83,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
             switch (message.type) {
                 case 'send':
                     if (!this.acpClient.getCurrentSession()) {
-                        const session = await this.acpClient.newSession();
+                        const mcpServers = this.getMcpServerConfig();
+                        const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                        const session = await this.acpClient.newSession(undefined, { cwd, mcpServers });
                         this.postMessage({ type: 'currentSession', data: { sessionId: session.id } });
                         this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() });
                     }
@@ -83,7 +93,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'newSession':
                     {
-                        const session = await this.acpClient.newSession(message.title);
+                        const mcpServers = this.getMcpServerConfig();
+                        const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                        const session = await this.acpClient.newSession(message.title, { cwd, mcpServers });
                         this.postMessage({ type: 'currentSession', data: { sessionId: session.id } });
                         this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() });
                         break;
@@ -280,6 +292,16 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                         }
                     }
                     break;
+                case 'permissionResponse':
+                    {
+                        // Forward to PermissionProvider via event
+                        this.emit('permissionResponse', {
+                            requestId: message.requestId,
+                            outcome: message.outcome,
+                            trustAlways: message.trustAlways,
+                        });
+                    }
+                    break;
             }
         });
     }
@@ -372,5 +394,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
             text += possible.charAt(Math.floor(Math.random() * possible.length));
         }
         return text;
+    }
+
+    /**
+     * Get MCP server configuration from VSCode settings.
+     */
+    private getMcpServerConfig(): McpServerConfig[] {
+        const config = vscode.workspace.getConfiguration('vcoder');
+        const servers = config.get<McpServerConfig[]>('mcpServers', []);
+        return servers;
     }
 }

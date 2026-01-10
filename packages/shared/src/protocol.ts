@@ -37,11 +37,39 @@ export interface JsonRpcError {
 // ACP Initialize
 // =============================================================================
 
+/**
+ * Client capabilities for ACP capability negotiation.
+ * When enabled, agent will disable built-in tools and use mcp__acp__* proxy tools.
+ */
+export interface ClientCapabilities {
+    /** File system capabilities */
+    fs?: {
+        /** Client can handle fs/readTextFile requests */
+        readTextFile?: boolean;
+        /** Client can handle fs/writeTextFile requests (with diff review) */
+        writeTextFile?: boolean;
+    };
+    /** Client can handle terminal/* requests (create/output/kill/etc.) */
+    terminal?: boolean;
+    /** Editor capabilities (optional extensions) */
+    editor?: {
+        /** Client can handle editor/openFile requests */
+        openFile?: boolean;
+        /** Client can handle editor/getSelection requests */
+        getSelection?: boolean;
+    };
+}
+
 export interface InitializeParams {
+    /** Protocol version (1 for V0.2) */
+    protocolVersion: number;
     clientInfo: {
         name: string;
         version: string;
     };
+    /** Client capabilities for capability negotiation (V0.2) */
+    clientCapabilities?: ClientCapabilities;
+    /** Legacy UI capabilities (V0.1) */
     capabilities: {
         streaming: boolean;
         diffPreview: boolean;
@@ -76,12 +104,45 @@ export interface Session {
     updatedAt: string;
 }
 
+/**
+ * MCP Server configuration for agent injection.
+ */
+export interface McpServerConfig {
+    /** Server type: stdio, http, or sse */
+    type: 'stdio' | 'http' | 'sse';
+    /** Server URL (for http/sse) */
+    url?: string;
+    /** Command to start server (for stdio) */
+    command?: string;
+    /** Arguments for command (for stdio) */
+    args?: string[];
+    /** Environment variables (for stdio) */
+    env?: Record<string, string>;
+    /** Server name/identifier */
+    name?: string;
+}
+
 export interface NewSessionParams {
     title?: string;
+    /** Working directory for the session (V0.2) */
+    cwd?: string;
+    /** MCP servers to inject into agent (V0.2) */
+    mcpServers?: McpServerConfig[];
 }
 
 export interface NewSessionResult {
-    session: Session;
+    /** Legacy format */
+    session?: Session;
+    /** New format from Claude Code CLI */
+    sessionId?: string;
+    /** Available models */
+    models?: {
+        availableModels?: Array<{
+            modelId: string;
+            name: string;
+            description?: string;
+        }>;
+    };
 }
 
 export interface ListSessionsResult {
@@ -447,3 +508,159 @@ export interface HistoryDeleteParams {
 export interface HistoryDeleteResult {
     deleted: boolean;
 }
+
+// =============================================================================
+// V0.2: Structured Permission Protocol
+// =============================================================================
+
+/**
+ * Permission request from agent to client (bidirectional JSON-RPC).
+ * Replaces TTY-based y/n prompts for headless mode compatibility.
+ */
+export interface RequestPermissionParams {
+    sessionId: string;
+    /** Unique ID for this tool call */
+    toolCallId: string;
+    /** Tool name requesting permission */
+    toolName: string;
+    /** Tool input (for display/risk assessment) */
+    toolInput: Record<string, unknown>;
+    /** Optional metadata for UI */
+    metadata?: {
+        /** Risk level assessment */
+        riskLevel?: 'low' | 'medium' | 'high';
+        /** Human-readable summary */
+        summary?: string;
+        /** Command to execute (for terminal tools) */
+        command?: string;
+        /** File path (for file tools) */
+        filePath?: string;
+    };
+}
+
+export interface RequestPermissionResult {
+    /** Permission outcome */
+    outcome: 'allow' | 'deny';
+    /** Optional reason for denial */
+    reason?: string;
+    /** Updated permission rules (if "Always allow" selected) */
+    updatedRules?: {
+        /** Tools/patterns to always allow */
+        allowAlways?: string[];
+    };
+}
+
+// =============================================================================
+// V0.2: ACP Terminal Capabilities (node-pty based)
+// =============================================================================
+
+export interface TerminalCreateParams {
+    /** Command to execute */
+    command: string;
+    /** Command arguments */
+    args?: string[];
+    /** Working directory */
+    cwd?: string;
+    /** Environment variables */
+    env?: Record<string, string>;
+}
+
+export interface TerminalCreateResult {
+    /** Unique terminal ID */
+    terminalId: string;
+}
+
+export interface TerminalOutputParams {
+    terminalId: string;
+    /** Maximum bytes to return (for truncation) */
+    outputByteLimit?: number;
+}
+
+export interface TerminalOutputResult {
+    /** Incremental output since last call */
+    output: string;
+    /** Exit code if process completed */
+    exitCode?: number;
+    /** Signal if process was killed */
+    signal?: string;
+    /** Whether output was truncated */
+    truncated?: boolean;
+}
+
+export interface TerminalWaitForExitParams {
+    terminalId: string;
+}
+
+export interface TerminalWaitForExitResult {
+    exitCode: number;
+    signal?: string;
+}
+
+export interface TerminalKillParams {
+    terminalId: string;
+    /** Signal to send (default: SIGTERM) */
+    signal?: string;
+}
+
+export interface TerminalReleaseParams {
+    terminalId: string;
+}
+
+// =============================================================================
+// V0.2: ACP File System Capabilities
+// =============================================================================
+
+export interface FsReadTextFileParams {
+    /** Session ID for permission tracking */
+    sessionId: string;
+    /** File path (workspace-relative or absolute) */
+    path: string;
+    /** Optional: start line (1-indexed) */
+    line?: number;
+    /** Optional: max lines to read */
+    limit?: number;
+}
+
+export interface FsReadTextFileResult {
+    /** File content (full or sliced) */
+    content: string;
+    /** Whether content was truncated */
+    truncated?: boolean;
+}
+
+export interface FsWriteTextFileParams {
+    /** Session ID for permission tracking */
+    sessionId: string;
+    /** File path (workspace-relative or absolute) */
+    path: string;
+    /** New file content */
+    content: string;
+}
+
+export interface FsWriteTextFileResult {
+    /** Write success */
+    success: boolean;
+    /** Optional error message */
+    error?: string;
+}
+
+// =============================================================================
+// V0.2: Agent Profile Configuration
+// =============================================================================
+
+/**
+ * Agent profile for multi-agent support.
+ */
+export interface AgentProfile {
+    /** Unique profile ID */
+    id: string;
+    /** Display name */
+    name: string;
+    /** Command to start agent */
+    command: string;
+    /** Command arguments */
+    args?: string[];
+    /** Environment variables */
+    env?: Record<string, string>;
+}
+

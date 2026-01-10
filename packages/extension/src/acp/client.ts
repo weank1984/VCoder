@@ -10,6 +10,7 @@ import {
     JsonRpcRequest,
     JsonRpcResponse,
     JsonRpcNotification,
+    JsonRpcError,
     ACPMethods,
     InitializeParams,
     InitializeResult,
@@ -36,8 +37,12 @@ export class ACPClient extends EventEmitter {
         reject: (error: Error) => void;
     }> = new Map();
 
+    // Handler for agent->client requests
+    private requestHandlers: Map<string, (params: unknown) => Promise<unknown>> = new Map();
+
     private currentSession: Session | null = null;
     private desiredSettings: Pick<SettingsChangeParams, 'model' | 'planMode' | 'permissionMode' | 'maxThinkingTokens'> = {};
+    private writeCallback: ((line: string) => void) | null = null;
 
     constructor(private stdio: { stdin: Writable; stdout: Readable }) {
         super();
@@ -55,21 +60,34 @@ export class ACPClient extends EventEmitter {
         const rl = createInterface({ input: this.stdio.stdout });
 
         rl.on('line', (line) => {
-            try {
-                const message = JSON.parse(line);
-                console.log('[ACPClient] Received:', JSON.stringify(message).slice(0, 200));
-
-                if ('id' in message && message.id !== null) {
-                    // Response
-                    this.handleResponse(message as JsonRpcResponse);
-                } else if ('method' in message) {
-                    // Notification
-                    this.handleNotification(message as JsonRpcNotification);
-                }
-            } catch (err) {
-                console.error('[ACPClient] Error parsing message:', err);
-            }
+            this.handleMessage(line);
         });
+    }
+
+    /**
+     * Handle incoming message line from agent.
+     * Can be called externally when bridging with AgentProcessManager.
+     */
+    handleMessage(line: string): void {
+        try {
+            const message = JSON.parse(line);
+            console.log('[ACPClient] Received:', JSON.stringify(message).slice(0, 200));
+
+            if ('id' in message && message.id !== null) {
+                if ('method' in message) {
+                    // This is a request from agent to client
+                    void this.handleAgentRequest(message as JsonRpcRequest);
+                } else {
+                    // This is a response to our request
+                    this.handleResponse(message as JsonRpcResponse);
+                }
+            } else if ('method' in message) {
+                // Notification
+                this.handleNotification(message as JsonRpcNotification);
+            }
+        } catch (err) {
+            console.error('[ACPClient] Error parsing message:', err);
+        }
     }
 
     private handleResponse(response: JsonRpcResponse): void {
@@ -87,11 +105,84 @@ export class ACPClient extends EventEmitter {
     private handleNotification(notification: JsonRpcNotification): void {
         switch (notification.method) {
             case ACPMethods.SESSION_UPDATE:
-                this.emit('session/update', notification.params as UpdateNotificationParams);
+                {
+                    const params = notification.params as any;
+                    // Handle legacy update format with 'update' field instead of 'type'
+                    if (params?.update) {
+                        console.log('[ACPClient] Ignoring legacy update format:', params.update.sessionUpdate);
+                        return;
+                    }
+                    // Standard format: { sessionId, type, content }
+                    this.emit('session/update', params as UpdateNotificationParams);
+                }
                 break;
             case ACPMethods.SESSION_COMPLETE:
                 this.emit('session/complete', notification.params as SessionCompleteParams);
                 break;
+        }
+    }
+
+    /**
+     * Handle request from agent to client (bidirectional JSON-RPC).
+     */
+    private async handleAgentRequest(request: JsonRpcRequest): Promise<void> {
+        const handler = this.requestHandlers.get(request.method);
+        
+        if (!handler) {
+            console.warn(`[ACPClient] No handler registered for agent request: ${request.method}`);
+            this.sendError(request.id, {
+                code: -32601,
+                message: `Method not found: ${request.method}`,
+            });
+            return;
+        }
+
+        try {
+            const result = await handler(request.params);
+            this.sendResponse(request.id, result);
+        } catch (error) {
+            console.error(`[ACPClient] Error handling agent request ${request.method}:`, error);
+            this.sendError(request.id, {
+                code: -32603,
+                message: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }
+
+    /**
+     * Send response to agent request.
+     */
+    private sendResponse(id: number | string, result: unknown): void {
+        const response: JsonRpcResponse = {
+            jsonrpc: '2.0',
+            id,
+            result,
+        };
+        this.write(JSON.stringify(response));
+    }
+
+    /**
+     * Send error response to agent request.
+     */
+    private sendError(id: number | string, error: JsonRpcError): void {
+        const response: JsonRpcResponse = {
+            jsonrpc: '2.0',
+            id,
+            error,
+        };
+        this.write(JSON.stringify(response));
+    }
+
+    /**
+     * Write a message to the agent.
+     */
+    private write(line: string): void {
+        const data = line.endsWith('\n') ? line : line + '\n';
+        
+        if (this.writeCallback) {
+            this.writeCallback(data);
+        } else {
+            this.stdio.stdin.write(data, 'utf-8');
         }
     }
 
@@ -108,21 +199,61 @@ export class ACPClient extends EventEmitter {
             this.pendingRequests.set(id, { resolve: resolve as (v: unknown) => void, reject });
             const requestStr = JSON.stringify(request);
             console.log('[ACPClient] Sending:', requestStr.slice(0, 200));
-            this.stdio.stdin.write(requestStr + '\n');
+            this.write(requestStr);
         });
     }
 
     // Public API
 
+    /**
+     * Register a handler for agent->client requests.
+     */
+    registerRequestHandler(method: string, handler: (params: unknown) => Promise<unknown>): void {
+        console.log(`[ACPClient] Registering request handler for: ${method}`);
+        this.requestHandlers.set(method, handler);
+    }
+
+    /**
+     * Set callback for writing to agent (used when bridging with AgentProcessManager).
+     */
+    setWriteCallback(callback: (line: string) => void): void {
+        this.writeCallback = callback;
+    }
+
     async initialize(params: InitializeParams): Promise<InitializeResult> {
         return this.sendRequest<InitializeResult>(ACPMethods.INITIALIZE, params);
     }
 
-    async newSession(title?: string): Promise<Session> {
-        const result = await this.sendRequest<NewSessionResult>(ACPMethods.SESSION_NEW, { title });
-        this.currentSession = result.session;
+    async newSession(title?: string, params?: { cwd?: string; mcpServers?: any[] }): Promise<Session> {
+        const sessionParams = {
+            title,
+            ...(params?.cwd && { cwd: params.cwd }),
+            ...(params?.mcpServers && { mcpServers: params.mcpServers }),
+        };
+        const result = await this.sendRequest<any>(ACPMethods.SESSION_NEW, sessionParams);
+        
+        // Handle both response formats:
+        // - New format: { sessionId, models, ... }
+        // - Old format: { session: { id, title, ... } }
+        let session: Session;
+        if (result.session) {
+            // Old format
+            session = result.session;
+        } else if (result.sessionId) {
+            // New format
+            session = {
+                id: result.sessionId,
+                title: title || 'New Session',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            };
+        } else {
+            throw new Error('Invalid session/new response format');
+        }
+        
+        this.currentSession = session;
         await this.syncDesiredSettings();
-        return result.session;
+        return session;
     }
 
     async listSessions(): Promise<Session[]> {

@@ -5,14 +5,20 @@
 
 import * as vscode from 'vscode';
 import { ServerManager } from './services/serverManager';
+import { PermissionProvider } from './services/permissionProvider';
+import { TerminalProvider } from './services/terminalProvider';
+import { FileSystemProvider } from './services/fileSystemProvider';
 import { ACPClient } from './acp/client';
 import { ChatViewProvider } from './providers/chatViewProvider';
 import { DiffManager } from './services/diffManager';
 import { VCoderFileDecorationProvider } from './providers/fileDecorationProvider';
-import { FileChangeUpdate, UpdateNotificationParams, InitializeParams } from '@vcoder/shared';
+import { FileChangeUpdate, UpdateNotificationParams, InitializeParams, ACPMethods, McpServerConfig } from '@vcoder/shared';
 
 let serverManager: ServerManager;
 let acpClient: ACPClient;
+let permissionProvider: PermissionProvider;
+let terminalProvider: TerminalProvider;
+let fileSystemProvider: FileSystemProvider;
 let statusBarItem: vscode.StatusBarItem;
 let outputChannel: vscode.OutputChannel;
 let clientInitParams: InitializeParams;
@@ -20,7 +26,7 @@ let clientInitParams: InitializeParams;
 export async function activate(context: vscode.ExtensionContext) {
     console.log('[VCoder] Activating extension...');
 
-    // 1. Start Agent Server
+    // 1. Start bundled VCoder server (implements VCoder ACP methods like session/* and history/*)
     serverManager = new ServerManager(context);
     
     // Status Bar initialization
@@ -47,18 +53,50 @@ export async function activate(context: vscode.ExtensionContext) {
     try {
         await serverManager.start();
         console.log('[VCoder] Server started');
+        outputChannel.appendLine('[VCoder] Server started');
     } catch (err) {
-        vscode.window.showErrorMessage('VCoder: Failed to start server. Check if dependencies are installed.');
+        vscode.window.showErrorMessage('VCoder: Failed to start server. Check logs for details.');
         console.error('[VCoder] Server start error:', err);
         // Don't return, let the user try to restart via status bar
     }
 
-    // 2. Initialize ACP Client
-    acpClient = new ACPClient(serverManager.getStdio());
+    // 2. Initialize ACP Client over the server stdio (or a safe stub if server isn't running yet)
+    if (serverManager.getStatus() === 'running') {
+        const { stdin, stdout } = serverManager.getStdio();
+        acpClient = new ACPClient({ stdin, stdout });
+    } else {
+        acpClient = new ACPClient({ stdin: process.stdin, stdout: process.stdout });
+        acpClient.setWriteCallback(() => {
+            throw new Error('VCoder server is not running');
+        });
+    }
+
+    // 3. Initialize Terminal Provider (M2)
+    terminalProvider = new TerminalProvider(context);
+    context.subscriptions.push({
+        dispose: () => terminalProvider.dispose()
+    });
+
+    // 4. Initialize FileSystem Provider (M3)
+    fileSystemProvider = new FileSystemProvider(context);
+    context.subscriptions.push({
+        dispose: () => fileSystemProvider.dispose()
+    });
+
     clientInitParams = {
+        protocolVersion: 1, // V0.2 uses protocol version 1
         clientInfo: {
             name: 'vcoder-vscode',
-            version: '0.1.0',
+            version: '0.2.0',
+        },
+        clientCapabilities: {
+            // M2: Terminal capability enabled
+            terminal: true,
+            // M3: File capabilities enabled
+            fs: {
+                readTextFile: true,
+                writeTextFile: true,
+            },
         },
         capabilities: {
             streaming: true,
@@ -70,7 +108,11 @@ export async function activate(context: vscode.ExtensionContext) {
         },
         workspaceFolders: vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath) || [],
     };
-    await acpClient.initialize(clientInitParams);
+    if (serverManager.getStatus() === 'running') {
+        await acpClient.initialize(clientInitParams);
+    } else {
+        outputChannel.appendLine('[VCoder] Server not running; will initialize when it restarts');
+    }
 
     // 2.1 Register diff preview provider & confirmation flows
     const diffManager = new DiffManager(acpClient);
@@ -86,6 +128,12 @@ export async function activate(context: vscode.ExtensionContext) {
     acpClient.on('session/update', (params: UpdateNotificationParams) => {
         // Fire-and-forget async handlers
         void (async () => {
+            // Ensure params has expected structure
+            if (!params?.type || !params?.sessionId) {
+                console.warn('[VCoder] Invalid session/update params:', params);
+                return;
+            }
+
             if (params.type === 'file_change') {
                 const change = params.content as FileChangeUpdate;
                 fileDecorator.updateFile(change);
@@ -145,6 +193,45 @@ export async function activate(context: vscode.ExtensionContext) {
         console.error('[VCoder] Failed to register webview view provider:', err);
     }
 
+    // 3.1 Initialize Permission Provider and register handler
+    permissionProvider = new PermissionProvider(chatProvider);
+    acpClient.registerRequestHandler(
+        ACPMethods.SESSION_REQUEST_PERMISSION,
+        (params: unknown) => permissionProvider.handlePermissionRequest(params as any)
+    );
+
+    // 3.2 Register Terminal handlers (M2)
+    acpClient.registerRequestHandler(
+        'terminal/create',
+        (params: unknown) => terminalProvider.createTerminal(params as any)
+    );
+    acpClient.registerRequestHandler(
+        'terminal/output',
+        (params: unknown) => terminalProvider.getTerminalOutput(params as any)
+    );
+    acpClient.registerRequestHandler(
+        'terminal/wait_for_exit',
+        (params: unknown) => terminalProvider.waitForExit(params as any)
+    );
+    acpClient.registerRequestHandler(
+        'terminal/kill',
+        (params: unknown) => terminalProvider.killTerminal(params as any)
+    );
+    acpClient.registerRequestHandler(
+        'terminal/release',
+        (params: unknown) => terminalProvider.releaseTerminal(params as any)
+    );
+
+    // 3.3 Register FileSystem handlers (M3)
+    acpClient.registerRequestHandler(
+        'fs/readTextFile',
+        (params: unknown) => fileSystemProvider.readTextFile(params as any)
+    );
+    acpClient.registerRequestHandler(
+        'fs/writeTextFile',
+        (params: unknown) => fileSystemProvider.writeTextFile(params as any)
+    );
+
     // Best-effort: open the view container so the view can resolve.
     void vscode.commands
         .executeCommand('workbench.view.extension.vcoder')
@@ -160,7 +247,11 @@ export async function activate(context: vscode.ExtensionContext) {
     // 5. Register Commands
     context.subscriptions.push(
         vscode.commands.registerCommand('vcoder.newChat', async () => {
-            await acpClient.newSession();
+            // Get MCP server configuration
+            const mcpServers = getMcpServerConfig();
+            const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            
+            await acpClient.newSession(undefined, { cwd, mcpServers });
             chatProvider.refresh();
         }),
 
@@ -323,8 +414,21 @@ function updateStatusBar(status: string) {
     statusBarItem.show();
 }
 
+/**
+ * Get MCP server configuration from VSCode settings.
+ */
+function getMcpServerConfig(): McpServerConfig[] {
+    const config = vscode.workspace.getConfiguration('vcoder');
+    const servers = config.get<McpServerConfig[]>('mcpServers', []);
+    
+    console.log('[VCoder] Loaded MCP server config:', servers);
+    return servers;
+}
+
 export async function deactivate() {
     console.log('[VCoder] Deactivating extension...');
+    await fileSystemProvider?.dispose();
+    await terminalProvider?.dispose();
     await acpClient?.shutdown();
     await serverManager?.stop();
 }

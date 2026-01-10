@@ -14,6 +14,7 @@ import { InputArea } from './components/InputArea';
 import { HistoryPanel } from './components/HistoryPanel';
 import { JumpToBottom } from './components/JumpToBottom';
 import { Welcome } from './components/Welcome';
+import { PermissionDialog, type PermissionRequest } from './components/PermissionDialog';
 import { postMessage } from './utils/vscode';
 import type { ExtensionMessage } from './types';
 import './styles/index.scss';
@@ -25,6 +26,7 @@ const ESTIMATED_MESSAGE_HEIGHT = 120;
 
 function App() {
   const [showHistory, setShowHistory] = useState(false);
+  const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null);
 
   const {
     currentSessionId,
@@ -134,6 +136,9 @@ function App() {
         case 'uiLanguage':
           setUiLanguage(message.data.uiLanguage, 'extension');
           break;
+        case 'permissionRequest':
+          setPermissionRequest(message.data);
+          break;
       }
     };
 
@@ -230,10 +235,15 @@ function App() {
         </div>
       )}
 
-  <HistoryPanel
+      <HistoryPanel
         historySessions={historySessions}
         visible={showHistory}
         onClose={() => setShowHistory(false)}
+      />
+
+      <PermissionDialog 
+        request={permissionRequest}
+        onClose={() => setPermissionRequest(null)}
       />
 
       <InputArea />

@@ -65,6 +65,27 @@ export class ClaudeCodeWrapper extends EventEmitter {
     private receivedStreamingTextByLocalSessionId: Map<string, boolean> = new Map();
     private readonly debugThinking = process.env.VCODER_DEBUG_THINKING === '1';
     private lastToolIdByLocalSessionId: Map<string, string> = new Map();
+    private readonly pendingCanUseToolByToolCallKey: Map<
+        string,
+        {
+            requestId: string;
+            toolCallId: string;
+            toolName: string;
+            toolInput: Record<string, unknown>;
+            suggestions?: unknown;
+        }
+    > = new Map();
+    private readonly seenCanUseToolByLocalSessionId: Set<string> = new Set();
+    
+    // Promise resolvers for pending permission confirmations
+    // This allows handleControlRequest to block until user confirms/denies
+    private readonly pendingConfirmationResolvers: Map<
+        string,
+        {
+            resolve: () => void;
+            reject: (error: Error) => void;
+        }
+    > = new Map();
     
     
     // Persistent sessions for bidirectional streaming
@@ -137,7 +158,11 @@ export class ClaudeCodeWrapper extends EventEmitter {
             '--input-format',
             'stream-json',
             '--verbose',
-            '--include-partial-messages'
+            '--include-partial-messages',
+            // Enable structured permission prompts over stdio so we can block on UI approval
+            // via control_request(can_use_tool) / control_response.
+            '--permission-prompt-tool',
+            'stdio',
         ];
 
         if (this.settings.model) {
@@ -250,6 +275,16 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
                 this.receivedStreamingTextByLocalSessionId.delete(sessionId);
                 this.lastToolIdByLocalSessionId.delete(sessionId);
+                this.seenCanUseToolByLocalSessionId.delete(sessionId);
+                
+                // Clean up any pending confirmation promises for this session
+                for (const [key, resolver] of this.pendingConfirmationResolvers.entries()) {
+                    if (key.startsWith(`${sessionId}:`)) {
+                        resolver.resolve();
+                        this.pendingConfirmationResolvers.delete(key);
+                        this.pendingCanUseToolByToolCallKey.delete(key);
+                    }
+                }
             });
              child.on('error', (err) => {
                 this.processesByLocalSessionId.delete(sessionId);
@@ -257,6 +292,16 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
                 this.receivedStreamingTextByLocalSessionId.delete(sessionId);
                 this.lastToolIdByLocalSessionId.delete(sessionId);
+                this.seenCanUseToolByLocalSessionId.delete(sessionId);
+                
+                // Clean up any pending confirmation promises for this session
+                for (const [key, resolver] of this.pendingConfirmationResolvers.entries()) {
+                    if (key.startsWith(`${sessionId}:`)) {
+                        resolver.resolve();
+                        this.pendingConfirmationResolvers.delete(key);
+                        this.pendingCanUseToolByToolCallKey.delete(key);
+                    }
+                }
                 reject(err);
             });
         });
@@ -359,22 +404,34 @@ export class ClaudeCodeWrapper extends EventEmitter {
             stderrTail = (stderrTail + text).slice(-8000);
             console.error(`[ClaudeCode stderr]`, text);
 
+            // If the CLI supports protocol-level can_use_tool, ignore stderr heuristics to avoid
+            // showing an approval UI after the tool already failed.
+            const allowStderrPermissionHeuristics = !this.seenCanUseToolByLocalSessionId.has(sessionId);
+
             // Detect permission requests in stderr
-            const lastToolId = this.lastToolIdByLocalSessionId.get(sessionId);
-            if (lastToolId) {
-                const toolName = this.toolNameByIdByLocalSessionId.get(sessionId)?.get(lastToolId);
-                const permissionRequest = this.detectPermissionRequest(text, toolName);
-                if (permissionRequest) {
-                    // Emit confirmation_request
-                    const confirmUpdate: ConfirmationRequestUpdate = {
-                        id: `confirm-${lastToolId}-${Date.now()}`,
-                        type: permissionRequest.type,
-                        toolCallId: lastToolId,
-                        summary: permissionRequest.summary,
-                        details: permissionRequest.details,
-                    };
-                    this.emit('update', sessionId, confirmUpdate, 'confirmation_request');
-                    console.error(`[ClaudeCode] Permission request detected via stderr for tool ${lastToolId}: ${permissionRequest.summary}`);
+            if (allowStderrPermissionHeuristics) {
+                const lastToolId = this.lastToolIdByLocalSessionId.get(sessionId);
+                if (lastToolId) {
+                    // If we're already handling a protocol-level can_use_tool request for this tool,
+                    // ignore any best-effort stderr parsing to avoid duplicate prompts.
+                    if (!this.pendingCanUseToolByToolCallKey.has(`${sessionId}:${lastToolId}`)) {
+                        const toolName = this.toolNameByIdByLocalSessionId.get(sessionId)?.get(lastToolId);
+                        const permissionRequest = this.detectPermissionRequest(text, toolName);
+                        if (permissionRequest) {
+                            // Emit confirmation_request
+                            const confirmUpdate: ConfirmationRequestUpdate = {
+                                id: `confirm-${lastToolId}-${Date.now()}`,
+                                type: permissionRequest.type,
+                                toolCallId: lastToolId,
+                                summary: permissionRequest.summary,
+                                details: permissionRequest.details,
+                            };
+                            this.emit('update', sessionId, confirmUpdate, 'confirmation_request');
+                            console.error(
+                                `[ClaudeCode] Permission request detected via stderr for tool ${lastToolId}: ${permissionRequest.summary}`
+                            );
+                        }
+                    }
                 }
             }
 
@@ -440,6 +497,32 @@ export class ClaudeCodeWrapper extends EventEmitter {
         const type = event.type as string;
 
         switch (type) {
+            case 'stream_event': {
+                const inner =
+                    (event.event as Record<string, unknown> | undefined) ??
+                    (event.data as Record<string, unknown> | undefined) ??
+                    (event.stream_event as Record<string, unknown> | undefined) ??
+                    undefined;
+                if (inner && typeof inner === 'object') {
+                    this.handleClaudeCodeEvent(sessionId, inner);
+                } else if (typeof event.event === 'string') {
+                    try {
+                        const parsed = JSON.parse(event.event) as Record<string, unknown>;
+                        this.handleClaudeCodeEvent(sessionId, parsed);
+                    } catch {
+                        // ignore
+                    }
+                }
+                break;
+            }
+
+            case 'control_request': {
+                void this.handleControlRequest(sessionId, event).catch((err) => {
+                    console.error('[ClaudeCode] Failed handling control_request:', err);
+                });
+                break;
+            }
+
             case 'system': {
                 // Init event, log but don't emit
                 console.error('[ClaudeCode] System event:', event.subtype);
@@ -652,6 +735,178 @@ export class ClaudeCodeWrapper extends EventEmitter {
         }
     }
 
+    private async handleControlRequest(sessionId: string, event: Record<string, unknown>): Promise<void> {
+        const requestId = event.request_id as string | undefined;
+        const request = event.request as Record<string, unknown> | undefined;
+        const subtype = request?.subtype as string | undefined;
+
+        if (!requestId || !request || !subtype) {
+            return;
+        }
+
+        if (subtype !== 'can_use_tool') {
+            // Best-effort: immediately ack unknown control requests so we don't hang.
+            this.sendControlResponse(sessionId, requestId, {});
+            return;
+        }
+
+        this.seenCanUseToolByLocalSessionId.add(sessionId);
+
+        const toolName = (request.tool_name as string | undefined) ?? 'Tool';
+        const toolInput = (request.input as Record<string, unknown> | undefined) ?? {};
+        const suggestions = request.permission_suggestions ?? request.suggestions;
+        const toolCallId =
+            (request.tool_use_id as string | undefined) ??
+            (request.toolUseID as string | undefined) ??
+            this.lastToolIdByLocalSessionId.get(sessionId) ??
+            requestId;
+
+        const key = `${sessionId}:${toolCallId}`;
+        this.pendingCanUseToolByToolCallKey.set(key, { requestId, toolCallId, toolName, toolInput, suggestions });
+
+        // Ensure the tool appears in UI even if tool_use was missed.
+        this.emitToolUse(sessionId, toolName, toolInput, toolCallId);
+
+        // Emit a structured confirmation request so the webview can block until user decides.
+        const confirmUpdate = this.buildConfirmationRequestUpdate(toolCallId, toolName, toolInput);
+        this.emit('update', sessionId, confirmUpdate, 'confirmation_request');
+
+        // Block until user confirms or denies in the UI.
+        // The confirmTool method will resolve this promise when user makes a decision.
+        return new Promise<void>((resolve, reject) => {
+            this.pendingConfirmationResolvers.set(key, { resolve, reject });
+
+            // Timeout after 10 minutes to prevent indefinite blocking
+            const timeoutId = setTimeout(() => {
+                if (this.pendingConfirmationResolvers.has(key)) {
+                    console.warn(`[ClaudeCode] Permission confirmation timed out for ${toolCallId}`);
+                    this.pendingConfirmationResolvers.delete(key);
+                    this.pendingCanUseToolByToolCallKey.delete(key);
+                    // Send deny response on timeout
+                    this.sendControlResponse(sessionId, requestId, {
+                        behavior: 'deny',
+                        message: 'Permission confirmation timed out',
+                        interrupt: true,
+                    });
+                    resolve();
+                }
+            }, 10 * 60 * 1000);
+
+            // Store timeout ID for cleanup
+            const originalResolver = this.pendingConfirmationResolvers.get(key)!;
+            this.pendingConfirmationResolvers.set(key, {
+                resolve: () => {
+                    clearTimeout(timeoutId);
+                    originalResolver.resolve();
+                },
+                reject: (error: Error) => {
+                    clearTimeout(timeoutId);
+                    originalResolver.reject(error);
+                },
+            });
+        });
+    }
+
+    private sendControlResponse(sessionId: string, requestId: string, response: unknown): void {
+        const process = this.processesByLocalSessionId.get(sessionId);
+        if (!process?.stdin || process.stdin.destroyed || process.stdin.writableEnded) {
+            console.warn(`[ClaudeCode] sendControlResponse: no stdin for session ${sessionId}`);
+            return;
+        }
+
+        const payload = {
+            type: 'control_response',
+            response: {
+                subtype: 'success',
+                request_id: requestId,
+                response,
+            },
+        };
+        process.stdin.write(JSON.stringify(payload) + '\n');
+    }
+
+    private buildConfirmationRequestUpdate(
+        toolCallId: string,
+        toolName: string,
+        toolInput: Record<string, unknown>
+    ): ConfirmationRequestUpdate {
+        const lower = toolName.toLowerCase();
+
+        if (lower === 'bash' || lower.includes('bash')) {
+            const command =
+                (typeof toolInput.command === 'string' && toolInput.command) ||
+                (typeof toolInput.cmd === 'string' && toolInput.cmd) ||
+                '';
+            return {
+                id: `confirm-${toolCallId}-${Date.now()}`,
+                type: 'bash',
+                toolCallId,
+                summary: `执行命令需要权限确认: ${command.slice(0, 60)}${command.length > 60 ? '...' : ''}`,
+                details: {
+                    command,
+                    riskLevel: this.assessBashRisk(command),
+                    riskReasons: this.getBashRiskReasons(command),
+                },
+            };
+        }
+
+        if (lower === 'write' || lower === 'edit' || lower.includes('write') || lower.includes('edit')) {
+            const filePath =
+                (typeof toolInput.file_path === 'string' && toolInput.file_path) ||
+                (typeof toolInput.path === 'string' && toolInput.path) ||
+                '';
+            return {
+                id: `confirm-${toolCallId}-${Date.now()}`,
+                type: 'file_write',
+                toolCallId,
+                summary: filePath ? `写入文件需要权限确认: ${filePath}` : '写入文件需要权限确认',
+                details: {
+                    filePath,
+                    riskLevel: 'medium',
+                },
+            };
+        }
+
+        if (lower.includes('delete') || lower.includes('remove')) {
+            const filePath =
+                (typeof toolInput.file_path === 'string' && toolInput.file_path) ||
+                (typeof toolInput.path === 'string' && toolInput.path) ||
+                '';
+            return {
+                id: `confirm-${toolCallId}-${Date.now()}`,
+                type: 'file_delete',
+                toolCallId,
+                summary: filePath ? `删除文件需要权限确认: ${filePath}` : '删除文件需要权限确认',
+                details: {
+                    filePath,
+                    riskLevel: 'high',
+                },
+            };
+        }
+
+        if (lower.startsWith('mcp__') || lower.startsWith('mcp_')) {
+            return {
+                id: `confirm-${toolCallId}-${Date.now()}`,
+                type: 'mcp',
+                toolCallId,
+                summary: `MCP 工具调用需要权限确认: ${toolName}`,
+                details: {
+                    riskLevel: 'medium',
+                },
+            };
+        }
+
+        return {
+            id: `confirm-${toolCallId}-${Date.now()}`,
+            type: 'dangerous',
+            toolCallId,
+            summary: `工具调用需要权限确认: ${toolName}`,
+            details: {
+                riskLevel: 'medium',
+            },
+        };
+    }
+
     private formatToolError(result: unknown): string {
         if (typeof result === 'string' && result.trim().length > 0) return result;
         try {
@@ -708,20 +963,27 @@ export class ClaudeCodeWrapper extends EventEmitter {
             error = undefined;
         }
         
-        // Detect permission requests in tool results
-        const permissionRequest = this.detectPermissionRequest(result, toolName);
-        if (permissionRequest) {
-            // Emit confirmation_request instead of tool_result
-            const confirmUpdate: ConfirmationRequestUpdate = {
-                id: `confirm-${toolId}-${Date.now()}`,
-                type: permissionRequest.type,
-                toolCallId: toolId,
-                summary: permissionRequest.summary,
-                details: permissionRequest.details,
-            };
-            this.emit('update', sessionId, confirmUpdate, 'confirmation_request');
-            console.error(`[ClaudeCode] Permission request detected for tool ${toolId}: ${permissionRequest.summary}`);
-            return; // Don't emit tool_result for permission requests
+        // Detect permission requests in tool results (fallback only).
+        // When can_use_tool is available, tool permission should be handled through control_request/control_response.
+        if (!this.seenCanUseToolByLocalSessionId.has(sessionId)) {
+            if (!this.pendingCanUseToolByToolCallKey.has(`${sessionId}:${toolId}`)) {
+                const permissionRequest = this.detectPermissionRequest(result, toolName);
+                if (permissionRequest) {
+                    // Emit confirmation_request instead of tool_result
+                    const confirmUpdate: ConfirmationRequestUpdate = {
+                        id: `confirm-${toolId}-${Date.now()}`,
+                        type: permissionRequest.type,
+                        toolCallId: toolId,
+                        summary: permissionRequest.summary,
+                        details: permissionRequest.details,
+                    };
+                    this.emit('update', sessionId, confirmUpdate, 'confirmation_request');
+                    console.error(
+                        `[ClaudeCode] Permission request detected for tool ${toolId}: ${permissionRequest.summary}`
+                    );
+                    return; // Don't emit tool_result for permission requests
+                }
+            }
         }
         
         const update: ToolResultUpdate = {
@@ -1091,72 +1353,21 @@ export class ClaudeCodeWrapper extends EventEmitter {
     }
 
     async confirmBash(sessionId: string, _commandId: string): Promise<void> {
-        // Bash confirmation in stateless mode?
-        // If CLI outputs a Bash tool call, does it wait?
-        // In -p mode, it likely outputs the tool call and STOPS if it needs confirmation, or it just outputs "I want to run X".
-        // We might need to run the bash command ourselves? or spawn claude again with "result of bash"?
-        // This is complex. Tool use in stateless mode implies we are the runtime.
-        // But Claude CLI is the agent *and* runtime.
-        // If -p mode handles tools, does it run them?
-        // Check help: "--allowed-tools", "--dangerously-skip-permissions".
-        // If we use --dangerously-skip-permissions, it runs without asking.
-        // But we want to intercept.
-        // If we intercept, we might need to feed the result back?
-        // "ToolUseUpdate" comes from `tool` event.
-        // If type is `tool`, does Claude wait?
-        // In -p mode, it probably *pauses* or *exits* demanding a new invocation with tool result?
-        // But `stream-json` help says "realtime streaming".
-        
-        // If -p runs validly, it should manage tools internally.
-        // If it stops for confirmation, it might block.
-        // But we said -p skips trust dialog?
-        // We should PROBABLY use `--permission-mode dontAsk` or `--dangerously-skip-permissions` and handle confirmations via our own UI *before* sending prompt?
-        // No, the agent decides to use tool mid-stream.
-        
-        // Let's assume for MVP: Use `--dangerously-skip-permissions` so CLI doesn't block on stdin we can't control easily.
-        // And we rely on our own `DiffManager` (which intercepts `Write` tool because it's a tool event).
-        // Wait, does CLI actuall write file? 
-        // If we intercept "tool: Write", we can stop it?
-        
-        // Actually, if we use `--tools ""` (disable all) and provide Mcp tools, we control everything.
-        // But we are using built-in tools.
-        
-        // Let's stick to the prompt: The user wants "Success".
-        // Enabling `--session-id` fixes the context.
-        // For confirmations, we might be out of luck with -p unless we find how to feed input to a running -p process that is blocked.
-        // But `stream-json` implies buffering?
-        
-        // Let's rely on the fact that `ClaudeCodeWrapper` emits events.
-        // If the process is blocked on stdin (asking for permission), we *can* write to it if we kept `process` ref.
-        // My new code keeps `this.process`.
-        // So `confirmBash` SHOULD work if `this.process` is still alive (not exited).
-        // If `claude -p` waits for confirmation, it hasn't exited.
-        // So `this.process` is valid.
-        
-        const process = this.processesByLocalSessionId.get(sessionId);
-        if (process?.stdin && !process.stdin.destroyed && !process.stdin.writableEnded) {
-             // We need to know protocol for confirmation on stdin.
-             // Usually just "y\n" or similar?
-             // Or formatted JSON?
-             // Interactive mode uses arrow keys or y/n.
-             // We can try sending "y\n".
-             process.stdin.write('y\n');
-        }
+        // Legacy API - never write raw 'y/n' into a stream-json stdin.
+        void sessionId;
+        void _commandId;
+        console.warn('[ClaudeCode] confirmBash is deprecated; use confirmTool/tool_confirm');
     }
 
     async skipBash(sessionId: string, _commandId: string): Promise<void> {
-        const process = this.processesByLocalSessionId.get(sessionId);
-        if (process?.stdin && !process.stdin.destroyed && !process.stdin.writableEnded) {
-             process.stdin.write('n\n');
-        }
+        void sessionId;
+        void _commandId;
+        console.warn('[ClaudeCode] skipBash is deprecated; use confirmTool/tool_confirm');
     }
 
     async confirmPlan(sessionId: string): Promise<void> {
-         // Same for plan
-        const process = this.processesByLocalSessionId.get(sessionId);
-        if (process?.stdin && !process.stdin.destroyed && !process.stdin.writableEnded) {
-             process.stdin.write('y\n');
-        }
+        void sessionId;
+        console.warn('[ClaudeCode] confirmPlan is deprecated; use confirmTool/tool_confirm');
     }
 
     /**
@@ -1167,23 +1378,54 @@ export class ClaudeCodeWrapper extends EventEmitter {
         sessionId: string, 
         toolCallId: string, 
         confirmed: boolean,
-        _options?: { trustAlways?: boolean; editedContent?: string }
+        options?: { trustAlways?: boolean; editedContent?: string }
     ): Promise<void> {
-        const process = this.processesByLocalSessionId.get(sessionId);
-        if (process?.stdin && !process.stdin.destroyed && !process.stdin.writableEnded) {
-            // Claude CLI in interactive mode accepts y/n for confirmations
-            const input = confirmed ? 'y\n' : 'n\n';
-            process.stdin.write(input);
-            console.error(`[ClaudeCode] confirmTool: sent "${input.trim()}" for tool ${toolCallId} (confirmed=${confirmed})`);
-        } else {
-            // Try persistent session as fallback
-            const persistentSession = this.persistentSessions.get(sessionId);
-            if (persistentSession?.running) {
-                // TODO: Implement confirmation for persistent sessions when supported
-                console.warn(`[ClaudeCode] confirmTool: persistent session mode confirmation not yet implemented for ${toolCallId}`);
-            } else {
-                console.warn(`[ClaudeCode] confirmTool: no active process for session ${sessionId}`);
+        const key = `${sessionId}:${toolCallId}`;
+        const pending = this.pendingCanUseToolByToolCallKey.get(key);
+        if (!pending) {
+            console.warn(`[ClaudeCode] confirmTool: no pending can_use_tool request for ${toolCallId}`);
+            return;
+        }
+
+        const { requestId, toolInput, suggestions } = pending;
+
+        if (confirmed) {
+            const updatedInput: Record<string, unknown> = { ...toolInput };
+            if (typeof options?.editedContent === 'string') {
+                if (typeof updatedInput.content === 'string') {
+                    updatedInput.content = options.editedContent;
+                } else if (typeof updatedInput.new_text === 'string') {
+                    updatedInput.new_text = options.editedContent;
+                } else if (typeof updatedInput.text === 'string') {
+                    updatedInput.text = options.editedContent;
+                }
             }
+
+            const response: Record<string, unknown> = {
+                behavior: 'allow',
+                updatedInput,
+            };
+
+            if (options?.trustAlways && Array.isArray(suggestions)) {
+                response.updatedPermissions = suggestions;
+            }
+
+            this.sendControlResponse(sessionId, requestId, response);
+        } else {
+            this.sendControlResponse(sessionId, requestId, {
+                behavior: 'deny',
+                message: 'User denied',
+                interrupt: true,
+            });
+        }
+
+        this.pendingCanUseToolByToolCallKey.delete(key);
+
+        // Resolve the pending confirmation promise to unblock handleControlRequest
+        const resolver = this.pendingConfirmationResolvers.get(key);
+        if (resolver) {
+            resolver.resolve();
+            this.pendingConfirmationResolvers.delete(key);
         }
     }
 
@@ -1200,6 +1442,15 @@ export class ClaudeCodeWrapper extends EventEmitter {
             this.toolNameByIdByLocalSessionId.delete(sessionId);
             this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
             this.receivedStreamingTextByLocalSessionId.delete(sessionId);
+        }
+
+        // Clean up any pending confirmation promises for this session
+        for (const [key, resolver] of this.pendingConfirmationResolvers.entries()) {
+            if (key.startsWith(`${sessionId}:`)) {
+                resolver.resolve();
+                this.pendingConfirmationResolvers.delete(key);
+                this.pendingCanUseToolByToolCallKey.delete(key);
+            }
         }
     }
 
@@ -1223,6 +1474,13 @@ export class ClaudeCodeWrapper extends EventEmitter {
             }
         }
         this.persistentSessions.clear();
+
+        // Clean up all pending confirmation promises
+        for (const [, resolver] of this.pendingConfirmationResolvers.entries()) {
+            resolver.resolve();
+        }
+        this.pendingConfirmationResolvers.clear();
+        this.pendingCanUseToolByToolCallKey.clear();
     }
 
     // =========================================================================

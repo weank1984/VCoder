@@ -63,6 +63,8 @@ secrets/
 packages/extension/server/
 
 # Local scratch files
+.claude/
+.zcode/
 demo/
 help.txt
 test-claude-raw.js

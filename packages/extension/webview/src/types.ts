@@ -166,6 +166,30 @@ export interface ConfirmToolMessage {
     };
 }
 
+export interface PermissionRequestMessage {
+    type: 'permissionRequest';
+    data: {
+        requestId: string;
+        sessionId: string;
+        toolCallId: string;
+        toolName: string;
+        toolInput: Record<string, unknown>;
+        metadata?: {
+            riskLevel?: 'low' | 'medium' | 'high';
+            summary?: string;
+            command?: string;
+            filePath?: string;
+        };
+    };
+}
+
+export interface PermissionResponseMessage {
+    type: 'permissionResponse';
+    requestId: string;
+    outcome: 'allow' | 'deny';
+    trustAlways?: boolean;
+}
+
 export interface HistorySessionsMessage {
     type: 'historySessions';
     data: HistorySession[];
@@ -186,7 +210,8 @@ export type ExtensionMessage =
     | ShowHistoryMessage
     | UiLanguageMessage
     | HistorySessionsMessage
-    | HistoryMessagesMessage;
+    | HistoryMessagesMessage
+    | PermissionRequestMessage;
 
 export type WebviewMessage =
     | SendMessage
@@ -211,7 +236,8 @@ export type WebviewMessage =
     | DeleteHistoryMessage
     | SetUiLanguageMessage
     | OpenFileMessage
-    | ConfirmToolMessage;
+    | ConfirmToolMessage
+    | PermissionResponseMessage;
 export interface ChatMessage {
     id: string;
     role: 'user' | 'assistant';

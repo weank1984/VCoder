@@ -2,7 +2,7 @@
     "name": "vcoder",
     "displayName": "V-Coder",
     "description": "VSCode 智能编程助手 (Claude Code / Codex CLI)",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "publisher": "vcoder",
     "license": "MIT",
     "engines": {
@@ -14,8 +14,7 @@
         "Other"
     ],
     "activationEvents": [
-        "onStartupFinished",
-        "onView:vcoder.chatView"
+        "onStartupFinished"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -69,6 +68,14 @@
             {
                 "command": "vcoder.showLogs",
                 "title": "V-Coder: Show Logs"
+            },
+            {
+                "command": "vcoder.switchAgent",
+                "title": "V-Coder: Switch Agent"
+            },
+            {
+                "command": "vcoder.exportLogs",
+                "title": "V-Coder: Export Session Logs"
             }
         ],
         "menus": {
@@ -109,6 +116,44 @@
                     "default": false,
                     "description": "Skip bash command confirmation"
                 },
+                "vcoder.agentProfiles": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Unique profile ID"
+                            },
+                            "name": {
+                                "type": "string",
+                                "description": "Display name"
+                            },
+                            "command": {
+                                "type": "string",
+                                "description": "Command to start the ACP agent"
+                            },
+                            "args": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "description": "Command arguments"
+                            },
+                            "env": {
+                                "type": "object",
+                                "description": "Environment variables"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "command"
+                        ]
+                    },
+                    "description": "ACP agent profiles for multi-agent support"
+                },
                 "vcoder.mcpServers": {
                     "type": "array",
                     "default": [],
@@ -119,23 +164,41 @@
                                 "type": "string",
                                 "description": "Display name for the MCP server"
                             },
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "stdio",
+                                    "http",
+                                    "sse"
+                                ],
+                                "description": "MCP server transport type"
+                            },
+                            "url": {
+                                "type": "string",
+                                "description": "Server URL (for http/sse)"
+                            },
                             "command": {
                                 "type": "string",
-                                "description": "Command to start the MCP server"
+                                "description": "Command to start the MCP server (for stdio)"
                             },
                             "args": {
                                 "type": "array",
-                                "items": { "type": "string" },
-                                "description": "Arguments for the MCP server command"
+                                "items": {
+                                    "type": "string"
+                                },
+                                "description": "Arguments for the MCP server command (for stdio)"
                             },
                             "env": {
                                 "type": "object",
-                                "description": "Environment variables for the MCP server"
+                                "description": "Environment variables for the MCP server (for stdio)"
                             }
                         },
-                        "required": ["name", "command"]
+                        "required": [
+                            "name",
+                            "type"
+                        ]
                     },
-                    "description": "List of MCP (Model Context Protocol) servers for extended tool capabilities"
+                    "description": "External MCP (Model Context Protocol) servers for extended tool capabilities. Supports stdio, http, and sse transports."
                 },
                 "vcoder.uiLanguage": {
                     "type": "string",
@@ -159,7 +222,9 @@
         "lint": "eslint src"
     },
     "dependencies": {
-        "@vcoder/shared": "workspace:*"
+        "@agentclientprotocol/sdk": "^0.12.0",
+        "@vcoder/shared": "workspace:*",
+        "node-pty": "^1.0.0"
     },
     "devDependencies": {
         "@types/node": "^20.0.0",

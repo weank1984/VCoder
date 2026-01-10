@@ -37,7 +37,7 @@ import { ApprovalUI } from './ApprovalUI';
 interface StepEntryProps {
     entry: StepEntryType;
     onViewFile?: (path: string, lineRange?: [number, number]) => void;
-    onConfirm?: (tc: ToolCall, approve: boolean) => void;
+    onConfirm?: (tc: ToolCall, approve: boolean, options?: { trustAlways?: boolean; editedContent?: string }) => void;
     /** Hide the summary line (for single-entry steps to avoid duplication) */
     hideSummary?: boolean;
 }
@@ -233,7 +233,7 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
                     {isAwaitingConfirmation && onConfirm && (
                         <ApprovalUI 
                             toolCall={tc}
-                            onApprove={() => onConfirm(tc, true)}
+                            onApprove={(options) => onConfirm(tc, true, options)}
                             onReject={() => onConfirm(tc, false)}
                         />
                     )}

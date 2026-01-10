@@ -90,6 +90,9 @@ export class PersistentSession extends EventEmitter {
             '--input-format', 'stream-json',
             '--verbose',
             '--include-partial-messages',
+            // Enable structured permission prompts over stdio so we can block on UI approval
+            // via control_request(can_use_tool) / control_response.
+            '--permission-prompt-tool', 'stdio',
             '--replay-user-messages',
         ];
 
@@ -351,6 +354,25 @@ export class PersistentSession extends EventEmitter {
         const type = event.type as string;
 
         switch (type) {
+            case 'stream_event': {
+                const inner =
+                    (event.event as Record<string, unknown> | undefined) ??
+                    (event.data as Record<string, unknown> | undefined) ??
+                    (event.stream_event as Record<string, unknown> | undefined) ??
+                    undefined;
+                if (inner && typeof inner === 'object') {
+                    this.handleEvent(inner);
+                } else if (typeof event.event === 'string') {
+                    try {
+                        const parsed = JSON.parse(event.event) as Record<string, unknown>;
+                        this.handleEvent(parsed);
+                    } catch {
+                        // ignore
+                    }
+                }
+                break;
+            }
+
             case 'system': {
                 if (event.subtype === 'init') {
                     console.error('[PersistentSession] Session initialized:', this.claudeSessionId);

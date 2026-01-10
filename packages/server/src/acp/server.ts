@@ -5,6 +5,8 @@
 
 import { Readable, Writable } from 'stream';
 import { createInterface } from 'readline';
+import * as os from 'os';
+import * as fs from 'fs/promises';
 import {
     JsonRpcRequest,
     JsonRpcResponse,
@@ -35,6 +37,7 @@ import {
     HistoryDeleteParams,
     HistoryDeleteResult,
     ConfirmToolParams,
+    McpServerConfig,
 } from '@vcoder/shared';
 import { listHistorySessions, loadHistorySession, deleteHistorySession } from '../history/transcriptStore';
 import { ClaudeCodeWrapper } from '../claude/wrapper';
@@ -42,6 +45,7 @@ import { ClaudeCodeWrapper } from '../claude/wrapper';
 export class ACPServer {
     private sessions: Map<string, Session> = new Map();
     private currentSessionId: string | null = null;
+    private mcpConfigPath: string | null = null;
 
     constructor(
         private stdin: Readable,
@@ -82,7 +86,15 @@ export class ACPServer {
     }
 
     async shutdown(): Promise<void> {
-        // Cleanup
+        if (this.mcpConfigPath) {
+            const pathToDelete = this.mcpConfigPath;
+            this.mcpConfigPath = null;
+            try {
+                await fs.unlink(pathToDelete);
+            } catch {
+                // ignore
+            }
+        }
     }
 
     private async handleRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
@@ -198,6 +210,12 @@ export class ACPServer {
     }
 
     private async handleNewSession(params: NewSessionParams): Promise<NewSessionResult> {
+        if (params.mcpServers && params.mcpServers.length > 0) {
+            const mcpConfigPath = await this.writeMcpConfig(params.mcpServers);
+            this.mcpConfigPath = mcpConfigPath;
+            this.claudeCode.updateSettings({ mcpConfigPath });
+        }
+
         const session: Session = {
             id: crypto.randomUUID(),
             title: params.title || 'New Chat',
@@ -207,6 +225,32 @@ export class ACPServer {
         this.sessions.set(session.id, session);
         this.currentSessionId = session.id;
         return { session };
+    }
+
+    private async writeMcpConfig(mcpServers: McpServerConfig[]): Promise<string> {
+        const servers: Record<string, Record<string, unknown>> = {};
+
+        for (let i = 0; i < mcpServers.length; i++) {
+            const server = mcpServers[i];
+            const name = (server.name && server.name.trim()) ? server.name.trim() : `server_${i + 1}`;
+
+            if (server.type === 'stdio') {
+                servers[name] = {
+                    command: server.command,
+                    args: server.args ?? [],
+                    env: server.env ?? {},
+                };
+            } else if (server.type === 'http') {
+                servers[name] = { url: server.url };
+            } else if (server.type === 'sse') {
+                servers[name] = { url: server.url };
+            }
+        }
+
+        const payload = { mcpServers: servers };
+        const filePath = `${os.tmpdir()}/vcoder-mcp-${Date.now()}-${Math.random().toString(36).slice(2)}.json`;
+        await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
+        return filePath;
     }
 
     private async handleListSessions(): Promise<ListSessionsResult> {

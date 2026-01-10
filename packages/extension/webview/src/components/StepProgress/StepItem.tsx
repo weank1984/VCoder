@@ -21,7 +21,7 @@ interface StepItemProps {
     isCollapsed: boolean;
     onToggle: () => void;
     onViewFile?: (path: string, lineRange?: [number, number]) => void;
-    onConfirm?: (tc: ToolCall, approve: boolean) => void;
+    onConfirm?: (tc: ToolCall, approve: boolean, options?: { trustAlways?: boolean; editedContent?: string }) => void;
 }
 
 export function StepItem({ 
