@@ -2,9 +2,9 @@
 // Step-based progress view for tool execution display
 
 // Import sub-component styles
-@import './TerminalOutput.scss';
-@import './DiffViewer.scss';
-@import './McpToolDisplay.scss';
+@use './TerminalOutput.scss';
+@use './DiffViewer.scss';
+@use './McpToolDisplay.scss';
 
 .step-progress-list {
     margin: 8px 0;
