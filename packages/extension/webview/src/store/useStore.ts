@@ -1,5 +1,5 @@
 import { create } from './createStore';
-import type { AppState, ChatMessage, ContentBlock, ToolCall, UiLanguage } from '../types';
+import type { AppState, ChatMessage, ContentBlock, ToolCall, UiLanguage, AgentInfo } from '../types';
 import type { Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
 
@@ -97,6 +97,10 @@ interface AppStore extends AppState {
     setHistorySessions: (sessions: HistorySession[]) => void;
     loadHistorySession: (sessionId: string, messages: HistoryChatMessage[]) => void;
     exitHistoryMode: () => void;
+    // Agent Actions
+    setAgents: (agents: AgentInfo[]) => void;
+    setCurrentAgent: (agentId: string | null) => void;
+    selectAgent: (agentId: string) => void;
     reset: () => void;
 }
 
@@ -185,6 +189,9 @@ const initialState: AppState = {
     // History
     historySessions: [],
     viewMode: 'live',
+    // Agent
+    agents: [],
+    currentAgentId: null,
 };
 
 // Restore persisted state on load
@@ -640,6 +647,15 @@ export const useStore = create<AppStore>((set, get) => ({
         currentSessionId: null, // Returning to live mode usually starts fresh or needs session restore (not implemented yet)
         messages: [],
     }),
+
+    setAgents: (agents) => set({ agents }),
+
+    setCurrentAgent: (currentAgentId) => set({ currentAgentId }),
+
+    selectAgent: (agentId) => {
+        set({ currentAgentId: agentId });
+        postMessage({ type: 'selectAgent', agentId });
+    },
 
     reset: () => set(initialState),
 }));

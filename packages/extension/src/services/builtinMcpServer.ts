@@ -33,15 +33,6 @@ interface McpToolCall {
     arguments: Record<string, unknown>;
 }
 
-interface McpToolResult {
-    id: string;
-    result?: unknown;
-    error?: {
-        code: number;
-        message: string;
-    };
-}
-
 interface SSEClient {
     id: string;
     response: http.ServerResponse;
@@ -459,7 +450,7 @@ export class BuiltinMcpServer {
                         });
                     }
                 }
-            } catch (error) {
+            } catch {
                 // Skip files that can't be read
             }
         }

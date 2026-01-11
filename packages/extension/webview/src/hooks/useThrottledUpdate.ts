@@ -49,30 +49,20 @@ export function useThrottledUpdate<T>(
     }, []);
 
     /**
-     * Add update to queue.
+     * Flush pending updates.
      */
-    const addUpdate = useCallback((value: T) => {
-        if (!isMounted.current) return;
+    const flush = useCallback((updates: T[]) => {
+        if (updates.length === 0 || !isMounted.current) {
+            return;
+        }
 
-        setPendingUpdates(prev => {
-            const newUpdates = [...prev, value];
-            
-            // Check if we need to force flush due to batch size
-            if (newUpdates.length >= opts.maxBatchSize) {
-                // Schedule immediate flush
-                if (throttleTimer.current) {
-                    clearTimeout(throttleTimer.current);
-                }
-                throttleTimer.current = setTimeout(() => flush(newUpdates), 0);
-                return [];
-            }
-            
-            // Schedule throttled flush
-            scheduleFlush();
-            
-            return newUpdates;
-        });
-    }, [opts.maxBatchSize]);
+        lastUpdateTime.current = Date.now();
+
+        // Batch process all pending updates
+        for (const update of updates) {
+            onUpdate(update);
+        }
+    }, [onUpdate]);
 
     /**
      * Schedule a throttled flush.
@@ -87,8 +77,10 @@ export function useThrottledUpdate<T>(
 
         if (opts.leading && timeSinceLastUpdate >= opts.delay) {
             // Execute immediately (leading edge)
-            flush(pendingUpdates);
-            setPendingUpdates([]);
+            setPendingUpdates(updates => {
+                flush(updates);
+                return [];
+            });
         } else {
             // Schedule for later (trailing edge)
             const delay = opts.trailing
@@ -105,23 +97,33 @@ export function useThrottledUpdate<T>(
                 }
             }, delay);
         }
-    }, [opts.delay, opts.leading, opts.trailing]);
+    }, [flush, opts.delay, opts.leading, opts.trailing]);
 
     /**
-     * Flush pending updates.
+     * Add update to queue.
      */
-    const flush = useCallback((updates: T[]) => {
-        if (updates.length === 0 || !isMounted.current) {
-            return;
-        }
+    const addUpdate = useCallback((value: T) => {
+        if (!isMounted.current) return;
 
-        lastUpdateTime.current = Date.now();
-        
-        // Batch process all pending updates
-        for (const update of updates) {
-            onUpdate(update);
-        }
-    }, [onUpdate]);
+        setPendingUpdates(prev => {
+            const newUpdates = [...prev, value];
+
+            // Check if we need to force flush due to batch size
+            if (newUpdates.length >= opts.maxBatchSize) {
+                // Schedule immediate flush
+                if (throttleTimer.current) {
+                    clearTimeout(throttleTimer.current);
+                }
+                throttleTimer.current = setTimeout(() => flush(newUpdates), 0);
+                return [];
+            }
+
+            // Schedule throttled flush
+            scheduleFlush();
+
+            return newUpdates;
+        });
+    }, [flush, opts.maxBatchSize, scheduleFlush]);
 
     /**
      * Force flush all pending updates immediately.

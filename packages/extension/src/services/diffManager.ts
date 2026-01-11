@@ -6,6 +6,8 @@ import { FileChangeUpdate } from '@vcoder/shared';
 
 type DiffSide = 'original' | 'proposed';
 
+const LARGE_DIFF_THRESHOLD = 1 * 1024 * 1024; // 1MB
+
 interface PendingFileChange {
     sessionId: string;
     originalPath: string;
@@ -77,6 +79,40 @@ export class DiffManager implements vscode.TextDocumentContentProvider {
             createdAt: Date.now(),
         };
         this.pending.set(key, entry);
+
+        // Check file size for large file handling
+        const contentSize = change.content ? Buffer.byteLength(change.content, 'utf-8') : 0;
+        const isLargeFile = contentSize > LARGE_DIFF_THRESHOLD;
+
+        if (isLargeFile) {
+            const sizeMB = (contentSize / (1024 * 1024)).toFixed(2);
+            console.warn(`[DiffManager] Large file change detected: ${change.path} (${sizeMB}MB)`);
+
+            // For large files, skip diff view and go directly to file
+            const choice = await vscode.window.showWarningMessage(
+                `File is too large for diff preview: ${path.basename(change.path)} (${sizeMB}MB). Open file directly?`,
+                'Open File',
+                'Show Summary',
+                'Cancel'
+            );
+
+            if (choice === 'Open File') {
+                // Open the file directly instead of showing diff
+                const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(resolvedPath));
+                await vscode.window.showTextDocument(doc);
+                return;
+            } else if (choice === 'Show Summary') {
+                // Show a summary in an information message
+                const lines = change.content?.split('\n').length || 0;
+                vscode.window.showInformationMessage(
+                    `File: ${change.path}\nSize: ${sizeMB}MB\nLines: ~${lines}\nType: ${change.type}`
+                );
+                return;
+            } else {
+                // User cancelled
+                return;
+            }
+        }
 
         const originalUri = this.createVirtualUri(sessionId, change.path, 'original');
         const proposedUri = this.createVirtualUri(sessionId, change.path, 'proposed');

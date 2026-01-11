@@ -456,7 +456,6 @@ export class AgentProcessManager extends EventEmitter {
         }
 
         this.pendingHealthCheck = true;
-        const checkStartTime = Date.now();
 
         try {
             // Simple check: try to write to stdin

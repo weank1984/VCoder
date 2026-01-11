@@ -3,7 +3,6 @@
  * Handles session/request_permission from agent
  */
 
-import * as vscode from 'vscode';
 import { RequestPermissionParams, RequestPermissionResult } from '@vcoder/shared';
 import { ChatViewProvider } from '../providers/chatViewProvider';
 

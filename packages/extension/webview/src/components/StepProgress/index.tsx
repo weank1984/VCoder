@@ -55,13 +55,17 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
             prevStatusMap.set(step.id, step.status);
         });
         
-        if (stepsToCollapse.length > 0) {
+        if (stepsToCollapse.length === 0) return;
+
+        const timeoutId = setTimeout(() => {
             setCollapsedSteps(prev => {
                 const next = new Set(prev);
                 stepsToCollapse.forEach(id => next.add(id));
                 return next;
             });
-        }
+        }, 0);
+
+        return () => clearTimeout(timeoutId);
     }, [steps]);
     
     // Header status icon

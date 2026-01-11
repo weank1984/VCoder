@@ -15,7 +15,21 @@ import { ACPClient } from './acp/client';
 import { ChatViewProvider } from './providers/chatViewProvider';
 import { DiffManager } from './services/diffManager';
 import { VCoderFileDecorationProvider } from './providers/fileDecorationProvider';
-import { FileChangeUpdate, UpdateNotificationParams, InitializeParams, ACPMethods, McpServerConfig } from '@vcoder/shared';
+import {
+    ACPMethods,
+    FileChangeUpdate,
+    FsReadTextFileParams,
+    FsWriteTextFileParams,
+    InitializeParams,
+    McpServerConfig,
+    RequestPermissionParams,
+    TerminalCreateParams,
+    TerminalKillParams,
+    TerminalOutputParams,
+    TerminalReleaseParams,
+    TerminalWaitForExitParams,
+    UpdateNotificationParams,
+} from '@vcoder/shared';
 
 let serverManager: ServerManager;
 let acpClient: ACPClient;
@@ -229,39 +243,39 @@ export async function activate(context: vscode.ExtensionContext) {
     permissionProvider = new PermissionProvider(chatProvider);
     acpClient.registerRequestHandler(
         ACPMethods.SESSION_REQUEST_PERMISSION,
-        (params: unknown) => permissionProvider.handlePermissionRequest(params as any)
+        (params: unknown) => permissionProvider.handlePermissionRequest(params as RequestPermissionParams)
     );
 
     // 3.2 Register Terminal handlers (M2)
     acpClient.registerRequestHandler(
         'terminal/create',
-        (params: unknown) => terminalProvider.createTerminal(params as any)
+        (params: unknown) => terminalProvider.createTerminal(params as TerminalCreateParams)
     );
     acpClient.registerRequestHandler(
         'terminal/output',
-        (params: unknown) => terminalProvider.getTerminalOutput(params as any)
+        (params: unknown) => terminalProvider.getTerminalOutput(params as TerminalOutputParams)
     );
     acpClient.registerRequestHandler(
         'terminal/wait_for_exit',
-        (params: unknown) => terminalProvider.waitForExit(params as any)
+        (params: unknown) => terminalProvider.waitForExit(params as TerminalWaitForExitParams)
     );
     acpClient.registerRequestHandler(
         'terminal/kill',
-        (params: unknown) => terminalProvider.killTerminal(params as any)
+        (params: unknown) => terminalProvider.killTerminal(params as TerminalKillParams)
     );
     acpClient.registerRequestHandler(
         'terminal/release',
-        (params: unknown) => terminalProvider.releaseTerminal(params as any)
+        (params: unknown) => terminalProvider.releaseTerminal(params as TerminalReleaseParams)
     );
 
     // 3.3 Register FileSystem handlers (M3)
     acpClient.registerRequestHandler(
         'fs/readTextFile',
-        (params: unknown) => fileSystemProvider.readTextFile(params as any)
+        (params: unknown) => fileSystemProvider.readTextFile(params as FsReadTextFileParams)
     );
     acpClient.registerRequestHandler(
         'fs/writeTextFile',
-        (params: unknown) => fileSystemProvider.writeTextFile(params as any)
+        (params: unknown) => fileSystemProvider.writeTextFile(params as FsWriteTextFileParams)
     );
 
     // Best-effort: open the view container so the view can resolve.
@@ -510,7 +524,7 @@ function getMcpServerConfig(): McpServerConfig[] {
         if (builtinServerConfig) {
             servers.unshift(builtinServerConfig);
         }
-    } catch (err) {
+    } catch {
         // Server not started, skip
     }
     

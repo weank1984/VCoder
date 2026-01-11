@@ -276,15 +276,28 @@ $input-prefixCls: 'vc-input';
   }
 }
 
+/* Permission Controls */
+.permission-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rules-btn {
+  font-size: 14px !important;
+  min-width: 32px !important;
+  padding: 0 8px !important;
+}
+
 /* Permission Mode Selector */
 .mode-btn {
   position: relative;
   min-width: 70px;
-  
+
   &.mode-active {
     border-color: var(--vc-color-primary-border);
   }
-  
+
   &.mode-plan {
     background: color-mix(in srgb, #3b82f6 15%, var(--vcoder-overlay-1));
     border-color: color-mix(in srgb, #3b82f6 40%, var(--vc-color-border));

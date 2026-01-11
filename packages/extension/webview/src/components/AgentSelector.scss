@@ -1,0 +1,242 @@
+/**
+ * Agent Selector Styles
+ */
+
+.agent-selector {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    
+    &--empty {
+        gap: 6px;
+    }
+}
+
+.agent-selector-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    border: 1px solid var(--vscode-button-border, transparent);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s ease;
+
+    &:hover {
+        background: var(--vscode-button-secondaryHoverBackground);
+    }
+
+    &:active {
+        transform: translateY(1px);
+    }
+}
+
+.agent-selector-label {
+    font-weight: 500;
+}
+
+.agent-selector-arrow {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.agent-selector-action {
+    padding: 2px 6px;
+    background: transparent;
+    border: 1px solid var(--vscode-button-border, transparent);
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s ease;
+
+    &:hover {
+        background: var(--vscode-button-secondaryHoverBackground);
+    }
+}
+
+.agent-status-icon {
+    font-size: 12px;
+    font-weight: bold;
+    
+    &.status-online {
+        color: var(--vscode-testing-iconPassed, #73c991);
+    }
+    
+    &.status-offline {
+        color: var(--vscode-disabledForeground, #808080);
+    }
+    
+    &.status-error {
+        color: var(--vscode-testing-iconFailed, #f48771);
+    }
+    
+    &.status-starting {
+        color: var(--vscode-charts-blue, #75beff);
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    &.status-reconnecting {
+        color: var(--vscode-charts-orange, #ffa500);
+        animation: spin 2s linear infinite;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+// Dropdown
+.agent-list-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    min-width: 280px;
+    max-width: 400px;
+    background: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border, var(--vscode-widget-border));
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.agent-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--vscode-sideBar-background);
+    border-bottom: 1px solid var(--vscode-widget-border, rgba(255, 255, 255, 0.1));
+}
+
+.agent-list-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+    opacity: 0.9;
+}
+
+.agent-list-refresh {
+    padding: 2px 6px;
+    background: transparent;
+    border: none;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+
+    &:hover {
+        background: var(--vscode-list-hoverBackground);
+    }
+}
+
+.agent-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.agent-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--vscode-widget-border, rgba(255, 255, 255, 0.05));
+    transition: background 0.15s ease;
+
+    &:hover {
+        background: var(--vscode-list-hoverBackground);
+    }
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &--active {
+        background: var(--vscode-list-activeSelectionBackground);
+        
+        .agent-name {
+            font-weight: 600;
+        }
+    }
+
+    &--disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+
+        &:hover {
+            background: transparent;
+        }
+    }
+}
+
+.agent-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.agent-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--vscode-foreground);
+}
+
+.agent-command {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    font-family: var(--vscode-editor-font-family, monospace);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.agent-active-mark {
+    color: var(--vscode-testing-iconPassed, #73c991);
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.agent-list-footer {
+    padding: 8px 12px;
+    background: var(--vscode-sideBar-background);
+    border-top: 1px solid var(--vscode-widget-border, rgba(255, 255, 255, 0.1));
+}
+
+.agent-list-settings {
+    width: 100%;
+    padding: 6px 10px;
+    background: transparent;
+    border: 1px solid var(--vscode-button-border, transparent);
+    border-radius: 3px;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s ease;
+    text-align: left;
+
+    &:hover {
+        background: var(--vscode-button-secondaryHoverBackground);
+    }
+}

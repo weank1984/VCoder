@@ -9,7 +9,6 @@
  */
 
 import * as vscode from 'vscode';
-import { Session } from '@vcoder/shared';
 
 export interface SessionState {
     id: string;

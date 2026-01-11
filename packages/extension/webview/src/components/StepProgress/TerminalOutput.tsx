@@ -86,9 +86,42 @@ export function TerminalOutput({
 }: TerminalOutputProps) {
     const { t } = useI18n();
     const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-    const [startTime] = useState(Date.now());
+    const startTimeRef = useRef<number | null>(null);
+    const [durationMs, setDurationMs] = useState(0);
     const outputRef = useRef<HTMLPreElement>(null);
     const [autoScroll, setAutoScroll] = useState(true);
+
+    // Reset duration tracking when a new terminal starts
+    useEffect(() => {
+        startTimeRef.current = null;
+        const timeoutId = setTimeout(() => setDurationMs(0), 0);
+        return () => clearTimeout(timeoutId);
+    }, [terminalId, command]);
+
+    // Track duration without calling Date.now() during render
+    useEffect(() => {
+        if (startTimeRef.current === null) {
+            startTimeRef.current = Date.now();
+        }
+
+        const tick = () => {
+            if (startTimeRef.current !== null) {
+                setDurationMs(Date.now() - startTimeRef.current);
+            }
+        };
+
+        const initialTimeoutId = setTimeout(tick, 0);
+
+        if (!isRunning) {
+            return () => clearTimeout(initialTimeoutId);
+        }
+
+        const intervalId = setInterval(tick, 250);
+        return () => {
+            clearTimeout(initialTimeoutId);
+            clearInterval(intervalId);
+        };
+    }, [isRunning]);
     
     // Throttle output updates to improve performance during high-frequency streaming
     // Use the raw output when not running, throttled when streaming
@@ -156,7 +189,7 @@ export function TerminalOutput({
     // Output stats
     const outputSize = getByteLength(output);
     const lineCount = output.split('\n').length;
-    const duration = Date.now() - startTime;
+    const duration = durationMs;
     
     return (
         <div className={`terminal-output ${state} ${isCollapsed ? 'collapsed' : ''}`}>

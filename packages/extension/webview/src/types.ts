@@ -2,9 +2,17 @@
  * Webview Types
  */
 
-import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage } from '@vcoder/shared';
+import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, AgentProfile } from '@vcoder/shared';
 
 export type UiLanguage = 'auto' | 'en-US' | 'zh-CN';
+
+export type AgentStatus = 'online' | 'offline' | 'error' | 'starting' | 'reconnecting';
+
+export interface AgentInfo {
+    profile: AgentProfile;
+    status: AgentStatus;
+    isActive: boolean;
+}
 
 // Message types from Extension to Webview
 export interface UpdateMessage {
@@ -154,6 +162,45 @@ export interface OpenFileMessage {
     lineRange?: [number, number];
 }
 
+export interface OpenSettingsMessage {
+    type: 'openSettings';
+    setting?: string;
+}
+
+export interface RefreshAgentsMessage {
+    type: 'refreshAgents';
+}
+
+export interface SelectAgentMessage {
+    type: 'selectAgent';
+    agentId: string;
+}
+
+export interface GetPermissionRulesMessage {
+    type: 'getPermissionRules';
+}
+
+export interface DeletePermissionRuleMessage {
+    type: 'deletePermissionRule';
+    ruleId: string;
+}
+
+export interface ClearPermissionRulesMessage {
+    type: 'clearPermissionRules';
+}
+
+export interface PermissionRulesMessage {
+    type: 'permissionRules';
+    data: Array<{
+        id: string;
+        toolName: string;
+        category: string;
+        pattern: string;
+        createdAt: number;
+        sessionId?: string;
+    }>;
+}
+
 export interface ConfirmToolMessage {
     type: 'confirmTool';
     toolCallId: string;
@@ -213,6 +260,21 @@ export interface ErrorMessage {
     };
 }
 
+export interface BatchMessage {
+    type: 'batch';
+    messages: ExtensionMessage[];
+}
+
+export interface AgentsMessage {
+    type: 'agents';
+    data: AgentInfo[];
+}
+
+export interface CurrentAgentMessage {
+    type: 'currentAgent';
+    data: { agentId: string | null };
+}
+
 export type ExtensionMessage = 
     | UpdateMessage 
     | CompleteMessage 
@@ -224,7 +286,11 @@ export type ExtensionMessage =
     | HistorySessionsMessage
     | HistoryMessagesMessage
     | PermissionRequestMessage
-    | ErrorMessage;
+    | ErrorMessage
+    | AgentsMessage
+    | CurrentAgentMessage
+    | PermissionRulesMessage
+    | BatchMessage;
 
 export type WebviewMessage =
     | SendMessage
@@ -249,6 +315,12 @@ export type WebviewMessage =
     | DeleteHistoryMessage
     | SetUiLanguageMessage
     | OpenFileMessage
+    | OpenSettingsMessage
+    | RefreshAgentsMessage
+    | SelectAgentMessage
+    | GetPermissionRulesMessage
+    | DeletePermissionRuleMessage
+    | ClearPermissionRulesMessage
     | ConfirmToolMessage
     | PermissionResponseMessage;
 export interface ChatMessage {
@@ -337,4 +409,7 @@ export interface AppState {
     // History
     historySessions: HistorySession[];
     viewMode: 'live' | 'history';
+    // Agent
+    agents: AgentInfo[];
+    currentAgentId: string | null;
 }

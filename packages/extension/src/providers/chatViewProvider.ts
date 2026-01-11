@@ -7,12 +7,18 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { EventEmitter } from 'events';
 import { ACPClient } from '../acp/client';
-import { UpdateNotificationParams, McpServerConfig } from '@vcoder/shared';
+import { UpdateNotificationParams, McpServerConfig, AgentProfile } from '@vcoder/shared';
 
 export class ChatViewProvider extends EventEmitter implements vscode.WebviewViewProvider {
     private webviewView?: vscode.WebviewView;
     private readonly distRoot: vscode.Uri;
     private readonly debugThinking = process.env.VCODER_DEBUG_THINKING === '1';
+    
+    // Message batching for performance
+    private messageQueue: unknown[] = [];
+    private flushTimer: NodeJS.Timeout | null = null;
+    private readonly BATCH_DELAY = 16; // ~60fps
+    private readonly MAX_BATCH_SIZE = 10;
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -218,6 +224,52 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         }
                     }
                     break;
+                case 'refreshAgents':
+                    {
+                        // Get agent profiles from configuration
+                        const agents = this.getAgentProfiles();
+                        this.postMessage({ type: 'agents', data: agents });
+                        // Send current agent (for now, we'll send the first one if available)
+                        const currentAgentId = agents.length > 0 ? agents[0].profile.id : null;
+                        this.postMessage({ type: 'currentAgent', data: { agentId: currentAgentId } });
+                    }
+                    break;
+                case 'selectAgent':
+                    {
+                        // For now, just acknowledge the selection
+                        // In a full implementation, this would switch to a different AgentProcessManager
+                        console.log('[VCoder] Agent selected:', message.agentId);
+                        this.postMessage({ type: 'currentAgent', data: { agentId: message.agentId } });
+                        // Show info message
+                        vscode.window.showInformationMessage(`已选择 Agent: ${message.agentId}`);
+                    }
+                    break;
+                case 'openSettings':
+                    {
+                        const setting = message.setting || 'vcoder';
+                        await vscode.commands.executeCommand('workbench.action.openSettings', setting);
+                    }
+                    break;
+                case 'getPermissionRules':
+                    {
+                        // For now, return empty array as rule persistence is not fully implemented
+                        // In a full implementation, this would fetch from PermissionProvider
+                        this.postMessage({ type: 'permissionRules', data: [] });
+                    }
+                    break;
+                case 'deletePermissionRule':
+                    {
+                        // TODO: Implement rule deletion when rule persistence is added
+                        console.log('[VCoder] Delete permission rule:', message.ruleId);
+                    }
+                    break;
+                case 'clearPermissionRules':
+                    {
+                        // TODO: Implement clear all rules when rule persistence is added
+                        console.log('[VCoder] Clear all permission rules');
+                        this.postMessage({ type: 'permissionRules', data: [] });
+                    }
+                    break;
                 case 'deleteHistory':
                     {
                         const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
@@ -312,8 +364,68 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
         }
     }
 
-    public postMessage(message: unknown): void {
-        this.webviewView?.webview.postMessage(message);
+    /**
+     * Send message to webview with batching optimization.
+     * Messages are queued and sent in batches to reduce IPC overhead.
+     */
+    public postMessage(message: unknown, immediate = false): void {
+        if (!this.webviewView) {
+            return;
+        }
+
+        // For critical messages, send immediately
+        if (immediate) {
+            this.flushMessageQueue();
+            this.webviewView.webview.postMessage(message);
+            return;
+        }
+
+        // Add to queue
+        this.messageQueue.push(message);
+
+        // Force flush if queue is too large
+        if (this.messageQueue.length >= this.MAX_BATCH_SIZE) {
+            this.flushMessageQueue();
+            return;
+        }
+
+        // Schedule batch flush
+        if (this.flushTimer) {
+            return; // Already scheduled
+        }
+
+        this.flushTimer = setTimeout(() => {
+            this.flushMessageQueue();
+        }, this.BATCH_DELAY);
+    }
+
+    /**
+     * Flush all queued messages to webview.
+     */
+    private flushMessageQueue(): void {
+        if (this.flushTimer) {
+            clearTimeout(this.flushTimer);
+            this.flushTimer = null;
+        }
+
+        if (this.messageQueue.length === 0) {
+            return;
+        }
+
+        // Send all messages at once
+        if (this.messageQueue.length === 1) {
+            // Single message - send directly
+            this.webviewView?.webview.postMessage(this.messageQueue[0]);
+        } else {
+            // Multiple messages - send as batch
+            this.webviewView?.webview.postMessage({
+                type: 'batch',
+                messages: this.messageQueue,
+            });
+        }
+
+        // Clear queue
+        this.messageQueue = [];
     }
 
     private getHtmlContent(webview: vscode.Webview): string {
@@ -394,6 +506,26 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
             text += possible.charAt(Math.floor(Math.random() * possible.length));
         }
         return text;
+    }
+
+    /**
+     * Get Agent profiles from configuration.
+     */
+    private getAgentProfiles(): Array<{
+        profile: AgentProfile;
+        status: 'online' | 'offline' | 'error' | 'starting' | 'reconnecting';
+        isActive: boolean;
+    }> {
+        const config = vscode.workspace.getConfiguration('vcoder');
+        const profiles = config.get<AgentProfile[]>('agentProfiles', []);
+        
+        // For now, mark all agents as offline since we don't have AgentProcessManager integration yet
+        // In a full implementation, this would query AgentProcessManager for real status
+        return profiles.map((profile, index) => ({
+            profile,
+            status: 'offline' as const,
+            isActive: index === 0, // First agent is active by default
+        }));
     }
 
     /**

@@ -6,18 +6,25 @@ import { useState } from 'react';
 import type { MouseEvent } from 'react';
 import type { Session } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
+import { AgentSelector, type AgentInfo } from './AgentSelector';
 import './SessionHeader.scss';
 
 interface SessionHeaderProps {
     sessions: Session[];
     currentSessionId: string | null;
     onSwitchSession: (sessionId: string) => void;
+    agents?: AgentInfo[];
+    currentAgentId?: string | null;
+    onSelectAgent?: (agentId: string) => void;
 }
 
 export function SessionHeader({
     sessions,
     currentSessionId,
     onSwitchSession,
+    agents = [],
+    currentAgentId = null,
+    onSelectAgent = () => {},
 }: SessionHeaderProps) {
     const [showList, setShowList] = useState(false);
 
@@ -36,6 +43,14 @@ export function SessionHeader({
             <span className="session-header-title">VCoder</span>
 
             <div className="header-actions">
+                {agents.length > 0 && (
+                    <AgentSelector
+                        agents={agents}
+                        currentAgentId={currentAgentId}
+                        onSelectAgent={onSelectAgent}
+                    />
+                )}
+
                 <button className="action-btn primary" onClick={handleNewChat} title="新对话">
                     新对话
                 </button>

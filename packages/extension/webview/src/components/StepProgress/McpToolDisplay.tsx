@@ -72,16 +72,16 @@ function generateSummary(value: unknown, maxLength: number = 100): string {
         return `Array (${value.length} items)`;
     }
     
-    if (typeof value === 'object') {
-        const keys = Object.keys(value);
-        if (keys.length === 0) return '{}';
-        if (keys.length === 1) {
-            const key = keys[0];
-            const val = (value as any)[key];
-            return `{ ${key}: ${generateSummary(val, 50)} }`;
-        }
-        return `{ ${keys.slice(0, 3).join(', ')}${keys.length > 3 ? ', ...' : ''} }`;
-    }
+	    if (typeof value === 'object') {
+	        const keys = Object.keys(value);
+	        if (keys.length === 0) return '{}';
+	        if (keys.length === 1) {
+	            const key = keys[0];
+	            const val = (value as Record<string, unknown>)[key];
+	            return `{ ${key}: ${generateSummary(val, 50)} }`;
+	        }
+	        return `{ ${keys.slice(0, 3).join(', ')}${keys.length > 3 ? ', ...' : ''} }`;
+	    }
     
     return String(value);
 }

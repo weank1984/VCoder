@@ -37,6 +37,18 @@ import { TerminalOutput } from './TerminalOutput';
 import { DiffViewer } from './DiffViewer';
 import { McpToolDisplay } from './McpToolDisplay';
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null;
+
+const asRecord = (value: unknown): Record<string, unknown> | undefined =>
+    isRecord(value) ? value : undefined;
+
+const asString = (value: unknown): string | undefined =>
+    typeof value === 'string' ? value : undefined;
+
+const asNumber = (value: unknown): number | undefined =>
+    typeof value === 'number' ? value : undefined;
+
 interface StepEntryProps {
     entry: StepEntryType;
     onViewFile?: (path: string, lineRange?: [number, number]) => void;
@@ -136,16 +148,19 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
     const terminalData = useMemo(() => {
         if (!isTerminalTool) return null;
         
-        const input = tc.input as any;
-        const result = tc.result as any;
+        const input = asRecord(tc.input);
+        const result = asRecord(tc.result);
         
         return {
-            command: input?.command || input?.cmd || '',
-            cwd: input?.cwd || input?.working_dir || '',
-            output: typeof result === 'string' ? result : (result?.output || result?.stdout || ''),
-            exitCode: result?.exitCode ?? result?.exit_code,
-            signal: result?.signal,
-            terminalId: result?.terminalId ?? result?.terminal_id,
+            command: asString(input?.command) ?? asString(input?.cmd) ?? '',
+            cwd: asString(input?.cwd) ?? asString(input?.working_dir) ?? '',
+            output:
+                typeof tc.result === 'string'
+                    ? tc.result
+                    : asString(result?.output) ?? asString(result?.stdout) ?? '',
+            exitCode: asNumber(result?.exitCode) ?? asNumber(result?.exit_code),
+            signal: asString(result?.signal),
+            terminalId: asString(result?.terminalId) ?? asString(result?.terminal_id),
             isRunning: tc.status === 'running',
         };
     }, [isTerminalTool, tc.input, tc.result, tc.status]);
@@ -154,24 +169,31 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
     const diffData = useMemo(() => {
         if (!isFileEditTool) return null;
         
-        const input = tc.input as any;
-        const result = tc.result as any;
+        const input = asRecord(tc.input);
+        const result = asRecord(tc.result);
         
         // Try to extract file path
-        const filePath = input?.path || input?.file_path || input?.file || entry.target.fullPath || '';
+        const filePath =
+            asString(input?.path) ??
+            asString(input?.file_path) ??
+            asString(input?.file) ??
+            entry.target.fullPath ??
+            '';
         
         // Try to extract diff
         let diff = '';
-        if (typeof result === 'string' && result.includes('@@')) {
-            diff = result;
-        } else if (result?.diff) {
-            diff = result.diff;
-        } else if (input?.diff) {
-            diff = input.diff;
+        if (typeof tc.result === 'string' && tc.result.includes('@@')) {
+            diff = tc.result;
+        } else {
+            diff = asString(result?.diff) ?? asString(input?.diff) ?? '';
         }
         
         // Try to extract new content
-        const newContent = input?.contents || input?.content || input?.new_string || '';
+        const newContent =
+            asString(input?.contents) ??
+            asString(input?.content) ??
+            asString(input?.new_string) ??
+            '';
         
         return {
             filePath,

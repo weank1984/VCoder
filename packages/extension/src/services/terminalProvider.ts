@@ -55,7 +55,6 @@ export class TerminalProvider {
         const terminalId = `term_${Date.now()}_${++this.terminalCounter}`;
 
         // Determine shell and working directory
-        const shell = this.getDefaultShell();
         const cwd = params.cwd || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
 
         // Prepare environment variables
@@ -260,21 +259,6 @@ export class TerminalProvider {
         try {
             const pty = handle.pty;
             
-            // Create a VSCode pseudo-terminal
-            const vscodeTerminal = vscode.window.createTerminal({
-                name: `VCoder: ${handle.command}`,
-                pty: {
-                    onDidWrite: new vscode.EventEmitter<string>().event,
-                    onDidClose: new vscode.EventEmitter<number | void>().event,
-                    open: () => {},
-                    close: () => {},
-                    handleInput: (data: string) => {
-                        // Forward input to pty
-                        pty.write(data);
-                    },
-                },
-            });
-
             // Forward pty output to VSCode terminal
             const writeEmitter = new vscode.EventEmitter<string>();
             const closeEmitter = new vscode.EventEmitter<number | void>();

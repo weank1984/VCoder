@@ -225,7 +225,20 @@ Phase 3: ~750 行
 - 内部测试
 - 早期用户反馈
 
-### 🎯 V1.0 正式版 - 2026年2-3月
+### 🎯 V0.6 RC（建议） - 2026年1-2月
+**目标**: 补齐 Phase 3 剩余 20%，达到对外测试/候选发布质量
+
+**包含内容（P0）**:
+- Agent 选择器 UI
+- 权限规则管理 UI
+- Webview 通信批处理/长会话滚动稳定
+- 大文件读取/写入/diff 降级策略
+
+**包含内容（P1）**:
+- 内置 MCP 工具补全（git diff/log、lsp definition/references）
+- 批量权限审批（二次确认）
+
+### 🎯 V1.0 正式版 - 2026年2-3月（以 Beta 反馈为准）
 **计划内容**:
 - ✅ Phase 1-3 完整
 - ⏳ Phase 4 选择性实现
@@ -247,14 +260,14 @@ Phase 3: ~750 行
 2. **性能优化**: 虚拟滚动、大文件处理未完全优化
 3. **LSP 工具**: definition, references 未实现
 4. **测试覆盖**: 单元测试和集成测试不足
-5. **Extension 集成**: 新服务需要在 extension.ts 中集成
+5. **文档与发布**: 安装/权限/排错文档与发布清单需要完善
 
 ### 优先级
-1. 🔴 Extension 集成（必须）
+1. 🔴 Phase 3 收尾（V0.6 RC P0）
 2. 🟠 测试覆盖（高）
-3. 🟡 UI 组件完善（中）
-4. 🟢 LSP 工具（低）
-5. 🟢 性能边缘优化（低）
+3. 🟠 文档与发布（高）
+4. 🟡 MCP/LSP 工具补全（中）
+5. 🟢 Phase 4 选择性实现（低）
 
 ---
 
@@ -295,15 +308,17 @@ Phase 3: ~750 行
 
 ### 立即任务
 1. ✅ 完成 Phase 3 报告
-2. ⏳ 集成新服务到 extension.ts
-3. ⏳ 添加单元测试
-4. ⏳ 更新文档
+2. ✅ 新服务已集成到 `extension.ts`
+3. ⏳ 完成 V0.6 RC 的 P0 清单
+4. ⏳ 添加关键路径测试（单测/集成/最小 E2E）
+5. ⏳ 更新文档与发布清单
 
 ### 短期计划 (1-2周)
 1. 添加 Agent 选择器 UI
-2. 完善 MCP Server 工具
-3. 优化虚拟滚动性能
-4. 内部测试与修复
+2. 权限规则管理 UI + 批量审批（可裁剪）
+3. 优化虚拟滚动/通信批处理
+4. 大文件处理降级
+5. 内部测试与修复
 
 ### 中期计划 (1-2月)
 1. Phase 4 选择性实现
@@ -338,6 +353,7 @@ Phase 3: ~750 行
 
 ### 开发文档
 - [DEVELOPMENT-ROADMAP.md](./DEVELOPMENT-ROADMAP.md) - 完整路线图
+- [../PROJECT-TRACKING.md](../PROJECT-TRACKING.md) - 进度管理与发布流程
 - [PHASE1-COMPLETION-REPORT.md](./PHASE1-COMPLETION-REPORT.md) - Phase 1 报告
 - [PHASE2-COMPLETION-REPORT.md](./PHASE2-COMPLETION-REPORT.md) - Phase 2 报告
 - [PHASE3-COMPLETION-REPORT.md](./PHASE3-COMPLETION-REPORT.md) - Phase 3 报告

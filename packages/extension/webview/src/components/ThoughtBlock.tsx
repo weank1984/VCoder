@@ -21,7 +21,7 @@ function truncate(str: string, maxLen: number): string {
 export function ThoughtBlock({ content, defaultExpanded = false, isComplete = true }: ThoughtBlockProps) {
     const { t } = useI18n();
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-    const [wasComplete, setWasComplete] = useState(isComplete);
+    const wasCompleteRef = useRef(isComplete);
     const contentRef = useRef<HTMLDivElement>(null);
     const [contentHeight, setContentHeight] = useState<number | undefined>();
     
@@ -30,11 +30,14 @@ export function ThoughtBlock({ content, defaultExpanded = false, isComplete = tr
     // 当思考从进行中变为完成时，自动折叠
     // When thinking transitions from in-progress to complete, auto-collapse
     useEffect(() => {
+        const wasComplete = wasCompleteRef.current;
+        wasCompleteRef.current = isComplete;
+
         if (isComplete && !wasComplete) {
-            setIsExpanded(false);
+            const timeoutId = setTimeout(() => setIsExpanded(false), 0);
+            return () => clearTimeout(timeoutId);
         }
-        setWasComplete(isComplete);
-    }, [isComplete, wasComplete]);
+    }, [isComplete]);
     const thinkingLabel = t('Agent.Thinking');
     const displayContent = content || (isThinking ? `${thinkingLabel}...` : '');
 

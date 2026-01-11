@@ -8,6 +8,8 @@ import { postMessage } from '../utils/vscode';
 import { useStore } from '../store/useStore';
 import type { ModelId, PermissionMode } from '@vcoder/shared';
 import { FilePicker } from './FilePicker';
+import { AgentSelector } from './AgentSelector';
+import { PermissionRulesPanel } from './PermissionRulesPanel';
 import { AddIcon, ArrowBottomIcon, SendIcon, StopIcon, CloseIcon, ThinkIcon } from './Icon';
 import { useI18n } from '../i18n/I18nProvider';
 import { loadPersistedState, savePersistedState } from '../utils/persist';
@@ -46,6 +48,7 @@ export function InputArea() {
     const [cursorPosition, setCursorPosition] = useState(0);
     const [isComposing, setIsComposing] = useState(false);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
+    const [showPermissionRules, setShowPermissionRules] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const rectRef = useRef<SVGRectElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
@@ -59,12 +62,15 @@ export function InputArea() {
         viewMode,
         thinkingEnabled,
         permissionMode,
+        agents,
+        currentAgentId,
         setModel,
         setThinkingEnabled,
         setPermissionMode,
         addMessage,
         setLoading,
         exitHistoryMode,
+        selectAgent,
     } = useStore();
 
     // Debounced save for input draft
@@ -286,6 +292,11 @@ export function InputArea() {
                     onClose={() => setShowPicker(false)}
                 />
             )}
+
+            <PermissionRulesPanel
+                visible={showPermissionRules}
+                onClose={() => setShowPermissionRules(false)}
+            />
             
             <div 
                 ref={wrapperRef}
@@ -348,6 +359,14 @@ export function InputArea() {
 
                     <div className="input-toolbar">
                         <div className="toolbar-left">
+                            {agents.length > 0 && (
+                                <AgentSelector
+                                    agents={agents}
+                                    currentAgentId={currentAgentId}
+                                    onSelectAgent={selectAgent}
+                                />
+                            )}
+
                             <button className="tool-btn add-btn" title={t('Common.AddFiles')} aria-label={t('Common.AddFiles')} onClick={handleAddFiles}>
                                 <AddIcon />
                             </button>
@@ -364,27 +383,37 @@ export function InputArea() {
                                 <ThinkIcon />
                             </button>
 
-                            <button 
-                                type="button" 
-                                className={`dropdown-btn mode-btn ${permissionMode !== 'default' ? 'mode-active' : ''} mode-${permissionMode}`}
-                                title={t('Common.PermissionMode')}
-                            >
-                                <span className="mode-icon">{selectedMode.icon}</span>
-                                <span className="mode-label">{t(selectedMode.labelKey)}</span>
-                                <span className="dropdown-arrow" aria-hidden="true"><ArrowBottomIcon /></span>
-                                <select
-                                    className="mode-select-overlay"
-                                    value={permissionMode}
-                                    onChange={(e) => setPermissionMode(e.target.value as PermissionMode)}
-                                    disabled={isLoading || viewMode === 'history'}
+                            <div className="permission-controls">
+                                <button 
+                                    type="button" 
+                                    className={`dropdown-btn mode-btn ${permissionMode !== 'default' ? 'mode-active' : ''} mode-${permissionMode}`}
+                                    title={t('Common.PermissionMode')}
                                 >
-                                    {PERMISSION_MODES.map((m) => (
-                                        <option key={m.id} value={m.id}>
-                                            {m.icon} {t(m.labelKey)}
-                                        </option>
-                                    ))}
-                                </select>
-                            </button>
+                                    <span className="mode-icon">{selectedMode.icon}</span>
+                                    <span className="mode-label">{t(selectedMode.labelKey)}</span>
+                                    <span className="dropdown-arrow" aria-hidden="true"><ArrowBottomIcon /></span>
+                                    <select
+                                        className="mode-select-overlay"
+                                        value={permissionMode}
+                                        onChange={(e) => setPermissionMode(e.target.value as PermissionMode)}
+                                        disabled={isLoading || viewMode === 'history'}
+                                    >
+                                        {PERMISSION_MODES.map((m) => (
+                                            <option key={m.id} value={m.id}>
+                                                {m.icon} {t(m.labelKey)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="tool-btn rules-btn"
+                                    title="管理权限规则"
+                                    onClick={() => setShowPermissionRules(true)}
+                                >
+                                    🔐
+                                </button>
+                            </div>
 
                             <button type="button" className="dropdown-btn model-btn">
                                 <span className="model-label">{selectedModel?.name || t('Common.SelectModel')}</span>

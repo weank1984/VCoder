@@ -49,6 +49,8 @@ interface WriteOperation {
 
 const LOCK_TIMEOUT = 30000; // 30 seconds
 const MAX_HISTORY_SIZE = 50;
+const LARGE_FILE_THRESHOLD = 1 * 1024 * 1024; // 1MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 /**
  * FileSystemProvider implements ACP fs/* capabilities.
@@ -87,8 +89,29 @@ export class FileSystemProvider {
         await this.checkPathAccess(absolutePath, 'read');
 
         try {
-            // Read file content
+            // Check file size first
             const uri = vscode.Uri.file(absolutePath);
+            const stat = await vscode.workspace.fs.stat(uri);
+            const fileSize = stat.size;
+
+            // Warn about large files
+            if (fileSize > LARGE_FILE_THRESHOLD) {
+                const sizeMB = (fileSize / (1024 * 1024)).toFixed(2);
+                console.warn(`[FileSystemProvider] Large file detected: ${absolutePath} (${sizeMB}MB)`);
+                
+                // Block files that are too large
+                if (fileSize > MAX_FILE_SIZE) {
+                    throw new Error(`File too large to read: ${sizeMB}MB (max ${MAX_FILE_SIZE / (1024 * 1024)}MB). Use line-based slicing with offset/limit parameters.`);
+                }
+
+                // Show warning to user for large files
+                vscode.window.showWarningMessage(
+                    `Reading large file: ${path.basename(absolutePath)} (${sizeMB}MB). This may take a while.`,
+                    'Continue'
+                );
+            }
+
+            // Read file content
             const content = await vscode.workspace.fs.readFile(uri);
             const text = Buffer.from(content).toString('utf-8');
 
@@ -117,7 +140,34 @@ export class FileSystemProvider {
      * Write text file with atomic operation and conflict detection.
      */
     async writeTextFile(params: FsWriteTextFileParams): Promise<FsWriteTextFileResult> {
-        console.log('[FileSystemProvider] writeTextFile:', { path: params.path, contentLength: params.content.length });
+        const contentSize = Buffer.byteLength(params.content, 'utf-8');
+        const sizeMB = (contentSize / (1024 * 1024)).toFixed(2);
+        
+        console.log('[FileSystemProvider] writeTextFile:', { 
+            path: params.path, 
+            contentLength: params.content.length,
+            sizeBytes: contentSize 
+        });
+
+        // Check content size
+        if (contentSize > LARGE_FILE_THRESHOLD) {
+            console.warn(`[FileSystemProvider] Writing large content: ${params.path} (${sizeMB}MB)`);
+            
+            if (contentSize > MAX_FILE_SIZE) {
+                throw new Error(`Content too large to write: ${sizeMB}MB (max ${MAX_FILE_SIZE / (1024 * 1024)}MB)`);
+            }
+
+            // Show warning to user
+            const choice = await vscode.window.showWarningMessage(
+                `About to write large file: ${path.basename(params.path)} (${sizeMB}MB). Continue?`,
+                'Yes',
+                'No'
+            );
+
+            if (choice !== 'Yes') {
+                throw new Error('Write operation cancelled by user');
+            }
+        }
 
         // Resolve and validate path
         const absolutePath = this.resolveAbsolutePath(params.path, params.sessionId);
@@ -150,7 +200,6 @@ export class FileSystemProvider {
             console.log(`[FileSystemProvider] Successfully wrote to ${absolutePath}`);
             return { success: true };
         } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
             console.error('[FileSystemProvider] Write error:', error);
             throw error;
         } finally {
@@ -243,7 +292,7 @@ export class FileSystemProvider {
      * Resolve relative path to absolute path.
      * Defaults to workspace root if path is relative.
      */
-    private resolveAbsolutePath(filePath: string, sessionId?: string): string {
+    private resolveAbsolutePath(filePath: string, _sessionId?: string): string {
         if (path.isAbsolute(filePath)) {
             return filePath;
         }
@@ -312,7 +361,7 @@ export class FileSystemProvider {
      */
     async dispose(): Promise<void> {
         // Reject all pending writes
-        for (const [requestId, pending] of this.pendingWrites) {
+        for (const [, pending] of this.pendingWrites) {
             pending.reject(new Error('FileSystemProvider disposed'));
         }
         this.pendingWrites.clear();
@@ -421,7 +470,7 @@ export class FileSystemProvider {
                 mtime: stats.mtimeMs,
                 timestamp: Date.now(),
             };
-        } catch (error) {
+        } catch {
             // File doesn't exist yet
             return null;
         }
@@ -447,7 +496,7 @@ export class FileSystemProvider {
                 
                 if (choice === 'Show Diff') {
                     // Show diff in editor
-                    await this.showDiff(filePath, originalSnapshot.content, current);
+                    await this.showDiff(filePath, originalSnapshot.content);
                     throw new Error('User requested diff review');
                 } else if (choice !== 'Overwrite') {
                     throw new Error('Write cancelled due to conflict');
@@ -465,7 +514,7 @@ export class FileSystemProvider {
     /**
      * Show diff between original and current content.
      */
-    private async showDiff(filePath: string, original: string, current: string): Promise<void> {
+    private async showDiff(filePath: string, original: string): Promise<void> {
         const originalUri = vscode.Uri.parse(`vcoder-original:${filePath}`);
         const currentUri = vscode.Uri.file(filePath);
         

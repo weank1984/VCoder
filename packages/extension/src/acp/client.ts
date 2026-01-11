@@ -14,7 +14,6 @@ import {
     ACPMethods,
     InitializeParams,
     InitializeResult,
-    NewSessionResult,
     ListSessionsResult,
     PromptParams,
     SettingsChangeParams,
@@ -23,12 +22,16 @@ import {
     Session,
     ModelId,
     PermissionMode,
+    McpServerConfig,
     HistorySession,
     HistoryChatMessage,
     HistoryListResult,
     HistoryLoadResult,
     HistoryDeleteResult,
 } from '@vcoder/shared';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null;
 
 export class ACPClient extends EventEmitter {
     private requestId = 0;
@@ -106,10 +109,10 @@ export class ACPClient extends EventEmitter {
         switch (notification.method) {
             case ACPMethods.SESSION_UPDATE:
                 {
-                    const params = notification.params as any;
+                    const params: unknown = notification.params;
                     // Handle legacy update format with 'update' field instead of 'type'
-                    if (params?.update) {
-                        console.log('[ACPClient] Ignoring legacy update format:', params.update.sessionUpdate);
+                    if (isRecord(params) && 'update' in params) {
+                        console.log('[ACPClient] Ignoring legacy update format');
                         return;
                     }
                     // Standard format: { sessionId, type, content }
@@ -224,22 +227,23 @@ export class ACPClient extends EventEmitter {
         return this.sendRequest<InitializeResult>(ACPMethods.INITIALIZE, params);
     }
 
-    async newSession(title?: string, params?: { cwd?: string; mcpServers?: any[] }): Promise<Session> {
+    async newSession(title?: string, params?: { cwd?: string; mcpServers?: McpServerConfig[] }): Promise<Session> {
         const sessionParams = {
             title,
             ...(params?.cwd && { cwd: params.cwd }),
             ...(params?.mcpServers && { mcpServers: params.mcpServers }),
         };
-        const result = await this.sendRequest<any>(ACPMethods.SESSION_NEW, sessionParams);
+        const result = await this.sendRequest<unknown>(ACPMethods.SESSION_NEW, sessionParams);
         
         // Handle both response formats:
         // - New format: { sessionId, models, ... }
         // - Old format: { session: { id, title, ... } }
         let session: Session;
-        if (result.session) {
+
+        if (isRecord(result) && 'session' in result && isRecord(result.session)) {
             // Old format
-            session = result.session;
-        } else if (result.sessionId) {
+            session = result.session as Session;
+        } else if (isRecord(result) && typeof result.sessionId === 'string') {
             // New format
             session = {
                 id: result.sessionId,

@@ -15,11 +15,9 @@ import {
     ThoughtUpdate,
     TextUpdate,
     ToolUseUpdate,
-    ToolResultUpdate,
     FileChangeUpdate,
     McpCallUpdate,
     TaskListUpdate,
-    SubagentRunUpdate,
     ErrorUpdate,
 } from '@vcoder/shared';
 
@@ -38,8 +36,6 @@ export interface PersistentSessionSettings {
     additionalDirs?: string[];
     maxThinkingTokens?: number;
 }
-
-type UpdateType = 'thought' | 'text' | 'tool_use' | 'tool_result' | 'file_change' | 'mcp_call' | 'task_list' | 'subagent_run' | 'error';
 
 /**
  * PersistentSession manages a single long-lived Claude CLI process

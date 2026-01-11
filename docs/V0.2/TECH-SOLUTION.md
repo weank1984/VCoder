@@ -1,5 +1,17 @@
 # 技术方案：基于 ACP/MCP 复刻 zcode 体验的 VSCode 插件
 
+## 0. 文档信息
+
+**覆盖版本**: V0.2（方案基线）→ V0.5（Beta 实现）→ V1.0（发布质量）  
+**最后更新**: 2026-01-11
+
+### 0.1 当前实现现状（V0.5.0 Beta）
+- ACP：双向 NDJSON JSON-RPC + `session/request_permission` 已落地（扩展侧 Provider + Webview Dialog）。
+- Capabilities：`fs/readTextFile`、`fs/writeTextFile`、`terminal/*` 已落地（含 Diff 审阅与 node-pty）。
+- 可观测性：会话导出 + 审计日志（JSONL）已落地。
+- 内置 MCP Server：已实现 HTTP + SSE（`/mcp/health|tools|call|stream`）与基础工具集。
+- 性能：已具备节流/批处理基础（但“长会话虚拟滚动/大文件 diff/通信批处理”仍需收尾）。
+
 ## 0. V0.2 修订说明（来自 ~/.zcode 的关键发现）
 V0.1 方案在无头/流式 JSON（`stream-json`）模式下无法可靠实现“用户审批后继续执行”，根因是：
 - Claude Code CLI 在非 TTY/`--input-format stream-json` 下不会阻塞等待 `y/n`，且向 stdin 写入 `y\n` 会破坏 JSON 行协议。
@@ -246,14 +258,19 @@ const session = query({
 
 ### 6.1 传输与位置
 - 运行在扩展进程内，监听 `127.0.0.1` 随机端口。
-- 提供 `http` 或 `sse`（择一）；对 agent 注入时使用对应类型。
+- 同时提供 HTTP API 与 SSE（agent 侧可按需使用）。
+- 端点（当前实现）：
+  - `GET  /mcp/health`
+  - `GET  /mcp/tools`
+  - `POST /mcp/call`
+  - `GET  /mcp/stream`（SSE）
 
 ### 6.2 工具集合（MVP）
 只提供“安全、可控、可审计”的工具，避免等价于任意 shell：
 - `workspace/searchText`：ripgrep 受限版（路径限制+大小限制+超时）
 - `workspace/listFiles`：列出工作区文件（可加 ignore）
 - `workspace/openFile`：让 VSCode 打开文件并定位
-- `git/status`、`git/diff`：只读
+- `git/status`：只读
 - `editor/getSelection`：读取当前选区与文件路径
 
 每个工具都写审计日志（入参摘要、耗时、结果大小）。
@@ -280,3 +297,33 @@ const session = query({
 - 文件访问默认仅限工作区根目录；越权访问必须弹窗。
 - 终端命令默认禁用；启用需用户确认，并支持会话级/一次性授权。
 - 网络能力通过 MCP 显式提供；对外网 MCP server 需显式配置并提示风险。
+
+---
+
+## 10. 待补齐设计（V0.6 RC 重点）
+
+### 10.1 Agent 选择器 UI（Webview）
+- 目标：把现有 “命令面板切换” 变成可发现的 UI（下拉/弹窗），并展示 Agent 状态与能力摘要。
+- 行为约束：切换 Agent 默认创建新会话（避免跨 Agent 状态污染），历史会话保留只读回看即可。
+
+### 10.2 权限规则管理 UI
+- 目标：对 “Always allow（会话级）” 规则可视化（查看/删除/过滤），并能一键清空当前会话规则。
+- 规则粒度建议：按 `toolName` + `scope(session)` 起步；如需要再扩展到 `category`（fs/terminal/mcp/network）。
+
+### 10.3 Webview 通信批处理
+- 目标：减少高频 `postMessage`，避免长会话下 UI 抖动/乱序。
+- 策略建议：
+  - 扩展侧维护队列（按 sessionId 分桶），固定节拍（例如 16-50ms）合并发送；
+  - Webview 侧按时间戳/sequence 合并更新，避免“只更新最后一条消息”的假设；
+  - 对大 payload（diff/日志）走“摘要 + 按需拉取/分页”而非一次性推送。
+
+### 10.4 大文件读取与 diff 降级
+- 目标：保证 >1MB 文件操作不把 Webview 卡死。
+- 策略建议：
+  - `readTextFile` 支持分片（offset/limit 或 line/limit），UI 提示“截断/继续读取”；
+  - `writeTextFile` 对大文件优先走“确认写入 + 提示跳转到文件 diff 编辑器”，Webview DiffViewer 仅展示摘要；
+  - diff 计算放在扩展侧并设置超时/大小上限，超限直接降级。
+
+### 10.5 LSP 工具（Definition/References）
+- 目标：让 Agent 能通过 MCP 安全调用 VSCode 的语言服务（只读）。
+- 实现建议：在内置 MCP Server 中新增 `lsp/*` 工具，内部调用 `vscode.commands.executeCommand('vscode.executeDefinitionProvider', ...)` 等命令，并做结果裁剪（数量/字段/大小）。

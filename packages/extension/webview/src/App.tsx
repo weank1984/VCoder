@@ -46,10 +46,12 @@ function App() {
     handleUpdate,
     setLoading,
     setHistorySessions,
-    loadHistorySession,
-    historySessions,
-    viewMode,
-  } = useStore();
+	    loadHistorySession,
+	    historySessions,
+	    viewMode,
+	    setAgents,
+	    setCurrentAgent,
+	  } = useStore();
 
   // Determine if virtual list should be enabled
   // Disable virtual list for history mode to avoid height estimation issues
@@ -104,6 +106,23 @@ function App() {
     const handleMessage = (event: MessageEvent<ExtensionMessage>) => {
       const message = event.data;
 
+      // Handle batch messages
+      if (message.type === 'batch') {
+        // Process all messages in the batch
+        for (const msg of message.messages) {
+          handleSingleMessage(msg);
+        }
+        return;
+      }
+
+      handleSingleMessage(message);
+    };
+
+    const handleSingleMessage = (message: ExtensionMessage) => {
+      if (message.type === 'batch') {
+        return; // Already handled above
+      }
+
       switch (message.type) {
         case 'update':
           handleUpdate(message.data);
@@ -147,6 +166,12 @@ function App() {
         case 'permissionRequest':
           setPermissionRequest(message.data);
           break;
+        case 'agents':
+          setAgents(message.data);
+          break;
+        case 'currentAgent':
+          setCurrentAgent(message.data.agentId);
+          break;
         case 'error':
           // Handle error messages from extension
           showError(
@@ -168,8 +193,9 @@ function App() {
 
     window.addEventListener('message', handleMessage);
 
-    // Request initial session list
+    // Request initial session list and agents
     postMessage({ type: 'listSessions' });
+    postMessage({ type: 'refreshAgents' });
     
     // Sync all persisted settings to backend on startup
     const state = useStore.getState();
