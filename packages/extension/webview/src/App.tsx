@@ -2,7 +2,7 @@
  * V-Coder Webview App
  */
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useStore, flushTextBuffer } from './store/useStore';
 import { useSmartScroll } from './hooks/useSmartScroll';
 import { useVirtualList } from './hooks/useVirtualList';
@@ -56,7 +56,11 @@ function App() {
   const useVirtual = viewMode === 'live' && messages.length > VIRTUAL_LIST_THRESHOLD;
 
   // Smart auto-scroll: only scroll when at bottom, show jump button when scrolled up
-  const { containerRef, endRef, onScroll: smartScrollHandler, autoScroll, jumpToBottom } = useSmartScroll(messages);
+  const { containerRef, endRef, onScroll: smartScrollHandler, autoScroll, jumpToBottom } = useSmartScroll(messages, {
+    enabled: viewMode === 'live',
+    autoScrollBehavior: 'auto',
+    jumpBehavior: 'smooth',
+  });
 
   // Virtual list for long sessions
   const { 
@@ -71,12 +75,12 @@ function App() {
   });
 
   // Combine scroll handlers
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     smartScrollHandler();
     if (useVirtual) {
       virtualScrollHandler();
     }
-  };
+  }, [smartScrollHandler, useVirtual, virtualScrollHandler]);
 
   // Reset virtual list state when session changes
   useEffect(() => {
@@ -188,6 +192,44 @@ function App() {
   const isEmpty = messages.length === 0;
   const isInitializing = isEmpty && isLoading;
 
+  // Memoize message body to avoid re-rendering the entire list when only scroll UI
+  // state changes (e.g. JumpToBottom visibility).
+  const messagesBody = useMemo(() => {
+    if (isEmpty) {
+      return isInitializing ? <MessageSkeleton count={2} /> : <Welcome />;
+    }
+
+    if (useVirtual) {
+      return (
+        <>
+          {/* Top padding for virtual scrolling */}
+          <div style={{ height: range.topPadding }} />
+          {visibleMessages.map((msg, idx) => (
+            <VirtualMessageItem 
+              key={msg.id} 
+              message={msg} 
+              index={range.start + idx}
+            />
+          ))}
+          {/* Bottom padding for virtual scrolling */}
+          <div style={{ height: range.bottomPadding }} />
+        </>
+      );
+    }
+
+    return messages.map((msg) => <ChatBubble key={msg.id} message={msg} />);
+  }, [
+    isEmpty,
+    isInitializing,
+    isLoading,
+    messages,
+    range.bottomPadding,
+    range.start,
+    range.topPadding,
+    useVirtual,
+    visibleMessages,
+  ]);
+
   return (
     <div className="app">
       {tasks.length > 0 && (planMode || permissionMode === 'plan') && (
@@ -203,27 +245,7 @@ function App() {
         ref={useVirtual ? virtualContainerRef : containerRef}
         onScroll={handleScroll}
       >
-        {isEmpty ? (
-          isInitializing ? <MessageSkeleton count={2} /> : <Welcome />
-        ) : useVirtual ? (
-          <>
-            {/* Top padding for virtual scrolling */}
-            <div style={{ height: range.topPadding }} />
-            {visibleMessages.map((msg, idx) => (
-              <VirtualMessageItem 
-                key={msg.id} 
-                message={msg} 
-                index={range.start + idx}
-              />
-            ))}
-            {/* Bottom padding for virtual scrolling */}
-            <div style={{ height: range.bottomPadding }} />
-          </>
-        ) : (
-          messages.map((msg) => (
-            <ChatBubble key={msg.id} message={msg} />
-          ))
-        )}
+        {messagesBody}
         <div ref={endRef} />
       </div>
 

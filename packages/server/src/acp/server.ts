@@ -241,9 +241,17 @@ export class ACPServer {
                     env: server.env ?? {},
                 };
             } else if (server.type === 'http') {
-                servers[name] = { url: server.url };
+                // HTTP type MCP server requires 'type' and 'url' fields
+                servers[name] = { 
+                    type: 'http',
+                    url: server.url 
+                };
             } else if (server.type === 'sse') {
-                servers[name] = { url: server.url };
+                // SSE type MCP server requires 'type' and 'url' fields
+                servers[name] = { 
+                    type: 'sse',
+                    url: server.url 
+                };
             }
         }
 

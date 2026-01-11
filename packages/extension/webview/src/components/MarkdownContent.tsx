@@ -65,12 +65,8 @@ function CodeBlock({ inline, className, children, isComplete, syntaxTheme, t }: 
         return <FilePath path={codeString} variant="block" />;
     }
 
-    // Mermaid diagrams
-    if (language === 'mermaid') {
-        return <MermaidBlock code={codeString} />;
-    }
-
     // 流式渲染时使用简化渲染，避免频繁重渲染导致的性能问题
+    // 对于 mermaid 等需要完整代码的特殊语言，流式时也显示纯文本，避免渲染不完整语法报错
     if (!isComplete) {
         return (
             <div className="vc-code-block">
@@ -87,6 +83,11 @@ function CodeBlock({ inline, className, children, isComplete, syntaxTheme, t }: 
                 </pre>
             </div>
         );
+    }
+
+    // Mermaid diagrams - 只在完整内容时渲染
+    if (language === 'mermaid') {
+        return <MermaidBlock code={codeString} />;
     }
 
     return (

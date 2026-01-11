@@ -6,7 +6,13 @@
     border-radius: 8px;
     background: var(--vcoder-surface-2);
     border: 1px solid var(--vcoder-border);
-    overflow: auto;
+    
+    // 只允许横向滚动，避免干扰页面主滚动
+    overflow-x: auto;
+    overflow-y: visible;
+    
+    // 确保触摸滑动事件能正常向上传递
+    touch-action: pan-y pinch-zoom;
     
     // Center the diagram
     display: flex;
@@ -25,6 +31,14 @@
     svg {
         max-width: 100%;
         height: auto;
+        // 防止 SVG 捕获滚动事件
+        pointer-events: none;
+    }
+    
+    // 但允许 SVG 内的交互元素可点击
+    svg a,
+    svg [cursor="pointer"] {
+        pointer-events: auto;
     }
     
     // Loading state
