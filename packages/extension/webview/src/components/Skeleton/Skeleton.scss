@@ -1,0 +1,111 @@
+/**
+ * Skeleton Loading Styles
+ */
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--vscode-editor-background) 0%,
+        var(--vscode-sideBar-background) 50%,
+        var(--vscode-editor-background) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 4px;
+    
+    &.skeleton--text {
+        height: 1em;
+        margin: 4px 0;
+    }
+    
+    &.skeleton--avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+    }
+    
+    &.skeleton--button {
+        height: 32px;
+        border-radius: 4px;
+    }
+    
+    &.skeleton--rect {
+        border-radius: 6px;
+    }
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+// Message Skeleton
+.message-skeleton {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    
+    &__avatar {
+        flex-shrink: 0;
+    }
+    
+    &__content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    &__line {
+        margin-bottom: 8px;
+        
+        &:last-child {
+            margin-bottom: 0;
+            width: 60%;
+        }
+    }
+}
+
+// Session Skeleton
+.session-skeleton {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--vscode-sideBar-border);
+    
+    &__title {
+        margin-bottom: 8px;
+    }
+    
+    &__subtitle {
+        width: 70%;
+        height: 12px;
+    }
+}
+
+// Agent Skeleton
+.agent-skeleton {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 16px;
+    
+    &__logo {
+        width: 64px;
+        height: 64px;
+        border-radius: 12px;
+    }
+    
+    &__title {
+        width: 150px;
+        height: 20px;
+    }
+    
+    &__subtitle {
+        width: 200px;
+        height: 14px;
+    }
+}

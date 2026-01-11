@@ -201,6 +201,18 @@ export interface HistoryMessagesMessage {
     sessionId: string;
 }
 
+export interface ErrorMessage {
+    type: 'error';
+    data: {
+        title?: string;
+        message: string;
+        action?: {
+            label: string;
+            command: string;
+        };
+    };
+}
+
 export type ExtensionMessage = 
     | UpdateMessage 
     | CompleteMessage 
@@ -211,7 +223,8 @@ export type ExtensionMessage =
     | UiLanguageMessage
     | HistorySessionsMessage
     | HistoryMessagesMessage
-    | PermissionRequestMessage;
+    | PermissionRequestMessage
+    | ErrorMessage;
 
 export type WebviewMessage =
     | SendMessage

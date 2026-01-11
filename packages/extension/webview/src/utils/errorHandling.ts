@@ -10,6 +10,8 @@ export type ErrorType =
     | 'not_found'
     | 'validation'
     | 'agent'
+    | 'file_system'
+    | 'parse'
     | 'unknown';
 
 export interface ErrorDetails {
@@ -19,6 +21,7 @@ export interface ErrorDetails {
     technicalDetails?: string;
     retryable: boolean;
     actionLabel?: string;
+    suggestions?: string[];
 }
 
 /**
@@ -32,6 +35,7 @@ export function parseError(error: unknown): ErrorDetails {
             title: 'Unknown Error',
             message: 'An unexpected error occurred',
             retryable: true,
+            suggestions: ['Try refreshing the page', 'Check your internet connection'],
         };
     }
     
@@ -48,6 +52,11 @@ export function parseError(error: unknown): ErrorDetails {
                 technicalDetails: error.message,
                 retryable: true,
                 actionLabel: 'Retry',
+                suggestions: [
+                    'Check your internet connection',
+                    'Try disabling VPN or proxy',
+                    'Check firewall settings',
+                ],
             };
         }
         
@@ -56,10 +65,15 @@ export function parseError(error: unknown): ErrorDetails {
             return {
                 type: 'timeout',
                 title: 'Request Timeout',
-                message: 'The operation took too long to complete. Please try again.',
+                message: 'The operation took too long to complete. The server might be busy.',
                 technicalDetails: error.message,
                 retryable: true,
                 actionLabel: 'Retry',
+                suggestions: [
+                    'Wait a moment and try again',
+                    'Check your network speed',
+                    'The agent might be processing a large request',
+                ],
             };
         }
         
@@ -71,17 +85,27 @@ export function parseError(error: unknown): ErrorDetails {
                 message: 'You do not have permission to perform this action.',
                 technicalDetails: error.message,
                 retryable: false,
+                suggestions: [
+                    'Check your permission settings',
+                    'Make sure the file/folder is not read-only',
+                    'Try running VSCode as administrator (if needed)',
+                ],
             };
         }
         
         // Not found errors
-        if (message.includes('not found') || message.includes('404')) {
+        if (message.includes('not found') || message.includes('404') || message.includes('enoent')) {
             return {
                 type: 'not_found',
                 title: 'Not Found',
                 message: 'The requested resource was not found.',
                 technicalDetails: error.message,
                 retryable: false,
+                suggestions: [
+                    'Check if the file/folder exists',
+                    'Make sure the path is correct',
+                    'Try refreshing the workspace',
+                ],
             };
         }
         
@@ -93,18 +117,60 @@ export function parseError(error: unknown): ErrorDetails {
                 message: 'The input data is invalid. Please check and try again.',
                 technicalDetails: error.message,
                 retryable: false,
+                suggestions: [
+                    'Check your input for errors',
+                    'Make sure all required fields are filled',
+                    'Verify the format is correct',
+                ],
+            };
+        }
+        
+        // File system errors
+        if (message.includes('eacces') || message.includes('eisdir') || message.includes('enotdir')) {
+            return {
+                type: 'file_system',
+                title: 'File System Error',
+                message: 'Failed to access file or directory.',
+                technicalDetails: error.message,
+                retryable: false,
+                suggestions: [
+                    'Check file permissions',
+                    'Make sure the file is not locked by another program',
+                    'Verify the path is correct',
+                ],
+            };
+        }
+        
+        // Parse errors
+        if (message.includes('json') || message.includes('parse') || message.includes('syntax')) {
+            return {
+                type: 'parse',
+                title: 'Parse Error',
+                message: 'Failed to parse the data. The format might be invalid.',
+                technicalDetails: error.message,
+                retryable: false,
+                suggestions: [
+                    'Check the file format',
+                    'Make sure the data is properly formatted',
+                    'Try validating the syntax',
+                ],
             };
         }
         
         // Agent errors
-        if (message.includes('agent') || message.includes('model')) {
+        if (message.includes('agent') || message.includes('model') || message.includes('api')) {
             return {
                 type: 'agent',
                 title: 'Agent Error',
-                message: 'The AI agent encountered an error. Please try again or restart the session.',
+                message: 'The AI agent encountered an error. This might be temporary.',
                 technicalDetails: error.message,
                 retryable: true,
                 actionLabel: 'Retry',
+                suggestions: [
+                    'Try again in a moment',
+                    'Check your API key if configured',
+                    'Try starting a new session',
+                ],
             };
         }
         
@@ -116,6 +182,11 @@ export function parseError(error: unknown): ErrorDetails {
             technicalDetails: error.stack,
             retryable: true,
             actionLabel: 'Retry',
+            suggestions: [
+                'Try again',
+                'Reload the window',
+                'Check the developer console for details',
+            ],
         };
     }
     
@@ -126,13 +197,14 @@ export function parseError(error: unknown): ErrorDetails {
             title: 'Error',
             message: error,
             retryable: true,
+            suggestions: ['Try again'],
         };
     }
     
     // Handle JSON-RPC errors
     if (typeof error === 'object' && error !== null) {
-        const err = error as any;
-        if (err.code && err.message) {
+        const err = error as Record<string, unknown>;
+        if (typeof err.code === 'number' && typeof err.message === 'string') {
             return {
                 type: 'agent',
                 title: `Error ${err.code}`,
@@ -140,6 +212,7 @@ export function parseError(error: unknown): ErrorDetails {
                 technicalDetails: err.data ? JSON.stringify(err.data, null, 2) : undefined,
                 retryable: err.code !== -32601, // Method not found is not retryable
                 actionLabel: 'Retry',
+                suggestions: ['Try again', 'Check the agent connection'],
             };
         }
     }
@@ -150,6 +223,7 @@ export function parseError(error: unknown): ErrorDetails {
         title: 'Unknown Error',
         message: String(error),
         retryable: true,
+        suggestions: ['Try reloading the page'],
     };
 }
 

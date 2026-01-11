@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { TerminalIcon, StopIcon, CheckIcon, ErrorIcon, CopyIcon, ExpandIcon, CollapseIcon } from '../Icon';
 import { useI18n } from '../../i18n/I18nProvider';
+import { useThrottledValue } from '../../hooks/useThrottledUpdate';
 
 interface TerminalOutputProps {
     /** Terminal output content */
@@ -89,15 +90,20 @@ export function TerminalOutput({
     const outputRef = useRef<HTMLPreElement>(null);
     const [autoScroll, setAutoScroll] = useState(true);
     
+    // Throttle output updates to improve performance during high-frequency streaming
+    // Use the raw output when not running, throttled when streaming
+    const throttledOutput = useThrottledValue(output, isRunning ? 100 : 0);
+    const displayOutput = isRunning ? throttledOutput : output;
+    
     // Clean output
-    const cleanedOutput = useMemo(() => stripAnsi(output), [output]);
+    const cleanedOutput = useMemo(() => stripAnsi(displayOutput), [displayOutput]);
     
     // Auto-scroll to bottom when new output arrives
     useEffect(() => {
         if (isRunning && autoScroll && outputRef.current) {
             outputRef.current.scrollTop = outputRef.current.scrollHeight;
         }
-    }, [output, isRunning, autoScroll]);
+    }, [displayOutput, isRunning, autoScroll]);
     
     // Check if user manually scrolled up
     const handleScroll = () => {

@@ -8,6 +8,9 @@ import { ServerManager } from './services/serverManager';
 import { PermissionProvider } from './services/permissionProvider';
 import { TerminalProvider } from './services/terminalProvider';
 import { FileSystemProvider } from './services/fileSystemProvider';
+import { SessionStore } from './services/sessionStore';
+import { AuditLogger } from './services/auditLogger';
+import { BuiltinMcpServer } from './services/builtinMcpServer';
 import { ACPClient } from './acp/client';
 import { ChatViewProvider } from './providers/chatViewProvider';
 import { DiffManager } from './services/diffManager';
@@ -19,6 +22,9 @@ let acpClient: ACPClient;
 let permissionProvider: PermissionProvider;
 let terminalProvider: TerminalProvider;
 let fileSystemProvider: FileSystemProvider;
+let sessionStore: SessionStore;
+let auditLogger: AuditLogger;
+let builtinMcpServer: BuiltinMcpServer;
 let statusBarItem: vscode.StatusBarItem;
 let outputChannel: vscode.OutputChannel;
 let clientInitParams: InitializeParams;
@@ -82,6 +88,32 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push({
         dispose: () => fileSystemProvider.dispose()
     });
+
+    // 5. Initialize Session Store (Phase 2)
+    sessionStore = new SessionStore(context, context.workspaceState, context.globalState);
+    context.subscriptions.push({
+        dispose: () => sessionStore.dispose()
+    });
+
+    // 6. Initialize Audit Logger (Phase 2)
+    auditLogger = new AuditLogger(context);
+    context.subscriptions.push({
+        dispose: () => auditLogger.dispose()
+    });
+
+    // 7. Initialize Built-in MCP Server (Phase 3)
+    builtinMcpServer = new BuiltinMcpServer(context);
+    try {
+        await builtinMcpServer.start();
+        const serverConfig = builtinMcpServer.getServerConfig();
+        if (serverConfig) {
+            outputChannel.appendLine(`[VCoder] Built-in MCP Server started: ${serverConfig.url}`);
+        }
+    } catch (err) {
+        console.error('[VCoder] Failed to start built-in MCP server:', err);
+        outputChannel.appendLine(`[VCoder] Warning: Built-in MCP Server failed to start: ${err}`);
+        // Don't fail activation, the extension can still work without built-in MCP server
+    }
 
     clientInitParams = {
         protocolVersion: 1, // V0.2 uses protocol version 1
@@ -359,6 +391,57 @@ export async function activate(context: vscode.ExtensionContext) {
 
         vscode.commands.registerCommand('vcoder.showLogs', () => {
             outputChannel.show();
+        }),
+
+        // Session management commands (Phase 2)
+        vscode.commands.registerCommand('vcoder.exportSession', async () => {
+            try {
+                await sessionStore.exportToFile();
+            } catch (error) {
+                console.error('[VCoder] Export session failed:', error);
+                vscode.window.showErrorMessage(`Failed to export session: ${error}`);
+            }
+        }),
+
+        vscode.commands.registerCommand('vcoder.importSession', async () => {
+            try {
+                await sessionStore.importFromFile();
+                chatProvider.refresh();
+            } catch (error) {
+                console.error('[VCoder] Import session failed:', error);
+                vscode.window.showErrorMessage(`Failed to import session: ${error}`);
+            }
+        }),
+
+        // Audit log commands (Phase 2)
+        vscode.commands.registerCommand('vcoder.exportAuditLogs', async () => {
+            try {
+                await auditLogger.exportToFile();
+            } catch (error) {
+                console.error('[VCoder] Export audit logs failed:', error);
+                vscode.window.showErrorMessage(`Failed to export audit logs: ${error}`);
+            }
+        }),
+
+        vscode.commands.registerCommand('vcoder.showAuditStats', async () => {
+            try {
+                const stats = await auditLogger.getStats();
+                const message = `
+Audit Log Statistics:
+- Total Events: ${stats.totalEvents}
+- Sessions: ${stats.sessionCount}
+- Log Size: ${(stats.fileSize / 1024 / 1024).toFixed(2)} MB
+- Date Range: ${stats.dateRange.start ? new Date(stats.dateRange.start).toLocaleDateString() : 'N/A'} - ${stats.dateRange.end ? new Date(stats.dateRange.end).toLocaleDateString() : 'N/A'}
+
+Events by Type:
+${Object.entries(stats.eventsByType).map(([type, count]) => `- ${type}: ${count}`).join('\n')}
+                `.trim();
+                
+                vscode.window.showInformationMessage(message, { modal: true });
+            } catch (error) {
+                console.error('[VCoder] Show audit stats failed:', error);
+                vscode.window.showErrorMessage(`Failed to get audit stats: ${error}`);
+            }
         })
     );
 
@@ -421,12 +504,25 @@ function getMcpServerConfig(): McpServerConfig[] {
     const config = vscode.workspace.getConfiguration('vcoder');
     const servers = config.get<McpServerConfig[]>('mcpServers', []);
     
+    // Add built-in MCP server if available
+    try {
+        const builtinServerConfig = builtinMcpServer?.getServerConfig();
+        if (builtinServerConfig) {
+            servers.unshift(builtinServerConfig);
+        }
+    } catch (err) {
+        // Server not started, skip
+    }
+    
     console.log('[VCoder] Loaded MCP server config:', servers);
     return servers;
 }
 
 export async function deactivate() {
     console.log('[VCoder] Deactivating extension...');
+    await builtinMcpServer?.stop();
+    await auditLogger?.dispose();
+    sessionStore?.dispose();
     await fileSystemProvider?.dispose();
     await terminalProvider?.dispose();
     await acpClient?.shutdown();

@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import type { HistorySession } from '@vcoder/shared';
 import { CloseIcon, TrashIcon } from './Icon';
+import { SessionSkeleton } from './Skeleton';
 import { postMessage } from '../utils/vscode';
 import { useI18n } from '../i18n/I18nProvider';
 import { useStore } from '../store/useStore';
@@ -14,9 +15,10 @@ interface HistoryPanelProps {
     historySessions: HistorySession[];
     visible: boolean;
     onClose: () => void;
+    isLoading?: boolean;
 }
 
-export function HistoryPanel({ historySessions, visible, onClose }: HistoryPanelProps) {
+export function HistoryPanel({ historySessions, visible, onClose, isLoading = false }: HistoryPanelProps) {
     const { t, language } = useI18n();
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const { viewMode, currentSessionId, exitHistoryMode } = useStore();
@@ -89,7 +91,9 @@ export function HistoryPanel({ historySessions, visible, onClose }: HistoryPanel
 
                 <div className="history-sessions-list">
                     <div className="history-section-title">{t('Common.OtherHistory')}</div>
-                    {historySessions.length === 0 ? (
+                    {isLoading ? (
+                        <SessionSkeleton count={3} />
+                    ) : historySessions.length === 0 ? (
                         <div className="history-empty">{t('Common.NoHistory')}</div>
                     ) : (
                         historySessions.map((session) => (

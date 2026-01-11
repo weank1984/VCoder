@@ -2,7 +2,7 @@
     "name": "vcoder",
     "displayName": "V-Coder",
     "description": "VSCode 智能编程助手 (Claude Code / Codex CLI)",
-    "version": "0.2.0",
+    "version": "0.5.0",
     "publisher": "vcoder",
     "license": "MIT",
     "engines": {
@@ -76,6 +76,22 @@
             {
                 "command": "vcoder.exportLogs",
                 "title": "V-Coder: Export Session Logs"
+            },
+            {
+                "command": "vcoder.exportSession",
+                "title": "V-Coder: Export Session"
+            },
+            {
+                "command": "vcoder.importSession",
+                "title": "V-Coder: Import Session"
+            },
+            {
+                "command": "vcoder.exportAuditLogs",
+                "title": "V-Coder: Export Audit Logs"
+            },
+            {
+                "command": "vcoder.showAuditStats",
+                "title": "V-Coder: Show Audit Statistics"
             }
         ],
         "menus": {

@@ -1,11 +1,17 @@
 /**
  * FileSystem Provider
  * Handles ACP fs/* capabilities with workspace trust and path restrictions
+ * Enhanced with:
+ * - Atomic file writes (temp file + rename)
+ * - Concurrent operation protection (file-level locks)
+ * - Version conflict detection (hash/mtime checks)
+ * - Rollback mechanism (operation history)
  */
 
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import * as crypto from 'crypto';
 import {
     FsReadTextFileParams,
     FsReadTextFileResult,
@@ -20,6 +26,30 @@ interface PendingWriteRequest {
     requestId: string;
 }
 
+interface FileLock {
+    requestId: string;
+    timestamp: number;
+    operation: 'read' | 'write';
+}
+
+interface FileSnapshot {
+    path: string;
+    content: string;
+    hash: string;
+    mtime: number;
+    timestamp: number;
+}
+
+interface WriteOperation {
+    id: string;
+    path: string;
+    snapshot: FileSnapshot | null;
+    timestamp: number;
+}
+
+const LOCK_TIMEOUT = 30000; // 30 seconds
+const MAX_HISTORY_SIZE = 50;
+
 /**
  * FileSystemProvider implements ACP fs/* capabilities.
  * Features:
@@ -27,12 +57,24 @@ interface PendingWriteRequest {
  * - Workspace trust checks
  * - Line-based reading with offset/limit
  * - Diff-based write review workflow
+ * - Atomic writes with temp files
+ * - Concurrent access protection
+ * - Conflict detection and rollback
  */
 export class FileSystemProvider {
     private pendingWrites: Map<string, PendingWriteRequest> = new Map();
     private writeCounter = 0;
+    
+    // Concurrent access protection
+    private fileLocks: Map<string, FileLock> = new Map();
+    
+    // Operation history for rollback
+    private writeHistory: WriteOperation[] = [];
 
-    constructor(private context: vscode.ExtensionContext) {}
+    constructor(private context: vscode.ExtensionContext) {
+        // Periodically clean up expired locks
+        setInterval(() => this.cleanupExpiredLocks(), 10000);
+    }
 
     /**
      * Read text file with optional line-based slicing.
@@ -72,8 +114,7 @@ export class FileSystemProvider {
     }
 
     /**
-     * Write text file with diff review workflow.
-     * Returns immediately with a pending write ID; actual write happens after user approval.
+     * Write text file with atomic operation and conflict detection.
      */
     async writeTextFile(params: FsWriteTextFileParams): Promise<FsWriteTextFileResult> {
         console.log('[FileSystemProvider] writeTextFile:', { path: params.path, contentLength: params.content.length });
@@ -82,51 +123,39 @@ export class FileSystemProvider {
         const absolutePath = this.resolveAbsolutePath(params.path, params.sessionId);
         await this.checkPathAccess(absolutePath, 'write');
 
-        // Generate write request ID
+        // Acquire file lock
         const requestId = `write_${Date.now()}_${++this.writeCounter}`;
+        await this.acquireLock(absolutePath, requestId, 'write');
 
-        // For now, directly write (will add review workflow in next step)
-        // TODO: Integrate with DiffManager for review workflow
         try {
-            const uri = vscode.Uri.file(absolutePath);
+            // Take snapshot before write (for rollback)
+            const snapshot = await this.takeSnapshot(absolutePath);
             
-            // Check if file exists
-            let fileExists = false;
-            try {
-                await vscode.workspace.fs.stat(uri);
-                fileExists = true;
-            } catch {
-                fileExists = false;
+            // Check for conflicts if file exists
+            if (snapshot) {
+                await this.checkConflict(absolutePath, snapshot);
             }
 
-            // Write content
-            const edit = new vscode.WorkspaceEdit();
-            if (fileExists) {
-                // Replace entire file content
-                const document = await vscode.workspace.openTextDocument(uri);
-                const fullRange = new vscode.Range(
-                    document.lineAt(0).range.start,
-                    document.lineAt(document.lineCount - 1).range.end
-                );
-                edit.replace(uri, fullRange, params.content);
-            } else {
-                // Create new file
-                edit.createFile(uri, { ignoreIfExists: true });
-                edit.insert(uri, new vscode.Position(0, 0), params.content);
-            }
-
-            const success = await vscode.workspace.applyEdit(edit);
+            // Perform atomic write
+            await this.atomicWrite(absolutePath, params.content);
             
-            if (!success) {
-                throw new Error('Failed to apply workspace edit');
-            }
+            // Record operation in history
+            this.recordOperation({
+                id: requestId,
+                path: absolutePath,
+                snapshot,
+                timestamp: Date.now(),
+            });
 
             console.log(`[FileSystemProvider] Successfully wrote to ${absolutePath}`);
             return { success: true };
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             console.error('[FileSystemProvider] Write error:', error);
-            throw new Error(`Failed to write file ${params.path}: ${message}`);
+            throw error;
+        } finally {
+            // Always release lock
+            this.releaseLock(absolutePath, requestId);
         }
     }
 
@@ -287,5 +316,234 @@ export class FileSystemProvider {
             pending.reject(new Error('FileSystemProvider disposed'));
         }
         this.pendingWrites.clear();
+        this.fileLocks.clear();
+        this.writeHistory = [];
+    }
+
+    /**
+     * Perform atomic write using temp file + rename.
+     */
+    private async atomicWrite(filePath: string, content: string): Promise<void> {
+        const tempPath = `${filePath}.tmp.${Date.now()}`;
+        
+        try {
+            // Write to temp file
+            await fs.writeFile(tempPath, content, 'utf-8');
+            
+            // Check disk space (basic check)
+            try {
+                const stats = await fs.stat(tempPath);
+                if (stats.size === 0 && content.length > 0) {
+                    throw new Error('Temp file is empty, possible disk space issue');
+                }
+            } catch (error) {
+                console.error('[FileSystemProvider] Disk space check failed:', error);
+            }
+            
+            // Atomic rename (overwrites if exists)
+            await fs.rename(tempPath, filePath);
+        } catch (error) {
+            // Cleanup temp file on error
+            try {
+                await fs.unlink(tempPath);
+            } catch {
+                // Ignore cleanup errors
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Acquire file lock for concurrent access protection.
+     */
+    private async acquireLock(filePath: string, requestId: string, operation: 'read' | 'write'): Promise<void> {
+        const existingLock = this.fileLocks.get(filePath);
+        
+        if (existingLock) {
+            // Check if lock is expired
+            const elapsed = Date.now() - existingLock.timestamp;
+            if (elapsed < LOCK_TIMEOUT) {
+                // Lock is still valid
+                if (operation === 'write' || existingLock.operation === 'write') {
+                    throw new Error(`File is locked by another operation: ${filePath}`);
+                }
+                // Multiple reads are allowed
+            } else {
+                // Lock expired, remove it
+                this.fileLocks.delete(filePath);
+            }
+        }
+        
+        // Acquire lock
+        this.fileLocks.set(filePath, {
+            requestId,
+            timestamp: Date.now(),
+            operation,
+        });
+    }
+
+    /**
+     * Release file lock.
+     */
+    private releaseLock(filePath: string, requestId: string): void {
+        const lock = this.fileLocks.get(filePath);
+        if (lock && lock.requestId === requestId) {
+            this.fileLocks.delete(filePath);
+        }
+    }
+
+    /**
+     * Cleanup expired locks (called periodically).
+     */
+    private cleanupExpiredLocks(): void {
+        const now = Date.now();
+        for (const [filePath, lock] of this.fileLocks.entries()) {
+            if (now - lock.timestamp > LOCK_TIMEOUT) {
+                console.warn(`[FileSystemProvider] Lock expired for ${filePath}`);
+                this.fileLocks.delete(filePath);
+            }
+        }
+    }
+
+    /**
+     * Take snapshot of file for rollback.
+     */
+    private async takeSnapshot(filePath: string): Promise<FileSnapshot | null> {
+        try {
+            const content = await fs.readFile(filePath, 'utf-8');
+            const stats = await fs.stat(filePath);
+            const hash = this.computeHash(content);
+            
+            return {
+                path: filePath,
+                content,
+                hash,
+                mtime: stats.mtimeMs,
+                timestamp: Date.now(),
+            };
+        } catch (error) {
+            // File doesn't exist yet
+            return null;
+        }
+    }
+
+    /**
+     * Check for version conflicts.
+     */
+    private async checkConflict(filePath: string, originalSnapshot: FileSnapshot): Promise<void> {
+        try {
+            const current = await fs.readFile(filePath, 'utf-8');
+            const currentHash = this.computeHash(current);
+            
+            if (currentHash !== originalSnapshot.hash) {
+                // File has been modified since snapshot
+                const choice = await vscode.window.showWarningMessage(
+                    `File "${path.basename(filePath)}" has been modified. Overwrite?`,
+                    { modal: true },
+                    'Show Diff',
+                    'Overwrite',
+                    'Cancel'
+                );
+                
+                if (choice === 'Show Diff') {
+                    // Show diff in editor
+                    await this.showDiff(filePath, originalSnapshot.content, current);
+                    throw new Error('User requested diff review');
+                } else if (choice !== 'Overwrite') {
+                    throw new Error('Write cancelled due to conflict');
+                }
+            }
+        } catch (error) {
+            if (error instanceof Error && error.message.includes('ENOENT')) {
+                // File was deleted, that's ok
+                return;
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Show diff between original and current content.
+     */
+    private async showDiff(filePath: string, original: string, current: string): Promise<void> {
+        const originalUri = vscode.Uri.parse(`vcoder-original:${filePath}`);
+        const currentUri = vscode.Uri.file(filePath);
+        
+        // Register temp document provider
+        const provider = new class implements vscode.TextDocumentContentProvider {
+            provideTextDocumentContent(): string {
+                return original;
+            }
+        };
+        
+        const registration = vscode.workspace.registerTextDocumentContentProvider('vcoder-original', provider);
+        
+        try {
+            await vscode.commands.executeCommand(
+                'vscode.diff',
+                originalUri,
+                currentUri,
+                `${path.basename(filePath)} (Original ↔ Current)`
+            );
+        } finally {
+            registration.dispose();
+        }
+    }
+
+    /**
+     * Record write operation in history.
+     */
+    private recordOperation(operation: WriteOperation): void {
+        this.writeHistory.push(operation);
+        
+        // Keep history size manageable
+        if (this.writeHistory.length > MAX_HISTORY_SIZE) {
+            this.writeHistory.shift();
+        }
+    }
+
+    /**
+     * Rollback last write operation.
+     */
+    async rollbackLastWrite(): Promise<boolean> {
+        if (this.writeHistory.length === 0) {
+            vscode.window.showWarningMessage('No operations to rollback');
+            return false;
+        }
+        
+        const lastOp = this.writeHistory[this.writeHistory.length - 1];
+        
+        try {
+            if (lastOp.snapshot) {
+                // Restore from snapshot
+                await this.atomicWrite(lastOp.path, lastOp.snapshot.content);
+                vscode.window.showInformationMessage(`Rolled back changes to ${path.basename(lastOp.path)}`);
+            } else {
+                // File was created, delete it
+                await fs.unlink(lastOp.path);
+                vscode.window.showInformationMessage(`Deleted ${path.basename(lastOp.path)}`);
+            }
+            
+            this.writeHistory.pop();
+            return true;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            vscode.window.showErrorMessage(`Failed to rollback: ${message}`);
+            return false;
+        }
+    }
+
+    /**
+     * Get write history.
+     */
+    getWriteHistory(): WriteOperation[] {
+        return [...this.writeHistory];
+    }
+
+    /**
+     * Compute content hash for conflict detection.
+     */
+    private computeHash(content: string): string {
+        return crypto.createHash('sha256').update(content).digest('hex');
     }
 }

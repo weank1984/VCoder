@@ -15,6 +15,8 @@ import { HistoryPanel } from './components/HistoryPanel';
 import { JumpToBottom } from './components/JumpToBottom';
 import { Welcome } from './components/Welcome';
 import { PermissionDialog, type PermissionRequest } from './components/PermissionDialog';
+import { MessageSkeleton } from './components/Skeleton';
+import { useToast } from './utils/Toast';
 import { postMessage } from './utils/vscode';
 import type { ExtensionMessage } from './types';
 import './styles/index.scss';
@@ -27,6 +29,7 @@ const ESTIMATED_MESSAGE_HEIGHT = 120;
 function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null);
+  const { showError } = useToast();
 
   const {
     currentSessionId,
@@ -36,6 +39,7 @@ function App() {
     planMode,
     permissionMode,
     error,
+    isLoading,
     setUiLanguage,
     setSessions,
     setCurrentSession,
@@ -139,6 +143,22 @@ function App() {
         case 'permissionRequest':
           setPermissionRequest(message.data);
           break;
+        case 'error':
+          // Handle error messages from extension
+          showError(
+            message.data.title || 'Error',
+            message.data.message,
+            message.data.action ? {
+              label: message.data.action.label,
+              onClick: () => {
+                postMessage({
+                  type: 'executeCommand',
+                  command: message.data.action!.command
+                });
+              }
+            } : undefined
+          );
+          break;
       }
     };
 
@@ -162,10 +182,11 @@ function App() {
     });
 
     return () => window.removeEventListener('message', handleMessage);
-  }, [handleUpdate, setCurrentSession, setLoading, setSessions]);
+  }, [handleUpdate, setCurrentSession, setLoading, setSessions, showError]);
 
 
   const isEmpty = messages.length === 0;
+  const isInitializing = isEmpty && isLoading;
 
   return (
     <div className="app">
@@ -183,7 +204,7 @@ function App() {
         onScroll={handleScroll}
       >
         {isEmpty ? (
-          <Welcome />
+          isInitializing ? <MessageSkeleton count={2} /> : <Welcome />
         ) : useVirtual ? (
           <>
             {/* Top padding for virtual scrolling */}

@@ -176,11 +176,35 @@
     max-height: 200px;
 }
 
+.permission-dialog__footer {
+    border-top: 1px solid var(--vscode-panel-border);
+}
+
+.permission-dialog__remember {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    font-size: 13px;
+    color: var(--vscode-editor-foreground);
+    cursor: pointer;
+    user-select: none;
+
+    input[type="checkbox"] {
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
+    }
+
+    &:hover {
+        background: var(--vscode-list-hoverBackground);
+    }
+}
+
 .permission-dialog__actions {
     display: flex;
     gap: 10px;
-    padding: 16px 20px;
-    border-top: 1px solid var(--vscode-panel-border);
+    padding: 12px 20px;
     justify-content: flex-end;
 }
 
@@ -192,6 +216,12 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s;
+    position: relative;
+
+    &.focused {
+        outline: 2px solid var(--vscode-focusBorder);
+        outline-offset: 2px;
+    }
 
     &:disabled {
         opacity: 0.5;
@@ -226,5 +256,34 @@
     &:hover:not(:disabled) {
         background: var(--vscode-button-hoverBackground);
         box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+    }
+}
+
+.permission-dialog__shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--vscode-editorWidget-background);
+    border-top: 1px solid var(--vscode-panel-border);
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.shortcut-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    kbd {
+        display: inline-block;
+        padding: 2px 6px;
+        background: var(--vscode-keybindingLabel-background);
+        border: 1px solid var(--vscode-keybindingLabel-border);
+        border-radius: 3px;
+        font-family: var(--vscode-editor-font-family);
+        font-size: 10px;
+        color: var(--vscode-keybindingLabel-foreground);
+        box-shadow: 0 1px 0 var(--vscode-keybindingLabel-bottomBorder);
     }
 }
