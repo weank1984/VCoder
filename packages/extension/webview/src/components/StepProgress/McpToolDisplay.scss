@@ -1,0 +1,342 @@
+/**
+ * MCP Tool Display Styles
+ */
+
+.mcp-tool-display {
+    margin: 8px 0;
+    border-radius: 4px;
+    border: 1px solid var(--vscode-panel-border);
+    background: var(--vscode-editor-background);
+    overflow: hidden;
+    transition: all 0.2s ease;
+    
+    // State-based styling
+    &.running,
+    &.pending {
+        border-left: 3px solid var(--vscode-terminal-ansiCyan);
+        
+        .mcp-header {
+            background: color-mix(in srgb, var(--vscode-terminal-ansiCyan) 8%, transparent);
+        }
+    }
+    
+    &.completed {
+        border-left: 3px solid var(--vscode-terminal-ansiGreen);
+        
+        .mcp-header {
+            background: color-mix(in srgb, var(--vscode-terminal-ansiGreen) 5%, transparent);
+        }
+    }
+    
+    &.failed {
+        border-left: 3px solid var(--vscode-terminal-ansiRed);
+        
+        .mcp-header {
+            background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 5%, transparent);
+        }
+    }
+}
+
+.mcp-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    user-select: none;
+    background: var(--vscode-editor-background);
+    transition: background 0.2s ease;
+    
+    &:hover {
+        background: var(--vscode-list-hoverBackground);
+    }
+    
+    .mcp-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+        color: var(--vscode-terminal-ansiCyan);
+        
+        svg {
+            width: 18px;
+            height: 18px;
+        }
+        
+        .running &,
+        .pending & {
+            animation: pulse 2s ease-in-out infinite;
+        }
+    }
+}
+
+.mcp-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mcp-tool-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    
+    .mcp-server-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        background: color-mix(in srgb, var(--vscode-terminal-ansiCyan) 20%, transparent);
+        color: var(--vscode-terminal-ansiCyan);
+        border-radius: 3px;
+        font-family: var(--vscode-editor-font-family);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .mcp-tool {
+        color: var(--vscode-foreground);
+        font-weight: 500;
+        font-family: var(--vscode-editor-font-family);
+    }
+}
+
+.mcp-summary {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    font-family: var(--vscode-editor-font-family);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 600px;
+}
+
+.mcp-status-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    
+    .mcp-status-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        
+        svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        &.completed {
+            color: var(--vscode-terminal-ansiGreen);
+        }
+        
+        &.failed {
+            color: var(--vscode-terminal-ansiRed);
+        }
+        
+        &.running,
+        &.pending {
+            color: var(--vscode-terminal-ansiCyan);
+        }
+    }
+    
+    .mcp-collapse-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        
+        svg {
+            width: 12px;
+            height: 12px;
+            transition: transform 0.2s ease;
+        }
+    }
+}
+
+.mcp-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    border-top: 1px solid var(--vscode-panel-border);
+    background: var(--vscode-panel-border);
+}
+
+.mcp-section {
+    background: var(--vscode-editor-background);
+    
+    &.mcp-input {
+        .mcp-section-header {
+            color: var(--vscode-terminal-ansiBlue);
+        }
+    }
+    
+    &.mcp-result {
+        .mcp-section-header {
+            color: var(--vscode-terminal-ansiGreen);
+        }
+    }
+    
+    &.mcp-error {
+        .mcp-section-header {
+            color: var(--vscode-terminal-ansiRed);
+        }
+    }
+}
+
+.mcp-section-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: color-mix(in srgb, var(--vscode-textCodeBlock-background) 50%, transparent);
+    font-size: 12px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    span {
+        flex: 1;
+    }
+    
+    .mcp-copy-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: var(--vscode-foreground);
+        cursor: pointer;
+        border-radius: 3px;
+        transition: all 0.2s ease;
+        
+        svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        &:hover {
+            background: var(--vscode-toolbar-hoverBackground);
+        }
+    }
+}
+
+.mcp-section-content {
+    padding: 12px;
+}
+
+.mcp-summary-text {
+    font-size: 13px;
+    color: var(--vscode-foreground);
+    font-family: var(--vscode-editor-font-family);
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.mcp-full-content {
+    margin: 0;
+    padding: 12px;
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    line-height: 1.6;
+    color: var(--vscode-editor-foreground);
+    background: var(--vscode-textCodeBlock-background);
+    border-radius: 4px;
+    overflow-x: auto;
+    max-height: 400px;
+    overflow-y: auto;
+    
+    // Custom scrollbar
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    &::-webkit-scrollbar-track {
+        background: var(--vscode-scrollbarSlider-background);
+    }
+    
+    &::-webkit-scrollbar-thumb {
+        background: var(--vscode-scrollbarSlider-hoverBackground);
+        border-radius: 4px;
+        
+        &:hover {
+            background: var(--vscode-scrollbarSlider-activeBackground);
+        }
+    }
+}
+
+.mcp-error-content {
+    margin: 0;
+    padding: 12px;
+    font-family: var(--vscode-editor-font-family);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--vscode-terminal-ansiRed);
+    background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 10%, transparent);
+    border-radius: 4px;
+    border-left: 3px solid var(--vscode-terminal-ansiRed);
+}
+
+.mcp-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--vscode-button-border);
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    &:hover {
+        background: var(--vscode-button-secondaryHoverBackground);
+    }
+    
+    &:active {
+        transform: scale(0.98);
+    }
+}
+
+// Collapsed state
+.mcp-tool-display.collapsed {
+    .mcp-collapse-icon svg {
+        transform: rotate(-90deg);
+    }
+}
+
+// Pulse animation for running state
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}

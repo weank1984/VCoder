@@ -1,0 +1,367 @@
+/**
+ * Diff Viewer Styles
+ */
+
+.diff-viewer {
+    margin: 8px 0;
+    border-radius: 4px;
+    border: 1px solid var(--vscode-panel-border);
+    background: var(--vscode-editor-background);
+    overflow: hidden;
+    transition: all 0.2s ease;
+    
+    // File operation styling
+    &:has(.diff-stat.additions):not(:has(.diff-stat.deletions)) {
+        border-left: 3px solid var(--vscode-gitDecoration-addedResourceForeground);
+    }
+    
+    &:has(.diff-stat.deletions):not(:has(.diff-stat.additions)) {
+        border-left: 3px solid var(--vscode-gitDecoration-deletedResourceForeground);
+    }
+    
+    &:has(.diff-stat.additions):has(.diff-stat.deletions) {
+        border-left: 3px solid var(--vscode-gitDecoration-modifiedResourceForeground);
+    }
+}
+
+.diff-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    user-select: none;
+    background: var(--vscode-editor-background);
+    transition: background 0.2s ease;
+    
+    &:hover {
+        background: var(--vscode-list-hoverBackground);
+    }
+    
+    .diff-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        color: var(--vscode-foreground);
+        
+        svg {
+            width: 16px;
+            height: 16px;
+        }
+    }
+}
+
+.diff-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.diff-file-path {
+    font-family: var(--vscode-editor-font-family);
+    font-size: 13px;
+    color: var(--vscode-foreground);
+}
+
+.diff-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    
+    .diff-type-label {
+        color: var(--vscode-descriptionForeground);
+        font-weight: 500;
+    }
+    
+    .diff-stat {
+        font-family: var(--vscode-editor-font-family);
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-weight: 600;
+        
+        &.additions {
+            background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 20%, transparent);
+            color: var(--vscode-gitDecoration-addedResourceForeground);
+        }
+        
+        &.deletions {
+            background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 20%, transparent);
+            color: var(--vscode-gitDecoration-deletedResourceForeground);
+        }
+    }
+    
+    .diff-stat-summary {
+        color: var(--vscode-descriptionForeground);
+        font-family: var(--vscode-editor-font-family);
+    }
+}
+
+.diff-actions-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    
+    button {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 10px;
+        border: none;
+        background: transparent;
+        color: var(--vscode-foreground);
+        cursor: pointer;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        
+        svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        &:hover {
+            background: var(--vscode-toolbar-hoverBackground);
+        }
+        
+        &:active {
+            transform: scale(0.98);
+        }
+    }
+    
+    .diff-accept-btn {
+        color: var(--vscode-gitDecoration-addedResourceForeground);
+        
+        &:hover {
+            background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 15%, transparent);
+        }
+    }
+    
+    .diff-reject-btn {
+        color: var(--vscode-gitDecoration-deletedResourceForeground);
+        
+        &:hover {
+            background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 15%, transparent);
+        }
+    }
+    
+    .diff-view-btn,
+    .diff-copy-btn {
+        padding: 5px;
+        
+        span {
+            display: none;
+        }
+    }
+    
+    .diff-collapse-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        margin-left: 4px;
+        
+        svg {
+            width: 12px;
+            height: 12px;
+            transition: transform 0.2s ease;
+        }
+    }
+}
+
+.diff-content {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--vscode-panel-border);
+    background: var(--vscode-editor-background);
+}
+
+.diff-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 8px 12px 0;
+    background: var(--vscode-editor-background);
+    border-bottom: 1px solid var(--vscode-panel-border);
+    
+    .diff-tab {
+        padding: 6px 12px;
+        border: none;
+        background: transparent;
+        color: var(--vscode-descriptionForeground);
+        cursor: pointer;
+        border-radius: 4px 4px 0 0;
+        font-size: 12px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        
+        &:hover {
+            background: var(--vscode-tab-hoverBackground);
+            color: var(--vscode-foreground);
+        }
+        
+        &.active {
+            background: var(--vscode-tab-activeBackground);
+            color: var(--vscode-tab-activeForeground);
+            border-bottom: 2px solid var(--vscode-tab-activeBorder);
+        }
+    }
+}
+
+.diff-lines,
+.diff-full-content {
+    margin: 0;
+    padding: 12px;
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    line-height: 1.5;
+    color: var(--vscode-editor-foreground);
+    background: var(--vscode-editor-background);
+    overflow-x: auto;
+    max-height: 500px;
+    overflow-y: auto;
+    
+    // Custom scrollbar
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    &::-webkit-scrollbar-track {
+        background: var(--vscode-scrollbarSlider-background);
+    }
+    
+    &::-webkit-scrollbar-thumb {
+        background: var(--vscode-scrollbarSlider-hoverBackground);
+        border-radius: 4px;
+        
+        &:hover {
+            background: var(--vscode-scrollbarSlider-activeBackground);
+        }
+    }
+}
+
+.diff-line {
+    white-space: pre;
+    padding: 0 8px;
+    margin: 0;
+    
+    &.diff-line-meta {
+        color: var(--vscode-descriptionForeground);
+        font-weight: 600;
+    }
+    
+    &.diff-line-add {
+        background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 15%, transparent);
+        color: var(--vscode-gitDecoration-addedResourceForeground);
+        
+        &::before {
+            content: '+';
+            margin-right: 8px;
+            font-weight: bold;
+        }
+    }
+    
+    &.diff-line-remove {
+        background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 15%, transparent);
+        color: var(--vscode-gitDecoration-deletedResourceForeground);
+        
+        &::before {
+            content: '-';
+            margin-right: 8px;
+            font-weight: bold;
+        }
+    }
+    
+    &.diff-line-chunk {
+        background: color-mix(in srgb, var(--vscode-textCodeBlock-background) 50%, transparent);
+        color: var(--vscode-textLink-foreground);
+        font-weight: 600;
+        margin: 8px 0 4px;
+        padding: 4px 8px;
+        border-radius: 3px;
+    }
+    
+    &.diff-line-context {
+        color: var(--vscode-editor-foreground);
+    }
+}
+
+.diff-actions-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px;
+    background: var(--vscode-editor-background);
+    border-top: 1px solid var(--vscode-panel-border);
+    
+    button {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border: 1px solid var(--vscode-button-border);
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        
+        svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        &:active {
+            transform: translateY(0);
+        }
+        
+        &.primary {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            
+            &:hover {
+                background: var(--vscode-button-hoverBackground);
+            }
+        }
+        
+        &.secondary {
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            
+            &:hover {
+                background: var(--vscode-button-secondaryHoverBackground);
+            }
+        }
+    }
+    
+    .diff-accept-btn.primary {
+        background: var(--vscode-gitDecoration-addedResourceForeground);
+        color: var(--vscode-button-foreground);
+        border-color: var(--vscode-gitDecoration-addedResourceForeground);
+        
+        &:hover {
+            opacity: 0.9;
+        }
+    }
+}
+
+// Collapsed state
+.diff-viewer.collapsed {
+    .diff-collapse-icon svg {
+        transform: rotate(-90deg);
+    }
+}

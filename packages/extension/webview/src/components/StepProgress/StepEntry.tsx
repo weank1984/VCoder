@@ -33,6 +33,9 @@ import { SmartToolInput } from './SmartToolInput';
 import { TodoWriteEntry } from './TodoWriteEntry';
 import { TaskEntry } from './TaskEntry';
 import { ApprovalUI } from './ApprovalUI';
+import { TerminalOutput } from './TerminalOutput';
+import { DiffViewer } from './DiffViewer';
+import { McpToolDisplay } from './McpToolDisplay';
 
 interface StepEntryProps {
     entry: StepEntryType;
@@ -113,6 +116,70 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
     const isPending = tc.status === 'pending';
     const isCommandPending = isPending && (tc.name === 'Bash' || tc.name === 'run_command');
     const isAwaitingConfirmation = tc.status === 'awaiting_confirmation';
+    
+    // Check if this is a terminal/Bash tool
+    const isTerminalTool = tc.name === 'Bash' || 
+                           tc.name === 'BashOutput' || 
+                           tc.name === 'run_command' ||
+                           tc.name === 'mcp__acp__BashOutput' ||
+                           tc.name.includes('terminal');
+    
+    // Check if this is a file editing tool
+    const isFileEditTool = tc.name === 'Write' ||
+                           tc.name === 'Edit' ||
+                           tc.name === 'StrReplace' ||
+                           tc.name === 'MultiEdit' ||
+                           tc.name === 'mcp__acp__Write' ||
+                           tc.name === 'mcp__acp__Edit';
+    
+    // Extract terminal data from tool input/result
+    const terminalData = useMemo(() => {
+        if (!isTerminalTool) return null;
+        
+        const input = tc.input as any;
+        const result = tc.result as any;
+        
+        return {
+            command: input?.command || input?.cmd || '',
+            cwd: input?.cwd || input?.working_dir || '',
+            output: typeof result === 'string' ? result : (result?.output || result?.stdout || ''),
+            exitCode: result?.exitCode ?? result?.exit_code,
+            signal: result?.signal,
+            terminalId: result?.terminalId ?? result?.terminal_id,
+            isRunning: tc.status === 'running',
+        };
+    }, [isTerminalTool, tc.input, tc.result, tc.status]);
+    
+    // Extract diff data from file editing tools
+    const diffData = useMemo(() => {
+        if (!isFileEditTool) return null;
+        
+        const input = tc.input as any;
+        const result = tc.result as any;
+        
+        // Try to extract file path
+        const filePath = input?.path || input?.file_path || input?.file || entry.target.fullPath || '';
+        
+        // Try to extract diff
+        let diff = '';
+        if (typeof result === 'string' && result.includes('@@')) {
+            diff = result;
+        } else if (result?.diff) {
+            diff = result.diff;
+        } else if (input?.diff) {
+            diff = input.diff;
+        }
+        
+        // Try to extract new content
+        const newContent = input?.contents || input?.content || input?.new_string || '';
+        
+        return {
+            filePath,
+            diff,
+            newContent,
+            hasChanges: diff.length > 0 || newContent.length > 0,
+        };
+    }, [isFileEditTool, tc.input, tc.result, entry.target.fullPath]);
 
     // Get localized action text
     const actionText = useMemo(() => {
@@ -134,6 +201,10 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
     
     // Check if it's an MCP tool
     const isMcp = tc.name.startsWith('mcp__');
+    
+    // Skip specialized MCP tools that are handled elsewhere (terminal, file editing)
+    const isMcpGenericTool = isMcp && !isTerminalTool && !isFileEditTool;
+    
     const mcpInfo = useMemo(() => {
         if (!isMcp) return null;
         const parts = tc.name.split('__');
@@ -266,8 +337,51 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
                         </div>
                     )}
                     
+                    {/* Terminal Output - specialized rendering for Bash/terminal tools */}
+                    {isTerminalTool && terminalData && terminalData.output && (
+                        <TerminalOutput
+                            command={terminalData.command}
+                            cwd={terminalData.cwd}
+                            output={terminalData.output}
+                            exitCode={terminalData.exitCode}
+                            signal={terminalData.signal}
+                            isRunning={terminalData.isRunning}
+                            terminalId={terminalData.terminalId}
+                            defaultCollapsed={false}
+                        />
+                    )}
+                    
+                    {/* Diff Viewer - specialized rendering for file editing tools */}
+                    {isFileEditTool && diffData && diffData.hasChanges && (
+                        <DiffViewer
+                            filePath={diffData.filePath}
+                            diff={diffData.diff}
+                            newContent={diffData.newContent}
+                            onAccept={onConfirm ? () => onConfirm(tc, true) : undefined}
+                            onReject={onConfirm ? () => onConfirm(tc, false) : undefined}
+                            actionsDisabled={tc.status !== 'awaiting_confirmation'}
+                            defaultCollapsed={false}
+                            onViewFile={onViewFile ? (path) => onViewFile(path) : undefined}
+                        />
+                    )}
+                    
+                    {/* MCP Tool Display - enhanced display for generic MCP tools */}
+                    {isMcpGenericTool && (
+                        <McpToolDisplay
+                            toolName={tc.name}
+                            input={tc.input}
+                            result={tc.result}
+                            status={tc.status === 'completed' ? 'completed' : 
+                                    tc.status === 'failed' ? 'failed' :
+                                    tc.status === 'running' ? 'running' : 'pending'}
+                            error={tc.error}
+                            defaultCollapsed={false}
+                        />
+                    )}
+                    
                     {/* Tool Result - using enhanced display with action buttons */}
-                    {tc.result !== undefined && (
+                    {/* Skip rendering if we already showed terminal output, diff, or MCP tool */}
+                    {tc.result !== undefined && !isTerminalTool && !isFileEditTool && !isMcpGenericTool && (
                         <div className="detail-section result">
                             <div className="detail-header">
                                 <span>{t('Agent.ToolResult')}</span>
