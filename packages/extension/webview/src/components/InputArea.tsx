@@ -23,10 +23,9 @@ interface Attachment {
 import './InputArea.scss';
 
 const MODELS: { id: ModelId; name: string }[] = [
-    { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
-    { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
-    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
-    { id: 'claude-3-opus-20240229', name: 'Claude Opus 4.5 (Thinking)' },
+    { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5' },
+    { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5' },
+    { id: 'glm-4.6', name: 'GLM 4.6' },
 ];
 
 const PERMISSION_MODES: { id: PermissionMode; labelKey: string; descKey: string; icon: string }[] = [

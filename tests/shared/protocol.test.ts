@@ -106,14 +106,14 @@ describe('Protocol Types', () => {
           version: '1.0.0',
         },
         capabilities: {
-          models: ['claude-sonnet-4-20250514'],
+          models: ['claude-haiku-4-5-20251001'],
           mcp: true,
           planMode: true,
         },
       };
 
       expect(result.serverInfo.name).toBe('test-server');
-      expect(result.capabilities.models).toContain('claude-sonnet-4-20250514');
+      expect(result.capabilities.models).toContain('claude-haiku-4-5-20251001');
       expect(result.capabilities.planMode).toBe(true);
     });
   });
@@ -230,20 +230,18 @@ describe('Protocol Types', () => {
     it('should create valid SettingsChangeParams', () => {
       const params: SettingsChangeParams = {
         sessionId: 'session-123',
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-haiku-4-5-20251001',
         planMode: true,
       };
 
-      expect(params.model).toBe('claude-sonnet-4-20250514');
+      expect(params.model).toBe('claude-haiku-4-5-20251001');
       expect(params.planMode).toBe(true);
     });
 
     it('should accept all valid model IDs', () => {
       const validModels: ModelId[] = [
-        'claude-sonnet-4-20250514',
-        'claude-3-5-sonnet-20241022',
-        'claude-3-5-haiku-20241022',
-        'claude-3-opus-20240229',
+        'claude-haiku-4-5-20251001',
+        'claude-sonnet-4-5-20250929',
       ];
 
       validModels.forEach((model) => {

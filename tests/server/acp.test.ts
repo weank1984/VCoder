@@ -93,7 +93,7 @@ describe('ACPServer', () => {
       expect(response.error).toBeUndefined();
       expect(response.result).toBeDefined();
       expect(response.result.serverInfo.name).toBe('vcoder-server');
-      expect(response.result.capabilities.models).toContain('claude-sonnet-4-20250514');
+      expect(response.result.capabilities.models).toContain('claude-haiku-4-5-20251001');
     });
   });
 
@@ -216,7 +216,7 @@ describe('ACPServer', () => {
         method: 'settings/change',
         params: {
           sessionId: 'test-session',
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-5-20250929',
           planMode: true,
         },
       });

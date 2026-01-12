@@ -183,10 +183,9 @@ export interface Attachment {
 // =============================================================================
 
 export type ModelId =
-    | 'claude-sonnet-4-20250514'
-    | 'claude-3-5-sonnet-20241022'
-    | 'claude-3-5-haiku-20241022'
-    | 'claude-3-opus-20240229';
+    | 'claude-haiku-4-5-20251001'
+    | 'claude-sonnet-4-5-20250929'
+    | 'glm-4.6';
 
 /**
  * Permission mode for Claude Code CLI.
@@ -663,4 +662,3 @@ export interface AgentProfile {
     /** Environment variables */
     env?: Record<string, string>;
 }
-

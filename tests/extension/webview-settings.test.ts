@@ -14,18 +14,16 @@ describe('webview store settings', () => {
 
   describe('setModel', () => {
     it('should set model ID', () => {
-      useStore.getState().setModel('claude-3-5-haiku-20241022');
+      useStore.getState().setModel('claude-haiku-4-5-20251001');
 
       const state = useStore.getState();
-      expect(state.model).toBe('claude-3-5-haiku-20241022');
+      expect(state.model).toBe('claude-haiku-4-5-20251001');
     });
 
     it('should accept all valid model IDs', () => {
       const models: ModelId[] = [
-        'claude-sonnet-4-20250514',
-        'claude-3-5-sonnet-20241022',
-        'claude-3-5-haiku-20241022',
-        'claude-3-opus-20240229',
+        'claude-haiku-4-5-20251001',
+        'claude-sonnet-4-5-20250929',
       ];
 
       models.forEach((model) => {

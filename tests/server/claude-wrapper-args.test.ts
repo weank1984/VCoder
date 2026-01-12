@@ -27,7 +27,7 @@ describe('ClaudeCodeWrapper spawn args', () => {
     const { ClaudeCodeWrapper } = await import('../../packages/server/src/claude/wrapper');
 
     const wrapper = new ClaudeCodeWrapper({ workingDirectory: '/tmp' });
-    wrapper.updateSettings({ model: 'claude-3-5-haiku-20241022', planMode: true });
+    wrapper.updateSettings({ model: 'claude-haiku-4-5-20251001', planMode: true });
 
     await wrapper.prompt('s1', 'hello');
 
@@ -36,7 +36,7 @@ describe('ClaudeCodeWrapper spawn args', () => {
 
     const modelIndex = args.indexOf('--model');
     expect(modelIndex).toBeGreaterThan(-1);
-    expect(args[modelIndex + 1]).toBe('claude-3-5-haiku-20241022');
+    expect(args[modelIndex + 1]).toBe('claude-haiku-4-5-20251001');
 
     const permissionIndex = args.indexOf('--permission-mode');
     expect(permissionIndex).toBeGreaterThan(-1);

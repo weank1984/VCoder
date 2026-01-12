@@ -70,7 +70,7 @@ describe('ACPClient', () => {
             version: '0.1.0',
           },
           capabilities: {
-            models: ['claude-sonnet-4-20250514'],
+            models: ['claude-haiku-4-5-20251001'],
             mcp: true,
             planMode: true,
           },
@@ -351,7 +351,7 @@ describe('ACPClient', () => {
 
       // Change settings
       const settingsPromise = client.changeSettings({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-5-20250929',
         planMode: true,
       });
       mockStdout.push(
@@ -366,12 +366,12 @@ describe('ACPClient', () => {
 
       const lastRequest = JSON.parse(writtenData[writtenData.length - 1]);
       expect(lastRequest.method).toBe('settings/change');
-      expect(lastRequest.params.model).toBe('claude-3-5-sonnet-20241022');
+      expect(lastRequest.params.model).toBe('claude-sonnet-4-5-20250929');
       expect(lastRequest.params.planMode).toBe(true);
     });
 
     it('should not change settings without active session', async () => {
-      await client.changeSettings({ model: 'claude-3-5-sonnet-20241022' });
+      await client.changeSettings({ model: 'claude-sonnet-4-5-20250929' });
 
       // Should not send any request
       expect(writtenData).toHaveLength(0);
@@ -379,7 +379,7 @@ describe('ACPClient', () => {
 
     it('should apply preselected settings on first prompt', async () => {
       // Select settings before any session exists (should be buffered locally).
-      await client.changeSettings({ planMode: true, model: 'claude-3-5-sonnet-20241022' });
+      await client.changeSettings({ planMode: true, model: 'claude-sonnet-4-5-20250929' });
       expect(writtenData).toHaveLength(0);
 
       const promptPromise = client.prompt('Hello, AI!');
@@ -439,7 +439,7 @@ describe('ACPClient', () => {
       const settingsReq = JSON.parse(writtenData[1]);
       expect(settingsReq.method).toBe('settings/change');
       expect(settingsReq.params.planMode).toBe(true);
-      expect(settingsReq.params.model).toBe('claude-3-5-sonnet-20241022');
+      expect(settingsReq.params.model).toBe('claude-sonnet-4-5-20250929');
 
       const promptReq = JSON.parse(writtenData[2]);
       expect(promptReq.method).toBe('session/prompt');

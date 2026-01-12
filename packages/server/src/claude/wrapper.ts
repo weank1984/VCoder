@@ -48,7 +48,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
     private readonly claudeSessionIdByLocalSessionId: Map<string, string> = new Map();
     private readonly startedLocalSessions: Set<string> = new Set();
     private settings: ClaudeCodeSettings = {
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-haiku-4-5-20251001',
         planMode: false,
         permissionMode: 'default',
     };

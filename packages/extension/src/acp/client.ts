@@ -33,6 +33,13 @@ import {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null;
 
+const isSession = (value: unknown): value is Session =>
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.createdAt === 'string' &&
+    typeof value.updatedAt === 'string';
+
 export class ACPClient extends EventEmitter {
     private requestId = 0;
     private pendingRequests: Map<number | string, {
@@ -240,9 +247,9 @@ export class ACPClient extends EventEmitter {
         // - Old format: { session: { id, title, ... } }
         let session: Session;
 
-        if (isRecord(result) && 'session' in result && isRecord(result.session)) {
+        if (isRecord(result) && 'session' in result && isSession(result.session)) {
             // Old format
-            session = result.session as Session;
+            session = result.session;
         } else if (isRecord(result) && typeof result.sessionId === 'string') {
             // New format
             session = {

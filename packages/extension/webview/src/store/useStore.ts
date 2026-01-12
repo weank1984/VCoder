@@ -181,7 +181,7 @@ const initialState: AppState = {
     planMode: false,
     permissionMode: 'default',
     thinkingEnabled: false,
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-haiku-4-5-20251001',
     isLoading: false,
     error: null,
     workspaceFiles: [],
@@ -210,6 +210,14 @@ function isPermissionMode(value: unknown): value is PermissionMode {
     return value === 'default' || value === 'plan' || value === 'acceptEdits' || value === 'bypassPermissions';
 }
 
+function isModelId(value: unknown): value is ModelId {
+    return (
+        value === 'claude-haiku-4-5-20251001' ||
+        value === 'claude-sonnet-4-5-20250929' ||
+        value === 'glm-4.6'
+    );
+}
+
 function getInitialUiLanguage(): UiLanguage {
     if (isUiLanguage(persisted.uiLanguage)) return persisted.uiLanguage;
     const fromWindow = (globalThis as unknown as { __vcoderUiLanguage?: unknown }).__vcoderUiLanguage;
@@ -219,7 +227,7 @@ function getInitialUiLanguage(): UiLanguage {
 
 const restoredState: AppState = {
     ...initialState,
-    model: (persisted.model as ModelId) || initialState.model,
+    model: isModelId(persisted.model) ? persisted.model : initialState.model,
     planMode: isBoolean(persisted.planMode) ? persisted.planMode : initialState.planMode,
     permissionMode: isPermissionMode(persisted.permissionMode) ? persisted.permissionMode : initialState.permissionMode,
     thinkingEnabled: isBoolean(persisted.thinkingEnabled) ? persisted.thinkingEnabled : initialState.thinkingEnabled,
