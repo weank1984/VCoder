@@ -46,12 +46,12 @@ function App() {
     handleUpdate,
     setLoading,
     setHistorySessions,
-	    loadHistorySession,
-	    historySessions,
-	    viewMode,
-	    setAgents,
-	    setCurrentAgent,
-	  } = useStore();
+    loadHistorySession,
+    historySessions,
+    viewMode,
+    setAgents,
+    setCurrentAgent,
+  } = useStore();
 
   // Determine if virtual list should be enabled
   // Disable virtual list for history mode to avoid height estimation issues

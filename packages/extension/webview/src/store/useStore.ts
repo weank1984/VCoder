@@ -1,6 +1,6 @@
 import { create } from './createStore';
 import type { AppState, ChatMessage, ContentBlock, ToolCall, UiLanguage, AgentInfo } from '../types';
-import type { Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage } from '@vcoder/shared';
+import type { Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, FileChangeUpdate } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
 
 const debugThinking = (globalThis as unknown as { __vcoderDebugThinking?: boolean }).__vcoderDebugThinking === true;
@@ -84,6 +84,7 @@ interface AppStore extends AppState {
     setSubagentRuns: (runs: SubagentRunUpdate[]) => void;
     setSessions: (sessions: AppState['sessions']) => void;
     setCurrentSession: (sessionId: string | null) => void;
+    clearPendingFileChanges: () => void;
     setPlanMode: (enabled: boolean) => void;
     setPermissionMode: (mode: PermissionMode) => void;
     setThinkingEnabled: (enabled: boolean) => void;
@@ -110,11 +111,29 @@ function createId(): string {
     return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function formatBashName(command: string): string {
-    const normalized = command.trim().replace(/\s+/g, ' ');
-    if (!normalized) return 'Bash';
-    const maxLen = 80;
-    return normalized.length > maxLen ? `Bash: ${normalized.slice(0, maxLen)}…` : `Bash: ${normalized}`;
+function normalizeToolName(name: string): string {
+    const raw = (name ?? '').trim();
+    if (!raw) return 'Tool';
+    if (raw.startsWith('mcp__')) return raw;
+
+    const lower = raw.toLowerCase();
+
+    // Shell / terminal
+    if (lower === 'bash' || lower === 'bash_request' || lower === 'shell') return 'Bash';
+    if (lower === 'bashoutput' || lower === 'bash_output') return 'BashOutput';
+    if (lower === 'killshell' || lower === 'kill_shell') return 'KillShell';
+
+    // Common tools (case normalization)
+    if (lower === 'read') return 'Read';
+    if (lower === 'write') return 'Write';
+    if (lower === 'edit') return 'Edit';
+    if (lower === 'notebookedit' || lower === 'notebook_edit') return 'NotebookEdit';
+    if (lower === 'glob') return 'Glob';
+    if (lower === 'grep') return 'Grep';
+    if (lower === 'task') return 'Task';
+    if (lower === 'todowrite' || lower === 'todo_write') return 'TodoWrite';
+
+    return raw;
 }
 
 /**
@@ -178,6 +197,7 @@ const initialState: AppState = {
     messages: [],
     tasks: [],
     subagentRuns: [],
+    pendingFileChanges: [],
     planMode: false,
     permissionMode: 'default',
     thinkingEnabled: false,
@@ -346,16 +366,21 @@ export const useStore = create<AppStore>((set, get) => ({
                 targetIndex = messages.length;
             }
 
-            const existing = target.toolCalls?.find((tc) => tc.id === toolCall.id);
+            const normalizedToolCall: ToolCall = {
+                ...toolCall,
+                name: normalizeToolName(toolCall.name),
+            };
+
+            const existing = target.toolCalls?.find((tc) => tc.id === normalizedToolCall.id);
             if (existing) {
                 // Create new toolCalls array with updated tool
                 target.toolCalls = target.toolCalls!.map((tc) =>
-                    tc.id === toolCall.id ? { ...tc, ...toolCall } : tc
+                    tc.id === normalizedToolCall.id ? { ...tc, ...normalizedToolCall } : tc
                 );
             } else {
-                target.toolCalls = [...(target.toolCalls || []), toolCall];
+                target.toolCalls = [...(target.toolCalls || []), normalizedToolCall];
                 // Track content block for chronological display (only for new tools)
-                appendContentBlock(target, { type: 'tools', toolCallIds: [toolCall.id] });
+                appendContentBlock(target, { type: 'tools', toolCallIds: [normalizedToolCall.id] });
             }
             
             // Replace with new object reference to trigger React re-render
@@ -374,7 +399,11 @@ export const useStore = create<AppStore>((set, get) => ({
                 
                 // Clone the message and update toolCalls to create new references
                 const newToolCalls = [...message.toolCalls];
-                newToolCalls[idx] = { ...newToolCalls[idx], ...updates };
+                const normalizedUpdates: Partial<ToolCall> = {
+                    ...updates,
+                    ...(typeof updates.name === 'string' ? { name: normalizeToolName(updates.name) } : null),
+                };
+                newToolCalls[idx] = { ...newToolCalls[idx], ...normalizedUpdates };
                 messages[i] = { ...message, toolCalls: newToolCalls };
                 return { messages };
             }
@@ -403,7 +432,10 @@ export const useStore = create<AppStore>((set, get) => ({
                 ...(target.toolCalls || []),
                 {
                     id,
-                    name: typeof updates.name === 'string' && updates.name ? updates.name : 'Tool',
+                    name:
+                        typeof updates.name === 'string' && updates.name
+                            ? normalizeToolName(updates.name)
+                            : 'Tool',
                     status: updates.status ?? 'running',
                     input: updates.input,
                     result: updates.result,
@@ -455,9 +487,12 @@ export const useStore = create<AppStore>((set, get) => ({
         set((state) => ({
             sessions,
             currentSessionId: state.currentSessionId ?? sessions[0]?.id ?? null,
+            pendingFileChanges: state.currentSessionId ? state.pendingFileChanges : [],
         })),
 
-    setCurrentSession: (sessionId) => set({ currentSessionId: sessionId, viewMode: 'live' }),
+    setCurrentSession: (sessionId) => set({ currentSessionId: sessionId, viewMode: 'live', pendingFileChanges: [] }),
+
+    clearPendingFileChanges: () => set({ pendingFileChanges: [] }),
 
     setPlanMode: (enabled) => {
         set((state) => ({
@@ -500,7 +535,7 @@ export const useStore = create<AppStore>((set, get) => ({
     setError: (error) => set({ error }),
 
     handleUpdate: (update) => {
-        const { type, content } = update;
+        const { type, content, sessionId } = update;
 
         switch (type) {
             case 'thought': {
@@ -557,15 +592,31 @@ export const useStore = create<AppStore>((set, get) => ({
                 const bash = content as { id: string; command: string };
                 get().addToolCall({
                     id: bash.id,
-                    name: formatBashName(bash.command),
+                    name: 'Bash',
                     status: 'pending',
-                    input: { command: bash.command },
+                    input: { command: bash.command, CommandLine: bash.command },
                 });
                 break;
             }
             case 'task_list': {
                 const { tasks } = content as { tasks: Task[] };
                 get().setTasks(tasks);
+                break;
+            }
+            case 'file_change': {
+                const change = content as FileChangeUpdate;
+                set((state) => {
+                    // Ignore updates for other sessions when multi-session is enabled.
+                    if (state.currentSessionId && sessionId && sessionId !== state.currentSessionId) {
+                        return {};
+                    }
+
+                    const existing = state.pendingFileChanges.filter((c) => c.path !== change.path);
+                    if (change.proposed) {
+                        existing.push({ ...change, sessionId: sessionId ?? state.currentSessionId ?? '', receivedAt: Date.now() });
+                    }
+                    return { pendingFileChanges: existing };
+                });
                 break;
             }
             case 'subagent_run': {
@@ -648,12 +699,14 @@ export const useStore = create<AppStore>((set, get) => ({
             isComplete: true, // History messages are always complete
         })),
         isLoading: false,
+        pendingFileChanges: [],
     }),
 
     exitHistoryMode: () => set({
         viewMode: 'live',
         currentSessionId: null, // Returning to live mode usually starts fresh or needs session restore (not implemented yet)
         messages: [],
+        pendingFileChanges: [],
     }),
 
     setAgents: (agents) => set({ agents }),

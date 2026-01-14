@@ -1,0 +1,197 @@
+/**
+ * TodoWrite Entry Styles (Cursor-like)
+ */
+
+.todo-write-entry {
+  margin: 8px 0;
+  border-radius: 10px;
+  border: 1px solid var(--vc-color-border);
+  background: var(--vc-bg);
+  overflow: hidden;
+}
+
+.todo-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--vc-bg);
+
+  &:hover {
+    background: var(--vc-control-item-bg-hover);
+  }
+}
+
+.todo-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
+}
+
+.todo-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vc-color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.todo-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+
+  .stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--vc-color-text-secondary);
+    background: var(--vc-bg-secondary);
+
+    svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+    }
+
+    &.completed {
+      color: var(--vscode-gitDecoration-addedResourceForeground, var(--vc-color-primary));
+      background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, var(--vc-color-primary)) 16%, transparent);
+    }
+
+    &.progress {
+      color: var(--vscode-terminal-ansiYellow, var(--vc-color-text));
+      background: color-mix(in srgb, var(--vscode-terminal-ansiYellow, var(--vc-color-text)) 16%, transparent);
+    }
+  }
+}
+
+.todo-expand {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+  }
+}
+
+.todo-list {
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--vc-color-border-secondary);
+  background: var(--vc-bg);
+}
+
+.todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+
+  &:hover {
+    background: var(--vc-bg-secondary);
+  }
+
+  .todo-status-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+    opacity: 0.9;
+
+    svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .todo-circle {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      border: 1.5px solid var(--vc-color-border);
+      display: inline-block;
+    }
+  }
+
+  .todo-content {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--vc-color-text);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .todo-priority {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--vc-color-text-secondary);
+    background: var(--vc-bg-secondary);
+
+    &.priority-high {
+      color: var(--vscode-errorForeground, #ff5f5f);
+      background: color-mix(in srgb, var(--vscode-errorForeground, #ff5f5f) 16%, transparent);
+    }
+    &.priority-medium {
+      color: var(--vscode-terminal-ansiYellow, #f7c948);
+      background: color-mix(in srgb, var(--vscode-terminal-ansiYellow, #f7c948) 18%, transparent);
+    }
+    &.priority-low {
+      color: var(--vc-color-text-secondary);
+      background: var(--vc-bg-secondary);
+    }
+  }
+}
+
+.todo-item.status-completed {
+  .todo-content {
+    opacity: 0.85;
+    text-decoration: line-through;
+    text-decoration-thickness: from-font;
+  }
+}
+
+.todo-item.status-cancelled {
+  opacity: 0.7;
+  .todo-content {
+    text-decoration: line-through;
+  }
+}
+

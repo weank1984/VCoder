@@ -88,9 +88,9 @@ function parseDiff(diff: string): DiffLine[] {
     
     const lines = diff.split('\n');
     return lines.map(line => {
-        if (line.startsWith('+')) {
+        if (line.startsWith('+') && !line.startsWith('+++')) {
             return { type: 'diff-add', content: line };
-        } else if (line.startsWith('-')) {
+        } else if (line.startsWith('-') && !line.startsWith('---')) {
             return { type: 'diff-remove', content: line };
         } else {
             return { type: 'diff-context', content: line };

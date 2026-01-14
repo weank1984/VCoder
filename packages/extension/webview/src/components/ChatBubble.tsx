@@ -8,12 +8,26 @@ import type { ChatMessage, ContentBlock, ToolCall } from '../types';
 import { ThoughtBlock } from './ThoughtBlock';
 import { StepProgressList } from './StepProgress';
 import { MarkdownContent } from './MarkdownContent';
-import { UserIcon, VoyahIcon, CopyIcon, MoreIcon, CheckIcon } from './Icon';
+import { CopyIcon, CheckIcon } from './Icon';
 import { useI18n } from '../i18n/I18nProvider';
 import './ChatBubble.scss';
 
 interface ChatBubbleProps {
     message: ChatMessage;
+}
+
+function isPlaceholderText(text: string): boolean {
+    const trimmed = text.trim();
+    return (
+        trimmed === '(no content)' ||
+        trimmed === '(no output)' ||
+        trimmed === '(无内容)' ||
+        trimmed === '(无输出)'
+    );
+}
+
+function stripTrailingPlaceholders(text: string): string {
+    return text.replace(/\s*(?:\((?:no content|no output|无内容|无输出)\)\s*)+$/gi, '').trimEnd();
 }
 
 /**
@@ -66,18 +80,24 @@ function renderContentBlock(
                 <ThoughtBlock
                     key={`thought-${index}`}
                     content={block.content}
-                    defaultExpanded={!block.isComplete}
+                    defaultExpanded={false}
                     isComplete={block.isComplete}
                 />
             );
-        case 'text':
+        case 'text': {
+            // Backends sometimes emit placeholder text for tool-only messages.
+            // Hide it to keep the conversation flow clean.
+            if (isPlaceholderText(block.content)) return null;
+            const cleaned = stripTrailingPlaceholders(block.content);
+            if (!cleaned.trim() || isPlaceholderText(cleaned)) return null;
             return (
                 <MarkdownContent 
                     key={`text-${index}`}
-                    content={block.content} 
+                    content={cleaned}
                     isComplete={message.isComplete} 
                 />
             );
+        }
         case 'tools': {
             const tools = block.toolCallIds
                 .map(id => toolCallMap.get(id))
@@ -98,7 +118,7 @@ function renderContentBlock(
 export function ChatBubble({ message }: ChatBubbleProps) {
     const { t } = useI18n();
     const isUser = message.role === 'user';
-    const bubbleClass = `vc-bubble ${isUser ? 'vc-bubble--user' : 'vc-bubble--assistant'}`;
+    const baseBubbleClass = `vc-bubble ${isUser ? 'vc-bubble--user' : 'vc-bubble--assistant'}`;
     
     const [copied, setCopied] = useState(false);
     
@@ -118,6 +138,23 @@ export function ChatBubble({ message }: ChatBubbleProps) {
         return generateLegacyContentBlocks(message);
     }, [message]);
 
+    const isToolOnlyAssistant = useMemo(() => {
+        if (isUser) return false;
+        const hasTools = (message.toolCalls?.length ?? 0) > 0;
+        if (!hasTools) return false;
+        const hasThought = Boolean(message.thought && message.thought.trim().length > 0);
+        const hasVisibleText = contentBlocks.some((b) => {
+            if (b.type !== 'text') return false;
+            if (!b.content || b.content.trim().length === 0) return false;
+            if (isPlaceholderText(b.content)) return false;
+            return true;
+        });
+        return !hasThought && !hasVisibleText;
+    }, [contentBlocks, isUser, message.thought, message.toolCalls]);
+
+    const bubbleClass = `${baseBubbleClass}${isToolOnlyAssistant ? ' vc-bubble--tool-only' : ''}`;
+    const showBottomCursor = !isUser && message.isComplete === false;
+
     const handleCopy = useCallback(async () => {
         try {
             await navigator.clipboard.writeText(message.content);
@@ -129,49 +166,41 @@ export function ChatBubble({ message }: ChatBubbleProps) {
     }, [message.content]);
 
     return (
-        <div className={bubbleClass}>
-            {/* Background gradient for assistant messages */}
-            {!isUser && <div className="vc-bubble-bg" />}
-            
-            <div className="vc-bubble-header">
-                <div className={`vc-bubble-avatar ${isUser ? 'avatar--user' : 'avatar--assistant'}`}>
-                    {isUser ? <UserIcon /> : <VoyahIcon />}
-                </div>
-                <span className="vc-bubble-title">{isUser ? t('Chat.You') || 'You' : 'VCoder'}</span>
-                
-                {/* Message actions for assistant messages */}
-                {!isUser && message.content && (
-                    <div className="vc-bubble-actions">
-                        <button 
-                            className="action-btn" 
-                            onClick={handleCopy}
-                            title={copied ? t('Agent.MessageCopied') : t('Agent.CopyMessage')}
-                            aria-label={copied ? t('Agent.MessageCopied') : t('Agent.CopyMessage')}
-                        >
-                            {copied ? <CheckIcon /> : <CopyIcon />}
-                        </button>
-                        <button 
-                            className="action-btn" 
-                            title={t('Agent.MoreActions')}
-                            aria-label={t('Agent.MoreActions')}
-                        >
-                            <MoreIcon />
-                        </button>
+        <div className={bubbleClass} data-role={message.role}>
+            {isUser ? (
+                // User Message: Input-like styled container
+                <div className="vc-human-message-container">
+                    <div className="vc-human-message-content">
+                        {message.content}
                     </div>
-                )}
-            </div>
-
-            <div className="vc-bubble-content">
-                {isUser ? (
-                    // User messages: simple text display
-                    <div className="message-text">{message.content}</div>
-                ) : (
-                    // Assistant messages: render content blocks in chronological order
-                    contentBlocks.map((block, index) => 
+                </div>
+            ) : (
+                // Assistant Message: Transparent, document flow
+                <div className="vc-ai-message-container">
+                    {contentBlocks.map((block, index) => 
                         renderContentBlock(block, index, message, toolCallMap)
-                    )
-                )}
-            </div>
+                    )}
+
+                    {showBottomCursor && (
+                        <div className="vc-streaming-cursor-row" aria-hidden="true">
+                            <span className="streaming-cursor" />
+                        </div>
+                    )}
+                    
+                    {/* Message Actions for AI */}
+                    {message.content && (
+                        <div className="vc-ai-actions">
+                            <button 
+                                className="action-btn" 
+                                onClick={handleCopy}
+                                title={copied ? t('Agent.MessageCopied') : t('Agent.CopyMessage')}
+                            >
+                                {copied ? <CheckIcon /> : <CopyIcon />}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

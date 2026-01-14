@@ -1,211 +1,111 @@
-$bubble-prefixCls: vc-bubble;
+/* ChatBubble.scss - Premium Style */
 
-.chat-bubble {
+.vc-bubble {
     width: 100%;
+    margin-bottom: 16px;
+    animation: fade-in 0.2s ease-out;
 }
 
-.#{$bubble-prefixCls} {
+.vc-bubble--tool-only {
+    margin-bottom: 6px;
+}
+
+/* 
+   User Message 
+   Clean, distinct from background but not "input-like" bordered box unless desired.
+   For premium feel, often a subtle background or just right alignment/distinct typography works.
+   Here we keep it as a unified block but cleaner.
+*/
+.vc-human-message-container {
+    width: 100%;
+    max-width: 840px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: flex-end; /* Align right like modern messengers? Or keep centered block? text-align right? */
+    /* Keeping it simple block for now as per design 2 usually keeps it centered but distinct */
+    justify-content: flex-start; 
+}
+
+.vc-human-message-content {
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-button-secondaryBackground);
+    border-radius: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+    max-width: 100%;
+}
+
+/* 
+   AI Message 
+   Transparent container, document-flow style
+*/
+.vc-ai-message-container {
+    width: 100%;
+    max-width: 840px;
+    margin: 0 auto;
+    padding: 0 4px; /* Slight alignment adjust */
+    background-color: transparent;
     position: relative;
+    
+    /* Ensure content blocks stack properly */
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    row-gap: 4px;
-    width: 100%;
+    gap: 6px;
+}
+
+.vc-bubble--tool-only .vc-ai-message-container {
+    padding: 0 2px;
+    gap: 2px;
+}
+
+.vc-streaming-cursor-row {
+    display: flex;
+    align-items: flex-end;
+    height: 18px;
+}
+
+/* Actions logic */
+.vc-ai-actions {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    display: flex;
+    justify-content: flex-start; /* Actions below message usually better on left or right? */
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.vc-bubble:hover .vc-ai-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    padding: 6px;
+    border-radius: 6px;
+    color: var(--vscode-descriptionForeground);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s;
     
-    // Animation
-    animation: bubble-enter 0.3s var(--vc-motion-ease-out, ease-out);
+    &:hover {
+        background-color: var(--vscode-toolbar-hoverBackground);
+        color: var(--vscode-foreground);
+    }
     
-    @media (prefers-reduced-motion: reduce) {
-        animation: none;
-    }
-
-    // ========== User message styles ==========
-    &--user {
-        .vc-bubble-header {
-            .vc-bubble-title {
-                color: var(--vc-color-text);
-                font-weight: 600;
-            }
-        }
-        
-        .vc-bubble-content {
-            background: var(--vc-user-bubble-bg);
-            border: 1px solid var(--vc-user-bubble-border);
-            border-radius: 12px 12px 4px 12px;  // Right bottom small corner - "I said"
-            padding: 12px 14px;
-            color: var(--vc-color-text);
-        }
-    }
-
-    // ========== Assistant message styles ==========
-    &--assistant {
-        .vc-bubble-header {
-            .vc-bubble-title {
-                color: var(--vc-color-text-secondary);
-                font-weight: 500;
-            }
-        }
-        
-        .vc-bubble-content {
-            background: transparent;
-            border: none;
-            padding: 8px 0;
-        }
-        
-        // Optional gradient background
-        .vc-bubble-bg {
-            position: absolute;
-            top: 0;
-            left: -12px;
-            right: -12px;
-            bottom: 0;
-            background: linear-gradient(
-                135deg,
-                color-mix(in srgb, var(--vscode-textLink-foreground) 3%, transparent) 0%,
-                transparent 60%
-            );
-            border-radius: 12px;
-            pointer-events: none;
-            z-index: 0;
-        }
-    }
-
-    // ========== Header styles ==========
-    &-header {
-        display: flex;
-        align-items: center;
-        column-gap: 8px;
-        width: 100%;
-        margin-bottom: 2px;
-        color: var(--vc-color-text-label);
-        font-size: 12px;
-        position: relative;
-        z-index: 1;
-    }
-
-    // Avatar design
-    &-avatar {
-        width: 24px;
-        height: 24px;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        flex-shrink: 0;
-        
-        &.avatar--user {
-            background: var(--vc-color-primary-bg);
-            color: var(--vc-color-primary-text);
-        }
-        
-        &.avatar--assistant {
-            background: linear-gradient(135deg, 
-                var(--vcoder-surface-3) 0%, 
-                color-mix(in srgb, var(--vscode-textLink-foreground) 15%, var(--vcoder-surface-3)) 100%
-            );
-            color: var(--vscode-textLink-foreground);
-        }
-        
-        svg {
-            width: 14px;
-            height: 14px;
-        }
-    }
-
-    &-title {
-        font-weight: 500;
-        letter-spacing: 0.2px;
-    }
-
-    // Message action buttons
-    &-actions {
-        margin-left: auto;
-        display: flex;
-        gap: 2px;
-        opacity: 0;
-        transition: opacity 0.15s;
-        
-        .#{$bubble-prefixCls}:hover & {
-            opacity: 1;
-        }
-        
-        .action-btn {
-            width: 24px;
-            height: 24px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: transparent;
-            border: none;
-            color: var(--vc-color-text-tertiary);
-            cursor: pointer;
-            transition: all 0.15s;
-            
-            &:hover {
-                background: var(--vc-control-item-bg-hover);
-                color: var(--vc-color-text);
-            }
-            
-            svg {
-                width: 14px;
-                height: 14px;
-            }
-        }
-    }
-
-    // ========== Content area ==========
-    &-content {
-        position: relative;
-        box-sizing: border-box;
-        width: 100%;
-        color: var(--vc-color-text);
-        line-height: var(--vc-line-height);
-        font-size: var(--vc-font-size);
-        word-break: break-word;
-        z-index: 1;
-
-        pre {
-            white-space: pre-wrap;
-        }
-        
-        // User message text
-        .message-text {
-            white-space: pre-wrap;
-        }
+    svg {
+        width: 14px;
+        height: 14px;
+        fill: currentColor;
     }
 }
 
-// ========== Animations ==========
-@keyframes bubble-enter {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-// Streaming cursor improvement
-.streaming-cursor {
-    display: inline-block;
-    width: 2px;
-    height: 1.1em;
-    margin-left: 2px;
-    background: linear-gradient(
-        180deg,
-        var(--vc-color-primary) 0%,
-        var(--vscode-textLink-foreground) 100%
-    );
-    border-radius: 1px;
-    animation: cursor-blink 0.8s ease-in-out infinite;
-    vertical-align: text-bottom;
-}
-
-@keyframes cursor-blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+@keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
 }

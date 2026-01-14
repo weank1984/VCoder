@@ -21,8 +21,6 @@ interface DiffViewerProps {
     filePath: string;
     /** Diff content (unified diff format) */
     diff: string;
-    /** Full file content after changes (optional) */
-    newContent?: string;
     /** Accept callback */
     onAccept?: () => void;
     /** Reject callback */
@@ -70,6 +68,18 @@ function parseDiffStats(diff: string): DiffStats {
  * Classify diff line type
  */
 function getDiffLineType(line: string): 'add' | 'remove' | 'chunk' | 'meta' | 'context' {
+    if (
+        line.startsWith('diff --git') ||
+        line.startsWith('index ') ||
+        line.startsWith('new file mode') ||
+        line.startsWith('deleted file mode') ||
+        line.startsWith('similarity index') ||
+        line.startsWith('rename from') ||
+        line.startsWith('rename to') ||
+        line.startsWith('\\ No newline at end of file')
+    ) {
+        return 'meta';
+    }
     if (line.startsWith('+++') || line.startsWith('---')) return 'meta';
     if (line.startsWith('+')) return 'add';
     if (line.startsWith('-')) return 'remove';
@@ -89,7 +99,6 @@ function copyToClipboard(text: string) {
 export function DiffViewer({
     filePath,
     diff,
-    newContent,
     onAccept,
     onReject,
     actionsDisabled = false,
@@ -98,7 +107,6 @@ export function DiffViewer({
 }: DiffViewerProps) {
     const { t } = useI18n();
     const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-    const [showFullContent, setShowFullContent] = useState(false);
     
     // Parse diff stats
     const stats = useMemo(() => parseDiffStats(diff), [diff]);
@@ -176,7 +184,7 @@ export function DiffViewer({
                                 title={t('Agent.RejectChanges')}
                             >
                                 <StopIcon />
-                                <span>{t('Agent.Reject')}</span>
+                                <span>{t('Agent.RejectChanges')}</span>
                             </button>
                         </>
                     )}
@@ -211,48 +219,21 @@ export function DiffViewer({
             {/* Diff Content */}
             {!isCollapsed && (
                 <div className="diff-content">
-                    {/* Tabs for Diff vs Full Content */}
-                    {newContent && (
-                        <div className="diff-tabs">
-                            <button
-                                className={`diff-tab ${!showFullContent ? 'active' : ''}`}
-                                onClick={() => setShowFullContent(false)}
-                            >
-                                {t('Agent.ViewFullDiff')}
-                            </button>
-                            <button
-                                className={`diff-tab ${showFullContent ? 'active' : ''}`}
-                                onClick={() => setShowFullContent(true)}
-                            >
-                                Full Content
-                            </button>
-                        </div>
-                    )}
-                    
-                    {/* Diff View */}
-                    {!showFullContent && (
-                        <pre className="diff-lines">
-                            {diffLines.map((line, i) => {
-                                const lineType = getDiffLineType(line);
-                                return (
-                                    <div 
-                                        key={i} 
-                                        className={`diff-line diff-line-${lineType}`}
-                                        data-line={i + 1}
-                                    >
-                                        {line}
-                                    </div>
-                                );
-                            })}
-                        </pre>
-                    )}
-                    
-                    {/* Full Content View */}
-                    {showFullContent && newContent && (
-                        <pre className="diff-full-content">
-                            {newContent}
-                        </pre>
-                    )}
+                    <pre className="diff-lines">
+                        {diffLines.map((rawLine, i) => {
+                            const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
+                            const lineType = getDiffLineType(line);
+                            return (
+                                <div
+                                    key={i}
+                                    className={`diff-line diff-line-${lineType}`}
+                                    data-line={i + 1}
+                                >
+                                    {line}
+                                </div>
+                            );
+                        })}
+                    </pre>
                     
                     {/* Action Buttons at Bottom */}
                     {!actionsDisabled && onAccept && onReject && (
@@ -269,7 +250,7 @@ export function DiffViewer({
                                 onClick={onReject}
                             >
                                 <StopIcon />
-                                <span>{t('Agent.Reject')}</span>
+                                <span>{t('Agent.RejectChanges')}</span>
                             </button>
                         </div>
                     )}

@@ -4,9 +4,9 @@
 
 .diff-viewer {
     margin: 8px 0;
-    border-radius: 4px;
-    border: 1px solid var(--vscode-panel-border);
-    background: var(--vscode-editor-background);
+    border-radius: 10px;
+    border: 1px solid var(--vc-color-border);
+    background: var(--vc-bg);
     overflow: hidden;
     transition: all 0.2s ease;
     
@@ -31,11 +31,11 @@
     padding: 10px 12px;
     cursor: pointer;
     user-select: none;
-    background: var(--vscode-editor-background);
+    background: var(--vc-bg);
     transition: background 0.2s ease;
     
     &:hover {
-        background: var(--vscode-list-hoverBackground);
+        background: var(--vc-control-item-bg-hover);
     }
     
     .diff-icon {
@@ -63,9 +63,9 @@
 }
 
 .diff-file-path {
-    font-family: var(--vscode-editor-font-family);
-    font-size: 13px;
-    color: var(--vscode-foreground);
+    font-family: var(--vc-font-family-code);
+    font-size: 12px;
+    color: var(--vc-color-text);
 }
 
 .diff-stats {
@@ -75,7 +75,7 @@
     font-size: 11px;
     
     .diff-type-label {
-        color: var(--vscode-descriptionForeground);
+        color: var(--vc-color-text-secondary);
         font-weight: 500;
     }
     
@@ -87,18 +87,18 @@
         
         &.additions {
             background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 20%, transparent);
-            color: var(--vscode-gitDecoration-addedResourceForeground);
+            color: var(--vc-color-text);
         }
         
         &.deletions {
             background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 20%, transparent);
-            color: var(--vscode-gitDecoration-deletedResourceForeground);
+            color: var(--vc-color-text);
         }
     }
     
     .diff-stat-summary {
-        color: var(--vscode-descriptionForeground);
-        font-family: var(--vscode-editor-font-family);
+        color: var(--vc-color-text-secondary);
+        font-family: var(--vc-font-family-code);
     }
 }
 
@@ -115,7 +115,7 @@
         padding: 5px 10px;
         border: none;
         background: transparent;
-        color: var(--vscode-foreground);
+        color: var(--vc-color-text);
         cursor: pointer;
         border-radius: 3px;
         font-size: 12px;
@@ -128,7 +128,7 @@
         }
         
         &:hover {
-            background: var(--vscode-toolbar-hoverBackground);
+            background: var(--vc-control-item-bg-hover);
         }
         
         &:active {
@@ -137,7 +137,7 @@
     }
     
     .diff-accept-btn {
-        color: var(--vscode-gitDecoration-addedResourceForeground);
+        color: var(--vc-color-text);
         
         &:hover {
             background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 15%, transparent);
@@ -145,7 +145,7 @@
     }
     
     .diff-reject-btn {
-        color: var(--vscode-gitDecoration-deletedResourceForeground);
+        color: var(--vc-color-text);
         
         &:hover {
             background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 15%, transparent);
@@ -180,22 +180,22 @@
 .diff-content {
     display: flex;
     flex-direction: column;
-    border-top: 1px solid var(--vscode-panel-border);
-    background: var(--vscode-editor-background);
+    border-top: 1px solid var(--vc-color-border);
+    background: var(--vc-bg);
 }
 
 .diff-tabs {
     display: flex;
     gap: 2px;
     padding: 8px 12px 0;
-    background: var(--vscode-editor-background);
-    border-bottom: 1px solid var(--vscode-panel-border);
+    background: var(--vc-bg);
+    border-bottom: 1px solid var(--vc-color-border);
     
     .diff-tab {
         padding: 6px 12px;
         border: none;
         background: transparent;
-        color: var(--vscode-descriptionForeground);
+        color: var(--vc-color-text-secondary);
         cursor: pointer;
         border-radius: 4px 4px 0 0;
         font-size: 12px;
@@ -203,14 +203,14 @@
         transition: all 0.2s ease;
         
         &:hover {
-            background: var(--vscode-tab-hoverBackground);
-            color: var(--vscode-foreground);
+            background: var(--vc-control-item-bg-hover);
+            color: var(--vc-color-text);
         }
         
         &.active {
-            background: var(--vscode-tab-activeBackground);
-            color: var(--vscode-tab-activeForeground);
-            border-bottom: 2px solid var(--vscode-tab-activeBorder);
+            background: var(--vc-bg-secondary);
+            color: var(--vc-color-text);
+            border-bottom: 2px solid var(--vscode-focusBorder, var(--vc-color-primary));
         }
     }
 }
@@ -219,11 +219,11 @@
 .diff-full-content {
     margin: 0;
     padding: 12px;
-    font-family: var(--vscode-editor-font-family);
-    font-size: var(--vscode-editor-font-size);
+    font-family: var(--vc-font-family-code);
+    font-size: 12px;
     line-height: 1.5;
-    color: var(--vscode-editor-foreground);
-    background: var(--vscode-editor-background);
+    color: var(--vc-color-text);
+    background: var(--vc-bg);
     overflow-x: auto;
     max-height: 500px;
     overflow-y: auto;
@@ -254,35 +254,23 @@
     margin: 0;
     
     &.diff-line-meta {
-        color: var(--vscode-descriptionForeground);
+        color: var(--vc-color-text-secondary);
         font-weight: 600;
     }
     
     &.diff-line-add {
         background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 15%, transparent);
-        color: var(--vscode-gitDecoration-addedResourceForeground);
-        
-        &::before {
-            content: '+';
-            margin-right: 8px;
-            font-weight: bold;
-        }
+        color: var(--vc-color-text);
     }
     
     &.diff-line-remove {
         background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 15%, transparent);
-        color: var(--vscode-gitDecoration-deletedResourceForeground);
-        
-        &::before {
-            content: '-';
-            margin-right: 8px;
-            font-weight: bold;
-        }
+        color: var(--vc-color-text);
     }
     
     &.diff-line-chunk {
         background: color-mix(in srgb, var(--vscode-textCodeBlock-background) 50%, transparent);
-        color: var(--vscode-textLink-foreground);
+        color: var(--vc-color-link);
         font-weight: 600;
         margin: 8px 0 4px;
         padding: 4px 8px;
@@ -290,7 +278,7 @@
     }
     
     &.diff-line-context {
-        color: var(--vscode-editor-foreground);
+        color: var(--vc-color-text);
     }
 }
 
@@ -300,8 +288,8 @@
     justify-content: flex-end;
     gap: 8px;
     padding: 12px;
-    background: var(--vscode-editor-background);
-    border-top: 1px solid var(--vscode-panel-border);
+    background: var(--vc-bg);
+    border-top: 1px solid var(--vc-color-border);
     
     button {
         display: flex;

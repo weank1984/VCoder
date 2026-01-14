@@ -123,6 +123,11 @@ export default {
     CodeInserted: '已插入',
     CopyCode: '复制代码',
     CodeCopied: '已复制',
+    // 通用标签
+    Edited: '已编辑',
+    Created: '已创建',
+    Deleted: '已删除',
+    Reject: '拒绝',
   },
   StepProgress: {
     Title: '执行进度',

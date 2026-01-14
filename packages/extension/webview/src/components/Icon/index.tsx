@@ -2,6 +2,7 @@
 
 export { default as AcceptedIcon } from "./icons/AccetpedIcon";
 export { default as AddIcon } from "./icons/AddIcon";
+export { default as PlusIcon } from "./icons/AddIcon";
 export { default as AloneTop } from "./icons/AloneTop";
 export { default as AloneRightIcon } from "./icons/AloneRightIcon";
 export { default as AloneLeftIcon } from "./icons/AloneLeftIcon";

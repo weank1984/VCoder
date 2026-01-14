@@ -1,268 +1,67 @@
-// Thought Block - Modern AI thinking visualization
-// Design inspired by Claude's thought block with purple gradient theme
+/* ThoughtBlock.scss - Minimalist VS Code Style */
 
 .thought-block {
-    position: relative;
-    margin: 12px 0;
-    border-radius: 10px;
-    background: var(--thought-bg);
-    border: 1px solid var(--thought-border);
-    overflow: hidden;
-    transition: all 0.25s var(--vc-motion-ease-out, ease-out);
-    
-    // Left accent bar - purple gradient
-    &::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        background: linear-gradient(
-            180deg,
-            var(--thought-accent, #a855f7) 0%,
-            var(--thought-accent-end, #6366f1) 100%
-        );
-        border-radius: 10px 0 0 10px;
-        opacity: 0.8;
-        transition: opacity 0.2s, width 0.2s;
-    }
-    
-    &:hover {
-        border-color: var(--thought-border-hover);
-        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.08);
-        
-        &::before {
-            opacity: 1;
-        }
-    }
-    
-    // Expanded state
-    &.is-expanded {
-        &::before {
-            width: 4px;
-        }
-    }
-    
-    // Thinking (in-progress) state
-    &.is-thinking {
-        border-color: var(--thought-active-border);
-        box-shadow: 
-            0 0 0 1px color-mix(in srgb, var(--thought-accent, #a855f7) 15%, transparent),
-            0 4px 12px rgba(139, 92, 246, 0.12);
-        
-        &::before {
-            width: 4px;
-            opacity: 1;
-            animation: thought-bar-glow 1.5s ease-in-out infinite;
-        }
-    }
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 4px;
 }
 
-// Bar glow animation for thinking state
-@keyframes thought-bar-glow {
-    0%, 100% {
-        box-shadow: 0 0 4px var(--thought-accent, #a855f7);
-    }
-    50% {
-        box-shadow: 0 0 10px var(--thought-accent, #a855f7);
-    }
-}
-
-// Pulse animation background
-.thought-pulse {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        color-mix(in srgb, var(--thought-accent, #a855f7) 6%, transparent) 50%,
-        transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: thought-pulse-anim 2.5s ease-in-out infinite;
-    pointer-events: none;
-}
-
-@keyframes thought-pulse-anim {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-// Header
 .thought-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 10px 14px 10px 16px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--vc-color-text-secondary);
+    gap: 4px;
+    color: var(--vcoder-text-secondary);
     font-size: 12px;
-    text-align: left;
-    transition: background 0.15s;
-    position: relative;
-    z-index: 1;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 0;
     
     &:hover {
-        background: color-mix(in srgb, var(--thought-accent, #a855f7) 4%, transparent);
-    }
-    
-    &:active {
-        background: color-mix(in srgb, var(--thought-accent, #a855f7) 8%, transparent);
+        color: var(--vcoder-text-primary);
     }
 }
 
-.thought-expand-icon {
+.thought-label {
+    font-style: italic;
+}
+
+.thought-duration {
+    color: var(--vscode-disabledForeground);
+    font-style: normal;
+}
+
+.thought-content {
+    padding-left: 12px;
+    margin-left: 6px; /* Align with chevron center roughly */
+    border-left: 1px solid var(--vcoder-border);
+    color: var(--vcoder-text-secondary);
+    font-size: 12px;
+    line-height: var(--vscode-editor-lineHeight, 1.5);
+    font-style: italic;
+    white-space: pre-wrap;
+    opacity: 0.9;
+}
+
+/* Icon rotation handling */
+.codicon {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 16px;
     height: 16px;
-    color: var(--thought-icon-color);
-    transition: transform 0.25s var(--vc-motion-ease-out, ease-out);
-    flex-shrink: 0;
-    opacity: 0.7;
-    
-    &.rotated {
-        transform: rotate(90deg);
-        opacity: 1;
-    }
     
     svg {
         width: 12px;
         height: 12px;
+        fill: currentColor;
     }
 }
 
-.thought-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 5px;
-    background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--thought-accent, #a855f7) 15%, transparent) 0%,
-        color-mix(in srgb, var(--thought-accent-end, #6366f1) 10%, transparent) 100%
-    );
-    color: var(--thought-icon-color);
-    flex-shrink: 0;
-    
-    svg {
-        width: 12px;
-        height: 12px;
-    }
-    
-    .is-thinking & {
-        animation: thought-icon-pulse 2s ease-in-out infinite;
-    }
+.codicon-chevron-right svg {
+    transition: transform 0.1s;
 }
 
-@keyframes thought-icon-pulse {
-    0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.7;
-        transform: scale(0.95);
-    }
-}
-
-.thought-title {
-    font-weight: 500;
-    color: var(--thought-title-color, var(--vc-color-text-secondary));
-    flex-shrink: 0;
-    letter-spacing: 0.01em;
-    
-    .is-thinking & {
-        background: linear-gradient(
-            90deg,
-            var(--thought-accent, #a855f7) 0%,
-            var(--thought-accent-end, #6366f1) 100%
-        );
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-}
-
-.thought-loading {
-    display: flex;
-    align-items: center;
-    margin-left: 2px;
-    color: var(--thought-accent, #a855f7);
-    flex-shrink: 0;
-    
-    svg {
-        width: 12px;
-        height: 12px;
-        animation: spin 1s linear infinite;
-    }
-}
-
-.thought-preview {
-    margin-left: auto;
-    font-size: 11px;
-    color: var(--vc-color-text-tertiary);
-    max-width: 50%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex-shrink: 1;
-    opacity: 0.8;
-    padding-left: 8px;
-    
-    &::before {
-        content: '— ';
-        opacity: 0.5;
-    }
-}
-
-// Content area - with animation
-.thought-content-wrapper {
-    overflow: hidden;
-    transition: max-height 0.3s var(--vc-motion-ease-out, ease-out);
-}
-
-.thought-content {
-    padding: 12px 16px 14px 16px;
-    font-size: 12px;
-    color: var(--vc-color-text);
-    line-height: 1.7;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    border-top: 1px solid var(--thought-content-border, color-mix(in srgb, var(--thought-accent, #a855f7) 8%, var(--thought-border)));
-    max-height: 300px;
-    overflow-y: auto;
-    background: color-mix(in srgb, var(--thought-accent, #a855f7) 2%, transparent);
-    
-    // Scrollbar style
-    &::-webkit-scrollbar {
-        width: 5px;
-    }
-    
-    &::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    
-    &::-webkit-scrollbar-thumb {
-        background: color-mix(in srgb, var(--thought-accent, #a855f7) 30%, var(--vcoder-border));
-        border-radius: 3px;
-        
-        &:hover {
-            background: color-mix(in srgb, var(--thought-accent, #a855f7) 50%, var(--vcoder-border));
-        }
-    }
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
+.codicon-chevron-down svg {
+    transform: rotate(90deg);
 }

@@ -2,7 +2,7 @@
  * Webview Types
  */
 
-import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, AgentProfile } from '@vcoder/shared';
+import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, AgentProfile, FileChangeUpdate } from '@vcoder/shared';
 
 export type UiLanguage = 'auto' | 'en-US' | 'zh-CN';
 
@@ -398,6 +398,7 @@ export interface AppState {
     messages: ChatMessage[];
     tasks: Task[];
     subagentRuns: SubagentRunUpdate[];
+    pendingFileChanges: Array<FileChangeUpdate & { sessionId: string; receivedAt: number }>;
     planMode: boolean;
     permissionMode: PermissionMode;
     thinkingEnabled: boolean;

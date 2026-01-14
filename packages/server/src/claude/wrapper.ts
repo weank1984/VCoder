@@ -25,6 +25,7 @@ import {
     ConfirmationType,
 } from '@vcoder/shared';
 import { PersistentSession, PersistentSessionSettings } from './persistentSession';
+import { generateUnifiedDiff } from '../utils/unifiedDiff';
 
 export interface ClaudeCodeOptions {
     workingDirectory: string;
@@ -855,6 +856,20 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 (typeof toolInput.file_path === 'string' && toolInput.file_path) ||
                 (typeof toolInput.path === 'string' && toolInput.path) ||
                 '';
+
+            let diff: string | undefined;
+            const proposedContent = typeof toolInput.content === 'string' ? toolInput.content : undefined;
+            if (filePath && typeof proposedContent === 'string' && Buffer.byteLength(proposedContent, 'utf8') <= 1 * 1024 * 1024) {
+                try {
+                    diff = generateUnifiedDiff({
+                        workingDirectory: this.options.workingDirectory,
+                        filePath,
+                        proposedContent,
+                    }).diff;
+                } catch {
+                    diff = undefined;
+                }
+            }
             return {
                 id: `confirm-${toolCallId}-${Date.now()}`,
                 type: 'file_write',
@@ -862,6 +877,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 summary: filePath ? `写入文件需要权限确认: ${filePath}` : '写入文件需要权限确认',
                 details: {
                     filePath,
+                    diff,
                     riskLevel: 'medium',
                 },
             };
@@ -1214,21 +1230,45 @@ export class ClaudeCodeWrapper extends EventEmitter {
         // Handle specific tool types
         if (toolName === 'Write' || toolName === 'Edit') {
             // File write event - will be handled when result comes back
+            const isWrite = toolName === 'Write';
+            const filePath = typeof toolInput?.path === 'string' ? (toolInput.path as string) : undefined;
+            const proposedContent = typeof toolInput?.content === 'string' ? (toolInput.content as string) : undefined;
+
+            const shouldComputeDiff =
+                isWrite &&
+                filePath &&
+                typeof proposedContent === 'string' &&
+                Buffer.byteLength(proposedContent, 'utf8') <= 1 * 1024 * 1024;
+            const { diff, didExist } = shouldComputeDiff
+                ? generateUnifiedDiff({
+                      workingDirectory: this.options.workingDirectory,
+                      filePath,
+                      proposedContent,
+                  })
+                : { diff: '', didExist: true };
+
+            const toolInputForUi =
+                shouldComputeDiff && diff
+                    ? { ...toolInput, diff }
+                    : toolInput;
+
             const update: ToolUseUpdate = {
                 id: toolId,
                 name: toolName,
-                input: toolInput,
+                input: toolInputForUi,
                 status: 'running',
             };
             this.emit('update', sessionId, update, 'tool_use');
 
             // Synthesize file_change notification for DiffManager
             // TODO: Handle 'Edit' tool which might provide diffs/patches instead of full content
-            if (toolName === 'Write' && toolInput?.path && typeof toolInput.content === 'string') {
+            if (toolName === 'Write' && filePath && typeof proposedContent === 'string') {
+                const fileType: FileChangeUpdate['type'] = didExist ? 'modified' : 'created';
                 const fileUpdate: FileChangeUpdate = {
-                    path: toolInput.path as string,
-                    type: 'modified', // Assume modified, DiffManager handles created check
-                    content: toolInput.content as string,
+                    path: filePath,
+                    type: fileType,
+                    diff: diff || undefined,
+                    content: proposedContent,
                     proposed: true,
                 };
                 this.emit('update', sessionId, fileUpdate, 'file_change');

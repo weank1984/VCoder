@@ -20,6 +20,7 @@ import {
     TaskListUpdate,
     ErrorUpdate,
 } from '@vcoder/shared';
+import { generateUnifiedDiff } from '../utils/unifiedDiff';
 
 export interface PersistentSessionOptions {
     workingDirectory: string;
@@ -475,18 +476,42 @@ export class PersistentSession extends EventEmitter {
 
         // File write detection
         if (toolName === 'Write' || toolName === 'Edit') {
+            const isWrite = toolName === 'Write';
+            const filePath = typeof toolInput?.path === 'string' ? (toolInput.path as string) : undefined;
+            const proposedContent = typeof toolInput?.content === 'string' ? (toolInput.content as string) : undefined;
+
+            const shouldComputeDiff =
+                isWrite &&
+                filePath &&
+                typeof proposedContent === 'string' &&
+                Buffer.byteLength(proposedContent, 'utf8') <= 1 * 1024 * 1024;
+            const { diff, didExist } = shouldComputeDiff
+                ? generateUnifiedDiff({
+                      workingDirectory: this.options.workingDirectory,
+                      filePath,
+                      proposedContent,
+                  })
+                : { diff: '', didExist: true };
+
+            const toolInputForUi =
+                shouldComputeDiff && diff
+                    ? { ...toolInput, diff }
+                    : toolInput;
+
             const update: ToolUseUpdate = {
                 id: toolId,
                 name: toolName,
-                input: toolInput,
+                input: toolInputForUi,
                 status: 'running',
             };
             this.emit('update', update, 'tool_use');
 
             if (toolName === 'Write' && toolInput?.path && typeof toolInput.content === 'string') {
+                const fileType: FileChangeUpdate['type'] = didExist ? 'modified' : 'created';
                 const fileUpdate: FileChangeUpdate = {
                     path: toolInput.path as string,
-                    type: 'modified',
+                    type: fileType,
+                    diff: diff || undefined,
                     content: toolInput.content,
                     proposed: true,
                 };

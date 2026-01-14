@@ -1,1893 +1,258 @@
-// Step Progress Styles
-// Step-based progress view for tool execution display
+/* Step Progress - Minimalist Native Style */
 
-// Import sub-component styles
 @use './TerminalOutput.scss';
 @use './DiffViewer.scss';
 @use './McpToolDisplay.scss';
+@use './TodoWriteEntry.scss';
+@use './ApprovalUI.scss';
 
 .step-progress-list {
-    margin: 8px 0;
-    border-radius: var(--vcoder-radius-md);
-    background: var(--vcoder-surface-3);
-    border: 1px solid var(--vcoder-border);
-    overflow: hidden;
-    font-family: var(--vscode-font-family);
+    margin: 0;
+    width: 100%;
 }
 
-// Header
+/* Header - Hidden by default or extremely minimal */
 .step-progress-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    background: var(--vcoder-surface-3);
-    border-bottom: 1px solid var(--vcoder-border);
+    display: none; /* Hide header completely for minimalist look */
 }
 
-.header-status-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    
-    svg {
-        width: 16px;
-        height: 16px;
-    }
-    
-    &.completed { color: var(--vscode-terminal-ansiGreen); }
-    &.failed { color: var(--vscode-terminal-ansiYellow); }
-    &.running { color: var(--vscode-terminal-ansiYellow); }
-}
-
-.header-title {
-    flex: 1;
-    font-weight: 600;
-    font-size: 13px;
-    color: var(--vscode-foreground);
-}
-
-.header-count {
-    font-size: 12px;
-    color: var(--vscode-descriptionForeground);
-    font-family: var(--vscode-editor-font-family);
-}
-
-.collapse-all-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    color: var(--vscode-descriptionForeground);
-    cursor: pointer;
-    transition: all 0.15s;
-    
-    svg {
-        width: 12px;
-        height: 12px;
-    }
-    
-    &:hover {
-        background: var(--vscode-list-hoverBackground);
-        color: var(--vscode-foreground);
-    }
-}
-
-// Content
-.step-progress-content {
-    max-height: 500px;
-    overflow-y: auto;
-    background: var(--vcoder-surface-2);
-}
-
-// Step Item
+/* Step Item Container */
 .step-item {
-    border-bottom: 1px solid var(--vcoder-border);
+    padding: 0;
     position: relative;
-    padding: 6px 0;
+    border-bottom: none;
     
     &:last-child {
         border-bottom: none;
     }
-    
-    &.failed {
-        .step-header {
-            border-left: 3px solid var(--vscode-terminal-ansiYellow);
-        }
-    }
-    
-    &.running {
-        .step-header {
-            border-left: 3px solid var(--vcoder-status-running);
-            position: relative;
-            
-            &::before {
-                content: '';
-                position: absolute;
-                left: -3px;
-                top: 0;
-                width: 3px;
-                height: 100%;
-                background: linear-gradient(
-                    180deg,
-                    transparent,
-                    var(--vcoder-status-running),
-                    transparent
-                );
-                animation: borderScan 1.5s linear infinite;
-            }
-        }
-    }
 }
 
-@keyframes borderScan {
-    0% { transform: translateY(-100%); }
-    100% { transform: translateY(100%); }
-}
-
+/* Step Header - The summary line "Read file..." */
 .step-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
+    gap: 8px;
+    padding: 4px 2px;
     cursor: pointer;
-    transition: background 0.15s;
+    font-size: 12px;
+    color: var(--vcoder-text-secondary);
+    border-radius: var(--vcoder-radius-sm);
     
     &:hover {
+        color: var(--vcoder-fg);
         background: var(--vscode-list-hoverBackground);
-    }
-}
-
-.step-number {
-    background: var(--vscode-textLink-foreground);
-    color: var(--vscode-editor-background);
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
-    min-width: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 600;
-    font-family: var(--vscode-editor-font-family);
-    flex-shrink: 0;
-    
-    &.failed {
-        background: var(--vscode-terminal-ansiYellow);
-    }
-    
-    &.running {
-        background: var(--vcoder-status-running);
-        animation: stepPulse 1.5s ease-in-out infinite;
-    }
-    
-    &.completed {
-        background: var(--vcoder-status-success);
-    }
-}
-
-@keyframes stepPulse {
-    0%, 100% { 
-        opacity: 1; 
-        transform: scale(1); 
-    }
-    50% { 
-        opacity: 0.8; 
-        transform: scale(1.05); 
     }
 }
 
 .step-info {
     flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 8px;
-    min-width: 0;
 }
 
-.step-title {
-    font-weight: 500;
-    font-size: 13px;
-    color: var(--vscode-foreground);
-    font-family: var(--vscode-editor-font-family);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.step-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .step-status-icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    
+    svg {
+        width: 14px;
+        height: 14px;
+        fill: currentColor;
+    }
+    
+    &.completed { color: var(--vscode-terminal-ansiGreen); }
+    &.failed { color: var(--vscode-terminal-ansiRed); }
+    &.running { color: var(--vscode-terminal-ansiYellow); }
+}
+
+.step-title {
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--vscode-font-family);
+}
+
+.step-preview {
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.step-expand-icon {
+    opacity: 0.6;
     display: flex;
     align-items: center;
     
     svg {
         width: 14px;
         height: 14px;
-    }
-    
-    &.completed { 
-        color: var(--vcoder-status-success);
-        
-        svg {
-            animation: checkBounce 0.3s ease-out;
-        }
-    }
-    &.failed { color: var(--vscode-terminal-ansiYellow); }
-    &.running { color: var(--vcoder-status-running); }
-}
-
-@keyframes checkBounce {
-    0% { 
-        transform: scale(0); 
-        opacity: 0; 
-    }
-    50% { 
-        transform: scale(1.2); 
-    }
-    100% { 
-        transform: scale(1); 
-        opacity: 1; 
+        fill: currentColor;
     }
 }
 
-.step-expand-icon {
-    display: flex;
-    align-items: center;
-    color: var(--vscode-descriptionForeground);
-    
-    svg {
-        width: 12px;
-        height: 12px;
-    }
-}
-
-// Step Status Icon - enable tooltip cursor for failed steps
-.step-status-icon {
-    &.failed {
-        cursor: help;
-    }
-}
-
-// Step Entries
+/* Step Entries (Inner details) */
 .step-entries {
-    padding: 0 0 8px 42px;
-    position: relative;
-    
-    // 左侧竖线指示嵌套层级
-    &::before {
-        content: '';
-        position: absolute;
-        left: 22px;
-        top: 0;
-        bottom: 8px;
-        width: 2px;
-        background: color-mix(in srgb, var(--vscode-textLink-foreground) 20%, transparent);
-        border-radius: 1px;
+    padding-left: 16px;
+    padding-bottom: 4px;
+}
+
+.step-item.single-entry {
+    .step-entries {
+        padding-left: 0;
     }
 }
 
-// Step Entry
+/* Single Entry Item */
 .step-entry {
-    margin: 6px 0;
-    border-radius: 6px;
-    background: var(--vcoder-surface);
-    border: 1px solid transparent;
-    transition: all 0.15s ease;
-    
-    &:hover {
-        border-color: var(--vcoder-border);
-        transform: translateX(2px);
-    }
-    
-    &.error {
-        border-color: color-mix(in srgb, var(--vscode-terminal-ansiYellow) 30%, transparent);
-    }
-    
-    // When summary is hidden (single-entry mode), remove borders and background
-    &.summary-hidden {
-        background: transparent;
-        border: none;
-        margin: 0;
-        
-        &:hover {
-            border: none;
-            transform: none;
-        }
-        
-        .entry-details {
-            padding: 0;
-        }
-    }
+    font-size: 12px;
 }
 
 .entry-summary {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
+    gap: 6px;
+    padding: 4px;
     cursor: pointer;
-    transition: background 0.15s;
+    color: var(--vcoder-text-secondary);
+    border-radius: var(--vcoder-radius-sm);
     
     &:hover {
-        background: color-mix(in srgb, var(--vscode-list-hoverBackground) 50%, transparent);
-        
-        .entry-view-btn {
-            opacity: 1;
-        }
+        background: var(--vscode-list-hoverBackground);
+        color: var(--vcoder-fg);
     }
 }
 
 .entry-icon {
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: var(--vscode-descriptionForeground);
-    opacity: 0.6;
+    opacity: 0.7;
     
     svg {
-        width: 13px;
-        height: 13px;
+        width: 14px;
+        height: 14px;
+        fill: currentColor;
     }
 }
 
 .entry-action {
-    font-weight: 400;
-    font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    font-weight: 500;
 }
 
 .entry-target {
     flex: 1;
-    font-size: 12px;
-    color: var(--vscode-textLink-foreground);
-    font-family: var(--vscode-editor-font-family);
+    opacity: 0.8;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-width: 0;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 11px;
 }
 
 .entry-line-range {
-    font-family: var(--vscode-editor-font-family);
-    font-size: 11px;
     opacity: 0.7;
     margin-left: 4px;
 }
 
-.entry-status-icon {
-    display: flex;
-    align-items: center;
-    cursor: help;
-    
-    svg {
-        width: 13px;
-        height: 13px;
-    }
-    
-    &.success { 
-        color: var(--vscode-terminal-ansiGreen); 
-        opacity: 0.8;
-    }
-    &.error { 
-        color: var(--vscode-terminal-ansiYellow); 
-    }
-    &.running, &.pending { 
-        color: var(--vscode-terminal-ansiYellow); 
-        opacity: 0.8;
-    }
-}
-
-.entry-view-btn {
-    opacity: 0;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    color: var(--vscode-textLink-foreground);
-    background: transparent;
-    cursor: pointer;
-    transition: all 0.15s;
-    
-    &:hover {
-        background: var(--vscode-button-secondaryBackground);
-    }
+.mcp-badge {
+    margin-right: 6px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--vc-color-text-secondary);
+    background: var(--vc-bg-secondary);
 }
 
 .entry-expand-icon {
-    display: flex;
-    align-items: center;
-    color: var(--vscode-descriptionForeground);
-    
-    svg {
-        width: 10px;
-        height: 10px;
-    }
+    opacity: 0.5;
+    svg { width: 12px; height: 12px; }
 }
 
-// Entry Details
+/* Entry Details */
 .entry-details {
-    padding: 0 10px 10px 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-// Approval UI
-.entry-approval {
-    padding: 10px;
-    background: color-mix(in srgb, var(--vscode-button-secondaryBackground) 20%, transparent);
-    border: 1px solid var(--vscode-button-secondaryHoverBackground);
-    border-radius: 6px;
-}
-
-.approval-message {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 8px;
-    font-size: 12px;
-    color: var(--vscode-foreground);
-    font-weight: 500;
-    
-    svg {
-        width: 14px;
-        height: 14px;
-        color: var(--vscode-terminal-ansiBlue);
-    }
-}
-
-.approval-buttons {
-    display: flex;
-    gap: 8px;
-}
-
-.btn-approve, .btn-reject {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.2s;
-    
-    svg {
-        width: 12px;
-        height: 12px;
-    }
-}
-
-.btn-approve {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-    
-    &:hover {
-        background: var(--vscode-button-hoverBackground);
-    }
-}
-
-.btn-reject {
-    background: transparent;
-    border-color: var(--vcoder-border);
-    color: var(--vscode-foreground);
-    
-    &:hover {
-        background: var(--vscode-inputValidation-errorBackground);
-        color: var(--vscode-inputValidation-errorForeground);
-        border-color: var(--vscode-inputValidation-errorBorder);
-    }
-}
-
-// Code Blocks
-.detail-section {
-    border-radius: 8px;
+    margin-top: 4px;
+    padding: 6px;
+    background: var(--vscode-editor-background);
+    border: 1px solid var(--vcoder-border);
+    border-radius: var(--vcoder-radius-md);
     overflow: hidden;
-    
-    // Input section - lighter style
-    &.input {
+}
+
+.step-entry.is-terminal {
+    .entry-details {
+        margin-top: 2px;
+        padding: 0;
+        border: none;
         background: transparent;
-        border: 1px dashed var(--vcoder-border);
-        
-        .detail-header {
-            background: transparent;
-            border-bottom: none;
-            color: var(--vscode-descriptionForeground);
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 6px 10px 2px;
-        }
-        
-        .detail-content {
-            padding: 0 10px 10px;
-        }
     }
+}
+
+.step-entry.is-file-edit {
+    .entry-details {
+        margin-top: 2px;
+        padding: 0;
+        border: none;
+        background: transparent;
+    }
+}
+
+.detail-section {
+    margin-bottom: 8px;
     
-    // Result section - more prominent
-    &.result {
-        background: var(--vcoder-surface);
-        border: 1px solid var(--vcoder-border);
-        
-        .detail-header {
-            background: var(--vcoder-surface-3);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 6px 10px;
-            border-bottom: 1px solid var(--vcoder-border);
-        }
-        
-        .detail-content {
-            padding: 8px;
-        }
-    }
-    
-    &.error {
-        border-color: var(--vscode-inputValidation-errorBorder);
-        
-        .detail-header {
-            background: color-mix(in srgb, var(--vscode-inputValidation-errorBackground) 50%, var(--vcoder-surface-3));
-            color: var(--vscode-errorForeground);
-        }
-    }
+    &:last-child { margin-bottom: 0; }
 }
 
 .detail-header {
     font-size: 10px;
-    font-weight: 600;
     text-transform: uppercase;
     color: var(--vscode-descriptionForeground);
+    margin-bottom: 4px;
+    font-weight: 600;
 }
 
 .detail-content {
-    overflow-x: auto;
-    
-    pre {
-        margin: 0;
-        font-family: var(--vscode-editor-font-family);
-        font-size: 11px;
-        line-height: 1.4;
-        white-space: pre-wrap;
-        word-break: break-all;
-        color: var(--vscode-editor-foreground);
-    }
-    
-    &.error-content pre {
-        color: var(--vscode-errorForeground);
-    }
-}
-
-// Header actions (for copy, open file buttons)
-.header-actions {
-    display: flex;
-    gap: 4px;
-    
-    .action-btn {
-        padding: 4px;
-        border-radius: 4px;
-        color: var(--vscode-descriptionForeground);
-        cursor: pointer;
-        opacity: 0;
-        transition: all 0.15s;
-        background: transparent;
-        border: none;
-        
-        svg {
-            width: 14px;
-            height: 14px;
-        }
-        
-        &:hover {
-            background: var(--vscode-list-hoverBackground);
-            color: var(--vscode-foreground);
-        }
-    }
-    
-    .detail-section:hover & .action-btn {
-        opacity: 1;
-    }
-}
-
-.code-block {
-    padding: 8px;
-    overflow-x: auto;
-    
-    pre {
-        margin: 0;
-        font-family: var(--vscode-editor-font-family);
-        font-size: 11px;
-        line-height: 1.4;
-        white-space: pre-wrap;
-        word-break: break-all;
-        color: var(--vscode-editor-foreground);
-    }
-    
-    &.error pre {
-        color: var(--vscode-errorForeground);
-    }
-}
-
-// ===========================================
-// MCP Badge
-// ===========================================
-.mcp-badge {
-    display: inline-block;
-    padding: 1px 4px;
-    margin-right: 4px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: 500;
-    background: var(--vcoder-surface-3);
-    color: var(--vscode-descriptionForeground);
-    font-family: var(--vscode-editor-font-family);
-}
-
-// ===========================================
-// TodoWrite Entry Styles
-// ===========================================
-.todo-write-entry {
-    margin: 4px 0;
-    border-radius: 6px;
-    background: var(--vcoder-surface);
-    border: 1px solid var(--vcoder-border);
-    overflow: hidden;
-}
-
-.todo-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: background 0.15s;
-    
-    &:hover {
-        background: color-mix(in srgb, var(--vscode-list-hoverBackground) 50%, transparent);
-    }
-}
-
-.todo-icon {
-    display: flex;
-    align-items: center;
-    color: var(--vscode-textLink-foreground);
-    
-    svg {
-        width: 16px;
-        height: 16px;
-    }
-}
-
-.todo-title {
-    flex: 1;
-    font-weight: 500;
+    font-family: var(--vscode-editor-font-family, monospace);
     font-size: 12px;
-    color: var(--vscode-foreground);
-}
-
-.todo-stats {
-    display: flex;
-    gap: 8px;
-    font-size: 11px;
-    
-    .stat {
-        display: flex;
-        align-items: center;
-        gap: 2px;
-        
-        svg {
-            width: 12px;
-            height: 12px;
-        }
-        
-        &.completed { color: var(--vscode-terminal-ansiGreen); }
-        &.progress { color: var(--vscode-terminal-ansiYellow); }
-        &.pending { color: var(--vscode-descriptionForeground); }
-    }
-}
-
-.todo-expand {
-    display: flex;
-    align-items: center;
-    color: var(--vscode-descriptionForeground);
-    
-    svg {
-        width: 10px;
-        height: 10px;
-    }
-}
-
-.todo-list {
-    border-top: 1px solid var(--vcoder-border);
-    padding: 8px 12px 8px 36px;
-}
-
-.todo-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 0;
-    font-size: 12px;
-    
-    &.status-completed {
-        .todo-content {
-            text-decoration: line-through;
-            opacity: 0.7;
-        }
-    }
-    
-    &.status-cancelled {
-        .todo-content {
-            text-decoration: line-through;
-            color: var(--vscode-errorForeground);
-            opacity: 0.7;
-        }
-    }
-}
-
-.todo-status-icon {
-    display: flex;
-    align-items: center;
-    width: 16px;
-    
-    svg {
-        width: 14px;
-        height: 14px;
-    }
-    
-    .status-completed & { color: var(--vscode-terminal-ansiGreen); }
-    .status-progress & { color: var(--vscode-terminal-ansiYellow); }
-    .status-cancelled & { color: var(--vscode-terminal-ansiRed); }
-}
-
-.todo-circle {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border: 1.5px solid var(--vscode-descriptionForeground);
-    border-radius: 50%;
-}
-
-.todo-content {
-    flex: 1;
-    color: var(--vscode-foreground);
-}
-
-.todo-priority {
-    padding: 1px 6px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: 500;
-    
-    &.priority-high {
-        background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 20%, transparent);
-        color: var(--vscode-terminal-ansiRed);
-    }
-    
-    &.priority-medium {
-        background: color-mix(in srgb, var(--vscode-terminal-ansiYellow) 20%, transparent);
-        color: var(--vscode-terminal-ansiYellow);
-    }
-    
-    &.priority-low {
-        background: color-mix(in srgb, var(--vscode-terminal-ansiGreen) 20%, transparent);
-        color: var(--vscode-terminal-ansiGreen);
-    }
-}
-
-// ===========================================
-// Task Entry Styles (Sub-agent)
-// ===========================================
-.task-entry {
-    margin: 4px 0;
-    border-radius: 6px;
-    background: var(--vcoder-surface);
-    border: 1px solid var(--vcoder-border);
-    overflow: hidden;
-    
-    &.error {
-        border-color: color-mix(in srgb, var(--vscode-terminal-ansiYellow) 40%, transparent);
-    }
-    
-    &.success {
-        border-left: 3px solid var(--vscode-terminal-ansiGreen);
-    }
-    
-    &.running {
-        border-left: 3px solid var(--vscode-terminal-ansiYellow);
-    }
-}
-
-.task-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: background 0.15s;
-    
-    &:hover {
-        background: color-mix(in srgb, var(--vscode-list-hoverBackground) 50%, transparent);
-    }
-}
-
-.task-icon {
-    display: flex;
-    align-items: center;
-    color: var(--vscode-textLink-foreground);
-    
-    svg {
-        width: 16px;
-        height: 16px;
-    }
-}
-
-.task-info {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-}
-
-.task-action {
-    font-weight: 500;
-    font-size: 12px;
-    color: var(--vscode-foreground);
-}
-
-.task-description {
-    font-size: 12px;
-    color: var(--vscode-textLink-foreground);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.task-type-badge {
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 600;
-    background: color-mix(in srgb, var(--vscode-textLink-foreground) 15%, transparent);
-    color: var(--vscode-textLink-foreground);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.task-status-icon {
-    display: flex;
-    align-items: center;
-    
-    svg {
-        width: 14px;
-        height: 14px;
-    }
-    
-    &.success { color: var(--vscode-terminal-ansiGreen); }
-    &.error { color: var(--vscode-terminal-ansiYellow); cursor: help; }
-    &.running, &.pending { color: var(--vscode-terminal-ansiYellow); }
-}
-
-.task-expand-icon {
-    display: flex;
-    align-items: center;
-    color: var(--vscode-descriptionForeground);
-    
-    svg {
-        width: 10px;
-        height: 10px;
-    }
-}
-
-.task-details {
-    border-top: 1px solid var(--vcoder-border);
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.task-prompt,
-.task-result,
-.task-error {
-    border: 1px solid var(--vcoder-border);
-    border-radius: 6px;
-    overflow: hidden;
-}
-
-.prompt-header,
-.result-header,
-.error-header {
-    padding: 4px 8px;
-    background: var(--vcoder-surface-3);
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: var(--vscode-descriptionForeground);
-    border-bottom: 1px solid var(--vcoder-border);
-}
-
-.task-prompt pre,
-.task-error pre {
-    margin: 0;
-    padding: 8px;
-    font-family: var(--vscode-editor-font-family);
-    font-size: 11px;
-    line-height: 1.4;
     white-space: pre-wrap;
     word-break: break-all;
-}
-
-.task-error {
-    border-color: var(--vscode-inputValidation-errorBorder);
-    
-    .error-header {
-        background: color-mix(in srgb, var(--vscode-inputValidation-errorBackground) 50%, var(--vcoder-surface-3));
-        color: var(--vscode-errorForeground);
-    }
-    
-    pre {
-        color: var(--vscode-errorForeground);
-    }
-}
-
-.task-result {
-    .result-header {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-}
-
-// ===========================================
-// Tool Result Display Styles
-// ===========================================
-.result-text,
-.result-json {
-    pre {
-        margin: 0;
-        font-family: var(--vscode-editor-font-family);
-        font-size: 11px;
-        line-height: 1.4;
-        white-space: pre-wrap;
-        word-break: break-all;
-        color: var(--vscode-editor-foreground);
-    }
-}
-
-.result-files {
-    .files-header {
-        font-size: 11px;
-        color: var(--vscode-descriptionForeground);
-        margin-bottom: 6px;
-    }
-    
-    .files-count {
-        font-weight: 500;
-    }
-}
-
-.files-list,
-.files-grouped {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.file-group {
-    margin-bottom: 6px;
-    
-    .group-header {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 11px;
-        font-weight: 500;
-        color: var(--vscode-foreground);
-        padding: 2px 0;
-        
-        svg {
-            width: 12px;
-            height: 12px;
-            color: var(--vscode-terminal-ansiYellow);
-        }
-    }
-    
-    .group-count {
-        margin-left: auto;
-        font-size: 10px;
-        color: var(--vscode-descriptionForeground);
-    }
-    
-    .group-files {
-        padding-left: 16px;
-    }
-}
-
-.file-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    padding: 2px 4px;
-    border-radius: 3px;
-    
-    &:hover {
-        background: var(--vscode-list-hoverBackground);
-    }
-    
-    &.clickable {
-        cursor: pointer;
-        transition: all 0.15s;
-        
-        &:hover {
-            background: var(--vscode-list-hoverBackground);
-            
-            .file-name,
-            .file-path {
-                text-decoration: underline;
-                color: var(--vscode-textLink-activeForeground);
-            }
-        }
-    }
-    
-    svg {
-        width: 12px;
-        height: 12px;
-        color: var(--vscode-descriptionForeground);
-    }
-    
-    .file-name,
-    .file-path {
-        color: var(--vscode-textLink-foreground);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-}
-
-.file-more {
-    font-size: 10px;
-    color: var(--vscode-descriptionForeground);
-    padding: 2px 4px;
-}
-
-.result-search {
-    .search-header {
-        font-size: 11px;
-        color: var(--vscode-descriptionForeground);
-        margin-bottom: 6px;
-        
-        .search-count {
-            font-weight: 500;
-        }
-    }
-    
-    .search-list {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-    
-    .search-item {
-        padding: 4px;
-        border-radius: 4px;
-        background: var(--vcoder-surface-3);
-        
-        pre {
-            margin: 0;
-            font-family: var(--vscode-editor-font-family);
-            font-size: 11px;
-            line-height: 1.4;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-        
-        &.structured {
-            .search-file {
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                font-size: 11px;
-                color: var(--vscode-textLink-foreground);
-                margin-bottom: 4px;
-                
-                &.clickable {
-                    cursor: pointer;
-                    transition: all 0.15s;
-                    
-                    &:hover {
-                        text-decoration: underline;
-                        color: var(--vscode-textLink-activeForeground);
-                    }
-                }
-                
-                svg {
-                    width: 12px;
-                    height: 12px;
-                }
-                
-                .search-line {
-                    color: var(--vscode-descriptionForeground);
-                }
-            }
-        }
-    }
-}
-
-.result-diff {
-    pre {
-        margin: 0;
-        font-family: var(--vscode-editor-font-family);
-        font-size: 11px;
-        line-height: 1.4;
-        
-        .diff-add {
-            background: color-mix(in srgb, var(--vscode-diffEditor-insertedTextBackground) 40%, transparent);
-            color: var(--vscode-terminal-ansiGreen);
-        }
-        
-        .diff-remove {
-            background: color-mix(in srgb, var(--vscode-diffEditor-removedTextBackground) 40%, transparent);
-            color: var(--vscode-terminal-ansiRed);
-        }
-        
-        .diff-chunk {
-            color: var(--vscode-terminal-ansiCyan);
-            font-weight: 500;
-        }
-    }
-}
-
-.result-error {
-    .error-header {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 11px;
-        font-weight: 500;
-        color: var(--vscode-errorForeground);
-        margin-bottom: 6px;
-        
-        svg {
-            width: 14px;
-            height: 14px;
-        }
-    }
-    
-    pre {
-        margin: 0;
-        padding: 8px;
-        border-radius: 4px;
-        background: color-mix(in srgb, var(--vscode-inputValidation-errorBackground) 30%, transparent);
-        border: 1px solid var(--vscode-inputValidation-errorBorder);
-        font-family: var(--vscode-editor-font-family);
-        font-size: 11px;
-        line-height: 1.4;
-        white-space: pre-wrap;
-        word-break: break-all;
-        color: var(--vscode-errorForeground);
-    }
-}
-
-.result-truncated {
-    .truncated-header {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 11px;
-        font-weight: 500;
-        color: var(--vscode-terminal-ansiYellow);
-        margin-bottom: 6px;
-        
-        svg {
-            width: 14px;
-            height: 14px;
-        }
-    }
-    
-    pre {
-        margin: 0;
-        font-family: var(--vscode-editor-font-family);
-        font-size: 11px;
-        line-height: 1.4;
-        white-space: pre-wrap;
-        word-break: break-all;
-        max-height: 300px;
-        overflow-y: auto;
-    }
-}
-
-// Expand button for result views
-.expand-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 6px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    color: var(--vscode-textLink-foreground);
-    background: transparent;
-    cursor: pointer;
-    transition: all 0.15s;
-    
-    svg {
-        width: 12px;
-        height: 12px;
-    }
-    
-    &:hover {
-        background: var(--vscode-button-secondaryBackground);
-    }
-}
-
-// ===========================================
-// Smart Tool Input Styles
-// ===========================================
-.input-file-read,
-.input-file-write {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 4px;
-    background: var(--vcoder-surface-2);
-    
-    &.clickable {
-        cursor: pointer;
-        transition: all 0.15s;
-        
-        &:hover {
-            background: var(--vscode-list-hoverBackground);
-            
-            .file-name {
-                color: var(--vscode-textLink-activeForeground);
-            }
-        }
-    }
-    
-    svg {
-        width: 14px;
-        height: 14px;
-        color: var(--vscode-descriptionForeground);
-        flex-shrink: 0;
-    }
-    
-    .file-info {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
-    
-    .file-name {
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--vscode-foreground);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        transition: color 0.15s;
-    }
-    
-    .file-dir {
-        font-size: 10px;
-        color: var(--vscode-descriptionForeground);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        font-family: var(--vscode-editor-font-family);
-    }
-    
-    .line-range {
-        font-size: 10px;
-        font-family: var(--vscode-editor-font-family);
-        color: var(--vscode-descriptionForeground);
-        background: var(--vcoder-surface-3);
-        padding: 2px 6px;
-        border-radius: 3px;
-        flex-shrink: 0;
-    }
-}
-
-.command-input {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 4px;
-    background: var(--vcoder-surface-2);
-    
-    svg {
-        width: 14px;
-        height: 14px;
-        color: var(--vscode-terminal-ansiGreen);
-        flex-shrink: 0;
-    }
-    
-    .command-text {
-        flex: 1;
-        font-size: 11px;
-        font-family: var(--vscode-editor-font-family);
-        color: var(--vscode-foreground);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    
-    .copy-btn {
-        padding: 4px;
-        border-radius: 3px;
-        background: transparent;
-        border: none;
-        color: var(--vscode-descriptionForeground);
-        cursor: pointer;
-        opacity: 0;
-        transition: all 0.15s;
-        flex-shrink: 0;
-        
-        svg {
-            width: 12px;
-            height: 12px;
-        }
-        
-        &:hover {
-            background: var(--vscode-list-hoverBackground);
-            color: var(--vscode-foreground);
-        }
-    }
-    
-    &:hover .copy-btn {
-        opacity: 1;
-    }
-}
-
-.search-input {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 4px;
-    background: var(--vcoder-surface-2);
-    
-    svg {
-        width: 14px;
-        height: 14px;
-        color: var(--vscode-terminal-ansiBlue);
-        flex-shrink: 0;
-    }
-    
-    .search-pattern {
-        font-size: 11px;
-        font-family: var(--vscode-editor-font-family);
-        color: var(--vscode-foreground);
-        font-weight: 500;
-    }
-    
-    .search-scope {
-        font-size: 10px;
-        color: var(--vscode-descriptionForeground);
-        margin-left: 4px;
-    }
-}
-
-.input-simple,
-.input-json {
-    pre {
-        margin: 0;
-        font-family: var(--vscode-editor-font-family);
-        font-size: 11px;
-        line-height: 1.4;
-        white-space: pre-wrap;
-        word-break: break-all;
-        color: var(--vscode-editor-foreground);
-    }
-}
-
-// File content display styles
-.file-content-display {
-    .view-toggle {
-        display: flex;
-        gap: 4px;
-        margin-bottom: 8px;
-        padding: 2px;
-        background: var(--vcoder-surface-3);
-        border-radius: 4px;
-        
-        button {
-            flex: 1;
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            background: transparent;
-            border: none;
-            color: var(--vscode-descriptionForeground);
-            cursor: pointer;
-            transition: all 0.15s;
-            
-            &.active {
-                background: var(--vscode-button-background);
-                color: var(--vscode-button-foreground);
-            }
-            
-            &:hover:not(.active) {
-                background: var(--vscode-list-hoverBackground);
-                color: var(--vscode-foreground);
-            }
-        }
-    }
-    
-    .markdown-preview {
-        padding: 12px;
-        background: var(--vcoder-surface);
-        border-radius: 4px;
-        font-size: 12px;
-        line-height: 1.6;
-        color: var(--vscode-foreground);
-        
-        h1, h2, h3, h4, h5, h6 {
-            margin-top: 16px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-        
-        p {
-            margin: 8px 0;
-        }
-        
-        code {
-            font-family: var(--vscode-editor-font-family);
-            font-size: 11px;
-            background: var(--vcoder-surface-3);
-            padding: 2px 4px;
-            border-radius: 3px;
-        }
-        
-        pre {
-            background: var(--vcoder-surface-3);
-            padding: 8px;
-            border-radius: 4px;
-            overflow-x: auto;
-            
-            code {
-                background: transparent;
-                padding: 0;
-            }
-        }
-    }
-}
-
-// ===========================================
-// New Approval UI Styles
-// ===========================================
-
-.approval-container {
-    margin: 8px 0;
-    border-radius: 8px;
-    background: var(--vcoder-surface);
-    border: 1px solid var(--vcoder-border);
-    overflow: hidden;
-    
-    // 类型主题色
-    &.type-bash {
-        border-left: 3px solid var(--vscode-terminal-ansiYellow);
-    }
-    
-    &.type-file_write {
-        border-left: 3px solid var(--vscode-textLink-foreground);
-    }
-    
-    &.type-file_delete {
-        border-left: 3px solid var(--vscode-terminal-ansiRed);
-    }
-    
-    &.type-plan {
-        border-left: 3px solid var(--vscode-terminal-ansiGreen);
-    }
-    
-    &.type-mcp {
-        border-left: 3px solid var(--vscode-terminal-ansiMagenta);
-    }
-    
-    &.type-dangerous {
-        border-left: 3px solid var(--vscode-terminal-ansiRed);
-    }
-}
-
-// 头部
-.approval-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    background: var(--vcoder-surface-3);
-    border-bottom: 1px solid var(--vcoder-border);
-    
-    .header-title {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: 600;
-        font-size: 13px;
-        
-        svg {
-            width: 16px;
-            height: 16px;
-        }
-    }
-}
-
-// 风险等级标签
-.risk-badge {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 600;
-    
-    svg {
-        width: 12px;
-        height: 12px;
-    }
-    
-    &.risk-low {
-        background: color-mix(in srgb, var(--vscode-terminal-ansiGreen) 15%, transparent);
-        color: var(--vscode-terminal-ansiGreen);
-    }
-    
-    &.risk-medium {
-        background: color-mix(in srgb, var(--vscode-terminal-ansiYellow) 15%, transparent);
-        color: var(--vscode-terminal-ansiYellow);
-    }
-    
-    &.risk-high {
-        background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 15%, transparent);
-        color: var(--vscode-terminal-ansiRed);
-    }
-}
-
-// 内容区域
-.approval-content {
-    padding: 12px 14px;
-}
-
-// 命令预览
-.command-preview {
-    padding: 10px 12px;
-    background: var(--vcoder-surface-2);
-    border-radius: 6px;
-    font-family: var(--vscode-editor-font-family);
-    font-size: 12px;
-    color: var(--vscode-terminal-ansiGreen);
-    
-    .command-prompt {
-        color: var(--vscode-descriptionForeground);
-        margin-right: 8px;
-    }
-}
-
-// 风险提示列表
-.risk-hints {
-    margin-top: 12px;
-    
-    .risk-title {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--vscode-foreground);
-        margin-bottom: 6px;
-        
-        svg {
-            width: 14px;
-            height: 14px;
-            color: var(--vscode-terminal-ansiYellow);
-        }
-    }
-    
-    .risk-list {
-        padding-left: 20px;
-        
-        li {
-            font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-            padding: 2px 0;
-        }
-    }
-}
-
-// 文件信息
-.file-info-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-    
-    svg {
-        width: 16px;
-        height: 16px;
-        color: var(--vscode-descriptionForeground);
-    }
-    
-    .file-path {
-        font-size: 12px;
-        color: var(--vscode-textLink-foreground);
-        font-family: var(--vscode-editor-font-family);
-    }
-}
-
-// 文件删除警告
-.file-delete-warning {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 10%, transparent);
-    border-radius: 6px;
-    margin-bottom: 12px;
-    
-    svg {
-        width: 16px;
-        height: 16px;
-        color: var(--vscode-terminal-ansiRed);
-    }
-    
-    span {
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--vscode-foreground);
-    }
-}
-
-.file-delete-notice {
-    font-size: 11px;
-    color: var(--vscode-descriptionForeground);
-    margin-top: 8px;
-}
-
-// 快捷操作按钮
-.quick-actions {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-    
-    button {
-        padding: 4px 10px;
-        border-radius: 4px;
-        font-size: 11px;
-        background: var(--vcoder-surface-3);
-        color: var(--vscode-foreground);
-        border: 1px solid var(--vcoder-border);
-        cursor: pointer;
-        transition: all 0.15s;
-        
-        &:hover {
-            background: var(--vscode-list-hoverBackground);
-        }
-    }
-}
-
-// 内联 Diff 预览
-.inline-diff {
-    border-radius: 6px;
-    background: var(--vcoder-surface-2);
-    overflow: hidden;
     max-height: 200px;
     overflow-y: auto;
+    color: var(--vscode-editor-foreground);
     
-    .diff-line {
-        padding: 2px 10px;
-        font-family: var(--vscode-editor-font-family);
-        font-size: 11px;
-        line-height: 1.4;
-        
-        &.diff-add {
-            background: color-mix(in srgb, var(--vscode-diffEditor-insertedTextBackground) 40%, transparent);
-            color: var(--vscode-terminal-ansiGreen);
-        }
-        
-        &.diff-remove {
-            background: color-mix(in srgb, var(--vscode-diffEditor-removedTextBackground) 40%, transparent);
-            color: var(--vscode-terminal-ansiRed);
-        }
-        
-        &.diff-context {
-            color: var(--vscode-editor-foreground);
-        }
-    }
-    
-    .diff-stats {
-        padding: 6px 10px;
-        font-size: 10px;
-        color: var(--vscode-descriptionForeground);
-        border-top: 1px solid var(--vcoder-border);
-        background: var(--vcoder-surface-3);
-    }
+    pre { margin: 0; }
 }
 
-// 计划任务列表
-.plan-description {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--vscode-foreground);
-    margin-bottom: 10px;
+/* Terminal Output Override */
+.terminal-output {
+    border: none !important;
+    background: transparent !important;
+    margin: 4px 0 !important;
 }
 
-.plan-tasks {
-    .task-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        padding: 6px 0;
-        font-size: 12px;
-        
-        .task-status {
-            width: 16px;
-            height: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            margin-top: 2px;
-            
-            svg {
-                width: 14px;
-                height: 14px;
-            }
-            
-            &.completed { color: var(--vscode-terminal-ansiGreen); }
-            &.pending { color: var(--vscode-descriptionForeground); }
-        }
-        
-        .task-content {
-            flex: 1;
-            color: var(--vscode-foreground);
-            
-            .task-number {
-                font-weight: 600;
-                margin-right: 4px;
-            }
-        }
-    }
-    
-    .plan-summary {
-        margin-top: 10px;
-        padding: 8px 10px;
-        background: var(--vcoder-surface-3);
-        border-radius: 4px;
-        font-size: 11px;
-        color: var(--vscode-descriptionForeground);
-    }
+.diff-viewer {
+    margin: 4px 0 !important;
 }
 
-.plan-summary-text {
-    margin-top: 8px;
-    padding: 8px 10px;
-    background: var(--vcoder-surface-3);
-    border-radius: 4px;
-    font-size: 11px;
-    color: var(--vscode-descriptionForeground);
-}
+/* Status Colors */
+.step-item.failed .step-title { color: var(--vscode-errorForeground); }
+.step-item.running .step-title { color: var(--vscode-descriptionForeground); }
 
-// 通用信息显示
-.generic-info {
-    .info-row {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 10px;
-        font-size: 12px;
-        
-        .info-label {
-            font-weight: 500;
-            color: var(--vscode-descriptionForeground);
-            min-width: 80px;
-        }
-        
-        .info-value {
-            flex: 1;
-            color: var(--vscode-foreground);
-            
-            &.code-block {
-                font-family: var(--vscode-editor-font-family);
-                font-size: 11px;
-                background: var(--vcoder-surface-2);
-                padding: 8px;
-                border-radius: 4px;
-                overflow-x: auto;
-            }
-        }
-    }
-}
-
-// 操作按钮区域
-.approval-actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    padding: 10px 14px;
-    background: var(--vcoder-surface-3);
-    border-top: 1px solid var(--vcoder-border);
-}
-
-.approval-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid transparent;
-    
-    svg {
-        width: 14px;
-        height: 14px;
-    }
-    
-    // 主按钮
-    &.btn-primary {
-        background: var(--vscode-button-background);
-        color: var(--vscode-button-foreground);
-        
-        &:hover {
-            background: var(--vscode-button-hoverBackground);
-        }
-    }
-    
-    // 次按钮
-    &.btn-secondary {
-        background: transparent;
-        border: 1px solid var(--vcoder-border);
-        color: var(--vscode-foreground);
-        
-        &:hover {
-            background: var(--vscode-list-hoverBackground);
-        }
-    }
-    
-    // 危险按钮
-    &.btn-danger {
-        background: var(--vscode-inputValidation-errorBackground);
-        color: var(--vscode-errorForeground);
-        border: 1px solid var(--vscode-inputValidation-errorBorder);
-        
-        &:hover {
-            background: color-mix(in srgb, var(--vscode-inputValidation-errorBackground) 80%, black);
-        }
-    }
-}
-
-// 信任选项
-.trust-option {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-right: auto;
-    font-size: 11px;
-    color: var(--vscode-descriptionForeground);
-    cursor: pointer;
-    
-    input[type="checkbox"] {
-        width: 14px;
-        height: 14px;
-    }
-    
-    &:hover {
-        color: var(--vscode-foreground);
-    }
-}
+/* Remove old decorators */
+.step-number { display: none; }

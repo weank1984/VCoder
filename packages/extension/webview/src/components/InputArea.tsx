@@ -6,13 +6,15 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
 import { postMessage } from '../utils/vscode';
 import { useStore } from '../store/useStore';
-import type { ModelId, PermissionMode } from '@vcoder/shared';
+import type { ModelId } from '@vcoder/shared';
 import { FilePicker } from './FilePicker';
-import { AgentSelector } from './AgentSelector';
 import { PermissionRulesPanel } from './PermissionRulesPanel';
-import { AddIcon, ArrowBottomIcon, SendIcon, StopIcon, CloseIcon, ThinkIcon } from './Icon';
+import { AtIcon, WebIcon, ImageIcon, ArrowBottomIcon, SendIcon, StopIcon, CloseIcon, CheckIcon, ThinkIcon, ChatIcon, ListCheckIcon } from './Icon';
+import { IconButton } from './IconButton';
+import { PendingChangesBar } from './PendingChangesBar';
 import { useI18n } from '../i18n/I18nProvider';
 import { loadPersistedState, savePersistedState } from '../utils/persist';
+import './InputArea.scss';
 
 interface Attachment {
     type: 'file' | 'selection';
@@ -20,19 +22,11 @@ interface Attachment {
     name: string;
     content?: string;
 }
-import './InputArea.scss';
 
 const MODELS: { id: ModelId; name: string }[] = [
     { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5' },
     { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5' },
     { id: 'glm-4.6', name: 'GLM 4.6' },
-];
-
-const PERMISSION_MODES: { id: PermissionMode; labelKey: string; descKey: string; icon: string }[] = [
-    { id: 'default', labelKey: 'Common.ModeDefault', descKey: 'Common.ModeDefaultDesc', icon: '🔒' },
-    { id: 'plan', labelKey: 'Common.ModePlan', descKey: 'Common.ModePlanDesc', icon: '📋' },
-    { id: 'acceptEdits', labelKey: 'Common.ModeAcceptEdits', descKey: 'Common.ModeAcceptEditsDesc', icon: '✏️' },
-    { id: 'bypassPermissions', labelKey: 'Common.ModeBypass', descKey: 'Common.ModeBypassDesc', icon: '⚡' },
 ];
 
 export function InputArea() {
@@ -48,8 +42,12 @@ export function InputArea() {
     const [isComposing, setIsComposing] = useState(false);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [showPermissionRules, setShowPermissionRules] = useState(false);
+    
+    // Model Picker State
+    const [showModelPicker, setShowModelPicker] = useState(false);
+    const [modelSearch, setModelSearch] = useState('');
+    const [showAgentPicker, setShowAgentPicker] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const rectRef = useRef<SVGRectElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,17 +57,11 @@ export function InputArea() {
         isLoading,
         workspaceFiles,
         viewMode,
-        thinkingEnabled,
-        permissionMode,
         agents,
         currentAgentId,
         setModel,
-        setThinkingEnabled,
-        setPermissionMode,
         addMessage,
         setLoading,
-        exitHistoryMode,
-        selectAgent,
     } = useStore();
 
     // Debounced save for input draft
@@ -100,32 +92,6 @@ export function InputArea() {
     useEffect(() => {
         postMessage({ type: 'getWorkspaceFiles' });
     }, []);
-    // Calculate perimeter for SVG animation
-    useEffect(() => {
-        if (!wrapperRef.current) return;
-
-        const updatePerimeter = () => {
-            if (rectRef.current) {
-                const length = rectRef.current.getTotalLength();
-                rectRef.current.style.setProperty('--perimeter', `${length}px`);
-                // Calculate snake length (60% of perimeter for longer bar)
-                const snakeLen = length * 0.6; 
-                rectRef.current.style.setProperty('--snake-length', `${snakeLen}px`);
-            }
-        };
-
-        const observer = new ResizeObserver(() => {
-            updatePerimeter();
-        });
-
-        observer.observe(wrapperRef.current);
-        
-        // Initial calculation
-        updatePerimeter();
-
-        return () => observer.disconnect();
-    }, [isLoading]);
-
 
     const handleAddFiles = () => {
         fileInputRef.current?.click();
@@ -261,7 +227,10 @@ export function InputArea() {
     }, [input]);
 
     const selectedModel = MODELS.find(m => m.id === model);
-    const selectedMode = PERMISSION_MODES.find(m => m.id === permissionMode) || PERMISSION_MODES[0];
+    const currentAgent = agents.find(a => a.profile.id === currentAgentId);
+    
+    // Check if send button should be disabled
+    const isSendDisabled = !input.trim() && attachments.length === 0;
 
     return (
         <div className="input-area">
@@ -274,19 +243,14 @@ export function InputArea() {
                 onChange={handleFileChange}
                 style={{ display: 'none' }}
             />
-            
-            {viewMode === 'history' && (
-                <div className="history-mode-banner">
-                    <span>{t('Chat.ViewingHistoryReadonly')}</span>
-                    <button onClick={exitHistoryMode}>{t('Common.Exit')}</button>
-                </div>
-            )}
 
+            <PendingChangesBar />
+            
             {showPicker && (
                 <FilePicker
                     files={workspaceFiles}
                     searchQuery={pickerQuery}
-                    position={{ top: -300, left: 0 }} // Position above input
+                    position={{ top: -300, left: 0 }}
                     onSelect={handleFileSelect}
                     onClose={() => setShowPicker(false)}
                 />
@@ -301,27 +265,8 @@ export function InputArea() {
                 ref={wrapperRef}
                 className={`input-wrapper ${isLoading ? 'input-wrapper--loading' : ''}`}
             >
-                {isLoading && (
-                    <svg className="marquee-svg">
-                        <defs>
-                            <linearGradient id="neon-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="#00f2ff" />
-                                <stop offset="50%" stopColor="#7000ff" />
-                                <stop offset="100%" stopColor="#ff00a0" />
-                            </linearGradient>
-                        </defs>
-                        <rect 
-                            ref={rectRef}
-                            className="marquee-rect"
-                            x="1" y="1" 
-                            width="calc(100% - 2px)" 
-                            height="calc(100% - 2px)" 
-                            rx="8" ry="8" 
-                        />
-                    </svg>
-                )}
                 <div className="input-content">
-                    {/* Attachment preview chips */}
+                    {/* Attachment preview */}
                     {attachments.length > 0 && (
                         <div className="attachments-preview">
                             {attachments.map((att, idx) => (
@@ -352,107 +297,157 @@ export function InputArea() {
                         rows={1}
                         onClick={(e) => {
                             setCursorPosition(e.currentTarget.selectionStart);
-                            setShowPicker(false); // Hide picker on click moving cursor
+                            setShowPicker(false);
                         }}
                     />
 
                     <div className="input-toolbar">
+
                         <div className="toolbar-left">
-                            {agents.length > 0 && (
-                                <AgentSelector
-                                    agents={agents}
-                                    currentAgentId={currentAgentId}
-                                    onSelectAgent={selectAgent}
-                                />
-                            )}
-
-                            <button className="tool-btn add-btn" title={t('Common.AddFiles')} aria-label={t('Common.AddFiles')} onClick={handleAddFiles}>
-                                <AddIcon />
-                            </button>
-
-                            <button
-                                className={`tool-btn think-btn ${thinkingEnabled ? 'is-active' : ''}`}
-                                title={thinkingEnabled ? t('Common.ThinkOn') : t('Common.ThinkOff')}
-                                aria-label={thinkingEnabled ? t('Common.ThinkOn') : t('Common.ThinkOff')}
-                                aria-pressed={thinkingEnabled}
-                                onClick={() => setThinkingEnabled(!thinkingEnabled)}
-                                disabled={isLoading || viewMode === 'history'}
-                                type="button"
-                            >
-                                <ThinkIcon />
-                            </button>
-
-                            <div className="permission-controls">
-                                <button 
-                                    type="button" 
-                                    className={`dropdown-btn mode-btn ${permissionMode !== 'default' ? 'mode-active' : ''} mode-${permissionMode}`}
-                                    title={t('Common.PermissionMode')}
-                                >
-                                    <span className="mode-icon">{selectedMode.icon}</span>
-                                    <span className="mode-label">{t(selectedMode.labelKey)}</span>
-                                    <span className="dropdown-arrow" aria-hidden="true"><ArrowBottomIcon /></span>
-                                    <select
-                                        className="mode-select-overlay"
-                                        value={permissionMode}
-                                        onChange={(e) => setPermissionMode(e.target.value as PermissionMode)}
-                                        disabled={isLoading || viewMode === 'history'}
-                                    >
-                                        {PERMISSION_MODES.map((m) => (
-                                            <option key={m.id} value={m.id}>
-                                                {m.icon} {t(m.labelKey)}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </button>
-                                <button
-                                    type="button"
-                                    className="tool-btn rules-btn"
-                                    title="管理权限规则"
-                                    onClick={() => setShowPermissionRules(true)}
-                                >
-                                    🔐
-                                </button>
+                            <div className="composer-unified-dropdown" onClick={() => setShowAgentPicker(!showAgentPicker)}>
+                                <div className="dropdown-content">
+                                    <span className="codicon codicon-infinity">♾️</span>
+                                    <span className="dropdown-label">{currentAgent?.profile.name || 'Agent'}</span>
+                                </div>
+                                <span className="codicon-chevron-down"><ArrowBottomIcon /></span>
+                                
+                                {showAgentPicker && (
+                                    <>
+                                        <div className="dropdown-select-overlay" onClick={(e) => { e.stopPropagation(); setShowAgentPicker(false); }} />
+                                        <div className="agent-selector-popover" onClick={e => e.stopPropagation()}>
+                                            <div className="agent-list-item selected" onClick={() => setShowAgentPicker(false)}>
+                                                <span className="agent-icon"><span className="codicon codicon-infinity" style={{ fontSize: '14px' }}>♾️</span></span>
+                                                <span className="agent-label">Agent</span>
+                                                <span className="agent-shortcut">⌘I</span>
+                                                <CheckIcon />
+                                            </div>
+                                            <div className="agent-list-item" onClick={() => setShowAgentPicker(false)}>
+                                                <span className="agent-icon"><ListCheckIcon /></span>
+                                                <span className="agent-label">Plan</span>
+                                            </div>
+                                            <div className="agent-list-item" onClick={() => setShowAgentPicker(false)}>
+                                                <span className="agent-icon"><span className="codicon codicon-debug-alt" style={{ fontSize: '14px' }}></span></span>
+                                                <span className="agent-label">Debug</span>
+                                            </div>
+                                            <div className="agent-list-item" onClick={() => setShowAgentPicker(false)}>
+                                                <span className="agent-icon"><ChatIcon /></span>
+                                                <span className="agent-label">Ask</span>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
-                            <button type="button" className="dropdown-btn model-btn">
-                                <span className="model-label">{selectedModel?.name || t('Common.SelectModel')}</span>
-                                <span className="dropdown-arrow" aria-hidden="true"><ArrowBottomIcon /></span>
-                                <select
-                                    className="model-select-overlay"
-                                    value={model}
-                                    onChange={(e) => setModel(e.target.value as ModelId)}
-                                >
-                                    {MODELS.map((m) => (
-                                        <option key={m.id} value={m.id}>
-                                            {m.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </button>
+                            <div className="composer-unified-dropdown-model" onClick={() => setShowModelPicker(!showModelPicker)}>
+                                <span className="model-label">{selectedModel?.name || 'Model'}</span>
+                                <span className="codicon-chevron-down"><ArrowBottomIcon /></span>
+                                
+                                {showModelPicker && (
+                                    <>
+                                        <div className="dropdown-select-overlay" onClick={(e) => { e.stopPropagation(); setShowModelPicker(false); }} />
+                                        <div className="model-selector-popover" onClick={e => e.stopPropagation()}>
+                                            <div className="model-search-wrapper">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Search models" 
+                                                    autoFocus
+                                                    value={modelSearch}
+                                                    onChange={e => setModelSearch(e.target.value)}
+                                                />
+                                            </div>
+                                            
+                                            <div className="model-section">
+                                                <div className="model-toggle-item">
+                                                    <span>Auto</span>
+                                                    <div className="toggle-switch" />
+                                                </div>
+                                                <div className="model-toggle-item">
+                                                    <span>MAX Mode</span>
+                                                    <div className="toggle-switch" />
+                                                </div>
+                                                <div className="model-toggle-item">
+                                                    <span>Use Multiple Models</span>
+                                                    <div className="toggle-switch" />
+                                                </div>
+                                            </div>
+
+                                            <div className="model-section">
+                                                {MODELS.filter(m => m.name.toLowerCase().includes(modelSearch.toLowerCase())).map((m) => (
+                                                    <div 
+                                                        key={m.id} 
+                                                        className={`model-list-item ${model === m.id ? 'selected' : ''}`}
+                                                        onClick={() => {
+                                                            setModel(m.id);
+                                                            setShowModelPicker(false);
+                                                        }}
+                                                    >
+                                                        <div className="model-item-left">
+                                                            <span>{m.name}</span>
+                                                            <span className="brain-icon"><ThinkIcon /></span>
+                                                        </div>
+                                                        {model === m.id && <CheckIcon />}
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="model-footer">
+                                                Add Models {'>'}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         </div>
 
                         <div className="toolbar-right">
-                            {isLoading ? (
-                                <button
-                                    className="stop-btn"
-                                    onClick={() => {
-                                        postMessage({ type: 'cancel' });
-                                    }}
-                                    title={t('Common.StopGenerating')}
-                                    aria-label={t('Common.StopGenerating')}
-                                >
-                                    <StopIcon />
-                                </button>
+                             {/* Context/Mention Button */}
+                             <IconButton 
+                                icon={<AtIcon />}
+                                label="Mention"
+                                onClick={() => {
+                                     const newText = input + '@';
+                                     setInput(newText);
+                                     textareaRef.current?.focus();
+                                     // Trigger React state update manually if needed to check regex immediately
+                                     // But onChange handler on textarea usually handles it.
+                                     // We might need to manually trigger the picker logic if changing state directly doesn't fire onChange.
+                                     // Actually just setting input and focus is enough for next keystroke, but to show picker immediately:
+                                     setShowPicker(true);
+                                     setPickerQuery(''); 
+                                }}
+                             />
+
+                             {/* Web/Globe Button */}
+                             <IconButton 
+                                icon={<WebIcon />}
+                                label="Web Search"
+                                onClick={() => {
+                                    // Placeholder
+                                }}
+                             />
+
+                             {/* Add File Button */}
+                             <IconButton
+                                icon={<ImageIcon />}
+                                label="Add Files"
+                                onClick={handleAddFiles}
+                             />
+                            
+                            {/* Send / Stop Button */}
+                             {isLoading ? (
+                                <IconButton
+                                    icon={<StopIcon />}
+                                    label="Stop Generating"
+                                    onClick={() => postMessage({ type: 'cancel' })}
+                                />
                             ) : (
-                                <button
-                                    className="send-btn"
+                                <IconButton
+                                    variant="background"
+                                    icon={<SendIcon />}
+                                    label="Send Message"
+                                    disabled={isSendDisabled}
                                     onClick={handleSubmit}
-                                    disabled={!input.trim() && attachments.length === 0}
-                                    title={t('Common.Send')}
-                                    aria-label={t('Common.Send')}
-                                >
-                                    <SendIcon />
-                                </button>
+                                />
                             )}
                         </div>
                     </div>

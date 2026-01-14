@@ -159,24 +159,72 @@ export function getActionInfo(toolName: string): ActionInfo {
  */
 export function extractTargetInfo(toolCall: ToolCall): TargetInfo {
     const input = toolCall.input;
+    const name = toolCall.name;
+
+    // Some backends send primitive inputs (e.g. a file path or command string).
+    if (typeof input === 'string') {
+        const raw = input.trim();
+        if (!raw) return { name };
+
+        if (
+            name === 'read_file' ||
+            name === 'view_file' ||
+            name === 'view_file_outline' ||
+            name === 'Read' ||
+            name === 'list_dir' ||
+            name === 'view_code_item' ||
+            name === 'write_to_file' ||
+            name === 'replace_file_content' ||
+            name === 'multi_replace_file_content' ||
+            name === 'Write' ||
+            name === 'Edit'
+        ) {
+            return { name: extractFileName(raw), fullPath: raw };
+        }
+
+        if (name === 'run_command' || name === 'Bash') {
+            return { name: truncateCommand(raw), fullPath: raw };
+        }
+
+        if (name === 'Glob' || name === 'Grep' || name === 'grep_search' || name === 'find_by_name' || name === 'codebase_search') {
+            return { name: truncateText(raw, 40), fullPath: raw };
+        }
+
+        return { name: raw };
+    }
+
     if (!input || typeof input !== 'object') {
-        return { name: toolCall.name };
+        return { name };
     }
     
     const obj = input as Record<string, unknown>;
-    const name = toolCall.name;
     
     // File operations - extract path and line range
     if (name === 'read_file' || name === 'view_file' || name === 'view_file_outline' || 
         name === 'Read' || name === 'list_dir' || name === 'view_code_item') {
-        const path = (obj.AbsolutePath ?? obj.path ?? obj.File) as string | undefined;
+        const candidate =
+            obj.AbsolutePath ??
+            obj.absolutePath ??
+            obj.absolute_path ??
+            obj.path ??
+            obj.Path ??
+            obj.filePath ??
+            obj.file_path ??
+            obj.FilePath ??
+            obj.File ??
+            obj.file ??
+            obj.uri;
+
+        const path = typeof candidate === 'string' ? candidate : undefined;
         if (path) {
-            const startLine = obj.StartLine as number | undefined;
-            const endLine = obj.EndLine as number | undefined;
+            const startLineRaw = obj.StartLine ?? obj.startLine ?? obj.start_line;
+            const endLineRaw = obj.EndLine ?? obj.endLine ?? obj.end_line;
+            const startLine = typeof startLineRaw === 'number' ? startLineRaw : Number(startLineRaw);
+            const endLine = typeof endLineRaw === 'number' ? endLineRaw : Number(endLineRaw);
             return {
                 name: extractFileName(path),
                 fullPath: path,
-                lineRange: startLine && endLine ? [startLine, endLine] : undefined,
+                lineRange: Number.isFinite(startLine) && Number.isFinite(endLine) && startLine > 0 && endLine > 0 ? [startLine, endLine] : undefined,
             };
         }
     }
@@ -184,14 +232,28 @@ export function extractTargetInfo(toolCall: ToolCall): TargetInfo {
     // Write/Edit operations
     if (name === 'write_to_file' || name === 'replace_file_content' || 
         name === 'multi_replace_file_content' || name === 'Write' || name === 'Edit') {
-        const path = (obj.TargetFile ?? obj.path) as string | undefined;
+        const candidate =
+            obj.TargetFile ??
+            obj.targetFile ??
+            obj.target_file ??
+            obj.path ??
+            obj.Path ??
+            obj.filePath ??
+            obj.file_path ??
+            obj.FilePath ??
+            obj.AbsolutePath ??
+            obj.absolutePath ??
+            obj.absolute_path;
+        const path = typeof candidate === 'string' ? candidate : undefined;
         if (path) {
-            const startLine = obj.StartLine as number | undefined;
-            const endLine = obj.EndLine as number | undefined;
+            const startLineRaw = obj.StartLine ?? obj.startLine ?? obj.start_line;
+            const endLineRaw = obj.EndLine ?? obj.endLine ?? obj.end_line;
+            const startLine = typeof startLineRaw === 'number' ? startLineRaw : Number(startLineRaw);
+            const endLine = typeof endLineRaw === 'number' ? endLineRaw : Number(endLineRaw);
             return {
                 name: extractFileName(path),
                 fullPath: path,
-                lineRange: startLine && endLine ? [startLine, endLine] : undefined,
+                lineRange: Number.isFinite(startLine) && Number.isFinite(endLine) && startLine > 0 && endLine > 0 ? [startLine, endLine] : undefined,
             };
         }
     }
@@ -294,7 +356,7 @@ export function extractTargetInfo(toolCall: ToolCall): TargetInfo {
     
     // Task - extract description or subagent_type
     if (name === 'Task') {
-        const desc = (obj.description ?? obj.Description) as string | undefined;
+        const desc = (obj.TaskName ?? obj.task_name ?? obj.taskName ?? obj.description ?? obj.Description ?? obj.title ?? obj.Title) as string | undefined;
         const prompt = (obj.prompt ?? obj.Prompt) as string | undefined;
         const subagentType = (
             obj.subagent_type ?? obj.subagentType ?? 

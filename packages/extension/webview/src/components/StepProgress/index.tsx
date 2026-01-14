@@ -32,9 +32,28 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
     const [collapsedSteps, setCollapsedSteps] = useState<Set<string>>(new Set());
     // 记录之前每个步骤的状态，用于检测状态变化
     const prevStepStatusRef = useRef<Map<string, Step['status']>>(new Map());
+    // Track steps we've already applied default-collapse logic to.
+    const seenStepIdsRef = useRef<Set<string>>(new Set());
+    const prevToolCallCountRef = useRef<number>(toolCalls.length);
     
+    // Reduce noise: keep only the latest TodoWrite (task list updates are frequent).
+    const filteredToolCalls = useMemo(() => {
+        let seenTodoWrite = false;
+        const out: ToolCall[] = [];
+        for (let i = toolCalls.length - 1; i >= 0; i--) {
+            const tc = toolCalls[i];
+            if (tc.name === 'TodoWrite') {
+                if (seenTodoWrite) continue;
+                seenTodoWrite = true;
+            }
+            out.push(tc);
+        }
+        out.reverse();
+        return out;
+    }, [toolCalls]);
+
     // Aggregate tool calls into steps
-    const steps = useMemo(() => aggregateToSteps(toolCalls), [toolCalls]);
+    const steps = useMemo(() => aggregateToSteps(filteredToolCalls), [filteredToolCalls]);
     
     // Get progress stats
     const stats = useMemo(() => getProgressStats(steps), [steps]);
@@ -44,11 +63,43 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
     useEffect(() => {
         const prevStatusMap = prevStepStatusRef.current;
         const stepsToCollapse: string[] = [];
+
+        const isTerminalTool = (name: string) =>
+            ['bash', 'bashoutput', 'bash_output', 'run_command', 'mcp__acp__bashoutput'].includes(name.toLowerCase()) ||
+            name.toLowerCase().includes('terminal');
+        const isFileEditTool = (name: string) =>
+            [
+                'write',
+                'edit',
+                'strreplace',
+                'multiedit',
+                'write_to_file',
+                'replace_file_content',
+                'multi_replace_file_content',
+                'apply_patch',
+                'str_replace',
+                'mcp__acp__write',
+                'mcp__acp__edit',
+            ].includes(name.toLowerCase());
+        const isStickyOpenStep = (step: Step) =>
+            step.entries.some((e) => {
+                const tc = e.toolCall;
+                return (
+                    tc.status === 'awaiting_confirmation' ||
+                    tc.name === 'TodoWrite' ||
+                    isTerminalTool(tc.name) ||
+                    isFileEditTool(tc.name)
+                );
+            });
         
         steps.forEach(step => {
             const prevStatus = prevStatusMap.get(step.id);
             // 如果之前是 running，现在变成 completed 或 failed，则自动折叠
-            if (prevStatus === 'running' && (step.status === 'completed' || step.status === 'failed')) {
+            if (
+                prevStatus === 'running' &&
+                (step.status === 'completed' || step.status === 'failed') &&
+                !isStickyOpenStep(step)
+            ) {
                 stepsToCollapse.push(step.id);
             }
             // 更新状态记录
@@ -67,6 +118,56 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
 
         return () => clearTimeout(timeoutId);
     }, [steps]);
+
+    // Live mode: default-collapse non-important steps to match the reference UI.
+    useEffect(() => {
+        const didReset = toolCalls.length < prevToolCallCountRef.current;
+        prevToolCallCountRef.current = toolCalls.length;
+
+        setCollapsedSteps((prev) => {
+            // Reset conditions (new session / cleared tool calls / history view).
+            if (viewMode === 'history' || steps.length === 0 || didReset) {
+                seenStepIdsRef.current = new Set();
+                return new Set();
+            }
+
+            const isTerminalTool = (name: string) =>
+                ['bash', 'bashoutput', 'bash_output', 'run_command', 'mcp__acp__bashoutput'].includes(name.toLowerCase()) ||
+                name.toLowerCase().includes('terminal');
+            const isFileEditTool = (name: string) =>
+                [
+                    'write',
+                    'edit',
+                    'strreplace',
+                    'multiedit',
+                    'write_to_file',
+                    'replace_file_content',
+                    'multi_replace_file_content',
+                    'apply_patch',
+                    'str_replace',
+                    'mcp__acp__write',
+                    'mcp__acp__edit',
+                ].includes(name.toLowerCase());
+
+            const next = new Set(prev);
+            for (const step of steps) {
+                // Only decide default for new steps; preserve user toggles.
+                if (seenStepIdsRef.current.has(step.id)) continue;
+                seenStepIdsRef.current.add(step.id);
+                const shouldDefaultExpand = step.entries.some((e) => {
+                    const tc = e.toolCall;
+                    return (
+                        tc.status === 'awaiting_confirmation' ||
+                        tc.name === 'TodoWrite' ||
+                        isTerminalTool(tc.name) ||
+                        isFileEditTool(tc.name)
+                    );
+                });
+                if (!shouldDefaultExpand) next.add(step.id);
+            }
+            return next;
+        });
+    }, [steps, toolCalls.length, viewMode]);
     
     // Header status icon
     const headerIcon = useMemo(() => {
@@ -97,19 +198,18 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
     
     // Handle view file action
     const handleViewFile = useCallback((path: string, lineRange?: [number, number]) => {
-        // Open file in editor - using executeCommand to open file
-        // The path is passed to VS Code's openFile command
-        postMessage({
-            type: 'executeCommand',
-            command: lineRange 
-                ? `vscode.open:${path}:${lineRange[0]}`
-                : `vscode.open:${path}`,
-        });
+        postMessage({ type: 'openFile', path, lineRange });
     }, []);
     
     // Handle confirm/reject actions using the unified confirmTool method
     const handleConfirm = useCallback((tc: ToolCall, approve: boolean, options?: { trustAlways?: boolean; editedContent?: string }) => {
-        // Use confirmTool for all tool confirmations (including bash, file operations, etc.)
+        // Backward compatibility: legacy bash approvals are `bash_request` updates.
+        if (tc.name === 'Bash' && tc.status === 'pending') {
+            postMessage({ type: approve ? 'confirmBash' : 'skipBash', commandId: tc.id });
+            return;
+        }
+
+        // Unified confirm for modern confirmation flows.
         useStore.getState().confirmTool(tc.id, approve, options);
     }, []);
     

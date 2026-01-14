@@ -49,6 +49,35 @@ const asString = (value: unknown): string | undefined =>
 const asNumber = (value: unknown): number | undefined =>
     typeof value === 'number' ? value : undefined;
 
+const isTerminalToolName = (name: string) => {
+    const lower = name.toLowerCase();
+    return (
+        lower === 'bash' ||
+        lower === 'bashoutput' ||
+        lower === 'bash_output' ||
+        lower === 'run_command' ||
+        lower === 'mcp__acp__bashoutput' ||
+        lower.includes('terminal')
+    );
+};
+
+const isFileEditToolName = (name: string) => {
+    const lower = name.toLowerCase();
+    return (
+        lower === 'write' ||
+        lower === 'edit' ||
+        lower === 'strreplace' ||
+        lower === 'multiedit' ||
+        lower === 'write_to_file' ||
+        lower === 'replace_file_content' ||
+        lower === 'multi_replace_file_content' ||
+        lower === 'apply_patch' ||
+        lower === 'str_replace' ||
+        lower === 'mcp__acp__write' ||
+        lower === 'mcp__acp__edit'
+    );
+};
+
 interface StepEntryProps {
     entry: StepEntryType;
     onViewFile?: (path: string, lineRange?: [number, number]) => void;
@@ -130,19 +159,10 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
     const isAwaitingConfirmation = tc.status === 'awaiting_confirmation';
     
     // Check if this is a terminal/Bash tool
-    const isTerminalTool = tc.name === 'Bash' || 
-                           tc.name === 'BashOutput' || 
-                           tc.name === 'run_command' ||
-                           tc.name === 'mcp__acp__BashOutput' ||
-                           tc.name.includes('terminal');
+    const isTerminalTool = isTerminalToolName(tc.name);
     
     // Check if this is a file editing tool
-    const isFileEditTool = tc.name === 'Write' ||
-                           tc.name === 'Edit' ||
-                           tc.name === 'StrReplace' ||
-                           tc.name === 'MultiEdit' ||
-                           tc.name === 'mcp__acp__Write' ||
-                           tc.name === 'mcp__acp__Edit';
+    const isFileEditTool = isFileEditToolName(tc.name);
     
     // Extract terminal data from tool input/result
     const terminalData = useMemo(() => {
@@ -152,7 +172,12 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
         const result = asRecord(tc.result);
         
         return {
-            command: asString(input?.command) ?? asString(input?.cmd) ?? '',
+            command:
+                asString(input?.command) ??
+                asString(input?.cmd) ??
+                asString(input?.CommandLine) ??
+                asString(input?.Command) ??
+                '',
             cwd: asString(input?.cwd) ?? asString(input?.working_dir) ?? '',
             output:
                 typeof tc.result === 'string'
@@ -188,18 +213,10 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
             diff = asString(result?.diff) ?? asString(input?.diff) ?? '';
         }
         
-        // Try to extract new content
-        const newContent =
-            asString(input?.contents) ??
-            asString(input?.content) ??
-            asString(input?.new_string) ??
-            '';
-        
         return {
             filePath,
             diff,
-            newContent,
-            hasChanges: diff.length > 0 || newContent.length > 0,
+            hasChanges: diff.length > 0,
         };
     }, [isFileEditTool, tc.input, tc.result, entry.target.fullPath]);
 
@@ -254,6 +271,7 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
             <TaskEntry 
                 toolCall={tc}
                 status={mapEntryStatus(entry.status)}
+                hideHeader={hideSummary}
             />
         );
     }
@@ -279,9 +297,46 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
         entry.type === 'file' || 
         entry.type === 'notebook'
     );
+
+    const hasTerminalSection = (() => {
+        if (!isTerminalTool || !terminalData) return false;
+        // During approval, show the approval card only (Cursor-style); don't render terminal output yet.
+        if (isAwaitingConfirmation) return false;
+        // For pending commands (legacy approval flow), only show terminal if we already have output.
+        if (tc.status === 'pending') return Boolean(terminalData.output);
+        return Boolean(terminalData.output || terminalData.isRunning || terminalData.command);
+    })();
+
+    const hasDiffSection = (() => {
+        if (!isFileEditTool || !diffData || !diffData.hasChanges) return false;
+        // During approval, rely on ApprovalUI's preview + actions; avoid duplicate accept/reject UI.
+        if (isAwaitingConfirmation) return false;
+        return true;
+    })();
+    const hasApprovalSection = Boolean(
+        (isAwaitingConfirmation && onConfirm) || (!isAwaitingConfirmation && isCommandPending && onConfirm)
+    );
+    const hasInputSection = Boolean(
+        tc.input !== undefined && !isTerminalTool && !isFileEditTool && tc.name !== 'TodoWrite'
+    );
+    const hasMcpSection = Boolean(isMcpGenericTool);
+    const hasResultSection = Boolean(
+        tc.result !== undefined && !isTerminalTool && !isFileEditTool && !isMcpGenericTool
+    );
+    const hasAnyDetails =
+        hasTerminalSection ||
+        hasDiffSection ||
+        hasApprovalSection ||
+        hasInputSection ||
+        hasMcpSection ||
+        hasResultSection;
     
     return (
-        <div className={`step-entry ${entry.status} ${entry.type} ${hideSummary ? 'summary-hidden' : ''}`}>
+        <div
+            className={`step-entry ${entry.status} ${entry.type} ${hideSummary ? 'summary-hidden' : ''} ${
+                isTerminalTool ? 'is-terminal' : ''
+            } ${isFileEditTool ? 'is-file-edit' : ''}`}
+        >
             {!hideSummary && (
                 <div className="entry-summary" onClick={() => setIsExpanded(!isExpanded)}>
                     <span className="entry-icon">{getEntryIcon(entry.type)}</span>
@@ -320,7 +375,7 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
                 </div>
             )}
             
-            {(isExpanded || hideSummary) && (
+            {(isExpanded || hideSummary) && hasAnyDetails && (
                 <div className="entry-details">
                     {/* New Approval UI for awaiting confirmation */}
                     {isAwaitingConfirmation && onConfirm && (
@@ -349,8 +404,8 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
                         </div>
                     )}
                     
-                    {/* Tool Input - using smart display */}
-                    {tc.input !== undefined && (
+                    {/* Tool Input - hide for terminal/diff/TodoWrite to keep flow clean */}
+                    {tc.input !== undefined && !isTerminalTool && !isFileEditTool && tc.name !== 'TodoWrite' && (
                         <div className="detail-section input">
                             <div className="detail-header">{t('Agent.ToolInput')}</div>
                             <div className="detail-content">
@@ -360,11 +415,11 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
                     )}
                     
                     {/* Terminal Output - specialized rendering for Bash/terminal tools */}
-                    {isTerminalTool && terminalData && terminalData.output && (
+                    {hasTerminalSection && terminalData && (
                         <TerminalOutput
                             command={terminalData.command}
                             cwd={terminalData.cwd}
-                            output={terminalData.output}
+                            output={terminalData.output || ''}
                             exitCode={terminalData.exitCode}
                             signal={terminalData.signal}
                             isRunning={terminalData.isRunning}
@@ -374,11 +429,10 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
                     )}
                     
                     {/* Diff Viewer - specialized rendering for file editing tools */}
-                    {isFileEditTool && diffData && diffData.hasChanges && (
+                    {hasDiffSection && diffData && (
                         <DiffViewer
                             filePath={diffData.filePath}
                             diff={diffData.diff}
-                            newContent={diffData.newContent}
                             onAccept={onConfirm ? () => onConfirm(tc, true) : undefined}
                             onReject={onConfirm ? () => onConfirm(tc, false) : undefined}
                             actionsDisabled={tc.status !== 'awaiting_confirmation'}
