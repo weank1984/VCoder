@@ -305,6 +305,7 @@ export class ACPServer {
                 } satisfies UpdateNotificationParams);
                 this.sendNotification(ACPMethods.SESSION_COMPLETE, {
                     sessionId: params.sessionId,
+                    reason: 'error',
                 } satisfies SessionCompleteParams);
             });
     }
@@ -398,6 +399,7 @@ export class ACPServer {
                 } satisfies UpdateNotificationParams);
                 this.sendNotification(ACPMethods.SESSION_COMPLETE, {
                     sessionId: params.sessionId,
+                    reason: 'error',
                 } satisfies SessionCompleteParams);
             });
     }

@@ -1,0 +1,146 @@
+/* Session Status Banner */
+
+.session-status-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    border-radius: var(--vcoder-radius-md);
+    border-left: 4px solid;
+    font-size: 13px;
+    
+    &.error {
+        background: var(--vscode-inputValidation-errorBackground);
+        border-color: var(--vscode-inputValidation-errorBorder);
+        color: var(--vscode-errorForeground);
+    }
+    
+    &.warning {
+        background: var(--vscode-inputValidation-warningBackground);
+        border-color: var(--vscode-inputValidation-warningBorder);
+        color: var(--vscode-editorWarning-foreground);
+    }
+    
+    &.info {
+        background: var(--vscode-inputValidation-infoBackground);
+        border-color: var(--vscode-inputValidation-infoBorder);
+        color: var(--vscode-editorInfo-foreground);
+    }
+    
+    &.success {
+        background: rgba(0, 128, 0, 0.1);
+        border-color: var(--vscode-terminal-ansiGreen);
+        color: var(--vscode-terminal-ansiGreen);
+    }
+}
+
+.session-status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    
+    svg {
+        width: 18px;
+        height: 18px;
+        fill: currentColor;
+    }
+}
+
+.session-status-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.session-status-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.session-status-description {
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0.9;
+    margin-top: 4px;
+}
+
+.session-status-details {
+    margin-top: 8px;
+    
+    summary {
+        font-size: 11px;
+        cursor: pointer;
+        user-select: none;
+        opacity: 0.8;
+        
+        &:hover {
+            opacity: 1;
+        }
+    }
+    
+    pre {
+        margin-top: 8px;
+        padding: 8px;
+        background: var(--vscode-editor-background);
+        border: 1px solid var(--vcoder-border);
+        border-radius: var(--vcoder-radius-sm);
+        font-family: var(--vscode-editor-font-family, monospace);
+        font-size: 11px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+}
+
+.session-status-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.session-status-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border: none;
+    border-radius: var(--vcoder-radius-sm);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    
+    &:hover {
+        background: var(--vscode-button-hoverBackground);
+    }
+    
+    &:active {
+        opacity: 0.8;
+    }
+}
+
+.session-status-retry {
+    // Use primary button style
+}
+
+.session-status-dismiss {
+    padding: 4px 8px;
+    background: transparent;
+    color: currentColor;
+    opacity: 0.6;
+    
+    &:hover {
+        background: transparent;
+        opacity: 1;
+    }
+}

@@ -256,16 +256,45 @@ export function StepItem({
         return deriveCollapsedPreview(step.entries[0].toolCall);
     }, [isCollapsed, step.entries]);
     
-    // Get error message for failed steps
-    const errorMessage = useMemo(() => {
+    // Get error information for failed steps
+    const errorInfo = useMemo(() => {
         if (step.status !== 'failed') return null;
         
         // Find first error in entries
         const errorEntry = step.entries.find(e => e.status === 'error' && e.toolCall.error);
         if (!errorEntry) return null;
         
-        return errorEntry.toolCall.error;
-    }, [step.status, step.entries]);
+        const error = errorEntry.toolCall.error || '';
+        
+        // Parse error message to provide friendly descriptions
+        let friendlyMessage = error;
+        let errorType = 'error';
+        
+        // Common error patterns
+        if (error.includes('timeout') || error.includes('timed out')) {
+            friendlyMessage = t('Error.Timeout');
+            errorType = 'timeout';
+        } else if (error.includes('permission denied') || error.includes('EACCES')) {
+            friendlyMessage = t('Error.PermissionDenied');
+            errorType = 'permission';
+        } else if (error.includes('not found') || error.includes('ENOENT')) {
+            friendlyMessage = t('Error.NotFound');
+            errorType = 'notfound';
+        } else if (error.includes('connection') || error.includes('network')) {
+            friendlyMessage = t('Error.ConnectionFailed');
+            errorType = 'connection';
+        } else if (error.includes('cancelled') || error.includes('canceled')) {
+            friendlyMessage = t('Error.Cancelled');
+            errorType = 'cancelled';
+        }
+        
+        return {
+            message: friendlyMessage,
+            rawMessage: error,
+            type: errorType,
+            toolName: errorEntry.toolCall.name,
+        };
+    }, [step.status, step.entries, t]);
     
     // Step status icon with tooltip for errors
     const statusIcon = useMemo(() => {
@@ -292,7 +321,7 @@ export function StepItem({
                     </div>
                     <span 
                         className={`step-status-icon ${step.status}`}
-                        title={errorMessage || undefined}
+                        title={errorInfo?.message || undefined}
                     >
                         {statusIcon}
                     </span>
@@ -302,18 +331,51 @@ export function StepItem({
                 </span>
             </div>
             
-            {!isCollapsed && (
-                <div className="step-entries">
-                    {step.entries.map((entry) => (
-                        <StepEntry
-                            key={entry.id}
-                            entry={entry}
-                            onViewFile={onViewFile}
-                            onConfirm={onConfirm}
-                            hideSummary={step.isSingleEntry}
-                        />
-                    ))}
+            {/* Error banner - shown when collapsed and has error */}
+            {isCollapsed && errorInfo && (
+                <div className="step-error-banner" onClick={(e) => {
+                    e.stopPropagation();
+                    onToggle();
+                }}>
+                    <ErrorIcon />
+                    <span className="step-error-message">{errorInfo.message}</span>
+                    <span className="step-error-expand">{t('Error.ViewDetails')}</span>
                 </div>
+            )}
+            
+            {!isCollapsed && (
+                <>
+                    {/* Error details - shown when expanded */}
+                    {errorInfo && (
+                        <div className="step-error-details">
+                            <div className="step-error-header">
+                                <ErrorIcon />
+                                <span className="step-error-title">{t('Error.ErrorOccurred')}</span>
+                            </div>
+                            <div className="step-error-body">
+                                <div className="step-error-friendly">{errorInfo.message}</div>
+                                {errorInfo.rawMessage !== errorInfo.message && (
+                                    <details className="step-error-raw">
+                                        <summary>{t('Error.TechnicalDetails')}</summary>
+                                        <pre>{errorInfo.rawMessage}</pre>
+                                    </details>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    
+                    <div className="step-entries">
+                        {step.entries.map((entry) => (
+                            <StepEntry
+                                key={entry.id}
+                                entry={entry}
+                                onViewFile={onViewFile}
+                                onConfirm={onConfirm}
+                                hideSummary={step.isSingleEntry}
+                            />
+                        ))}
+                    </div>
+                </>
             )}
         </div>
     );

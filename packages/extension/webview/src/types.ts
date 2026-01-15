@@ -2,7 +2,9 @@
  * Webview Types
  */
 
-import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, AgentProfile, FileChangeUpdate } from '@vcoder/shared';
+import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, AgentProfile, FileChangeUpdate, SessionCompleteReason } from '@vcoder/shared';
+
+export type { SessionCompleteReason };
 
 export type UiLanguage = 'auto' | 'en-US' | 'zh-CN';
 
@@ -22,7 +24,12 @@ export interface UpdateMessage {
 
 export interface CompleteMessage {
     type: 'complete';
-    data: { sessionId: string };
+    data: { 
+        sessionId: string; 
+        reason: SessionCompleteReason;
+        message?: string;
+        error?: ErrorUpdate;
+    };
 }
 
 export interface SessionsMessage {
@@ -392,6 +399,8 @@ export interface ConfirmationData {
     riskReasons?: string[];
 }
 
+export type SessionStatus = 'idle' | 'active' | 'completed' | 'cancelled' | 'error' | 'timeout';
+
 export interface AppState {
     sessions: Session[];
     currentSessionId: string | null;
@@ -407,6 +416,11 @@ export interface AppState {
     error: ErrorUpdate | null;
     workspaceFiles: string[];
     uiLanguage: UiLanguage;
+    // Session status tracking
+    sessionStatus: SessionStatus;
+    sessionCompleteReason?: SessionCompleteReason;
+    sessionCompleteMessage?: string;
+    lastActivityTime: number;
     // History
     historySessions: HistorySession[];
     viewMode: 'live' | 'history';

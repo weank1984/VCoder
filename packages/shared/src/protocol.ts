@@ -355,13 +355,35 @@ export interface PlanReadyUpdate {
     summary: string;
 }
 
+export type ErrorCode =
+    | 'AGENT_CRASHED'
+    | 'CONNECTION_LOST'
+    | 'TOOL_TIMEOUT'
+    | 'TOOL_FAILED'
+    | 'PERMISSION_DENIED'
+    | 'SESSION_CANCELLED'
+    | 'RATE_LIMITED'
+    | 'CONTEXT_TOO_LARGE'
+    | 'INVALID_REQUEST'
+    | 'UNKNOWN_ERROR'
+    | 'CLI_ERROR'
+    | 'AUTH_REQUIRED'
+    | 'CLI_NOT_FOUND';
+
 export interface ErrorUpdate {
-    code: string;
+    code: ErrorCode;
     message: string;
+    /** Technical details for debugging */
+    details?: string;
+    /** Whether the error is recoverable */
+    recoverable?: boolean;
+    /** Suggested action to recover */
     action?: {
         label: string;
         command: string;
     };
+    /** Related tool call ID (if applicable) */
+    toolCallId?: string;
 }
 
 export type ConfirmationType = 
@@ -417,11 +439,27 @@ export interface ConfirmToolParams {
 // Session Complete Notification
 // =============================================================================
 
+export type SessionCompleteReason =
+    | 'completed' // Normal completion
+    | 'cancelled' // User cancelled
+    | 'error' // Terminated due to error
+    | 'timeout' // Timeout
+    | 'max_turns_reached'; // Max conversation turns reached
+
 export interface SessionCompleteParams {
     sessionId: string;
+    /** Reason for completion */
+    reason: SessionCompleteReason;
+    /** Human-readable message */
+    message?: string;
+    /** Error details (if reason is 'error') */
+    error?: ErrorUpdate;
+    /** Token usage statistics */
     usage?: {
         inputTokens: number;
         outputTokens: number;
+        cacheReadTokens?: number;
+        cacheWriteTokens?: number;
     };
 }
 

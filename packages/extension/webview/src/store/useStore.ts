@@ -1,6 +1,6 @@
 import { create } from './createStore';
-import type { AppState, ChatMessage, ContentBlock, ToolCall, UiLanguage, AgentInfo } from '../types';
-import type { Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, FileChangeUpdate } from '@vcoder/shared';
+import type { AppState, ChatMessage, ContentBlock, ToolCall, UiLanguage, AgentInfo, SessionStatus } from '../types';
+import type { Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, FileChangeUpdate, SessionCompleteReason } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
 
 const debugThinking = (globalThis as unknown as { __vcoderDebugThinking?: boolean }).__vcoderDebugThinking === true;
@@ -94,6 +94,10 @@ interface AppStore extends AppState {
     handleUpdate: (update: UpdateNotificationParams) => void;
     setWorkspaceFiles: (files: string[]) => void;
     setUiLanguage: (uiLanguage: UiLanguage, source?: 'user' | 'extension') => void;
+    // Session status Actions
+    setSessionStatus: (status: SessionStatus) => void;
+    handleSessionComplete: (reason: SessionCompleteReason, message?: string, error?: ErrorUpdate) => void;
+    updateActivity: () => void;
     // History Actions
     setHistorySessions: (sessions: HistorySession[]) => void;
     loadHistorySession: (sessionId: string, messages: HistoryChatMessage[]) => void;
@@ -305,6 +309,11 @@ const initialState: AppState = {
     error: null,
     workspaceFiles: [],
     uiLanguage: 'auto',
+    // Session status tracking
+    sessionStatus: 'idle',
+    sessionCompleteReason: undefined,
+    sessionCompleteMessage: undefined,
+    lastActivityTime: Date.now(),
     // History
     historySessions: [],
     viewMode: 'live',
@@ -589,7 +598,15 @@ export const useStore = create<AppStore>((set, get) => ({
             pendingFileChanges: state.currentSessionId ? state.pendingFileChanges : [],
         })),
 
-    setCurrentSession: (sessionId) => set({ currentSessionId: sessionId, viewMode: 'live', pendingFileChanges: [] }),
+    setCurrentSession: (sessionId) => set({ 
+        currentSessionId: sessionId, 
+        viewMode: 'live', 
+        pendingFileChanges: [],
+        sessionStatus: 'idle',
+        sessionCompleteReason: undefined,
+        sessionCompleteMessage: undefined,
+        error: null,
+    }),
 
     clearPendingFileChanges: () => set({ pendingFileChanges: [] }),
 
@@ -633,8 +650,47 @@ export const useStore = create<AppStore>((set, get) => ({
 
     setError: (error) => set({ error }),
 
+    setSessionStatus: (sessionStatus) => set({ sessionStatus }),
+
+    handleSessionComplete: (reason, message, error) => {
+        set({
+            sessionStatus: reason === 'completed' ? 'completed' : 
+                         reason === 'cancelled' ? 'cancelled' :
+                         reason === 'timeout' ? 'timeout' : 'error',
+            sessionCompleteReason: reason,
+            sessionCompleteMessage: message,
+            isLoading: false,
+        });
+        
+        // Flush any pending text updates
+        flushTextBuffer(get());
+        
+        // Mark last assistant message as complete
+        set((state) => {
+            const messages = [...state.messages];
+            if (messages.length > 0) {
+                const lastIndex = messages.length - 1;
+                const last = messages[lastIndex];
+                if (last.role === 'assistant' && !last.isComplete) {
+                    messages[lastIndex] = { ...last, isComplete: true };
+                }
+            }
+            return { messages };
+        });
+        
+        // Show error if present
+        if (error) {
+            get().setError(error);
+        }
+    },
+
+    updateActivity: () => set({ lastActivityTime: Date.now(), sessionStatus: 'active' }),
+
     handleUpdate: (update) => {
         const { type, content, sessionId } = update;
+        
+        // Update activity timestamp for any update
+        get().updateActivity();
 
         switch (type) {
             case 'thought': {
@@ -736,6 +792,10 @@ export const useStore = create<AppStore>((set, get) => ({
                 const errorUpdate = content as ErrorUpdate;
                 get().setError(errorUpdate);
                 get().setLoading(false);
+                // Set session status based on error recoverability
+                if (!errorUpdate.recoverable) {
+                    get().setSessionStatus('error');
+                }
                 break;
             }
             case 'confirmation_request': {

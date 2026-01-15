@@ -262,3 +262,113 @@
 
 /* Remove old decorators */
 .step-number { display: none; }
+
+/* Error Display */
+.step-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+    padding: 8px 12px;
+    background: var(--vscode-inputValidation-errorBackground);
+    border-left: 3px solid var(--vscode-inputValidation-errorBorder);
+    border-radius: var(--vcoder-radius-sm);
+    font-size: 12px;
+    color: var(--vscode-errorForeground);
+    cursor: pointer;
+    
+    svg {
+        width: 14px;
+        height: 14px;
+        fill: currentColor;
+        flex-shrink: 0;
+    }
+    
+    &:hover {
+        background: var(--vscode-inputValidation-errorBackground);
+        opacity: 0.9;
+    }
+}
+
+.step-error-message {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.step-error-expand {
+    font-size: 11px;
+    opacity: 0.7;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.step-error-details {
+    margin: 8px 0;
+    padding: 12px;
+    background: var(--vscode-inputValidation-errorBackground);
+    border-left: 3px solid var(--vscode-inputValidation-errorBorder);
+    border-radius: var(--vcoder-radius-sm);
+}
+
+.step-error-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    
+    svg {
+        width: 16px;
+        height: 16px;
+        fill: var(--vscode-errorForeground);
+        flex-shrink: 0;
+    }
+}
+
+.step-error-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--vscode-errorForeground);
+}
+
+.step-error-body {
+    padding-left: 24px;
+}
+
+.step-error-friendly {
+    font-size: 12px;
+    color: var(--vscode-errorForeground);
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.step-error-raw {
+    margin-top: 8px;
+    
+    summary {
+        font-size: 11px;
+        color: var(--vscode-descriptionForeground);
+        cursor: pointer;
+        user-select: none;
+        
+        &:hover {
+            color: var(--vcoder-fg);
+        }
+    }
+    
+    pre {
+        margin-top: 8px;
+        padding: 8px;
+        background: var(--vscode-editor-background);
+        border: 1px solid var(--vcoder-border);
+        border-radius: var(--vcoder-radius-sm);
+        font-family: var(--vscode-editor-font-family, monospace);
+        font-size: 11px;
+        color: var(--vscode-editor-foreground);
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+}
