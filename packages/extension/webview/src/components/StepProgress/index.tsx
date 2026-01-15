@@ -10,6 +10,7 @@ import { useI18n } from '../../i18n/I18nProvider';
 import { postMessage } from '../../utils/vscode';
 import { useStore } from '../../store/useStore';
 import { StepItem } from './StepItem';
+import { isStepCollapsed, toggleStepOverride, type CollapseMode } from '../../utils/stepCollapse';
 import { 
     CheckIcon, 
     LoadingIcon, 
@@ -28,13 +29,25 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
     const { t } = useI18n();
     const { viewMode } = useStore();
     // 历史对话默认全部折叠，实时对话默认展开
-    const [allCollapsed, setAllCollapsed] = useState(viewMode === 'history');
-    const [collapsedSteps, setCollapsedSteps] = useState<Set<string>>(new Set());
+    const [collapseMode, setCollapseMode] = useState<CollapseMode>(viewMode === 'history' ? 'collapse_all' : 'expand_all');
+    // Per-step overrides:
+    // - collapse_all mode: ids are explicitly expanded
+    // - expand_all mode: ids are explicitly collapsed
+    const [stepOverrides, setStepOverrides] = useState<Set<string>>(new Set());
     // 记录之前每个步骤的状态，用于检测状态变化
     const prevStepStatusRef = useRef<Map<string, Step['status']>>(new Map());
     // Track steps we've already applied default-collapse logic to.
     const seenStepIdsRef = useRef<Set<string>>(new Set());
     const prevToolCallCountRef = useRef<number>(toolCalls.length);
+
+    // Keep default collapse mode in sync with viewMode changes.
+    useEffect(() => {
+        setCollapseMode(viewMode === 'history' ? 'collapse_all' : 'expand_all');
+        setStepOverrides(new Set());
+        prevStepStatusRef.current = new Map();
+        seenStepIdsRef.current = new Set();
+        prevToolCallCountRef.current = toolCalls.length;
+    }, [viewMode]);
     
     // Reduce noise: keep only the latest TodoWrite (task list updates are frequent).
     const filteredToolCalls = useMemo(() => {
@@ -57,10 +70,16 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
     
     // Get progress stats
     const stats = useMemo(() => getProgressStats(steps), [steps]);
-    
+
+    const areAllCollapsed = useMemo(() => {
+        if (steps.length === 0) return false;
+        return steps.every((s) => isStepCollapsed(s.id, collapseMode, stepOverrides));
+    }, [collapseMode, stepOverrides, steps]);
+
     // 当步骤从 running 变为 completed/failed 时，自动折叠该步骤
     // When a step transitions from running to completed/failed, auto-collapse it
     useEffect(() => {
+        if (collapseMode !== 'expand_all') return;
         const prevStatusMap = prevStepStatusRef.current;
         const stepsToCollapse: string[] = [];
 
@@ -109,27 +128,46 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
         if (stepsToCollapse.length === 0) return;
 
         const timeoutId = setTimeout(() => {
-            setCollapsedSteps(prev => {
+            setStepOverrides((prev) => {
                 const next = new Set(prev);
-                stepsToCollapse.forEach(id => next.add(id));
+                stepsToCollapse.forEach((id) => next.add(id));
                 return next;
             });
         }, 0);
 
         return () => clearTimeout(timeoutId);
-    }, [steps]);
+    }, [collapseMode, steps]);
+
+    // Never hide awaiting-confirmation steps behind a global "collapse all" choice.
+    useEffect(() => {
+        if (collapseMode !== 'collapse_all') return;
+        const toForceExpand: string[] = [];
+        for (const step of steps) {
+            if (step.entries.some((e) => e.toolCall.status === 'awaiting_confirmation')) {
+                toForceExpand.push(step.id);
+            }
+        }
+        if (toForceExpand.length === 0) return;
+        setStepOverrides((prev) => {
+            const next = new Set(prev);
+            for (const id of toForceExpand) next.add(id);
+            return next;
+        });
+    }, [collapseMode, steps]);
 
     // Live mode: default-collapse non-important steps to match the reference UI.
     useEffect(() => {
         const didReset = toolCalls.length < prevToolCallCountRef.current;
         prevToolCallCountRef.current = toolCalls.length;
 
-        setCollapsedSteps((prev) => {
+        setStepOverrides((prev) => {
             // Reset conditions (new session / cleared tool calls / history view).
             if (viewMode === 'history' || steps.length === 0 || didReset) {
                 seenStepIdsRef.current = new Set();
                 return new Set();
             }
+            // Only applies in "expand all" mode (otherwise everything is collapsed by default).
+            if (collapseMode !== 'expand_all') return prev;
 
             const isTerminalTool = (name: string) =>
                 ['bash', 'bashoutput', 'bash_output', 'run_command', 'mcp__acp__bashoutput'].includes(name.toLowerCase()) ||
@@ -167,7 +205,7 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
             }
             return next;
         });
-    }, [steps, toolCalls.length, viewMode]);
+    }, [collapseMode, steps, toolCalls.length, viewMode]);
     
     // Header status icon
     const headerIcon = useMemo(() => {
@@ -178,23 +216,14 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
     
     // Toggle individual step
     const toggleStep = useCallback((stepId: string) => {
-        setCollapsedSteps(prev => {
-            const next = new Set(prev);
-            if (next.has(stepId)) {
-                next.delete(stepId);
-            } else {
-                next.add(stepId);
-            }
-            return next;
-        });
+        setStepOverrides((prev) => toggleStepOverride(stepId, prev));
     }, []);
     
     // Toggle all steps
     const toggleAll = useCallback(() => {
-        setAllCollapsed(prev => !prev);
-        // Reset individual collapse states
-        setCollapsedSteps(new Set());
-    }, []);
+        setCollapseMode(areAllCollapsed ? 'expand_all' : 'collapse_all');
+        setStepOverrides(new Set());
+    }, [areAllCollapsed]);
     
     // Handle view file action
     const handleViewFile = useCallback((path: string, lineRange?: [number, number]) => {
@@ -226,10 +255,10 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
                 <button 
                     className="collapse-all-btn"
                     onClick={toggleAll}
-                    title={allCollapsed ? t('StepProgress.ExpandAll') : t('StepProgress.CollapseAll')}
+                    title={areAllCollapsed ? t('StepProgress.ExpandAll') : t('StepProgress.CollapseAll')}
                 >
-                    {allCollapsed ? <ExpandIcon /> : <CollapseIcon />}
-                    <span>{allCollapsed ? t('StepProgress.ExpandAll') : t('StepProgress.CollapseAll')}</span>
+                    {areAllCollapsed ? <ExpandIcon /> : <CollapseIcon />}
+                    <span>{areAllCollapsed ? t('StepProgress.ExpandAll') : t('StepProgress.CollapseAll')}</span>
                 </button>
             </div>
             
@@ -238,7 +267,7 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
                     <StepItem
                         key={step.id}
                         step={step}
-                        isCollapsed={allCollapsed || collapsedSteps.has(step.id)}
+                        isCollapsed={isStepCollapsed(step.id, collapseMode, stepOverrides)}
                         onToggle={() => toggleStep(step.id)}
                         onViewFile={handleViewFile}
                         onConfirm={handleConfirm}
