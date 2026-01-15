@@ -84,6 +84,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     font-family: var(--vscode-font-family);
+    
+    /* Style for aggregated summary (when showing "Explored 3 files, 2 searches") */
+    &.aggregated {
+        font-weight: 400;
+        color: var(--vcoder-text-secondary);
+    }
 }
 
 .step-preview {

@@ -475,6 +475,15 @@ export interface HistoryToolCall {
 }
 
 /**
+ * Ordered content blocks for history replay.
+ * Preserves the original block order (text/thinking/tool_use) from the transcript.
+ */
+export type HistoryContentBlock =
+    | { type: 'text'; content: string }
+    | { type: 'thought'; content: string; isComplete: boolean }
+    | { type: 'tools'; toolCallIds: string[] };
+
+/**
  * Unified chat message format for history replay.
  * Converted from Claude Code CLI JSONL events.
  */
@@ -489,6 +498,8 @@ export interface HistoryChatMessage {
     thought?: string;
     /** Tool calls (from tool_use/tool_result blocks) */
     toolCalls?: HistoryToolCall[];
+    /** Ordered blocks for consistent UI replay */
+    contentBlocks?: HistoryContentBlock[];
     /** ISO timestamp */
     timestamp?: string;
 }

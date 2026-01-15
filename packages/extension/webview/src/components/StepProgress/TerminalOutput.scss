@@ -1,167 +1,39 @@
 /**
- * Terminal Output Styles
+ * Terminal Output Styles - Cursor-like sandbox command style
  */
 
 .terminal-output {
-    margin: 8px 0;
-    border-radius: 4px;
+    margin: 12px 0;
+    border-radius: 6px;
     border: 1px solid var(--vscode-panel-border);
-    background: var(--vscode-editor-background);
+    background: color-mix(in srgb, var(--vscode-editor-background) 50%, var(--vscode-sideBar-background) 50%);
     overflow: hidden;
     transition: all 0.2s ease;
-    
-    // State-based styling
-    &.running {
-        border-left: 3px solid var(--vscode-terminal-ansiYellow);
-        
-        .terminal-header {
-            background: color-mix(in srgb, var(--vscode-terminal-ansiYellow) 10%, transparent);
-        }
-    }
-    
-    &.success {
-        border-left: 3px solid var(--vscode-terminal-ansiGreen);
-        
-        .terminal-header {
-            background: color-mix(in srgb, var(--vscode-terminal-ansiGreen) 5%, transparent);
-        }
-    }
-    
-    &.error {
-        border-left: 3px solid var(--vscode-terminal-ansiRed);
-        
-        .terminal-header {
-            background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 5%, transparent);
-        }
-    }
-    
-    &.killed {
-        border-left: 3px solid var(--vscode-terminal-ansiMagenta);
-        
-        .terminal-header {
-            background: color-mix(in srgb, var(--vscode-terminal-ansiMagenta) 5%, transparent);
-        }
-    }
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.terminal-header {
+// Terminal Title Bar (like Cursor's "Auto-Ran command in sandbox")
+.terminal-title-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    cursor: pointer;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: color-mix(in srgb, var(--vscode-panel-border) 10%, transparent);
+    border-bottom: 1px solid var(--vscode-panel-border);
     user-select: none;
-    background: var(--vscode-editor-background);
-    transition: background 0.2s ease;
-    
-    &:hover {
-        background: var(--vscode-list-hoverBackground);
-    }
-    
-    .terminal-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 20px;
-        height: 20px;
-        flex-shrink: 0;
-        
-        svg {
-            width: 16px;
-            height: 16px;
-        }
-        
-        .running & {
-            animation: pulse 2s ease-in-out infinite;
-        }
-    }
 }
 
-.terminal-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.terminal-command {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--vscode-editor-font-family);
+.terminal-title-text {
     font-size: 12px;
-    color: var(--vscode-foreground);
-    
-    .terminal-prompt {
-        color: var(--vscode-terminal-ansiGreen);
-        font-weight: bold;
-        flex-shrink: 0;
-    }
-    
-    .terminal-command-text {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-}
-
-.terminal-cwd {
-    font-size: 11px;
     color: var(--vscode-descriptionForeground);
-    font-family: var(--vscode-editor-font-family);
-    white-space: nowrap;
+    font-weight: 500;
+    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.terminal-stats {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11px;
-    color: var(--vscode-descriptionForeground);
-    flex-shrink: 0;
-    
-    .terminal-state {
-        font-weight: 500;
-        
-        .running & {
-            color: var(--vscode-terminal-ansiYellow);
-        }
-        .success & {
-            color: var(--vscode-terminal-ansiGreen);
-        }
-        .error & {
-            color: var(--vscode-terminal-ansiRed);
-        }
-        .killed & {
-            color: var(--vscode-terminal-ansiMagenta);
-        }
-    }
-    
-    .terminal-exit-code {
-        font-family: var(--vscode-editor-font-family);
-        padding: 2px 6px;
-        border-radius: 3px;
-        background: var(--vscode-badge-background);
-        color: var(--vscode-badge-foreground);
-    }
-    
-    .terminal-signal {
-        font-family: var(--vscode-editor-font-family);
-        padding: 2px 6px;
-        border-radius: 3px;
-        background: color-mix(in srgb, var(--vscode-terminal-ansiMagenta) 20%, transparent);
-        color: var(--vscode-terminal-ansiMagenta);
-    }
-    
-    .terminal-duration {
-        font-family: var(--vscode-editor-font-family);
-    }
-}
-
-.terminal-actions {
+.terminal-title-actions {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -176,10 +48,11 @@
         padding: 0;
         border: none;
         background: transparent;
-        color: var(--vscode-foreground);
+        color: var(--vscode-icon-foreground);
         cursor: pointer;
-        border-radius: 3px;
-        transition: all 0.2s ease;
+        border-radius: 4px;
+        transition: all 0.15s ease;
+        opacity: 0.8;
         
         svg {
             width: 14px;
@@ -188,6 +61,7 @@
         
         &:hover {
             background: var(--vscode-toolbar-hoverBackground);
+            opacity: 1;
         }
         
         &:active {
@@ -202,40 +76,132 @@
             background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 15%, transparent);
         }
     }
-    
-    .terminal-collapse-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 20px;
-        height: 20px;
-        
-        svg {
-            width: 12px;
-            height: 12px;
-            transition: transform 0.2s ease;
-        }
-    }
 }
 
 .terminal-content {
     display: flex;
     flex-direction: column;
-    border-top: 1px solid var(--vscode-panel-border);
+    padding: 12px;
+    gap: 8px;
 }
 
+// Command Display Section
+.terminal-command-display {
+    background: color-mix(in srgb, var(--vscode-terminal-background) 70%, var(--vscode-editor-background) 30%);
+    border-radius: 4px;
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 50%, transparent);
+}
+
+.terminal-command-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-family: var(--vscode-editor-font-family);
+    font-size: 13px;
+    line-height: 1.5;
+    
+    .terminal-prompt {
+        color: var(--vscode-terminal-ansiGreen);
+        font-weight: 600;
+        flex-shrink: 0;
+        user-select: none;
+    }
+    
+    .terminal-command-text {
+        color: var(--vscode-terminal-foreground);
+        word-break: break-word;
+        flex: 1;
+    }
+}
+
+// Status Bar
+.terminal-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 30%, transparent);
+}
+
+.terminal-status-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.terminal-status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .running & {
+        animation: pulse 2s ease-in-out infinite;
+    }
+}
+
+.terminal-state {
+    font-weight: 500;
+    
+    .running & {
+        color: var(--vscode-terminal-ansiYellow);
+    }
+    .success & {
+        color: var(--vscode-terminal-ansiGreen);
+    }
+    .error & {
+        color: var(--vscode-terminal-ansiRed);
+    }
+    .killed & {
+        color: var(--vscode-terminal-ansiMagenta);
+    }
+}
+
+.terminal-exit-code {
+    font-family: var(--vscode-editor-font-family);
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+}
+
+.terminal-signal {
+    font-family: var(--vscode-editor-font-family);
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--vscode-terminal-ansiMagenta) 20%, transparent);
+    color: var(--vscode-terminal-ansiMagenta);
+}
+
+.terminal-duration {
+    font-family: var(--vscode-editor-font-family);
+    color: var(--vscode-descriptionForeground);
+}
+
+// Output Display
 .terminal-output-text {
     margin: 0;
-    padding: 8px 10px;
+    padding: 10px 12px;
     font-family: var(--vscode-editor-font-family);
-    font-size: var(--vscode-editor-font-size);
-    line-height: 1.5;
+    font-size: 12px;
+    line-height: 1.6;
     color: var(--vscode-terminal-foreground);
     background: var(--vscode-terminal-background);
+    border-radius: 4px;
+    border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 50%, transparent);
     overflow-x: auto;
     overflow-y: auto;
-    max-height: 260px;
-    min-height: 0;
+    max-height: 300px;
+    min-height: 40px;
     white-space: pre-wrap;
     word-wrap: break-word;
     
@@ -246,27 +212,23 @@
     }
     
     &::-webkit-scrollbar-track {
-        background: var(--vscode-scrollbarSlider-background);
+        background: transparent;
     }
     
     &::-webkit-scrollbar-thumb {
-        background: var(--vscode-scrollbarSlider-hoverBackground);
+        background: var(--vscode-scrollbarSlider-background);
         border-radius: 4px;
         
         &:hover {
-            background: var(--vscode-scrollbarSlider-activeBackground);
+            background: var(--vscode-scrollbarSlider-hoverBackground);
         }
     }
 }
 
-.terminal-footer {
-    display: none;
-}
-
 // Collapsed state
 .terminal-output.collapsed {
-    .terminal-collapse-icon svg {
-        transform: rotate(-90deg);
+    .terminal-content {
+        display: none;
     }
 }
 

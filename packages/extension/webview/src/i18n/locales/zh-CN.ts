@@ -70,6 +70,10 @@ export default {
     Line: '行',
     Lines: '行',
     ScrollToBottom: '滚动到底部',
+    RunningCommand: '正在执行命令',
+    RanCommand: '已执行命令',
+    Expand: '展开',
+    Collapse: '折叠',
   },
   Agent: {
     // 确认标题

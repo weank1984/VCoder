@@ -39,23 +39,6 @@ function stripAnsi(text: string): string {
 }
 
 /**
- * Format file size
- */
-function formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-/**
- * Calculate byte length of a string (UTF-8)
- */
-function getByteLength(str: string): number {
-    // Use TextEncoder for accurate UTF-8 byte length
-    return new TextEncoder().encode(str).length;
-}
-
-/**
  * Format execution time
  */
 function formatDuration(ms: number): string {
@@ -186,48 +169,16 @@ export function TerminalOutput({
         }
     };
     
-    // Output stats
-    const outputSize = getByteLength(output);
-    const lineCount = output.split('\n').length;
     const duration = durationMs;
     
     return (
         <div className={`terminal-output ${state} ${isCollapsed ? 'collapsed' : ''}`}>
-            {/* Terminal Header */}
-            <div className="terminal-header" onClick={() => setIsCollapsed(!isCollapsed)}>
-                <span className="terminal-icon">{stateIcon}</span>
-                <div className="terminal-info">
-                    {command && (
-                        <div className="terminal-command" title={command}>
-                            <span className="terminal-prompt">$</span>
-                            <span className="terminal-command-text">{command}</span>
-                        </div>
-                    )}
-                    {cwd && (
-                        <div className="terminal-cwd" title={cwd}>
-                            {cwd}
-                        </div>
-                    )}
+            {/* Terminal Title Bar */}
+            <div className="terminal-title-bar">
+                <div className="terminal-title-text">
+                    {isRunning ? t('Terminal.RunningCommand') : t('Terminal.RanCommand')}: {command || 'bash'}
                 </div>
-                <div className="terminal-stats">
-                    <span className="terminal-state">{stateLabel}</span>
-                    {exitCode !== undefined && (
-                        <span className="terminal-exit-code" title={t('Terminal.ExitCode')}>
-                            exit: {exitCode}
-                        </span>
-                    )}
-                    {signal && (
-                        <span className="terminal-signal" title={t('Terminal.Signal')}>
-                            signal: {signal}
-                        </span>
-                    )}
-                    {!isRunning && (
-                        <span className="terminal-duration">
-                            {formatDuration(duration)}
-                        </span>
-                    )}
-                </div>
-                <div className="terminal-actions">
+                <div className="terminal-title-actions">
                     {isRunning && terminalId && onKill && (
                         <button
                             className="terminal-kill-btn"
@@ -250,45 +201,63 @@ export function TerminalOutput({
                     >
                         <CopyIcon />
                     </button>
-                    <span className="terminal-collapse-icon">
+                    <button
+                        className="terminal-toggle-btn"
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        title={isCollapsed ? t('Terminal.Expand') : t('Terminal.Collapse')}
+                    >
                         {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
-                    </span>
+                    </button>
                 </div>
             </div>
-            
-            {/* Terminal Output Content */}
+
+            {/* Terminal Content */}
             {!isCollapsed && (
                 <div className="terminal-content">
-                    <pre
-                        ref={outputRef}
-                        className="terminal-output-text"
-                        onScroll={handleScroll}
-                    >
-                        {cleanedOutput || (isRunning ? t('Terminal.WaitingForOutput') : t('Terminal.NoOutput'))}
-                    </pre>
-                    
-                    {/* Output footer with stats */}
-                    <div className="terminal-footer">
-                        <span className="terminal-line-count">
-                            {lineCount} {lineCount === 1 ? t('Terminal.Line') : t('Terminal.Lines')}
-                        </span>
-                        <span className="terminal-size">
-                            {formatSize(outputSize)}
-                        </span>
-                        {isRunning && !autoScroll && (
-                            <button
-                                className="terminal-scroll-btn"
-                                onClick={() => {
-                                    setAutoScroll(true);
-                                    if (outputRef.current) {
-                                        outputRef.current.scrollTop = outputRef.current.scrollHeight;
-                                    }
-                                }}
-                            >
-                                {t('Terminal.ScrollToBottom')}
-                            </button>
+                    {/* Command Display */}
+                    <div className="terminal-command-display">
+                        <div className="terminal-command-line">
+                            <span className="terminal-prompt">$</span>
+                            <span className="terminal-command-text">
+                                {command}
+                                {cwd && ` # ${cwd}`}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Status Bar */}
+                    <div className="terminal-status-bar">
+                        <div className="terminal-status-left">
+                            <span className="terminal-status-icon">{stateIcon}</span>
+                            <span className="terminal-state">{stateLabel}</span>
+                            {exitCode !== undefined && (
+                                <span className="terminal-exit-code">
+                                    exit: {exitCode}
+                                </span>
+                            )}
+                            {signal && (
+                                <span className="terminal-signal">
+                                    signal: {signal}
+                                </span>
+                            )}
+                        </div>
+                        {!isRunning && (
+                            <span className="terminal-duration">
+                                {formatDuration(duration)}
+                            </span>
                         )}
                     </div>
+                    
+                    {/* Output Display */}
+                    {(cleanedOutput || isRunning) && (
+                        <pre
+                            ref={outputRef}
+                            className="terminal-output-text"
+                            onScroll={handleScroll}
+                        >
+                            {cleanedOutput || (isRunning ? t('Terminal.WaitingForOutput') : t('Terminal.NoOutput'))}
+                        </pre>
+                    )}
                 </div>
             )}
         </div>

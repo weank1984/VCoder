@@ -86,12 +86,50 @@ function generateStepTitle(
 }
 
 /**
- * Aggregate tool calls into steps using Strategy C (Mixed Strategy)
+ * Check if a tool should always be in its own step (not grouped)
+ */
+function shouldBeIndependentStep(toolName: string): boolean {
+    const lower = toolName.toLowerCase();
+    // Terminal/Bash commands should be independent
+    if (lower === 'bash' || lower === 'bashoutput' || lower === 'run_command' || lower.includes('terminal')) {
+        return true;
+    }
+    // File editing should be independent
+    if (lower === 'write' || lower === 'edit' || lower === 'strreplace' || lower === 'multiedit') {
+        return true;
+    }
+    // Task management should be independent
+    if (lower === 'todowrite' || lower === 'task') {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Check if two tool calls can be grouped together
+ */
+function canGroupTogether(entry1: StepEntry, entry2: StepEntry): boolean {
+    // Must be same type (file, search, etc.)
+    if (entry1.type !== entry2.type) return false;
+    
+    // Must have same action (both Read, both Grep, etc.)
+    if (entry1.actionKey !== entry2.actionKey) return false;
+    
+    // Don't group if either should be independent
+    if (shouldBeIndependentStep(entry1.toolCall.name) || shouldBeIndependentStep(entry2.toolCall.name)) {
+        return false;
+    }
+    
+    return true;
+}
+
+/**
+ * Aggregate tool calls into steps with smart grouping
  * 
  * Rules:
  * 1. task_boundary creates a new step
- * 2. Without task_boundary, each tool call is its own step
- * 3. Task boundary tool calls are used for step metadata but not displayed as entries
+ * 2. Without task_boundary, consecutive similar operations are grouped
+ * 3. Terminal commands and file edits remain independent
  */
 export function aggregateToSteps(toolCalls: ToolCall[]): Step[] {
     if (toolCalls.length === 0) return [];
@@ -103,7 +141,7 @@ export function aggregateToSteps(toolCalls: ToolCall[]): Step[] {
     
     for (const tc of toolCalls) {
         if (isTaskBoundary(tc.name)) {
-            // If we have a current step, finalize it
+            // Finalize current step if exists
             if (currentStep && currentStep.entries.length > 0) {
                 currentStep.title = generateStepTitle(currentTaskBoundary, currentStep.entries, currentStep.index);
                 currentStep.status = deriveStepStatus(currentStep.entries);
@@ -117,11 +155,11 @@ export function aggregateToSteps(toolCalls: ToolCall[]): Step[] {
             currentStep = {
                 id: `step-${stepIndex}`,
                 index: stepIndex,
-                title: '', // Will be set when finalized
+                title: '',
                 status: 'running',
                 entries: [],
                 startTime: Date.now(),
-                isSingleEntry: false, // Will be set when finalized
+                isSingleEntry: false,
             };
         } else {
             // Non-task-boundary tool call
@@ -138,27 +176,40 @@ export function aggregateToSteps(toolCalls: ToolCall[]): Step[] {
             };
             
             if (currentStep) {
-                // Add to current step
+                // Inside a task boundary - add to current step
                 currentStep.entries.push(entry);
             } else {
-                // No current step - create a single-entry step (no task_boundary mode)
-                const singleStep: Step = {
-                    id: `step-${stepIndex}`,
-                    index: stepIndex,
-                    title: target.name,
-                    status: mapStatus(tc.status) === 'error' ? 'failed' : 
-                            mapStatus(tc.status) === 'success' ? 'completed' : 'running',
-                    entries: [entry],
-                    startTime: Date.now(),
-                    isSingleEntry: true,
-                };
-                steps.push(singleStep);
-                stepIndex++;
+                // No task boundary - try to group with previous step
+                const lastStep = steps[steps.length - 1];
+                const canGroup = lastStep && 
+                                 lastStep.entries.length > 0 && 
+                                 canGroupTogether(lastStep.entries[0], entry);
+                
+                if (canGroup) {
+                    // Add to existing step
+                    lastStep.entries.push(entry);
+                    lastStep.status = deriveStepStatus(lastStep.entries);
+                    lastStep.isSingleEntry = false;
+                } else {
+                    // Create new step
+                    const newStep: Step = {
+                        id: `step-${stepIndex}`,
+                        index: stepIndex,
+                        title: target.name,
+                        status: mapStatus(tc.status) === 'error' ? 'failed' : 
+                                mapStatus(tc.status) === 'success' ? 'completed' : 'running',
+                        entries: [entry],
+                        startTime: Date.now(),
+                        isSingleEntry: true,
+                    };
+                    steps.push(newStep);
+                    stepIndex++;
+                }
             }
         }
     }
     
-    // Finalize the last step if exists
+    // Finalize the last step if inside a task boundary
     if (currentStep && currentStep.entries.length > 0) {
         currentStep.title = generateStepTitle(currentTaskBoundary, currentStep.entries, currentStep.index);
         currentStep.status = deriveStepStatus(currentStep.entries);

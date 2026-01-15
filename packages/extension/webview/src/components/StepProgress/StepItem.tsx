@@ -4,7 +4,7 @@
  */
 
 import { useMemo } from 'react';
-import type { Step } from '../../utils/stepAggregator';
+import type { Step, StepEntry as StepEntryType } from '../../utils/stepAggregator';
 import type { ToolCall } from '../../types';
 import { StepEntry } from './StepEntry';
 import { useI18n } from '../../i18n/I18nProvider';
@@ -127,6 +127,93 @@ function deriveCollapsedPreview(toolCall: ToolCall): string | undefined {
     return undefined;
 }
 
+/**
+ * Generate summary text for multiple tool calls
+ * Following Cursor's style: "Explored 3 files 2 searches" (space-separated)
+ */
+function generateToolCallsSummary(entries: StepEntryType[], t: (key: string) => string): string {
+    const groups = new Map<string, { type: string; count: number; actionKey: string }>();
+    
+    // Group entries by type
+    for (const entry of entries) {
+        const key = entry.type;
+        const existing = groups.get(key);
+        if (existing) {
+            existing.count++;
+        } else {
+            groups.set(key, {
+                type: key,
+                count: 1,
+                actionKey: entry.actionKey,
+            });
+        }
+    }
+    
+    // Generate summary parts
+    const summaryParts: string[] = [];
+    
+    // Sort groups for consistent order: file, search, command, others
+    const typeOrder = ['file', 'search', 'command', 'browser', 'task', 'plan', 'mcp', 'notebook', 'other'];
+    const sortedGroups = Array.from(groups.values()).sort((a, b) => {
+        const aIndex = typeOrder.indexOf(a.type);
+        const bIndex = typeOrder.indexOf(b.type);
+        if (aIndex === -1 && bIndex === -1) return 0;
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+    });
+    
+    // Check if all entries have the same action
+    const uniqueActions = new Set(entries.map(e => e.actionKey));
+    const useCommonAction = uniqueActions.size === 1;
+    
+    if (useCommonAction) {
+        // All same action: "Analyzed 3 files"
+        const actionText = t(entries[0].actionKey);
+        const totalCount = entries.length;
+        const primaryType = sortedGroups[0]?.type || 'item';
+        
+        if (primaryType === 'file') {
+            return `${actionText} ${totalCount} file${totalCount > 1 ? 's' : ''}`;
+        } else if (primaryType === 'search') {
+            return `${totalCount} search${totalCount > 1 ? 'es' : ''}`;
+        } else if (primaryType === 'command') {
+            return `${actionText} ${totalCount} command${totalCount > 1 ? 's' : ''}`;
+        } else {
+            return `${actionText} ${totalCount} item${totalCount > 1 ? 's' : ''}`;
+        }
+    }
+    
+    // Multiple actions: "Explored 3 files 2 searches"
+    for (const group of sortedGroups) {
+        const count = group.count;
+        const isFirstGroup = summaryParts.length === 0;
+        
+        if (group.type === 'file') {
+            if (isFirstGroup) {
+                const actionText = t(group.actionKey);
+                summaryParts.push(`${actionText} ${count} file${count > 1 ? 's' : ''}`);
+            } else {
+                summaryParts.push(`${count} file${count > 1 ? 's' : ''}`);
+            }
+        } else if (group.type === 'search') {
+            summaryParts.push(`${count} search${count > 1 ? 'es' : ''}`);
+        } else if (group.type === 'command') {
+            if (isFirstGroup) {
+                const actionText = t(group.actionKey);
+                summaryParts.push(`${actionText} ${count} command${count > 1 ? 's' : ''}`);
+            } else {
+                summaryParts.push(`${count} command${count > 1 ? 's' : ''}`);
+            }
+        } else {
+            summaryParts.push(`${count} ${group.type}${count > 1 ? 's' : ''}`);
+        }
+    }
+    
+    // Join with space (Cursor style)
+    return summaryParts.join(' ');
+}
+
 interface StepItemProps {
     step: Step;
     isCollapsed: boolean;
@@ -144,18 +231,27 @@ export function StepItem({
 }: StepItemProps) {
     const { t } = useI18n();
     
-    // Generate rich title (action + target) for single-entry steps
+    // Generate rich title
     const displayTitle = useMemo(() => {
+        // For single-entry steps: show "Action Target" format
         if (step.isSingleEntry && step.entries.length === 1) {
             const entry = step.entries[0];
             const actionText = t(entry.actionKey);
             return `${actionText} ${entry.target.name}`;
         }
+        
+        // For multi-entry steps: always show aggregated summary (both collapsed and expanded)
+        if (step.entries.length > 1) {
+            return generateToolCallsSummary(step.entries, t);
+        }
+        
+        // Default: use step title
         return step.title;
     }, [step, t]);
 
     const collapsedPreview = useMemo(() => {
         if (!isCollapsed) return undefined;
+        // Only show preview for single-entry steps
         if (step.entries.length !== 1) return undefined;
         return deriveCollapsedPreview(step.entries[0].toolCall);
     }, [isCollapsed, step.entries]);

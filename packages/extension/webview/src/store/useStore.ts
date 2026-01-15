@@ -136,6 +136,105 @@ function normalizeToolName(name: string): string {
     return raw;
 }
 
+function mergeHistoryMessages(historyMessages: HistoryChatMessage[]): ChatMessage[] {
+    const out: ChatMessage[] = [];
+
+    const upsertToolCall = (target: ChatMessage, toolCall: ToolCall): void => {
+        const normalized: ToolCall = {
+            ...toolCall,
+            name: normalizeToolName(toolCall.name),
+        };
+        const existing = target.toolCalls ?? [];
+        const idx = existing.findIndex((tc) => tc.id === normalized.id);
+        if (idx === -1) {
+            target.toolCalls = [...existing, normalized];
+            return;
+        }
+        const next = [...existing];
+        next[idx] = { ...next[idx], ...normalized };
+        target.toolCalls = next;
+    };
+
+    const appendHistoryBlocks = (target: ChatMessage, blocks: NonNullable<HistoryChatMessage['contentBlocks']>): void => {
+        for (const block of blocks) {
+            if (block.type === 'text') {
+                if (!block.content) continue;
+                target.content = (target.content || '') + block.content;
+                appendContentBlock(target, { type: 'text', content: block.content });
+                continue;
+            }
+            if (block.type === 'thought') {
+                if (!block.content) continue;
+                target.thought = (target.thought || '') + block.content;
+                target.thoughtIsComplete = block.isComplete;
+                appendContentBlock(target, { type: 'thought', content: block.content, isComplete: block.isComplete });
+                continue;
+            }
+            if (block.type === 'tools') {
+                if (!block.toolCallIds || block.toolCallIds.length === 0) continue;
+                appendContentBlock(target, { type: 'tools', toolCallIds: block.toolCallIds });
+            }
+        }
+    };
+
+    for (const msg of historyMessages) {
+        if (msg.role === 'user') {
+            out.push({
+                id: msg.id,
+                role: 'user',
+                content: msg.content,
+                isComplete: true,
+            });
+            continue;
+        }
+
+        const last = out[out.length - 1];
+        const target =
+            last && last.role === 'assistant'
+                ? last
+                : (() => {
+                      const created: ChatMessage = {
+                          id: msg.id,
+                          role: 'assistant',
+                          content: '',
+                          isComplete: true,
+                      };
+                      out.push(created);
+                      return created;
+                  })();
+
+        // Merge tool calls first so tool blocks can resolve immediately.
+        if (msg.toolCalls) {
+            for (const tc of msg.toolCalls) {
+                upsertToolCall(target, {
+                    id: tc.id,
+                    name: tc.name,
+                    status: tc.status,
+                    input: tc.input,
+                    result: tc.result,
+                    error: tc.error,
+                });
+            }
+        }
+
+        const blocks =
+            msg.contentBlocks ??
+            ([
+                ...(msg.thought
+                    ? [{ type: 'thought' as const, content: msg.thought, isComplete: true }]
+                    : []),
+                ...(msg.toolCalls && msg.toolCalls.length > 0
+                    ? [{ type: 'tools' as const, toolCallIds: msg.toolCalls.map((t) => t.id) }]
+                    : []),
+                ...(msg.content ? [{ type: 'text' as const, content: msg.content }] : []),
+            ] as NonNullable<HistoryChatMessage['contentBlocks']>);
+
+        appendHistoryBlocks(target, blocks);
+    }
+
+    return out;
+}
+
 /**
  * Append to content blocks with merging strategy:
  * - Consecutive text blocks are merged
@@ -682,22 +781,10 @@ export const useStore = create<AppStore>((set, get) => ({
     loadHistorySession: (sessionId, historyMessages) => set({
         viewMode: 'history',
         currentSessionId: sessionId,
-        messages: historyMessages.map(msg => ({
-            id: msg.id,
-            role: msg.role,
-            content: msg.content,
-            thought: msg.thought,
-            thoughtIsComplete: msg.thought ? true : undefined,
-            toolCalls: msg.toolCalls?.map(tc => ({
-                id: tc.id,
-                name: tc.name, // HistoryToolCall name matches ToolCall name
-                status: tc.status,
-                input: tc.input,
-                result: tc.result,
-                error: tc.error
-            })) as ToolCall[] | undefined,
-            isComplete: true, // History messages are always complete
-        })),
+        // History mode should mirror live rendering as closely as possible.
+        // Live streaming aggregates all assistant activity (text/thought/tools) into a single assistant message until
+        // completion; do the same for history by merging consecutive assistant transcript messages.
+        messages: mergeHistoryMessages(historyMessages),
         isLoading: false,
         pendingFileChanges: [],
     }),

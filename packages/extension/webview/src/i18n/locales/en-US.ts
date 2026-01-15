@@ -70,6 +70,10 @@ export default {
     Line: 'line',
     Lines: 'lines',
     ScrollToBottom: 'Scroll to bottom',
+    RunningCommand: 'Running command',
+    RanCommand: 'Ran command',
+    Expand: 'Expand',
+    Collapse: 'Collapse',
   },
   Agent: {
     Plan: 'Plan',

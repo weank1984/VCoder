@@ -98,6 +98,10 @@ describe('TranscriptStore', () => {
     expect(messages[1].toolCalls?.[0].id).toBe('t1');
     expect(messages[1].toolCalls?.[0].result).toBe('1');
     expect(messages[1].toolCalls?.[0].status).toBe('completed');
+    expect(messages[1].contentBlocks).toEqual([
+      { type: 'text', content: 'yo' },
+      { type: 'tools', toolCallIds: ['t1'] },
+    ]);
   });
 
   it('falls back to ~/.claude/history.jsonl when project directory cannot be derived', async () => {

@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as readline from 'readline';
-import type { HistorySession, HistoryChatMessage, HistoryToolCall } from '@vcoder/shared';
+import type { HistorySession, HistoryChatMessage, HistoryToolCall, HistoryContentBlock } from '@vcoder/shared';
 
 /**
  * Derive the projectKey from a workspace path.
@@ -560,6 +560,7 @@ function parseEventToMessage(
                 id: generateId(),
                 role: 'assistant',
                 content: blocks,
+                contentBlocks: blocks ? [{ type: 'text', content: blocks }] : undefined,
                 timestamp,
             };
         }
@@ -568,18 +569,68 @@ function parseEventToMessage(
         let textContent = '';
         let thought = '';
         const toolCalls: HistoryToolCall[] = [];
+        const contentBlocks: HistoryContentBlock[] = [];
+
+        const pushContentBlock = (block: HistoryContentBlock): void => {
+            const lastIndex = contentBlocks.length - 1;
+            const last = contentBlocks[lastIndex];
+
+            if (block.type === 'text') {
+                if (last?.type === 'text') {
+                    contentBlocks[lastIndex] = { ...last, content: last.content + block.content };
+                } else {
+                    contentBlocks.push(block);
+                }
+                return;
+            }
+
+            if (block.type === 'thought') {
+                if (last?.type === 'thought') {
+                    contentBlocks[lastIndex] = {
+                        ...last,
+                        content: last.content + block.content,
+                        isComplete: block.isComplete,
+                    };
+                } else {
+                    contentBlocks.push(block);
+                }
+                return;
+            }
+
+            if (block.type === 'tools') {
+                if (last?.type === 'tools') {
+                    const merged = [...last.toolCallIds];
+                    for (const id of block.toolCallIds) {
+                        if (!merged.includes(id)) merged.push(id);
+                    }
+                    contentBlocks[lastIndex] = { ...last, toolCallIds: merged };
+                } else {
+                    contentBlocks.push(block);
+                }
+            }
+        };
 
         for (const block of blocks) {
             if (block.type === 'text') {
-                textContent += (textContent ? '\n' : '') + block.text;
+                const text = block.text ? String(block.text) : '';
+                textContent += text;
+                if (text) pushContentBlock({ type: 'text', content: text });
             } else if (block.type === 'thinking') {
-                thought += (thought ? '\n' : '') + block.thinking;
+                const thinking = block.thinking ? String(block.thinking) : '';
+                thought += thinking;
+                if (thinking) pushContentBlock({ type: 'thought', content: thinking, isComplete: true });
             } else if (block.type === 'tool_use') {
                 toolCalls.push({
                     id: block.id,
                     name: block.name,
                     input: block.input,
                     status: 'completed', // Will be updated later with tool_result
+                });
+                if (block.id) pushContentBlock({ type: 'tools', toolCallIds: [String(block.id)] });
+            } else if (block.type === 'tool_result' && block.tool_use_id) {
+                toolResultsById.set(String(block.tool_use_id), {
+                    result: block.content,
+                    error: block.is_error ? String(block.content) : undefined,
                 });
             }
         }
@@ -593,6 +644,7 @@ function parseEventToMessage(
             content: textContent,
             thought: thought || undefined,
             toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+            contentBlocks: contentBlocks.length > 0 ? contentBlocks : undefined,
             timestamp,
         };
     }
