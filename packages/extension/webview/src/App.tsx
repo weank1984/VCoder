@@ -1,5 +1,5 @@
 /**
- * V-Coder Webview App
+ * VCoder Webview App
  */
 
 import { useEffect, useMemo, useCallback, useRef, useState, type CSSProperties } from 'react';

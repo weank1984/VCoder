@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "VSCode 智能编程助手插件 (支持 Claude Code / Codex CLI)",
-  "author": "V-Coder Team",
+  "author": "VCoder Team",
   "license": "MIT",
   "scripts": {
     "build": "turbo run build",

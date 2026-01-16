@@ -49,14 +49,14 @@ export class ServerManager {
             this.process.on('error', (err) => {
                 this.updateStatus('error');
                 console.error('[ServerManager] Error:', err);
-                vscode.window.showErrorMessage(`V-Coder Server Error: ${err.message}`);
+                vscode.window.showErrorMessage(`VCoder Server Error: ${err.message}`);
             });
 
             this.process.on('exit', (code) => {
                 if (this.status !== 'stopped') { // Unexpected exit
                     this.updateStatus('error');
                     console.error('[ServerManager] Exited unexpectedly with code:', code);
-                    vscode.window.showWarningMessage('V-Coder Server exited unexpectedly');
+                    vscode.window.showWarningMessage('VCoder Server exited unexpectedly');
                 } else {
                     this.updateStatus('stopped');
                 }

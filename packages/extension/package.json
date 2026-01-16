@@ -1,6 +1,6 @@
 {
     "name": "vcoder",
-    "displayName": "V-Coder",
+    "displayName": "VCoder",
     "description": "VSCode 智能编程助手 (Claude Code / Codex CLI)",
     "version": "0.5.0",
     "publisher": "vcoder",
@@ -22,7 +22,7 @@
             "activitybar": [
                 {
                     "id": "vcoder",
-                    "title": "V-Coder",
+                    "title": "VCoder",
                     "icon": "resources/icon.svg"
                 }
             ]
@@ -59,39 +59,39 @@
             },
             {
                 "command": "vcoder.setApiKey",
-                "title": "V-Coder: Set API Key"
+                "title": "VCoder: Set API Key"
             },
             {
                 "command": "vcoder.restart",
-                "title": "V-Coder: Restart Server"
+                "title": "VCoder: Restart Server"
             },
             {
                 "command": "vcoder.showLogs",
-                "title": "V-Coder: Show Logs"
+                "title": "VCoder: Show Logs"
             },
             {
                 "command": "vcoder.switchAgent",
-                "title": "V-Coder: Switch Agent"
+                "title": "VCoder: Switch Agent"
             },
             {
                 "command": "vcoder.exportLogs",
-                "title": "V-Coder: Export Session Logs"
+                "title": "VCoder: Export Session Logs"
             },
             {
                 "command": "vcoder.exportSession",
-                "title": "V-Coder: Export Session"
+                "title": "VCoder: Export Session"
             },
             {
                 "command": "vcoder.importSession",
-                "title": "V-Coder: Import Session"
+                "title": "VCoder: Import Session"
             },
             {
                 "command": "vcoder.exportAuditLogs",
-                "title": "V-Coder: Export Audit Logs"
+                "title": "VCoder: Export Audit Logs"
             },
             {
                 "command": "vcoder.showAuditStats",
-                "title": "V-Coder: Show Audit Statistics"
+                "title": "VCoder: Show Audit Statistics"
             }
         ],
         "menus": {
@@ -114,7 +114,7 @@
             ]
         },
         "configuration": {
-            "title": "V-Coder",
+            "title": "VCoder",
             "properties": {
                 "vcoder.defaultModel": {
                     "type": "string",

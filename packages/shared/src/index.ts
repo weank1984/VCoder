@@ -1,5 +1,5 @@
 /**
- * V-Coder Shared Types
+ * VCoder Shared Types
  */
 
 export * from './protocol';

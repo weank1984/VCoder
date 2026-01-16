@@ -33,7 +33,7 @@ npm install -g @anthropic-ai/claude-code
 
 1. 打开 VSCode
 2. 按 `Ctrl+Shift+X` 打开扩展面板
-3. 搜索 "V-Coder"
+3. 搜索 "VCoder"
 4. 点击安装
 
 ### 从源码运行
@@ -66,12 +66,12 @@ npm install -g @anthropic-ai/claude-code
 ### 2. 配置 API Key
 
 - 打开命令面板 (`Cmd+Shift+P` / `Ctrl+Shift+P`)
-- 输入 `V-Coder: Set API Key`
+- 输入 `VCoder: Set API Key`
 - 输入 Anthropic API Key
 
 ### 3. 开始使用
 
-- 点击侧边栏 V-Coder 图标
+- 点击侧边栏 VCoder 图标
 - 输入问题开始对话
 
 ## 📖 使用指南
@@ -205,7 +205,7 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## 📞 联系方式
 
-- 作者: V-Coder Team
+- 作者: VCoder Team
 - 邮箱: weank1984@gmail.com
 - GitHub: [@weank1984](https://github.com/weank1984)
 
@@ -218,7 +218,7 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## ⭐ 致谢
 
-感谢所有为 V-Coder 项目做出贡献的开发者和用户！
+感谢所有为 VCoder 项目做出贡献的开发者和用户！
 
 特别感谢:
 

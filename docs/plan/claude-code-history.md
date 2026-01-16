@@ -158,7 +158,7 @@ Claude Code 的 `~/.claude/projects` 下目录通常由“工作区路径”派�
 1) **确认扩展使用的是最新 server 产物**
 
 - VSIX/Production 会运行扩展内置的 `packages/extension/server/index.js`；如果只改了 `packages/server/src` 但没重新打包 server，UI 仍会是旧逻辑。
-- 修复方式：运行 `pnpm -C packages/extension package:server`，然后在 VSCode 执行 `V-Coder: Restart Server` 或 `Developer: Reload Window`。
+- 修复方式：运行 `pnpm -C packages/extension package:server`，然后在 VSCode 执行 `VCoder: Restart Server` 或 `Developer: Reload Window`。
 
 2) **不要把日志写到 stdout**
 

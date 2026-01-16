@@ -282,8 +282,8 @@ export async function activate(context: vscode.ExtensionContext) {
     void vscode.commands
         .executeCommand('workbench.view.extension.vcoder')
         .then(
-            () => console.log('[VCoder] Opened V-Coder view container'),
-            (err) => console.warn('[VCoder] Failed to open V-Coder view container:', err)
+            () => console.log('[VCoder] Opened VCoder view container'),
+            (err) => console.warn('[VCoder] Failed to open VCoder view container:', err)
         );
 
     // 4. Register Status Bar (Handled by ServerManager status change)
@@ -309,10 +309,10 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('vcoder.openSettings', async () => {
             const selection = await vscode.window.showQuickPick(
                 [
-                    { label: 'Open VS Code Settings', description: 'Open V-Coder settings in VS Code', value: 'vscodeSettings' },
+                    { label: 'Open VS Code Settings', description: 'Open VCoder settings in VS Code', value: 'vscodeSettings' },
                     { label: 'UI Language', description: 'Switch webview language', value: 'uiLanguage' },
                 ],
-                { placeHolder: 'V-Coder Settings' }
+                { placeHolder: 'VCoder Settings' }
             );
             if (!selection) return;
 

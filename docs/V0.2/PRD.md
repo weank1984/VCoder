@@ -51,13 +51,13 @@ V0.2 的目标是在最大化复用现有代码（Webview UI、会话/时间线�
 ## 4. 产品形态与交互
 
 ### 4.1 入口
-- Activity Bar 侧边栏视图：`V-Coder`（可配置名称）。
+- Activity Bar 侧边栏视图：`VCoder`（可配置名称）。
 - 命令面板：
-  - `V-Coder: Open Chat`
-  - `V-Coder: New Session`
-  - `V-Coder: Switch Agent`
-  - `V-Coder: Add MCP Server`
-  - `V-Coder: Export Session Logs`
+  - `VCoder: Open Chat`
+  - `VCoder: New Session`
+  - `VCoder: Switch Agent`
+  - `VCoder: Add MCP Server`
+  - `VCoder: Export Session Logs`
 
 ### 4.2 会话 UI（Webview）
 - 消息流：用户消息、agent 流式输出（chunk）。

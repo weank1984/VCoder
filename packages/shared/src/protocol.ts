@@ -1,5 +1,5 @@
 /**
- * V-Coder ACP Protocol Types
+ * VCoder ACP Protocol Types
  * Agent Client Protocol over JSON-RPC 2.0
  */
 
