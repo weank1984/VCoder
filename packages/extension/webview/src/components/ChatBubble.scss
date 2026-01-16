@@ -21,21 +21,18 @@
     max-width: 840px;
     margin: 0 auto;
     display: flex;
-    justify-content: flex-end; /* Align right like modern messengers? Or keep centered block? text-align right? */
-    /* Keeping it simple block for now as per design 2 usually keeps it centered but distinct */
     justify-content: flex-start; 
 }
 
 .vc-human-message-content {
-    padding: 12px 16px;
-    font-size: 14px;
-    color: var(--vscode-foreground);
-    background-color: var(--vscode-button-secondaryBackground);
-    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--vscode-input-foreground);
     white-space: pre-wrap;
     word-break: break-word;
     line-height: 1.6;
     max-width: 100%;
+    font-family: var(--vscode-font-family, "Inter", sans-serif);
 }
 
 /* 

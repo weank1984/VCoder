@@ -30,9 +30,9 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--vscode-overlay-background, rgba(0, 0, 0, 0.4));
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
 }
 
 .history-panel-content {
@@ -54,7 +54,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: var(--vc-padding) calc(var(--vc-padding) * 4 / 3);
   border-bottom: 1px solid transparent; // Cleaner look without hard border
 }
 
@@ -90,28 +90,28 @@
 }
 
 .history-new-btn {
-  margin: 8px 16px 16px;
-  padding: 8px 16px;
+  margin: calc(var(--vc-padding) / 1.5) calc(var(--vc-padding) * 4 / 3) calc(var(--vc-padding) * 4 / 3);
+  padding: calc(var(--vc-padding) / 1.5) calc(var(--vc-padding) * 4 / 3);
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: calc(var(--vc-padding) / 1.5);
   border: 1px solid var(--vc-color-border);
-  border-radius: 6px;
+  border-radius: var(--vc-radius-sm);
   background: var(--vc-bg-secondary);
   color: var(--vc-color-text);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
   
   &:hover {
     border-color: var(--vc-color-primary);
     color: var(--vc-color-primary);
-    background: var(--vc-color-primary-bg-hover, rgba(var(--vc-color-primary-rgb), 0.1));
+    background: var(--vscode-list-hoverBackground);
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--vc-box-shadow-tertiary);
   }
   
   &:active {
@@ -174,19 +174,20 @@
   }
   
   &.active {
-    background: #007fd4; // Primary blue color from reference
-    color: #ffffff;
+    background: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
     
     .session-title {
-      color: #ffffff;
+      color: var(--vscode-list-activeSelectionForeground);
     }
     
     .session-meta-right {
-      color: rgba(255, 255, 255, 0.8);
+      color: var(--vscode-list-activeSelectionForeground);
+      opacity: 0.8;
     }
     
     &:hover {
-      background: #007fd4; // Keep same background on hover for active item
+      background: var(--vscode-list-activeSelectionBackground);
     }
   }
   

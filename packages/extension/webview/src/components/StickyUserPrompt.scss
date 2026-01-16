@@ -1,0 +1,121 @@
+.vc-sticky-user-prompt {
+    position: absolute;
+    top: var(--vc-padding);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    pointer-events: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 var(--vc-padding);
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        background: var(--vscode-input-background);
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.22);
+        backdrop-filter: blur(18px);
+        pointer-events: none;
+        z-index: -2;
+    }
+
+    &::after {
+        content: '';
+        position: absolute;
+        left: var(--vc-padding);
+        right: var(--vc-padding);
+        bottom: -28px;
+        height: 44px;
+        pointer-events: none;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, var(--vscode-input-background) 65%, rgba(255, 255, 255, 0.6) 100%);
+        filter: blur(16px);
+        z-index: -1;
+    }
+}
+
+.vc-sticky-user-prompt-inner {
+    width: 100%;
+    max-width: 840px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.vc-sticky-user-prompt-collapsed {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px 18px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+    color: var(--vscode-input-foreground);
+    cursor: pointer;
+    text-align: center;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+    position: relative;
+    backdrop-filter: blur(20px);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+        border-color: var(--vscode-input-border);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+    }
+}
+
+.vc-sticky-user-prompt-text {
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1 1 auto;
+    width: 100%;
+    text-align: center;
+}
+
+.vc-sticky-user-prompt-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    outline: none;
+    resize: vertical;
+    min-height: 64px;
+    max-height: 220px;
+    background: transparent;
+    color: var(--vscode-input-foreground);
+    font-family: var(--vscode-font-family, "Inter", sans-serif);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.vc-sticky-user-prompt-btn {
+    border: 1px solid var(--vscode-input-border);
+    background: transparent;
+    color: var(--vscode-foreground);
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}
+
+.vc-sticky-user-prompt-btn--primary {
+    background: var(--vscode-button-background);
+    border-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+
+    &:hover:not(:disabled) {
+        background: var(--vscode-button-hoverBackground);
+        border-color: var(--vscode-button-hoverBackground);
+    }
+}

@@ -55,6 +55,9 @@ export default {
     ViewAllConversations: 'View all conversations',
     NoRecentConversations: 'No recent conversations yet',
     You: 'You',
+    PinnedUserPrompt: 'Pinned',
+    EditPinnedPrompt: 'Click to expand and edit',
+    UseAsInput: 'Use in input',
   },
   Terminal: {
     Running: 'Running',

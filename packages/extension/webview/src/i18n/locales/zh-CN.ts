@@ -55,6 +55,9 @@ export default {
     ViewAllConversations: '查看全部会话',
     NoRecentConversations: '暂无近期会话',
     You: '你',
+    PinnedUserPrompt: '用户消息',
+    EditPinnedPrompt: '点击展开编辑',
+    UseAsInput: '填入输入框',
   },
   Terminal: {
     Running: '执行中',

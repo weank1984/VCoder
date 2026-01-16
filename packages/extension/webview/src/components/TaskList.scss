@@ -3,14 +3,14 @@
     border: 1px solid var(--vscode-editorGroup-border);
     display: flex;
     flex-direction: column;
-    margin: 8px 12px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
+    margin: calc(var(--vc-padding) / 1.5) var(--vc-padding);
+    border-radius: calc(var(--vc-radius-sm) - 2px);
+    transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
     overflow: hidden;
 
     &.expanded {
-        border-color: #007fd4; // Blue focus color
-        box-shadow: 0 0 0 1px #007fd4;
+        border-color: var(--vscode-focusBorder);
+        box-shadow: 0 0 0 1px var(--vscode-focusBorder);
     }
 }
 
@@ -19,8 +19,8 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 8px 12px;
-    background: var(--vc-bg-tertiary, rgba(255, 255, 255, 0.04));
+    padding: calc(var(--vc-padding) / 1.5) var(--vc-padding);
+    background: var(--vc-bg-tertiary);
     border: none;
     cursor: pointer;
     color: var(--vscode-foreground);
@@ -31,13 +31,13 @@
 .task-header-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: calc(var(--vc-padding) / 1.5);
 }
 
 .task-header-right {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: calc(var(--vc-padding) / 1.5);
 }
 
 .task-header-icon {
@@ -61,10 +61,10 @@
 .task-progress-badge {
     font-size: 11px;
     line-height: 16px;
-    background: #37373d; // Dark gray pill background
-    color: #cccccc;
-    padding: 0 8px;
-    border-radius: 10px;
+    background: var(--vc-bg-tertiary);
+    color: var(--vc-color-text-secondary);
+    padding: 0 calc(var(--vc-padding) / 1.5);
+    border-radius: var(--vc-radius-md);
     min-width: 32px;
     text-align: center;
     font-weight: 500;
@@ -91,13 +91,13 @@
 
 .progress-fill {
     height: 100%;
-    background: #007fd4;
+    background: var(--vscode-progressBar-background);
     opacity: 0.3;
 }
 
 /* Content */
 .task-list-content {
-    padding: 8px 0;
+    padding: calc(var(--vc-padding) / 1.5) 0;
     max-height: 300px;
     overflow-y: auto;
     background: var(--vc-bg);
@@ -111,8 +111,8 @@
 .task-item {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    padding: 4px 12px;
+    gap: calc(var(--vc-padding) / 1.5);
+    padding: calc(var(--vc-padding) / 3) var(--vc-padding);
     font-size: 13px;
     line-height: 20px;
     min-height: 24px;
@@ -138,7 +138,7 @@
 
 .task-item.completed .task-status-icon { color: var(--vscode-terminal-ansiGreen); }
 .task-item.failed .task-status-icon { color: var(--vscode-terminal-ansiRed); }
-.task-item.in_progress .task-status-icon { color: #007fd4; }
+.task-item.in_progress .task-status-icon { color: var(--vscode-progressBar-background); }
 .task-item.pending .task-status-icon { color: var(--vscode-disabledForeground); }
 
 .task-title {

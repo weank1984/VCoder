@@ -11,21 +11,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    margin: 12px;
-    background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-input-border);
-    border-radius: 12px; /* Smooth corners */
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    
-    &:focus-within {
-        border-color: var(--vscode-focusBorder);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    &--loading {
-        opacity: 0.8;
-    }
+    margin: var(--vc-padding);
 }
 
 .input-content {
@@ -39,22 +25,22 @@
 .attachments-preview {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    padding: 10px 14px 4px;
+    gap: calc(var(--vc-padding) / 1.5);
+    padding: calc(var(--vc-padding) * 5 / 6) calc(var(--vc-padding) * 7 / 6) calc(var(--vc-padding) / 3);
 }
 
 .attachment-chip {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
+    gap: calc(var(--vc-padding) / 2);
+    padding: calc(var(--vc-padding) / 3) calc(var(--vc-padding) / 1.5);
     font-size: 11px;
     font-weight: 500;
     background: var(--vscode-editor-inactiveSelectionBackground);
     color: var(--vscode-editor-foreground);
     border: 1px solid var(--vscode-widget-border);
-    border-radius: 6px;
-    transition: background 0.1s;
+    border-radius: var(--vc-radius-sm);
+    transition: background var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
 
     &:hover {
         background: var(--vscode-editor-selectionBackground);
@@ -69,12 +55,13 @@
     display: flex;
     padding: 2px;
     opacity: 0.6;
-    border-radius: 4px;
-    transition: opacity 0.1s, background 0.1s;
+    border-radius: calc(var(--vc-radius-sm) - 2px);
+    transition: opacity var(--vc-motion-duration-mid) var(--vc-motion-ease-out), 
+                background var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
 
     &:hover { 
         opacity: 1; 
-        background: rgba(0,0,0,0.1);
+        background: var(--vscode-toolbar-hoverBackground);
     }
 
     &:disabled {
@@ -92,7 +79,7 @@
 /* Textarea */
 .input-field {
     width: 100%;
-    padding: 10px 14px;
+    padding: calc(var(--vc-padding) * 5 / 6) calc(var(--vc-padding) * 7 / 6);
     border: none !important;
     outline: none !important;
     background: transparent;
@@ -115,13 +102,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px 10px;
+    padding: calc(var(--vc-padding) / 1.5) var(--vc-padding) calc(var(--vc-padding) * 5 / 6);
     margin-top: 2px;
     
     .toolbar-left, .toolbar-right {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: calc(var(--vc-padding) / 2);
     }
 }
 
@@ -129,17 +116,17 @@
 .composer-unified-dropdown {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(var(--vc-padding) / 2);
     font-size: 12px;
     height: 26px;
-    padding: 0 8px;
-    border-radius: 6px;
+    padding: 0 calc(var(--vc-padding) / 1.5);
+    border-radius: var(--vc-radius-sm);
     background: var(--vscode-button-secondaryBackground);
     color: var(--vscode-button-secondaryForeground);
     cursor: pointer;
     position: relative;
     user-select: none;
-    transition: background 0.1s;
+    transition: background var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
     
     &:hover {
         background: var(--vscode-button-secondaryHoverBackground);
@@ -148,7 +135,7 @@
     .dropdown-content {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: calc(var(--vc-padding) / 2);
     }
     
     .codicon-infinity {
@@ -182,7 +169,7 @@
     background: transparent;
     color: var(--vscode-foreground);
     border: 1px solid transparent;
-    padding: 0 6px;
+    padding: 0 calc(var(--vc-padding) / 2);
 
     /* Pill style for model selector usually cleaner/ghost-like unless hovered */
     &:hover {
@@ -197,20 +184,20 @@
 
 /* Reusable Popover Styles (Shared foundation) */
 .popover-container {
-    padding: 4px;
+    padding: calc(var(--vc-padding) / 3);
     background: var(--vscode-dropdown-background);
     border: 1px solid var(--vscode-dropdown-border);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    border-radius: calc(var(--vc-padding) / 1.5);
+    box-shadow: var(--vc-box-shadow);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     color: var(--vscode-foreground);
     position: absolute;
-    bottom: calc(100% + 8px);
+    bottom: calc(100% + calc(var(--vc-padding) / 1.5));
     left: 0;
     z-index: 1000;
-    animation: fadeIn 0.1s ease-out;
+    animation: fadeIn var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
 }
 
 @keyframes fadeIn {
@@ -226,12 +213,12 @@
     .agent-list-item {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 8px;
+        gap: calc(var(--vc-padding) / 1.5);
+        padding: calc(var(--vc-padding) / 1.5);
         cursor: pointer;
-        border-radius: 6px;
+        border-radius: var(--vc-radius-sm);
         font-size: 12px;
-        transition: background 0.05s;
+        transition: background var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
         
         &:hover {
             background: var(--vscode-list-hoverBackground);
@@ -261,7 +248,7 @@
             background: var(--vscode-keybindingLabel-background);
             border: 1px solid var(--vscode-keybindingLabel-border);
             color: var(--vscode-keybindingLabel-foreground);
-            padding: 1px 4px;
+            padding: 1px calc(var(--vc-padding) / 3);
             border-radius: 3px;
         }
     }
@@ -273,16 +260,16 @@
     padding: 0; /* Reset padding for complex structure */
 
     .model-search-wrapper {
-        padding: 8px;
+        padding: calc(var(--vc-padding) / 1.5);
         border-bottom: 1px solid var(--vscode-settings-dropdownBorder);
         
         input {
             width: 100%;
-            padding: 6px 8px;
+            padding: calc(var(--vc-padding) / 2) calc(var(--vc-padding) / 1.5);
             background: var(--vscode-input-background);
             color: var(--vscode-input-foreground);
             border: 1px solid var(--vscode-input-border);
-            border-radius: 4px;
+            border-radius: calc(var(--vc-radius-sm) - 2px);
             outline: none;
             font-size: 12px;
             
@@ -312,7 +299,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 8px 12px;
+        padding: calc(var(--vc-padding) / 1.5) var(--vc-padding);
         cursor: pointer;
         font-size: 12px;
         
@@ -329,7 +316,7 @@
     .model-item-left {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: calc(var(--vc-padding) / 1.5);
     }
 
     .brain-icon {
@@ -372,7 +359,7 @@
     }
 
     .model-footer {
-        padding: 8px 12px;
+        padding: calc(var(--vc-padding) / 1.5) var(--vc-padding);
         cursor: pointer;
         color: var(--vscode-textLink-foreground);
         font-size: 11px;

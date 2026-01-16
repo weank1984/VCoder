@@ -11,6 +11,7 @@ import { MarkdownContent } from './MarkdownContent';
 import { CopyIcon, CheckIcon } from './Icon';
 import { useI18n } from '../i18n/I18nProvider';
 import './ChatBubble.scss';
+import './ComposerSurface.scss';
 
 interface ChatBubbleProps {
     message: ChatMessage;
@@ -170,7 +171,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
             {isUser ? (
                 // User Message: Input-like styled container
                 <div className="vc-human-message-container">
-                    <div className="vc-human-message-content">
+                    <div className="vc-human-message-content vc-composer-surface">
                         {message.content}
                     </div>
                 </div>

@@ -8,22 +8,22 @@
     align-items: center;
     
     &--empty {
-        gap: 6px;
+        gap: calc(var(--vc-padding) / 2);
     }
 }
 
 .agent-selector-button {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
+    gap: calc(var(--vc-padding) / 2);
+    padding: calc(var(--vc-padding) / 3) calc(var(--vc-padding) * 5 / 6);
     background: var(--vscode-button-secondaryBackground);
     color: var(--vscode-button-secondaryForeground);
     border: 1px solid var(--vscode-button-border, transparent);
-    border-radius: 4px;
+    border-radius: calc(var(--vc-radius-sm) - 2px);
     cursor: pointer;
     font-size: 13px;
-    transition: all 0.15s ease;
+    transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
 
     &:hover {
         background: var(--vscode-button-secondaryHoverBackground);
@@ -44,13 +44,13 @@
 }
 
 .agent-selector-action {
-    padding: 2px 6px;
+    padding: 2px calc(var(--vc-padding) / 2);
     background: transparent;
     border: 1px solid var(--vscode-button-border, transparent);
     border-radius: 3px;
     cursor: pointer;
     font-size: 14px;
-    transition: all 0.15s ease;
+    transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
 
     &:hover {
         background: var(--vscode-button-secondaryHoverBackground);
@@ -62,24 +62,24 @@
     font-weight: bold;
     
     &.status-online {
-        color: var(--vscode-testing-iconPassed, #73c991);
+        color: var(--vscode-testing-iconPassed, var(--vscode-terminal-ansiGreen));
     }
     
     &.status-offline {
-        color: var(--vscode-disabledForeground, #808080);
+        color: var(--vscode-disabledForeground);
     }
     
     &.status-error {
-        color: var(--vscode-testing-iconFailed, #f48771);
+        color: var(--vscode-testing-iconFailed, var(--vscode-errorForeground));
     }
     
     &.status-starting {
-        color: var(--vscode-charts-blue, #75beff);
+        color: var(--vscode-charts-blue, var(--vscode-textLink-activeForeground));
         animation: pulse 1.5s ease-in-out infinite;
     }
     
     &.status-reconnecting {
-        color: var(--vscode-charts-orange, #ffa500);
+        color: var(--vscode-charts-orange, var(--vscode-notificationsWarningIcon-foreground));
         animation: spin 2s linear infinite;
     }
 }
@@ -107,13 +107,13 @@
     position: absolute;
     top: 100%;
     right: 0;
-    margin-top: 4px;
+    margin-top: calc(var(--vc-padding) / 3);
     min-width: 280px;
     max-width: 400px;
     background: var(--vscode-dropdown-background);
     border: 1px solid var(--vscode-dropdown-border, var(--vscode-widget-border));
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: calc(var(--vc-radius-sm) - 2px);
+    box-shadow: var(--vc-box-shadow);
     z-index: 1000;
     overflow: hidden;
 }
@@ -122,9 +122,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: calc(var(--vc-padding) / 1.5) var(--vc-padding);
     background: var(--vscode-sideBar-background);
-    border-bottom: 1px solid var(--vscode-widget-border, rgba(255, 255, 255, 0.1));
+    border-bottom: 1px solid var(--vscode-widget-border, var(--vc-color-border));
 }
 
 .agent-list-title {
@@ -135,14 +135,14 @@
 }
 
 .agent-list-refresh {
-    padding: 2px 6px;
+    padding: 2px calc(var(--vc-padding) / 2);
     background: transparent;
     border: none;
     color: var(--vscode-foreground);
     cursor: pointer;
     font-size: 14px;
     border-radius: 3px;
-    transition: all 0.15s ease;
+    transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
 
     &:hover {
         background: var(--vscode-list-hoverBackground);
@@ -157,11 +157,11 @@
 .agent-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
+    gap: calc(var(--vc-padding) / 1.5);
+    padding: calc(var(--vc-padding) * 5 / 6) var(--vc-padding);
     cursor: pointer;
-    border-bottom: 1px solid var(--vscode-widget-border, rgba(255, 255, 255, 0.05));
-    transition: background 0.15s ease;
+    border-bottom: 1px solid var(--vscode-widget-border, var(--vc-color-border-secondary));
+    transition: background var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
 
     &:hover {
         background: var(--vscode-list-hoverBackground);
@@ -213,27 +213,27 @@
 }
 
 .agent-active-mark {
-    color: var(--vscode-testing-iconPassed, #73c991);
+    color: var(--vscode-testing-iconPassed, var(--vscode-terminal-ansiGreen));
     font-size: 16px;
     font-weight: bold;
 }
 
 .agent-list-footer {
-    padding: 8px 12px;
+    padding: calc(var(--vc-padding) / 1.5) var(--vc-padding);
     background: var(--vscode-sideBar-background);
-    border-top: 1px solid var(--vscode-widget-border, rgba(255, 255, 255, 0.1));
+    border-top: 1px solid var(--vscode-widget-border, var(--vc-color-border));
 }
 
 .agent-list-settings {
     width: 100%;
-    padding: 6px 10px;
+    padding: calc(var(--vc-padding) / 2) calc(var(--vc-padding) * 5 / 6);
     background: transparent;
     border: 1px solid var(--vscode-button-border, transparent);
     border-radius: 3px;
     color: var(--vscode-foreground);
     cursor: pointer;
     font-size: 12px;
-    transition: all 0.15s ease;
+    transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
     text-align: left;
 
     &:hover {

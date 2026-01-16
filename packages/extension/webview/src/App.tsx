@@ -2,20 +2,20 @@
  * V-Coder Webview App
  */
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useMemo, useCallback, useRef, useState, type CSSProperties } from 'react';
 import { useStore, flushTextBuffer } from './store/useStore';
 import { useSmartScroll } from './hooks/useSmartScroll';
 import { useVirtualList } from './hooks/useVirtualList';
 import { PlanBlock } from './components/PlanBlock';
 import { TaskRunsBlock } from './components/TaskRunsBlock';
-import { ChatBubble } from './components/ChatBubble';
 import { VirtualMessageItem } from './components/VirtualMessageItem';
-import { InputArea } from './components/InputArea';
+import { InputArea, type InputAreaHandle } from './components/InputArea';
 import { HistoryPanel } from './components/HistoryPanel';
 import { JumpToBottom } from './components/JumpToBottom';
 import { Welcome } from './components/Welcome';
 import { PermissionDialog, type PermissionRequest } from './components/PermissionDialog';
 import { MessageSkeleton } from './components/Skeleton';
+import { StickyUserPrompt } from './components/StickyUserPrompt';
 import { useToast } from './utils/Toast';
 import { postMessage } from './utils/vscode';
 import type { ExtensionMessage } from './types';
@@ -29,7 +29,11 @@ const ESTIMATED_MESSAGE_HEIGHT = 120;
 function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null);
+  const [activeUserMessageId, setActiveUserMessageId] = useState<string | null>(null);
+  const [stickyPromptHeight, setStickyPromptHeight] = useState(0);
   const { showError } = useToast();
+  const inputAreaRef = useRef<InputAreaHandle>(null);
+  const activeMessageRafRef = useRef<number | null>(null);
 
   const {
     currentSessionId,
@@ -56,6 +60,7 @@ function App() {
   // Determine if virtual list should be enabled
   // Disable virtual list for history mode to avoid height estimation issues
   const useVirtual = viewMode === 'live' && messages.length > VIRTUAL_LIST_THRESHOLD;
+  const hideUserMessagesInList = true;
 
   // Smart auto-scroll: only scroll when at bottom, show jump button when scrolled up
   const { containerRef, endRef, onScroll: smartScrollHandler, autoScroll, jumpToBottom } = useSmartScroll(messages, {
@@ -73,8 +78,52 @@ function App() {
   } = useVirtualList({
     itemCount: messages.length,
     estimatedItemHeight: ESTIMATED_MESSAGE_HEIGHT,
+    getItemEstimatedHeight: (index) => {
+      if (!hideUserMessagesInList) return ESTIMATED_MESSAGE_HEIGHT;
+      return messages[index]?.role === 'user' ? 0 : ESTIMATED_MESSAGE_HEIGHT;
+    },
     overscan: 5,
   });
+
+  const recomputeActiveUserMessage = useCallback(() => {
+    if (typeof document === 'undefined' || typeof document.elementFromPoint !== 'function') return;
+    const container = (useVirtual ? virtualContainerRef.current : containerRef.current) as HTMLDivElement | null;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
+    const x = rect.left + Math.min(rect.width - 1, Math.max(1, rect.width / 2));
+    const y = rect.top + 6;
+    const hit = document.elementFromPoint(x, y);
+    const wrapper = hit instanceof Element ? (hit.closest('[data-message-index]') as HTMLElement | null) : null;
+    const indexStr = wrapper?.dataset?.messageIndex ?? container.querySelector<HTMLElement>('[data-message-index]')?.dataset?.messageIndex;
+    const topIndex = indexStr ? Number.parseInt(indexStr, 10) : NaN;
+    if (!Number.isFinite(topIndex)) {
+      const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+      setActiveUserMessageId((prev) => (prev === (lastUser?.id ?? null) ? prev : (lastUser?.id ?? null)));
+      return;
+    }
+
+    for (let i = Math.min(topIndex, messages.length - 1); i >= 0; i--) {
+      if (messages[i]?.role === 'user') {
+        setActiveUserMessageId((prev) => (prev === messages[i].id ? prev : messages[i].id));
+        return;
+      }
+    }
+
+    const firstUser = messages.find((m) => m.role === 'user');
+    setActiveUserMessageId((prev) => (prev === (firstUser?.id ?? null) ? prev : (firstUser?.id ?? null)));
+  }, [containerRef, messages, useVirtual, virtualContainerRef]);
+
+  const scheduleRecomputeActiveUserMessage = useCallback(() => {
+    const anyGlobal = globalThis as unknown as { requestAnimationFrame?: (cb: () => void) => number };
+    if (typeof anyGlobal.requestAnimationFrame !== 'function') return;
+    if (activeMessageRafRef.current !== null) return;
+    activeMessageRafRef.current = anyGlobal.requestAnimationFrame(() => {
+      activeMessageRafRef.current = null;
+      recomputeActiveUserMessage();
+    });
+  }, [recomputeActiveUserMessage]);
 
   // Combine scroll handlers
   const handleScroll = useCallback(() => {
@@ -82,7 +131,8 @@ function App() {
     if (useVirtual) {
       virtualScrollHandler();
     }
-  }, [smartScrollHandler, useVirtual, virtualScrollHandler]);
+    scheduleRecomputeActiveUserMessage();
+  }, [scheduleRecomputeActiveUserMessage, smartScrollHandler, useVirtual, virtualScrollHandler]);
 
   // Reset virtual list state when session changes
   useEffect(() => {
@@ -92,6 +142,21 @@ function App() {
       containerRef.current.scrollTop = 0;
     }
   }, [currentSessionId, resetVirtualList]);
+
+  useEffect(() => {
+    return () => {
+      const anyGlobal = globalThis as unknown as { cancelAnimationFrame?: (id: number) => void };
+      if (activeMessageRafRef.current !== null && typeof anyGlobal.cancelAnimationFrame === 'function') {
+        anyGlobal.cancelAnimationFrame(activeMessageRafRef.current);
+      }
+      activeMessageRafRef.current = null;
+    };
+  }, []);
+
+  // Recompute active user message when overlay height or messages change
+  useEffect(() => {
+    scheduleRecomputeActiveUserMessage();
+  }, [messages.length, scheduleRecomputeActiveUserMessage, useVirtual]);
 
   // Messages to render (all or windowed)
   const visibleMessages = useMemo(() => {
@@ -235,6 +300,7 @@ function App() {
               key={msg.id} 
               message={msg} 
               index={range.start + idx}
+              hideUserMessage={hideUserMessagesInList}
             />
           ))}
           {/* Bottom padding for virtual scrolling */}
@@ -243,11 +309,14 @@ function App() {
       );
     }
 
-    return messages.map((msg) => <ChatBubble key={msg.id} message={msg} />);
+    return messages.map((msg, idx) => (
+      <VirtualMessageItem key={msg.id} message={msg} index={idx} hideUserMessage={hideUserMessagesInList} />
+    ));
   }, [
     isEmpty,
     isInitializing,
     isLoading,
+    hideUserMessagesInList,
     messages,
     range.bottomPadding,
     range.start,
@@ -255,6 +324,23 @@ function App() {
     useVirtual,
     visibleMessages,
   ]);
+
+  const activeUserMessage = useMemo(() => {
+    if (!activeUserMessageId) return null;
+    const found = messages.find((m) => m.id === activeUserMessageId);
+    return found?.role === 'user' ? found : null;
+  }, [activeUserMessageId, messages]);
+
+  const handleStickyPromptHeightChange = useCallback((height: number) => {
+    setStickyPromptHeight(height);
+  }, []);
+
+  const messagesContainerStyle = useMemo(
+    () => ({
+      '--vc-sticky-user-prompt-offset': `${stickyPromptHeight}px`,
+    }) as CSSProperties,
+    [stickyPromptHeight]
+  );
 
   return (
     <div className="app">
@@ -266,13 +352,22 @@ function App() {
           <TaskRunsBlock runs={subagentRuns} sticky={true} />
       )}
 
-      <div 
-        className={`messages-container${isEmpty ? ' messages-container--empty' : ''}`} 
-        ref={useVirtual ? virtualContainerRef : containerRef}
-        onScroll={handleScroll}
-      >
-        {messagesBody}
-        <div ref={endRef} />
+      <div className="messages-panel">
+        <StickyUserPrompt
+          message={activeUserMessage}
+          disabled={isLoading || viewMode === 'history'}
+          onApplyToComposer={(text) => inputAreaRef.current?.setText(text, { focus: true })}
+          onHeightChange={handleStickyPromptHeightChange}
+        />
+        <div 
+          className={`messages-container${isEmpty ? ' messages-container--empty' : ''}`} 
+          ref={useVirtual ? virtualContainerRef : containerRef}
+          onScroll={handleScroll}
+          style={messagesContainerStyle}
+        >
+          {messagesBody}
+          <div ref={endRef} />
+        </div>
       </div>
 
       {/* Jump to bottom button - shows when user scrolls up */}
@@ -315,7 +410,7 @@ function App() {
         onClose={() => setPermissionRequest(null)}
       />
 
-      <InputArea />
+      <InputArea ref={inputAreaRef} />
     </div>
   );
 }

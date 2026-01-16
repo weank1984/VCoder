@@ -1,0 +1,341 @@
+/**
+ * SCSS Mixins - 可复用的样式模式
+ * 使用方式: @use '../styles/mixins' as *;
+ */
+
+/**
+ * Surface 表面样式
+ * 用于输入框风格的容器
+ */
+@mixin surface {
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/**
+ * Surface 交互状态（focus）
+ */
+@mixin surface-focus {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/**
+ * 标准 Hover 效果
+ */
+@mixin hover-effect($bg: var(--vscode-list-hoverBackground)) {
+  transition: background var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
+  
+  &:hover:not(:disabled):not(.is-disabled) {
+    background: $bg;
+  }
+}
+
+/**
+ * 标准 Active 状态
+ */
+@mixin active-state {
+  &.is-active,
+  &:active {
+    background: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+  }
+}
+
+/**
+ * 标准 Disabled 状态
+ */
+@mixin disabled-state($opacity: 0.5) {
+  &:disabled,
+  &.is-disabled {
+    opacity: $opacity;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+/**
+ * Focus 可见轮廓
+ */
+@mixin focus-visible {
+  &:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 2px;
+  }
+}
+
+/**
+ * 文本溢出省略
+ */
+@mixin text-ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/**
+ * 多行文本溢出省略
+ * @param {number} $lines - 显示的行数
+ */
+@mixin text-ellipsis-multiline($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/**
+ * 弹出层容器（Popover/Dropdown）
+ */
+@mixin popover {
+  padding: 4px;
+  background: var(--vscode-dropdown-background);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: 8px;
+  box-shadow: var(--vc-box-shadow);
+  position: absolute;
+  z-index: 1000;
+  animation: fadeIn 0.1s ease-out;
+}
+
+/**
+ * 列表项（可点击）
+ */
+@mixin list-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.05s;
+  
+  &:hover {
+    background: var(--vscode-list-hoverBackground);
+  }
+  
+  &.is-active,
+  &.selected {
+    background: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+  }
+}
+
+/**
+ * 滚动条样式
+ */
+@mixin scrollbar {
+  &::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--vscode-scrollbarSlider-background);
+    border-radius: 5px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+
+    &:hover {
+      background-color: var(--vscode-scrollbarSlider-hoverBackground);
+    }
+
+    &:active {
+      background-color: var(--vscode-scrollbarSlider-activeBackground);
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/**
+ * 按钮基础样式
+ */
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: var(--vc-radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
+  
+  @include focus-visible;
+  @include disabled-state;
+}
+
+/**
+ * 主按钮样式
+ */
+@mixin button-primary {
+  @include button-base;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  
+  &:hover:not(:disabled) {
+    background: var(--vscode-button-hoverBackground);
+  }
+}
+
+/**
+ * 次要按钮样式
+ */
+@mixin button-secondary {
+  @include button-base;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  
+  &:hover:not(:disabled) {
+    background: var(--vscode-button-secondaryHoverBackground);
+  }
+}
+
+/**
+ * 幽灵按钮样式
+ */
+@mixin button-ghost {
+  @include button-base;
+  background: transparent;
+  color: var(--vscode-foreground);
+  
+  &:hover:not(:disabled) {
+    background: var(--vscode-toolbar-hoverBackground);
+  }
+}
+
+/**
+ * 卡片样式
+ */
+@mixin card {
+  background: var(--vc-bg-secondary);
+  border: 1px solid var(--vc-color-border);
+  border-radius: var(--vc-radius-md);
+  padding: var(--vc-padding);
+}
+
+/**
+ * 输入框样式
+ */
+@mixin input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: var(--vc-radius-sm);
+  font-family: var(--vc-font-family);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+  
+  &::placeholder {
+    color: var(--vscode-input-placeholderForeground);
+  }
+  
+  &:focus {
+    border-color: var(--vscode-focusBorder);
+  }
+  
+  @include disabled-state;
+}
+
+/**
+ * 标签/徽章样式
+ */
+@mixin badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 12px;
+  background: var(--vc-bg-tertiary);
+  color: var(--vc-color-text-secondary);
+}
+
+/**
+ * 分隔线
+ */
+@mixin divider($direction: horizontal) {
+  @if $direction == horizontal {
+    width: 100%;
+    height: 1px;
+    background: var(--vc-color-border);
+    margin: var(--vc-padding) 0;
+  } @else {
+    width: 1px;
+    height: 100%;
+    background: var(--vc-color-border);
+    margin: 0 var(--vc-padding);
+  }
+}
+
+/**
+ * 淡入动画关键帧
+ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/**
+ * 淡入动画（使用）
+ */
+@mixin fade-in-animation($duration: 0.2s) {
+  animation: fadeIn $duration ease-out;
+}
+
+/**
+ * Flexbox 居中
+ */
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/**
+ * 绝对定位居中
+ */
+@mixin absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/**
+ * 响应式隐藏
+ */
+@mixin hide {
+  display: none !important;
+}
+
+/**
+ * 视觉隐藏（但保留可访问性）
+ */
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

@@ -8,10 +8,20 @@
 }
 
 /* Messages Area */
+.messages-panel {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .messages-container {
   flex: 1;
   overflow-y: auto;
   padding: var(--vc-padding);
+  padding-top: calc(var(--vc-padding) + var(--vc-sticky-user-prompt-offset, 0px));
   background: var(--vc-bg);
   display: flex;
   flex-direction: column;

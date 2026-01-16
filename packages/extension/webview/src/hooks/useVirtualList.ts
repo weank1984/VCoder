@@ -10,6 +10,11 @@ import type { RefObject } from 'react';
 interface VirtualListOptions {
     itemCount: number;
     estimatedItemHeight: number;
+    /**
+     * Optional per-item estimate override (e.g., hidden items).
+     * Return a number (px) to override the default estimate.
+     */
+    getItemEstimatedHeight?: (index: number) => number;
     overscan?: number; // Number of items to render outside visible area
 }
 
@@ -33,7 +38,7 @@ interface VirtualListResult {
 const heightCache = new Map<number, number>();
 
 export function useVirtualList(options: VirtualListOptions): VirtualListResult {
-    const { itemCount, estimatedItemHeight, overscan = 3 } = options;
+    const { itemCount, estimatedItemHeight, getItemEstimatedHeight, overscan = 3 } = options;
     const containerRef = useRef<HTMLDivElement>(null);
     const [scrollTop, setScrollTop] = useState(0);
     const [containerHeight, setContainerHeight] = useState(0);
@@ -64,8 +69,11 @@ export function useVirtualList(options: VirtualListOptions): VirtualListResult {
 
     // Get height for an item (cached or estimated)
     const getItemHeight = useCallback((index: number): number => {
-        return heightCache.get(index) ?? estimatedItemHeight;
-    }, [estimatedItemHeight]);
+        const cached = heightCache.get(index);
+        if (cached !== undefined) return cached;
+        if (getItemEstimatedHeight) return getItemEstimatedHeight(index);
+        return estimatedItemHeight;
+    }, [estimatedItemHeight, getItemEstimatedHeight]);
 
     // Calculate total height
     const totalHeight = useMemo(() => {

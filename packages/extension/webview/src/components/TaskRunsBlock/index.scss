@@ -1,15 +1,15 @@
 .task-runs-block {
   &--sticky {
     margin: 0;
-    border-radius: 0 0 8px 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border-radius: 0 0 calc(var(--vc-padding) / 1.5) calc(var(--vc-padding) / 1.5);
+    box-shadow: var(--vc-box-shadow);
   }
 
   .task-runs-current {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    gap: calc(var(--vc-padding) / 1.5);
+    padding: calc(var(--vc-padding) / 2) var(--vc-padding);
     border-top: 1px solid var(--agent-block-border);
     font-size: 12px;
     color: var(--vscode-descriptionForeground);
@@ -28,7 +28,7 @@
   }
 
   .task-runs-list {
-    padding: 8px 12px;
+    padding: calc(var(--vc-padding) / 1.5) var(--vc-padding);
   }
 
   .task-runs-item {
@@ -53,7 +53,7 @@
 
       .task-runs-index {
         background: var(--vscode-textLink-activeForeground);
-        color: #fff;
+        color: var(--vscode-button-foreground);
       }
 
       .agent-block-item-icon {
@@ -63,12 +63,12 @@
 
     &.completed {
       .agent-block-item-icon {
-        color: var(--vscode-gitDecoration-addedResourceForeground, #73c991);
+        color: var(--vscode-gitDecoration-addedResourceForeground, var(--vscode-terminal-ansiGreen));
       }
 
       .task-runs-index {
-        background: var(--vscode-gitDecoration-addedResourceForeground, #73c991);
-        color: #fff;
+        background: var(--vscode-gitDecoration-addedResourceForeground, var(--vscode-terminal-ansiGreen));
+        color: var(--vscode-button-foreground);
       }
     }
 
@@ -81,30 +81,30 @@
 
       .task-runs-index {
         background: var(--vscode-errorForeground);
-        color: #fff;
+        color: var(--vscode-button-foreground);
       }
     }
   }
 
   .task-runs-details {
-    padding: 8px 12px 12px;
+    padding: calc(var(--vc-padding) / 1.5) var(--vc-padding) var(--vc-padding);
     border-left: 2px solid var(--agent-block-border);
-    margin-left: 12px;
-    margin-top: 6px;
+    margin-left: var(--vc-padding);
+    margin-top: calc(var(--vc-padding) / 2);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: calc(var(--vc-padding) / 1.5);
   }
 
   .task-runs-meta {
     display: flex;
-    gap: 8px;
+    gap: calc(var(--vc-padding) / 1.5);
     align-items: baseline;
     font-size: 12px;
 
     .task-runs-meta-label {
-      padding: 1px 6px;
-      border-radius: 10px;
+      padding: 1px calc(var(--vc-padding) / 2);
+      border-radius: var(--vc-radius-md);
       background: var(--agent-block-header-bg);
       border: 1px solid var(--agent-block-border);
       color: var(--vscode-descriptionForeground);
@@ -121,12 +121,12 @@
 
   .task-runs-panel {
     border: 1px solid var(--agent-block-border);
-    border-radius: 6px;
+    border-radius: var(--vc-radius-sm);
     overflow: hidden;
     background: var(--agent-block-bg);
 
     .task-runs-panel-title {
-      padding: 6px 10px;
+      padding: calc(var(--vc-padding) / 2) calc(var(--vc-padding) * 5 / 6);
       font-size: 12px;
       font-weight: 600;
       background: var(--agent-block-header-bg);
@@ -135,7 +135,7 @@
 
     .task-runs-json {
       margin: 0;
-      padding: 8px 10px;
+      padding: calc(var(--vc-padding) / 1.5) calc(var(--vc-padding) * 5 / 6);
       font-family: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
       font-size: 12px;
       line-height: 1.4;

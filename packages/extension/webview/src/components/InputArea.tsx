@@ -2,7 +2,7 @@
  * Input Area Component - Redesigned based on Augment reference design
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { forwardRef, useImperativeHandle, useState, useRef, useEffect, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
 import { postMessage } from '../utils/vscode';
 import { useStore } from '../store/useStore';
@@ -15,6 +15,7 @@ import { PendingChangesBar } from './PendingChangesBar';
 import { useI18n } from '../i18n/I18nProvider';
 import { loadPersistedState, savePersistedState } from '../utils/persist';
 import './InputArea.scss';
+import './ComposerSurface.scss';
 
 interface Attachment {
     type: 'file' | 'selection';
@@ -29,7 +30,12 @@ const MODELS: { id: ModelId; name: string }[] = [
     { id: 'glm-4.6', name: 'GLM 4.6' },
 ];
 
-export function InputArea() {
+export interface InputAreaHandle {
+    setText: (text: string, options?: { focus?: boolean }) => void;
+    focus: () => void;
+}
+
+export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, ref) {
     const { t } = useI18n();
     // Initialize input from persisted draft
     const [input, setInput] = useState(() => {
@@ -65,6 +71,17 @@ export function InputArea() {
     } = useStore();
 
     const isComposerLocked = isLoading || viewMode === 'history';
+
+    useImperativeHandle(ref, () => ({
+        setText: (text: string, options?: { focus?: boolean }) => {
+            if (isComposerLocked) return;
+            setInput(text);
+            if (options?.focus) {
+                queueMicrotask(() => textareaRef.current?.focus());
+            }
+        },
+        focus: () => textareaRef.current?.focus(),
+    }), [isComposerLocked]);
 
     // Debounced save for input draft
     const saveDraft = useCallback((draft: string) => {
@@ -274,7 +291,12 @@ export function InputArea() {
             
             <div 
                 ref={wrapperRef}
-                className={`input-wrapper ${isLoading ? 'input-wrapper--loading' : ''}`}
+                className={[
+                    'input-wrapper',
+                    'vc-composer-surface',
+                    'vc-composer-surface--interactive',
+                    isLoading ? 'vc-composer-surface--muted' : '',
+                ].filter(Boolean).join(' ')}
             >
                 <div className="input-content">
                     {/* Attachment preview */}
@@ -481,4 +503,4 @@ export function InputArea() {
             </div>
         </div>
     );
-}
+});
