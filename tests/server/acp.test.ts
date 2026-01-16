@@ -20,6 +20,7 @@ vi.mock('../../packages/server/src/claude/wrapper', () => ({
     on = vi.fn();
     prompt = vi.fn().mockResolvedValue(undefined);
     updateSettings = vi.fn();
+    bindClaudeSessionId = vi.fn();
     acceptFileChange = vi.fn().mockResolvedValue(undefined);
     rejectFileChange = vi.fn().mockResolvedValue(undefined);
     confirmBash = vi.fn().mockResolvedValue(undefined);
@@ -116,6 +117,26 @@ describe('ACPServer', () => {
       expect(response.result.session).toBeDefined();
       expect(response.result.session.id).toBeDefined();
       expect(response.result.session.title).toBe('Test Session');
+    });
+
+    it('should resume a session from Claude CLI history id', async () => {
+      const request: JsonRpcRequest = {
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'session/resume',
+        params: {
+          claudeSessionId: 'claude-session-xyz',
+          title: 'Resumed',
+        },
+      };
+
+      const response = await (server as any).handleRequest(request);
+
+      expect(response.error).toBeUndefined();
+      expect(response.result.session).toBeDefined();
+      expect((response.result.session as Session).title).toBe('Resumed');
+      expect((mockClaudeCode as any).bindClaudeSessionId).toHaveBeenCalledTimes(1);
+      expect((mockClaudeCode as any).bindClaudeSessionId.mock.calls[0][1]).toBe('claude-session-xyz');
     });
 
     it('should list sessions', async () => {

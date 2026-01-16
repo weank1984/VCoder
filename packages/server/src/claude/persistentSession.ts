@@ -74,6 +74,17 @@ export class PersistentSession extends EventEmitter {
     }
 
     /**
+     * Set an existing Claude CLI session id to resume when starting this persistent session.
+     * Must be called before `start()`.
+     */
+    setResumeSessionId(claudeSessionId: string): void {
+        if (this.process) return;
+        const trimmed = claudeSessionId?.trim();
+        if (!trimmed) return;
+        this.claudeSessionId = trimmed;
+    }
+
+    /**
      * Start the persistent CLI process
      */
     async start(): Promise<void> {
@@ -127,6 +138,10 @@ export class PersistentSession extends EventEmitter {
             for (const dir of this.settings.additionalDirs) {
                 args.push('--add-dir', dir);
             }
+        }
+
+        if (this.claudeSessionId) {
+            args.push('--resume', this.claudeSessionId);
         }
 
         const claudePath = this.resolveClaudePath();

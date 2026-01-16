@@ -239,6 +239,37 @@ describe('ACPClient', () => {
 
       expect(client.getCurrentSession()).toBeNull();
     });
+
+    it('should resume session (session/resume)', async () => {
+      const resumePromise = client.resumeSession('claude-session-xyz', { title: 'Resumed' });
+
+      const response = JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        result: {
+          session: {
+            id: 'session-resumed',
+            title: 'Resumed',
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: '2024-01-01T00:00:00Z',
+          },
+        },
+      }) + '\n';
+
+      await new Promise<void>((resolve) => {
+        setImmediate(() => {
+          mockStdout.push(response);
+          resolve();
+        });
+      });
+
+      const session = await resumePromise;
+
+      expect(session.id).toBe('session-resumed');
+      expect(session.title).toBe('Resumed');
+      expect(writtenData[0]).toContain('"method":"session/resume"');
+      expect(writtenData[0]).toContain('"claudeSessionId":"claude-session-xyz"');
+    });
   });
 
   describe('Prompt Operations', () => {

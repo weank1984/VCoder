@@ -51,6 +51,8 @@ export default {
     WelcomeNote: 'Vcoder 由 AI 提供支持，因此可能会出现错误。请在使用前仔细检查生成的代码。',
     InputPlaceholder: '输入问题 (⌘L)，@ 添加上下文，/ 选择工作流',
     ViewingHistoryReadonly: '正在查看历史会话（只读）',
+    ResumeHistory: '继续对话',
+    ExitHistory: '返回',
     RecentConversations: '近期会话',
     ViewAllConversations: '查看全部会话',
     NoRecentConversations: '暂无近期会话',

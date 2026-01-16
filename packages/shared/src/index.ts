@@ -15,6 +15,7 @@ export const ACPMethods = {
     SESSION_LIST: 'session/list',
     SESSION_SWITCH: 'session/switch',
     SESSION_DELETE: 'session/delete',
+    SESSION_RESUME: 'session/resume',
     SESSION_PROMPT: 'session/prompt',
     SETTINGS_CHANGE: 'settings/change',
     FILE_ACCEPT: 'file/accept',

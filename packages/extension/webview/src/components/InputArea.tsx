@@ -51,6 +51,9 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
         isLoading,
         workspaceFiles,
         viewMode,
+        currentSessionId,
+        historySessions,
+        exitHistoryMode,
         agents,
         currentAgentId,
         setModel,
@@ -59,6 +62,9 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
     } = useStore();
 
     const isComposerLocked = isLoading || viewMode === 'history';
+    const historyTitle = viewMode === 'history'
+        ? historySessions.find((s) => s.id === currentSessionId)?.title
+        : undefined;
 
     useImperativeHandle(ref, () => ({
         setText: (text: string, options?: { focus?: boolean }) => {
@@ -109,6 +115,11 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
     const handleAddFiles = () => {
         if (isComposerLocked) return;
         fileInputRef.current?.click();
+    };
+
+    const handleResumeHistory = () => {
+        if (viewMode !== 'history' || !currentSessionId) return;
+        postMessage({ type: 'resumeHistory', sessionId: currentSessionId, title: historyTitle });
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,7 +326,7 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                     <textarea
                         ref={textareaRef}
                         className="input-field"
-                        placeholder={t('Chat.InputPlaceholder')}
+                        placeholder={viewMode === 'history' ? t('Chat.ViewingHistoryReadonly') : t('Chat.InputPlaceholder')}
                         value={input}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
@@ -328,6 +339,31 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                             setShowPicker(false);
                         }}
                     />
+
+                    {viewMode === 'history' && (
+                        <div className="history-mode-banner">
+                            <div className="history-mode-banner__text">
+                                {t('Chat.ViewingHistoryReadonly')}
+                            </div>
+                            <div className="history-mode-banner__actions">
+                                <button
+                                    type="button"
+                                    className="vc-action-btn vc-action-btn--primary"
+                                    onClick={handleResumeHistory}
+                                    disabled={!currentSessionId}
+                                >
+                                    {t('Chat.ResumeHistory')}
+                                </button>
+                                <button
+                                    type="button"
+                                    className="vc-action-btn vc-action-btn--secondary"
+                                    onClick={exitHistoryMode}
+                                >
+                                    {t('Chat.ExitHistory')}
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     <ComposerToolbar
                         showAgentSelector

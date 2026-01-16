@@ -84,4 +84,31 @@ describe('ClaudeCodeWrapper spawn args', () => {
     const options = spawnMock.mock.calls[0][2] as { env: Record<string, string | undefined> };
     expect(options.env.MAX_THINKING_TOKENS).toBe('16000');
   });
+
+  it('uses --resume when an existing Claude session id is bound', async () => {
+    vi.resetModules();
+
+    const fakeChild = createFakeChildProcess();
+    const spawnMock = vi.fn(() => {
+      process.nextTick(() => fakeChild.emit('close', 0));
+      return fakeChild;
+    });
+
+    vi.doMock('child_process', () => ({ spawn: spawnMock }));
+
+    const { ClaudeCodeWrapper } = await import('../../packages/server/src/claude/wrapper');
+
+    const wrapper = new ClaudeCodeWrapper({ workingDirectory: '/tmp' });
+    wrapper.bindClaudeSessionId('s1', 'claude-session-xyz');
+
+    await wrapper.prompt('s1', 'hello');
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    const args = spawnMock.mock.calls[0][1] as string[];
+
+    const resumeIndex = args.indexOf('--resume');
+    expect(resumeIndex).toBeGreaterThan(-1);
+    expect(args[resumeIndex + 1]).toBe('claude-session-xyz');
+    expect(args).not.toContain('--continue');
+  });
 });

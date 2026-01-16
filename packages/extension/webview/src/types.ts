@@ -153,6 +153,14 @@ export interface LoadHistoryMessage {
     sessionId: string;
 }
 
+export interface ResumeHistoryMessage {
+    type: 'resumeHistory';
+    /** Claude CLI session id (from history) */
+    sessionId: string;
+    /** Optional display title */
+    title?: string;
+}
+
 export interface DeleteHistoryMessage {
     type: 'deleteHistory';
     sessionId: string;
@@ -319,6 +327,7 @@ export type WebviewMessage =
     | GetWorkspaceFilesMessage
     | ListHistoryMessage
     | LoadHistoryMessage
+    | ResumeHistoryMessage
     | DeleteHistoryMessage
     | SetUiLanguageMessage
     | OpenFileMessage

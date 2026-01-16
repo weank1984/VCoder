@@ -224,6 +224,23 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         }
                     }
                     break;
+                case 'resumeHistory':
+                    {
+                        const mcpServers = this.getMcpServerConfig();
+                        const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                        try {
+                            const session = await this.acpClient.resumeSession(message.sessionId, {
+                                title: message.title,
+                                cwd,
+                                mcpServers,
+                            });
+                            this.postMessage({ type: 'currentSession', data: { sessionId: session.id } });
+                            this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() });
+                        } catch (err) {
+                            console.error('[VCoder] Failed to resume history:', err);
+                        }
+                    }
+                    break;
                 case 'refreshAgents':
                     {
                         // Get agent profiles from configuration

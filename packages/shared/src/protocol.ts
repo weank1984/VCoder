@@ -130,6 +130,17 @@ export interface NewSessionParams {
     mcpServers?: McpServerConfig[];
 }
 
+export interface ResumeSessionParams {
+    /** Existing Claude Code CLI session id to resume (e.g., from history transcripts) */
+    claudeSessionId: string;
+    /** Optional display title for the resumed session */
+    title?: string;
+    /** Working directory for the session (V0.2) */
+    cwd?: string;
+    /** MCP servers to inject into agent (V0.2) */
+    mcpServers?: McpServerConfig[];
+}
+
 export interface NewSessionResult {
     /** Legacy format */
     session?: Session;
@@ -143,6 +154,13 @@ export interface NewSessionResult {
             description?: string;
         }>;
     };
+}
+
+export interface ResumeSessionResult {
+    /** Legacy format */
+    session?: Session;
+    /** New format */
+    sessionId?: string;
 }
 
 export interface ListSessionsResult {

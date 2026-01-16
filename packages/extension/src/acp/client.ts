@@ -23,6 +23,7 @@ import {
     ModelId,
     PermissionMode,
     McpServerConfig,
+    ResumeSessionParams,
     HistorySession,
     HistoryChatMessage,
     HistoryListResult,
@@ -197,6 +198,9 @@ export class ACPClient extends EventEmitter {
     }
 
     private async sendRequest<T>(method: string, params?: unknown): Promise<T> {
+        if (typeof method !== 'string' || method.trim().length === 0) {
+            throw new Error(`Invalid JSON-RPC method: ${String(method)}`);
+        }
         const id = ++this.requestId;
         const request: JsonRpcRequest = {
             jsonrpc: '2.0',
@@ -262,6 +266,39 @@ export class ACPClient extends EventEmitter {
             throw new Error('Invalid session/new response format');
         }
         
+        this.currentSession = session;
+        await this.syncDesiredSettings();
+        return session;
+    }
+
+    async resumeSession(
+        claudeSessionId: string,
+        params?: { title?: string; cwd?: string; mcpServers?: McpServerConfig[] }
+    ): Promise<Session> {
+        const sessionParams: ResumeSessionParams = {
+            claudeSessionId,
+            ...(params?.title && { title: params.title }),
+            ...(params?.cwd && { cwd: params.cwd }),
+            ...(params?.mcpServers && { mcpServers: params.mcpServers }),
+        };
+
+        // Use string literal to avoid runtime mismatch when @vcoder/shared dist is stale in dev.
+        const result = await this.sendRequest<unknown>('session/resume', sessionParams);
+
+        let session: Session;
+        if (isRecord(result) && 'session' in result && isSession(result.session)) {
+            session = result.session;
+        } else if (isRecord(result) && typeof result.sessionId === 'string') {
+            session = {
+                id: result.sessionId,
+                title: params?.title || 'Resumed Session',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            };
+        } else {
+            throw new Error('Invalid session/resume response format');
+        }
+
         this.currentSession = session;
         await this.syncDesiredSettings();
         return session;

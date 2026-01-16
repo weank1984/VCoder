@@ -16,6 +16,8 @@ import {
     InitializeResult,
     NewSessionParams,
     NewSessionResult,
+    ResumeSessionParams,
+    ResumeSessionResult,
     ListSessionsResult,
     SwitchSessionParams,
     DeleteSessionParams,
@@ -109,6 +111,11 @@ export class ACPServer {
                     break;
                 case ACPMethods.SESSION_NEW:
                     result = await this.handleNewSession(params as NewSessionParams);
+                    break;
+                // Accept literal string to avoid runtime mismatch when @vcoder/shared dist is stale in dev.
+                case 'session/resume':
+                case ACPMethods.SESSION_RESUME:
+                    result = await this.handleResumeSession(params as ResumeSessionParams);
                     break;
                 case ACPMethods.SESSION_LIST:
                     result = await this.handleListSessions();
@@ -223,6 +230,25 @@ export class ACPServer {
         };
         this.sessions.set(session.id, session);
         this.currentSessionId = session.id;
+        return { session };
+    }
+
+    private async handleResumeSession(params: ResumeSessionParams): Promise<ResumeSessionResult> {
+        if (params.mcpServers && params.mcpServers.length > 0) {
+            const mcpConfigPath = await this.writeMcpConfig(params.mcpServers);
+            this.mcpConfigPath = mcpConfigPath;
+            this.claudeCode.updateSettings({ mcpConfigPath });
+        }
+
+        const session: Session = {
+            id: crypto.randomUUID(),
+            title: params.title || 'Resumed Chat',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+        this.sessions.set(session.id, session);
+        this.currentSessionId = session.id;
+        this.claudeCode.bindClaudeSessionId(session.id, params.claudeSessionId);
         return { session };
     }
 

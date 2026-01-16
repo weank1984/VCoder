@@ -51,6 +51,8 @@ export default {
     WelcomeNote: 'Vcoder is powered by AI, so may make mistakes. Double-check all generated code.',
     InputPlaceholder: 'Ask anything (⌘L), @ to mention, / for workflows',
     ViewingHistoryReadonly: 'Viewing history (read-only)',
+    ResumeHistory: 'Continue chat',
+    ExitHistory: 'Back',
     RecentConversations: 'Recent Conversations',
     ViewAllConversations: 'View all conversations',
     NoRecentConversations: 'No recent conversations yet',

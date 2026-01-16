@@ -21,6 +21,30 @@
     padding: 2px 0;
 }
 
+.history-mode-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--vc-padding);
+    margin: 6px calc(var(--vc-padding) * 7 / 6) 0;
+    padding: 8px 10px;
+    border: 1px solid var(--vscode-widget-border);
+    border-radius: var(--vc-radius-sm);
+    background: var(--vscode-editor-inactiveSelectionBackground);
+    color: var(--vscode-foreground);
+}
+
+.history-mode-banner__text {
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+.history-mode-banner__actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 /* Attachments */
 .attachments-preview {
     display: flex;

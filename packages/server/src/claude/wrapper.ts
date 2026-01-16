@@ -96,6 +96,15 @@ export class ClaudeCodeWrapper extends EventEmitter {
         super();
     }
 
+    /**
+     * Bind an existing Claude Code CLI session id to a local session id so future prompts use `--resume`.
+     * This is used to continue a conversation loaded from CLI history transcripts.
+     */
+    bindClaudeSessionId(localSessionId: string, claudeSessionId: string): void {
+        if (!claudeSessionId || !claudeSessionId.trim()) return;
+        this.claudeSessionIdByLocalSessionId.set(localSessionId, claudeSessionId.trim());
+    }
+
     private logThinking(sessionId: string, message: string): void {
         if (!this.debugThinking) return;
         console.error(`[ClaudeCode][thinking] ${sessionId} ${message}`);
@@ -1549,6 +1558,10 @@ export class ClaudeCodeWrapper extends EventEmitter {
             };
             
             session = new PersistentSession(sessionId, this.options, settings);
+            const resumeId = this.claudeSessionIdByLocalSessionId.get(sessionId);
+            if (resumeId) {
+                session.setResumeSessionId(resumeId);
+            }
             this.forwardPersistentSessionEvents(sessionId, session);
             this.persistentSessions.set(sessionId, session);
             
