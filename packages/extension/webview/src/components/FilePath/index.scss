@@ -74,15 +74,27 @@
     
     // ========== Variants ==========
     
-    // Inline variant (for use in text)
+    // Inline variant (for use in text) - 确保真正内联显示
     &--inline {
+        display: inline-flex;  // 强制内联
+        vertical-align: baseline;  // 与文本基线对齐
         background: var(--vcoder-surface-3);
-        padding: 2px 6px;
+        padding: 1px 5px;
         border: 1px solid var(--vcoder-border-light);
+        font-size: 0.9em;  // 稍小于周围文本
+        line-height: 1.4;
+        
+        // 防止被父元素的 flex 布局影响
+        flex-shrink: 0;
         
         &.file-path--clickable:hover {
             background: var(--vscode-list-hoverBackground);
             border-color: var(--vscode-textLink-foreground);
+        }
+        
+        .file-path__icon svg {
+            width: 11px;
+            height: 11px;
         }
     }
     
