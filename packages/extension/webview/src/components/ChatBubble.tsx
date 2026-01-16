@@ -182,8 +182,13 @@ export function ChatBubble({ message }: ChatBubbleProps) {
                     )}
 
                     {showBottomCursor && (
-                        <div className="vc-streaming-cursor-row" aria-hidden="true">
-                            <span className="streaming-cursor" />
+                        <div className="vc-streaming-indicator-row" aria-label={t('Agent.Thinking')}>
+                            <span className="vc-typing-indicator" aria-hidden="true">
+                                <span className="dot" />
+                                <span className="dot" />
+                                <span className="dot" />
+                            </span>
+                            <span className="vc-typing-label">{t('Agent.Thinking')}</span>
                         </div>
                     )}
                     

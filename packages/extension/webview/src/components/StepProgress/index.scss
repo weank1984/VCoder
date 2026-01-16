@@ -372,3 +372,96 @@
         word-break: break-word;
     }
 }
+
+/* ========== File Content Display ========== */
+.file-content-display {
+    font-size: 13px;
+    
+    .view-toggle {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 8px;
+        
+        button {
+            padding: 4px 12px;
+            border: 1px solid var(--vcoder-border);
+            border-radius: var(--vcoder-radius-sm);
+            background: transparent;
+            color: var(--vscode-descriptionForeground);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s;
+            
+            &:hover {
+                background: var(--vscode-list-hoverBackground);
+                color: var(--vcoder-fg);
+            }
+            
+            &.active {
+                background: var(--vscode-button-secondaryBackground);
+                color: var(--vcoder-fg);
+                border-color: var(--vscode-focusBorder);
+            }
+        }
+    }
+    
+    .markdown-preview {
+        padding: 8px;
+    }
+    
+    .syntax-highlighted-code {
+        overflow-x: auto;
+    }
+    
+    .code-loading {
+        pre {
+            margin: 0;
+            padding: 12px;
+            background: var(--vscode-editor-background);
+            font-family: var(--vscode-editor-font-family, monospace);
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--vscode-editor-foreground);
+        }
+    }
+}
+
+/* File Content with Line Numbers */
+.file-content-with-lines {
+    display: flex;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 13px;
+    line-height: 1.5;
+    
+    .line-numbers {
+        flex-shrink: 0;
+        padding: 12px 0;
+        padding-right: 12px;
+        text-align: right;
+        color: var(--vscode-editorLineNumber-foreground);
+        user-select: none;
+        border-right: 1px solid var(--vcoder-border);
+        margin-right: 12px;
+        
+        .line-number {
+            display: block;
+            padding: 0 8px;
+            min-width: 32px;
+        }
+    }
+    
+    .code-content {
+        flex: 1;
+        overflow-x: auto;
+        
+        pre {
+            margin: 0 !important;
+            padding: 12px 0 !important;
+            background: transparent !important;
+        }
+        
+        .shiki {
+            background: transparent !important;
+        }
+    }
+}

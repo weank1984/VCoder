@@ -122,6 +122,8 @@ export default {
     CopyMessage: '复制消息',
     MessageCopied: '已复制',
     MoreActions: '更多操作',
+    Thought: '思考',
+    Thinking: '思考中',
     // 代码块
     InsertToEditor: '插入到编辑器',
     CodeInserted: '已插入',

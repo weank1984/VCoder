@@ -61,10 +61,42 @@
     gap: 2px;
 }
 
-.vc-streaming-cursor-row {
+.vc-streaming-indicator-row {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
+    gap: 8px;
     height: 18px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 12px;
+    user-select: none;
+}
+
+.vc-typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1;
+}
+
+.vc-typing-indicator .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.25;
+    animation: vc-typing-dot 1.2s ease-in-out infinite;
+}
+
+.vc-typing-indicator .dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.vc-typing-indicator .dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+.vc-typing-label {
+    opacity: 0.85;
 }
 
 /* Actions logic */
@@ -108,4 +140,15 @@
 @keyframes fade-in {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes vc-typing-dot {
+    0%, 80%, 100% {
+        opacity: 0.25;
+        transform: translateY(0);
+    }
+    40% {
+        opacity: 1;
+        transform: translateY(-2px);
+    }
 }

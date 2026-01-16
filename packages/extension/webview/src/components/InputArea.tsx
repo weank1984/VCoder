@@ -64,6 +64,8 @@ export function InputArea() {
         setLoading,
     } = useStore();
 
+    const isComposerLocked = isLoading || viewMode === 'history';
+
     // Debounced save for input draft
     const saveDraft = useCallback((draft: string) => {
         if (saveTimeoutRef.current) {
@@ -93,7 +95,16 @@ export function InputArea() {
         postMessage({ type: 'getWorkspaceFiles' });
     }, []);
 
+    useEffect(() => {
+        if (!isLoading) return;
+        setShowPicker(false);
+        setShowModelPicker(false);
+        setShowAgentPicker(false);
+        setShowPermissionRules(false);
+    }, [isLoading]);
+
     const handleAddFiles = () => {
+        if (isComposerLocked) return;
         fileInputRef.current?.click();
     };
 
@@ -272,10 +283,11 @@ export function InputArea() {
                             {attachments.map((att, idx) => (
                                 <div key={idx} className="attachment-chip">
                                     <span className="attachment-name">{att.name}</span>
-                                    <button 
-                                        className="attachment-remove" 
+                                    <button
+                                        className="attachment-remove"
                                         onClick={() => removeAttachment(idx)}
                                         aria-label={`Remove ${att.name}`}
+                                        disabled={isComposerLocked}
                                     >
                                         <CloseIcon />
                                     </button>
@@ -304,7 +316,13 @@ export function InputArea() {
                     <div className="input-toolbar">
 
                         <div className="toolbar-left">
-                            <div className="composer-unified-dropdown" onClick={() => setShowAgentPicker(!showAgentPicker)}>
+                            <div
+                                className={`composer-unified-dropdown ${isComposerLocked ? 'is-disabled' : ''}`}
+                                onClick={() => {
+                                    if (isComposerLocked) return;
+                                    setShowAgentPicker(!showAgentPicker);
+                                }}
+                            >
                                 <div className="dropdown-content">
                                     <span className="codicon codicon-infinity">♾️</span>
                                     <span className="dropdown-label">{currentAgent?.profile.name || 'Agent'}</span>
@@ -338,7 +356,13 @@ export function InputArea() {
                                 )}
                             </div>
 
-                            <div className="composer-unified-dropdown-model" onClick={() => setShowModelPicker(!showModelPicker)}>
+                            <div
+                                className={`composer-unified-dropdown-model ${isComposerLocked ? 'is-disabled' : ''}`}
+                                onClick={() => {
+                                    if (isComposerLocked) return;
+                                    setShowModelPicker(!showModelPicker);
+                                }}
+                            >
                                 <span className="model-label">{selectedModel?.name || 'Model'}</span>
                                 <span className="codicon-chevron-down"><ArrowBottomIcon /></span>
                                 
@@ -400,38 +424,41 @@ export function InputArea() {
                         </div>
 
                         <div className="toolbar-right">
-                             {/* Context/Mention Button */}
-                             <IconButton 
+                            {/* Context/Mention Button */}
+                            <IconButton
                                 icon={<AtIcon />}
                                 label="Mention"
+                                disabled={isComposerLocked}
                                 onClick={() => {
-                                     const newText = input + '@';
-                                     setInput(newText);
-                                     textareaRef.current?.focus();
-                                     // Trigger React state update manually if needed to check regex immediately
-                                     // But onChange handler on textarea usually handles it.
-                                     // We might need to manually trigger the picker logic if changing state directly doesn't fire onChange.
-                                     // Actually just setting input and focus is enough for next keystroke, but to show picker immediately:
-                                     setShowPicker(true);
-                                     setPickerQuery(''); 
+                                    const newText = input + '@';
+                                    setInput(newText);
+                                    textareaRef.current?.focus();
+                                    // Trigger React state update manually if needed to check regex immediately
+                                    // But onChange handler on textarea usually handles it.
+                                    // We might need to manually trigger the picker logic if changing state directly doesn't fire onChange.
+                                    // Actually just setting input and focus is enough for next keystroke, but to show picker immediately:
+                                    setShowPicker(true);
+                                    setPickerQuery('');
                                 }}
-                             />
+                            />
 
-                             {/* Web/Globe Button */}
-                             <IconButton 
+                            {/* Web/Globe Button */}
+                            <IconButton
                                 icon={<WebIcon />}
                                 label="Web Search"
+                                disabled={isComposerLocked}
                                 onClick={() => {
                                     // Placeholder
                                 }}
-                             />
+                            />
 
-                             {/* Add File Button */}
-                             <IconButton
+                            {/* Add File Button */}
+                            <IconButton
                                 icon={<ImageIcon />}
                                 label="Add Files"
+                                disabled={isComposerLocked}
                                 onClick={handleAddFiles}
-                             />
+                            />
                             
                             {/* Send / Stop Button */}
                              {isLoading ? (
@@ -442,7 +469,6 @@ export function InputArea() {
                                 />
                             ) : (
                                 <IconButton
-                                    variant="background"
                                     icon={<SendIcon />}
                                     label="Send Message"
                                     disabled={isSendDisabled}

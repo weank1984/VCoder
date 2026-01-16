@@ -1,4 +1,7 @@
-/* Markdown Content Styles - Matches Cursor/Claude Premium Style */
+/**
+ * Markdown Content Styles
+ * 配合 markdown-it + Shiki 渲染
+ */
 
 .vc-markdown {
     line-height: 1.6;
@@ -7,7 +10,7 @@
     font-size: 14px;
     width: 100%;
     
-    // Headings
+    // ========== Headings ==========
     h1, h2, h3, h4, h5, h6 {
         margin-top: 24px;
         margin-bottom: 12px;
@@ -22,13 +25,13 @@
     h2 { font-size: 1.3em; letter-spacing: -0.01em; }
     h3 { font-size: 1.1em; }
     
-    // Paragraphs
+    // ========== Paragraphs ==========
     p {
         margin-bottom: 14px;
         &:last-child { margin-bottom: 0; }
     }
     
-    // Lists
+    // ========== Lists ==========
     ul, ol {
         margin-bottom: 14px;
         padding-left: 24px;
@@ -42,7 +45,7 @@
         }
     }
     
-    // Blockquotes
+    // ========== Blockquotes ==========
     blockquote {
         margin: 16px 0;
         padding: 2px 0 2px 14px;
@@ -54,7 +57,7 @@
         p { margin: 0; }
     }
     
-    // Links
+    // ========== Links ==========
     a {
         color: var(--vscode-textLink-foreground);
         text-decoration: none;
@@ -66,7 +69,7 @@
         }
     }
     
-    // Tables
+    // ========== Tables ==========
     table {
         border-collapse: collapse;
         width: 100%;
@@ -93,7 +96,7 @@
         }
     }
     
-    // Horizontal Rule
+    // ========== Horizontal Rule ==========
     hr {
         height: 1px;
         padding: 0;
@@ -102,35 +105,82 @@
         border: 0;
     }
     
-    // Inline Code
-    code:not(pre code) {
-        padding: 0.2em 0.4em;
+    // ========== Inline Code ==========
+    .inline-code {
+        display: inline;
+        padding: 0.15em 0.4em;
         margin: 0 0.1em;
         font-family: var(--vscode-editor-font-family, monospace);
         font-size: 0.9em;
         background-color: var(--vscode-textCodeBlock-background);
         border-radius: 4px;
+        white-space: nowrap;
+        
+        // 文件路径 - 可点击
+        &--filepath {
+            color: var(--vscode-textLink-foreground);
+            cursor: pointer;
+            transition: all 0.15s;
+            
+            &:hover {
+                color: var(--vscode-textLink-activeForeground);
+                background-color: var(--vscode-list-hoverBackground);
+                text-decoration: underline;
+            }
+        }
+        
+        // 环境变量
+        &--env {
+            color: var(--vscode-terminal-ansiYellow);
+            background: color-mix(in srgb, var(--vscode-terminal-ansiYellow) 10%, var(--vscode-textCodeBlock-background));
+        }
+        
+        // 命令
+        &--command {
+            color: var(--vscode-terminal-ansiGreen);
+            background: color-mix(in srgb, var(--vscode-terminal-ansiGreen) 10%, var(--vscode-textCodeBlock-background));
+        }
     }
+    
+    // ========== File Path Block ==========
+    .file-path-block {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        margin: 12px 0;
+        background: var(--vcoder-surface-2);
+        border: 1px solid var(--vcoder-border);
+        border-radius: 8px;
+        font-family: var(--vscode-editor-font-family, monospace);
+        font-size: 13px;
+        color: var(--vscode-textLink-foreground);
+        cursor: pointer;
+        transition: all 0.2s;
+        
+        &::before {
+            content: '';
+            width: 14px;
+            height: 14px;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='%2358a6ff' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.71 4.29l-3-3A1 1 0 0 0 10 1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5a1 1 0 0 0-.29-.71zM12 14H4V2h5v3a1 1 0 0 0 1 1h3v8z'/%3E%3C/svg%3E");
+            background-size: contain;
+            flex-shrink: 0;
+        }
+        
+        &:hover {
+            background: var(--vscode-list-hoverBackground);
+            border-color: color-mix(in srgb, var(--vscode-textLink-foreground) 50%, var(--vcoder-border));
+            box-shadow: 0 2px 8px color-mix(in srgb, var(--vscode-textLink-foreground) 8%, transparent);
+            transform: translateX(2px);
+        }
+    }
+    
 }
 
-.streaming-cursor {
-    display: inline-block;
-    width: 8px;
-    height: 16px;
-    background: var(--vscode-editorCursor-foreground);
-    vertical-align: text-bottom;
-    margin-left: 4px;
-    animation: blink 1s step-end infinite;
-}
-
-@keyframes blink {
-    50% { opacity: 0; }
-}
-
-// ========== Code Block - Premium Style ==========
+// ========== Code Block ==========
 .vc-code-block {
     margin: 16px 0;
-    border-radius: 8px; /* Smooth corners */
+    border-radius: 8px;
     background-color: var(--vscode-editor-background);
     border: 1px solid var(--vscode-editorGroup-border);
     overflow: hidden;
@@ -151,6 +201,7 @@
     color: var(--vscode-descriptionForeground);
     font-size: 12px;
     user-select: none;
+    min-height: 36px;
 }
 
 .code-language-badge {
@@ -209,20 +260,133 @@
     }
 }
 
-// Keep these overrides scoped to markdown/code blocks so we don't break other components
-.vc-code-block pre {
-    margin: 0 !important;
-    padding: 12px !important;
-    background: transparent !important;
+.code-block-content {
+    overflow-x: auto;
+    
+    // Shiki 生成的代码样式
+    pre {
+        margin: 0 !important;
+        padding: 12px !important;
+        background: transparent !important;
+        overflow-x: auto;
+    }
+    
+    code {
+        font-family: var(--vscode-editor-font-family, monospace) !important;
+        font-size: 13px !important;
+        line-height: 1.5 !important;
+    }
+    
+    // Shiki 主题覆盖 - 继承 VS Code 背景
+    .shiki {
+        background-color: transparent !important;
+    }
+    
+    // Shiki pending 状态（highlighter 未初始化）
+    .shiki-pending {
+        background: transparent;
+        
+        code {
+            color: var(--vscode-editor-foreground);
+        }
+    }
 }
 
-.vc-code-block pre code {
-    font-family: var(--vscode-editor-font-family, monospace) !important;
-    font-size: 13px !important;
-    line-height: 1.5 !important;
+// ========== Mermaid Placeholder ==========
+.mermaid-placeholder {
+    padding: 16px;
+    text-align: center;
+    color: var(--vscode-descriptionForeground);
+    
+    &::before {
+        content: 'Loading diagram...';
+    }
 }
 
-/* Backward compatibility for class mappings if TSX not fully updated immediately */
+.mermaid-wrapper {
+    margin: 16px 0;
+}
+
+// ========== Task List (Checkbox) ==========
+.vc-markdown {
+    input[type="checkbox"] {
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border: 1.5px solid var(--vscode-checkbox-border);
+        border-radius: 3px;
+        margin-right: 8px;
+        vertical-align: middle;
+        cursor: default;
+        position: relative;
+        
+        &:checked {
+            background: var(--vscode-checkbox-background);
+            border-color: var(--vscode-checkbox-border);
+            
+            &::after {
+                content: '✓';
+                position: absolute;
+                color: var(--vscode-checkbox-foreground);
+                font-size: 12px;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+        }
+    }
+    
+    li:has(> input[type="checkbox"]) {
+        list-style: none;
+        margin-left: -20px;
+    }
+}
+
+// ========== Details/Summary ==========
+.vc-markdown {
+    details {
+        margin: 12px 0;
+        border: 1px solid var(--vcoder-border);
+        border-radius: 6px;
+        overflow: hidden;
+        
+        summary {
+            padding: 10px 14px;
+            background: var(--vcoder-surface-2);
+            cursor: pointer;
+            font-weight: 500;
+            user-select: none;
+            
+            &:hover {
+                background: var(--vscode-list-hoverBackground);
+            }
+            
+            &::marker {
+                color: var(--vscode-descriptionForeground);
+            }
+        }
+        
+        &[open] summary {
+            border-bottom: 1px solid var(--vcoder-border);
+        }
+        
+        > *:not(summary) {
+            padding: 12px 14px;
+        }
+    }
+}
+
+// ========== Image ==========
+.vc-markdown {
+    img {
+        max-width: 100%;
+        border-radius: 8px;
+        border: 1px solid var(--vcoder-border);
+        margin: 8px 0;
+    }
+}
+
+// ========== Backward Compatibility ==========
 .markdown-content { @extend .vc-markdown; }
 .code-block-container { @extend .vc-code-block; }
 .copy-btn { @extend .code-action-btn; }
