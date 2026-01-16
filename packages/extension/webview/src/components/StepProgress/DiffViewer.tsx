@@ -65,10 +65,10 @@ function parseDiffStats(diff: string): DiffStats {
 }
 
 /**
- * Classify diff line type
+ * Check if line is metadata that should be hidden
  */
-function getDiffLineType(line: string): 'add' | 'remove' | 'chunk' | 'meta' | 'context' {
-    if (
+function isMetaLine(line: string): boolean {
+    return (
         line.startsWith('diff --git') ||
         line.startsWith('index ') ||
         line.startsWith('new file mode') ||
@@ -76,15 +76,34 @@ function getDiffLineType(line: string): 'add' | 'remove' | 'chunk' | 'meta' | 'c
         line.startsWith('similarity index') ||
         line.startsWith('rename from') ||
         line.startsWith('rename to') ||
-        line.startsWith('\\ No newline at end of file')
-    ) {
-        return 'meta';
-    }
-    if (line.startsWith('+++') || line.startsWith('---')) return 'meta';
+        line.startsWith('\\ No newline at end of file') ||
+        line.startsWith('+++') ||
+        line.startsWith('---')
+    );
+}
+
+/**
+ * Classify diff line type
+ */
+function getDiffLineType(line: string): 'add' | 'remove' | 'chunk' | 'meta' | 'context' {
+    if (isMetaLine(line)) return 'meta';
     if (line.startsWith('+')) return 'add';
     if (line.startsWith('-')) return 'remove';
     if (line.startsWith('@@')) return 'chunk';
     return 'context';
+}
+
+/**
+ * Strip the +/- prefix from diff lines for cleaner display
+ */
+function formatDiffLine(line: string, lineType: string): string {
+    if (lineType === 'add' || lineType === 'remove') {
+        return line.slice(1); // Remove + or - prefix
+    }
+    if (lineType === 'context' && line.startsWith(' ')) {
+        return line.slice(1); // Remove leading space for context lines
+    }
+    return line;
 }
 
 /**
@@ -219,21 +238,32 @@ export function DiffViewer({
             {/* Diff Content */}
             {!isCollapsed && (
                 <div className="diff-content">
-                    <pre className="diff-lines">
-                        {diffLines.map((rawLine, i) => {
-                            const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
-                            const lineType = getDiffLineType(line);
-                            return (
-                                <div
-                                    key={i}
-                                    className={`diff-line diff-line-${lineType}`}
-                                    data-line={i + 1}
-                                >
-                                    {line}
-                                </div>
-                            );
-                        })}
-                    </pre>
+                    {diff && diffLines.length > 0 ? (
+                        <pre className="diff-lines">
+                            {diffLines
+                                .map((rawLine, i) => {
+                                    const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
+                                    const lineType = getDiffLineType(line);
+                                    return { line, lineType, index: i };
+                                })
+                                .filter(({ lineType }) => lineType !== 'meta') // Hide metadata lines
+                                .map(({ line, lineType, index }) => {
+                                    const displayLine = formatDiffLine(line, lineType);
+                                    return (
+                                        <div
+                                            key={index}
+                                            className={`diff-line diff-line-${lineType}`}
+                                        >
+                                            {displayLine || ' '}
+                                        </div>
+                                    );
+                                })}
+                        </pre>
+                    ) : (
+                        <div className="diff-empty">
+                            <span>{t('Agent.FileModified')}</span>
+                        </div>
+                    )}
                     
                     {/* Action Buttons at Bottom */}
                     {!actionsDisabled && onAccept && onReject && (

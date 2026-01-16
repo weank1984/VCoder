@@ -308,9 +308,10 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
     })();
 
     const hasDiffSection = (() => {
-        if (!isFileEditTool || !diffData || !diffData.hasChanges) return false;
+        if (!isFileEditTool || !diffData) return false;
         // During approval, rely on ApprovalUI's preview + actions; avoid duplicate accept/reject UI.
         if (isAwaitingConfirmation) return false;
+        // Show diff viewer even if diff is empty (to show file info)
         return true;
     })();
     const hasApprovalSection = Boolean(

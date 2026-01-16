@@ -131,6 +131,10 @@ export default {
     LinesAdded: '+{0} lines',
     LinesRemoved: '-{0} lines',
     LinesChanged: '{0} lines changed',
+    FileModified: 'File has been modified',
+    Created: 'Created',
+    Edited: 'Edited',
+    Deleted: 'Deleted',
     // Plan related
     PlanSteps: 'AI plans to execute {0} steps',
     PlanImpact: 'Expected impact: {0} new files, {1} modified, {2} commands',

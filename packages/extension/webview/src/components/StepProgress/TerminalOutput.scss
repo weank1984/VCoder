@@ -1,32 +1,31 @@
 /**
- * Terminal Output Styles - Cursor-like sandbox command style
+ * Terminal Output Styles - Cursor-like command card with blue accent
  */
 
 .terminal-output {
-    margin: 12px 0;
-    border-radius: 6px;
+    margin: 8px 0;
+    border-radius: 8px;
     border: 1px solid var(--vscode-panel-border);
-    background: color-mix(in srgb, var(--vscode-editor-background) 50%, var(--vscode-sideBar-background) 50%);
+    border-top: 3px solid #4d9de0; // Cursor-style blue accent border
+    background: var(--vscode-editor-background);
     overflow: hidden;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.15s ease;
 }
 
-// Terminal Title Bar (like Cursor's "Auto-Ran command in sandbox")
+// Terminal Title Bar - "Running command: xxx"
 .terminal-title-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
-    background: color-mix(in srgb, var(--vscode-panel-border) 10%, transparent);
-    border-bottom: 1px solid var(--vscode-panel-border);
+    padding: 10px 14px;
+    background: transparent;
     user-select: none;
 }
 
 .terminal-title-text {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--vscode-descriptionForeground);
-    font-weight: 500;
+    font-weight: 400;
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -36,23 +35,22 @@
 .terminal-title-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
     flex-shrink: 0;
     
     button {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 24px;
-        height: 24px;
+        width: 26px;
+        height: 26px;
         padding: 0;
         border: none;
         background: transparent;
-        color: var(--vscode-icon-foreground);
+        color: var(--vscode-descriptionForeground);
         cursor: pointer;
         border-radius: 4px;
-        transition: all 0.15s ease;
-        opacity: 0.8;
+        transition: all 0.1s ease;
         
         svg {
             width: 14px;
@@ -61,11 +59,7 @@
         
         &:hover {
             background: var(--vscode-toolbar-hoverBackground);
-            opacity: 1;
-        }
-        
-        &:active {
-            transform: scale(0.95);
+            color: var(--vscode-foreground);
         }
     }
     
@@ -81,16 +75,15 @@
 .terminal-content {
     display: flex;
     flex-direction: column;
-    padding: 12px;
-    gap: 8px;
+    padding: 0 14px 14px;
+    gap: 10px;
 }
 
-// Command Display Section
+// Command Display Section - Cursor-style syntax highlighted command
 .terminal-command-display {
-    background: color-mix(in srgb, var(--vscode-terminal-background) 70%, var(--vscode-editor-background) 30%);
-    border-radius: 4px;
-    padding: 10px 12px;
-    border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 50%, transparent);
+    background: var(--vscode-terminal-background);
+    border-radius: 6px;
+    padding: 12px 14px;
 }
 
 .terminal-command-line {
@@ -99,11 +92,11 @@
     gap: 8px;
     font-family: var(--vscode-editor-font-family);
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.6;
     
     .terminal-prompt {
-        color: var(--vscode-terminal-ansiGreen);
-        font-weight: 600;
+        color: var(--vscode-descriptionForeground);
+        font-weight: 400;
         flex-shrink: 0;
         user-select: none;
     }
@@ -112,18 +105,23 @@
         color: var(--vscode-terminal-foreground);
         word-break: break-word;
         flex: 1;
+        
+        // Command syntax highlighting
+        .cmd-path {
+            color: #e5c07b; // Yellow for paths
+        }
+        .cmd-flag {
+            color: #e06c75; // Red for flags
+        }
+        .cmd-name {
+            color: #98c379; // Green for command names
+        }
     }
 }
 
-// Status Bar
+// Status Bar - Minimal
 .terminal-status-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 0;
-    font-size: 11px;
-    color: var(--vscode-descriptionForeground);
-    border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 30%, transparent);
+    display: none; // Hide status bar for cleaner look, info is in title
 }
 
 .terminal-status-left {
@@ -143,31 +141,16 @@
         width: 14px;
         height: 14px;
     }
-    
-    .running & {
-        animation: pulse 2s ease-in-out infinite;
-    }
 }
 
 .terminal-state {
     font-weight: 500;
-    
-    .running & {
-        color: var(--vscode-terminal-ansiYellow);
-    }
-    .success & {
-        color: var(--vscode-terminal-ansiGreen);
-    }
-    .error & {
-        color: var(--vscode-terminal-ansiRed);
-    }
-    .killed & {
-        color: var(--vscode-terminal-ansiMagenta);
-    }
+    font-size: 12px;
 }
 
 .terminal-exit-code {
     font-family: var(--vscode-editor-font-family);
+    font-size: 11px;
     padding: 2px 6px;
     border-radius: 3px;
     background: var(--vscode-badge-background);
@@ -176,6 +159,7 @@
 
 .terminal-signal {
     font-family: var(--vscode-editor-font-family);
+    font-size: 11px;
     padding: 2px 6px;
     border-radius: 3px;
     background: color-mix(in srgb, var(--vscode-terminal-ansiMagenta) 20%, transparent);
@@ -184,6 +168,7 @@
 
 .terminal-duration {
     font-family: var(--vscode-editor-font-family);
+    font-size: 11px;
     color: var(--vscode-descriptionForeground);
 }
 
@@ -193,22 +178,21 @@
     padding: 10px 12px;
     font-family: var(--vscode-editor-font-family);
     font-size: 12px;
-    line-height: 1.6;
+    line-height: 1.5;
     color: var(--vscode-terminal-foreground);
     background: var(--vscode-terminal-background);
-    border-radius: 4px;
-    border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 50%, transparent);
+    border-radius: 6px;
     overflow-x: auto;
     overflow-y: auto;
-    max-height: 300px;
-    min-height: 40px;
+    max-height: 260px;
+    min-height: 32px;
     white-space: pre-wrap;
     word-wrap: break-word;
     
     // Custom scrollbar
     &::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
     }
     
     &::-webkit-scrollbar-track {
@@ -217,7 +201,7 @@
     
     &::-webkit-scrollbar-thumb {
         background: var(--vscode-scrollbarSlider-background);
-        border-radius: 4px;
+        border-radius: 3px;
         
         &:hover {
             background: var(--vscode-scrollbarSlider-hoverBackground);
@@ -230,14 +214,8 @@
     .terminal-content {
         display: none;
     }
-}
-
-// Pulse animation for running state
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.6;
+    
+    .terminal-title-bar {
+        padding-bottom: 10px;
     }
 }

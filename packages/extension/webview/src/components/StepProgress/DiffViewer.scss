@@ -1,55 +1,55 @@
 /**
- * Diff Viewer Styles
+ * Diff Viewer Styles - Cursor-like file edit card
  */
 
 .diff-viewer {
     margin: 8px 0;
-    border-radius: 10px;
-    border: 1px solid var(--vc-color-border);
-    background: var(--vc-bg);
+    border-radius: 8px;
+    border: 1px solid var(--vscode-panel-border);
+    background: var(--vscode-editor-background);
     overflow: hidden;
-    transition: all 0.2s ease;
-    
-    // File operation styling
-    &:has(.diff-stat.additions):not(:has(.diff-stat.deletions)) {
-        border-left: 3px solid var(--vscode-gitDecoration-addedResourceForeground);
-    }
-    
-    &:has(.diff-stat.deletions):not(:has(.diff-stat.additions)) {
-        border-left: 3px solid var(--vscode-gitDecoration-deletedResourceForeground);
-    }
-    
-    &:has(.diff-stat.additions):has(.diff-stat.deletions) {
-        border-left: 3px solid var(--vscode-gitDecoration-modifiedResourceForeground);
-    }
+    transition: all 0.15s ease;
 }
 
 .diff-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
+    gap: 10px;
+    padding: 10px 14px;
     cursor: pointer;
     user-select: none;
-    background: var(--vc-bg);
-    transition: background 0.2s ease;
+    background: transparent;
+    transition: background 0.1s ease;
     
     &:hover {
-        background: var(--vc-control-item-bg-hover);
+        background: var(--vscode-list-hoverBackground);
     }
     
     .diff-icon {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
         flex-shrink: 0;
-        color: var(--vscode-foreground);
         
         svg {
             width: 16px;
             height: 16px;
+        }
+        
+        // Python file icon color
+        &.python {
+            color: #4584b6;
+        }
+        &.javascript, &.typescript {
+            color: #f7df1e;
+        }
+        &.css, &.scss {
+            color: #264de4;
+        }
+        &.html {
+            color: #e34c26;
         }
     }
 }
@@ -58,107 +58,91 @@
     flex: 1;
     min-width: 0;
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: baseline;
+    gap: 8px;
 }
 
 .diff-file-path {
-    font-family: var(--vc-font-family-code);
-    font-size: 12px;
-    color: var(--vc-color-text);
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 13px;
+    color: var(--vscode-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .diff-stats {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 11px;
+    gap: 6px;
+    font-size: 12px;
+    flex-shrink: 0;
     
     .diff-type-label {
-        color: var(--vc-color-text-secondary);
-        font-weight: 500;
+        display: none; // Hide "Edited" label for compact display
     }
     
     .diff-stat {
         font-family: var(--vscode-editor-font-family);
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-weight: 600;
+        font-weight: 500;
         
         &.additions {
-            background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 20%, transparent);
-            color: var(--vc-color-text);
+            color: var(--vscode-gitDecoration-addedResourceForeground);
+            background: none;
+            padding: 0;
         }
         
         &.deletions {
-            background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 20%, transparent);
-            color: var(--vc-color-text);
+            color: var(--vscode-gitDecoration-deletedResourceForeground);
+            background: none;
+            padding: 0;
         }
     }
     
     .diff-stat-summary {
-        color: var(--vc-color-text-secondary);
-        font-family: var(--vc-font-family-code);
+        display: none; // Hide for compact display
     }
 }
 
 .diff-actions-header {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     flex-shrink: 0;
     
     button {
         display: flex;
         align-items: center;
-        gap: 4px;
-        padding: 5px 10px;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        padding: 0;
         border: none;
         background: transparent;
-        color: var(--vc-color-text);
+        color: var(--vscode-descriptionForeground);
         cursor: pointer;
-        border-radius: 3px;
+        border-radius: 4px;
         font-size: 12px;
-        font-weight: 500;
-        transition: all 0.2s ease;
+        transition: all 0.1s ease;
         
         svg {
             width: 14px;
             height: 14px;
         }
         
-        &:hover {
-            background: var(--vc-control-item-bg-hover);
-        }
-        
-        &:active {
-            transform: scale(0.98);
-        }
-    }
-    
-    .diff-accept-btn {
-        color: var(--vc-color-text);
-        
-        &:hover {
-            background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 15%, transparent);
-        }
-    }
-    
-    .diff-reject-btn {
-        color: var(--vc-color-text);
-        
-        &:hover {
-            background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 15%, transparent);
-        }
-    }
-    
-    .diff-view-btn,
-    .diff-copy-btn {
-        padding: 5px;
-        
         span {
             display: none;
         }
+        
+        &:hover {
+            background: var(--vscode-toolbar-hoverBackground);
+            color: var(--vscode-foreground);
+        }
+    }
+    
+    .diff-accept-btn,
+    .diff-reject-btn {
+        display: none; // Hide in header, show in footer
     }
     
     .diff-collapse-icon {
@@ -167,12 +151,11 @@
         justify-content: center;
         width: 20px;
         height: 20px;
-        margin-left: 4px;
         
         svg {
             width: 12px;
             height: 12px;
-            transition: transform 0.2s ease;
+            transition: transform 0.15s ease;
         }
     }
 }
@@ -180,105 +163,94 @@
 .diff-content {
     display: flex;
     flex-direction: column;
-    border-top: 1px solid var(--vc-color-border);
-    background: var(--vc-bg);
+    background: var(--vscode-editor-background);
+}
+
+.diff-empty {
+    padding: 12px 14px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 12px;
+    font-style: italic;
 }
 
 .diff-tabs {
-    display: flex;
-    gap: 2px;
-    padding: 8px 12px 0;
-    background: var(--vc-bg);
-    border-bottom: 1px solid var(--vc-color-border);
-    
-    .diff-tab {
-        padding: 6px 12px;
-        border: none;
-        background: transparent;
-        color: var(--vc-color-text-secondary);
-        cursor: pointer;
-        border-radius: 4px 4px 0 0;
-        font-size: 12px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-        
-        &:hover {
-            background: var(--vc-control-item-bg-hover);
-            color: var(--vc-color-text);
-        }
-        
-        &.active {
-            background: var(--vc-bg-secondary);
-            color: var(--vc-color-text);
-            border-bottom: 2px solid var(--vscode-focusBorder, var(--vc-color-primary));
-        }
-    }
+    display: none; // Hide tabs for cleaner look
 }
 
 .diff-lines,
 .diff-full-content {
     margin: 0;
-    padding: 12px;
-    font-family: var(--vc-font-family-code);
+    padding: 10px 14px;
+    font-family: var(--vscode-editor-font-family, monospace);
     font-size: 12px;
-    line-height: 1.5;
-    color: var(--vc-color-text);
-    background: var(--vc-bg);
+    line-height: 1.6;
+    color: var(--vscode-editor-foreground);
+    background: var(--vscode-editor-background);
     overflow-x: auto;
-    max-height: 500px;
+    max-height: 400px;
     overflow-y: auto;
     
     // Custom scrollbar
     &::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
     }
     
     &::-webkit-scrollbar-track {
-        background: var(--vscode-scrollbarSlider-background);
+        background: transparent;
     }
     
     &::-webkit-scrollbar-thumb {
-        background: var(--vscode-scrollbarSlider-hoverBackground);
-        border-radius: 4px;
+        background: var(--vscode-scrollbarSlider-background);
+        border-radius: 3px;
         
         &:hover {
-            background: var(--vscode-scrollbarSlider-activeBackground);
+            background: var(--vscode-scrollbarSlider-hoverBackground);
         }
     }
 }
 
 .diff-line {
     white-space: pre;
-    padding: 0 8px;
+    padding: 1px 8px;
     margin: 0;
+    border-left: 3px solid transparent;
     
     &.diff-line-meta {
-        color: var(--vc-color-text-secondary);
-        font-weight: 600;
+        color: var(--vscode-descriptionForeground);
+        font-weight: 500;
+        font-size: 11px;
+        padding: 4px 8px;
+        margin: 4px 0;
     }
     
     &.diff-line-add {
-        background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 15%, transparent);
-        color: var(--vc-color-text);
+        background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 12%, transparent);
+        border-left-color: var(--vscode-gitDecoration-addedResourceForeground);
+        color: var(--vscode-editor-foreground);
     }
     
     &.diff-line-remove {
-        background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 15%, transparent);
-        color: var(--vc-color-text);
+        background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 12%, transparent);
+        border-left-color: var(--vscode-gitDecoration-deletedResourceForeground);
+        color: var(--vscode-editor-foreground);
     }
     
     &.diff-line-chunk {
-        background: color-mix(in srgb, var(--vscode-textCodeBlock-background) 50%, transparent);
-        color: var(--vc-color-link);
-        font-weight: 600;
-        margin: 8px 0 4px;
-        padding: 4px 8px;
-        border-radius: 3px;
+        display: none; // Hide @@ chunk headers for cleaner Cursor-like display
+        // Uncomment below to show chunk headers
+        // background: transparent;
+        // color: var(--vscode-descriptionForeground);
+        // font-weight: 500;
+        // font-size: 11px;
+        // margin: 8px 0 4px;
+        // padding: 2px 8px;
+        // border-left: none;
     }
     
     &.diff-line-context {
-        color: var(--vc-color-text);
+        color: var(--vscode-editor-foreground);
+        opacity: 0.7;
     }
 }
 
@@ -287,39 +259,36 @@
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
-    padding: 12px;
-    background: var(--vc-bg);
-    border-top: 1px solid var(--vc-color-border);
+    padding: 10px 14px;
+    background: color-mix(in srgb, var(--vscode-editor-background) 90%, var(--vscode-sideBar-background));
+    border-top: 1px solid var(--vscode-panel-border);
     
     button {
         display: flex;
         align-items: center;
         gap: 6px;
-        padding: 8px 16px;
-        border: 1px solid var(--vscode-button-border);
-        border-radius: 4px;
-        font-size: 13px;
+        padding: 6px 14px;
+        border: 1px solid var(--vscode-panel-border);
+        border-radius: 6px;
+        font-size: 12px;
         font-weight: 500;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.1s ease;
         
         svg {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
         }
         
         &:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        }
-        
-        &:active {
-            transform: translateY(0);
+            transform: none;
+            box-shadow: none;
         }
         
         &.primary {
             background: var(--vscode-button-background);
             color: var(--vscode-button-foreground);
+            border-color: transparent;
             
             &:hover {
                 background: var(--vscode-button-hoverBackground);
@@ -337,13 +306,15 @@
     }
     
     .diff-accept-btn.primary {
-        background: var(--vscode-gitDecoration-addedResourceForeground);
+        background: var(--vscode-button-background);
         color: var(--vscode-button-foreground);
-        border-color: var(--vscode-gitDecoration-addedResourceForeground);
-        
-        &:hover {
-            opacity: 0.9;
-        }
+        border-color: transparent;
+    }
+    
+    .diff-reject-btn.secondary {
+        background: transparent;
+        color: var(--vscode-foreground);
+        border-color: var(--vscode-panel-border);
     }
 }
 
@@ -351,5 +322,9 @@
 .diff-viewer.collapsed {
     .diff-collapse-icon svg {
         transform: rotate(-90deg);
+    }
+    
+    .diff-content {
+        display: none;
     }
 }

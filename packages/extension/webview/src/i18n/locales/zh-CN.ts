@@ -108,6 +108,7 @@ export default {
     LinesAdded: '+{0} 行',
     LinesRemoved: '-{0} 行',
     LinesChanged: '{0} 行变更',
+    FileModified: '文件已修改',
     // 计划相关
     PlanSteps: 'AI 计划执行以下 {0} 个步骤',
     PlanImpact: '预计影响: {0} 个新文件, {1} 个修改, {2} 个命令',

@@ -83,19 +83,54 @@ interface DiffLine {
     content: string;
 }
 
+/**
+ * Check if line is metadata that should be hidden
+ */
+function isMetaLine(line: string): boolean {
+    return (
+        line.startsWith('diff --git') ||
+        line.startsWith('index ') ||
+        line.startsWith('new file mode') ||
+        line.startsWith('deleted file mode') ||
+        line.startsWith('similarity index') ||
+        line.startsWith('rename from') ||
+        line.startsWith('rename to') ||
+        line.startsWith('\\ No newline at end of file') ||
+        line.startsWith('+++') ||
+        line.startsWith('---') ||
+        line.startsWith('@@')
+    );
+}
+
+/**
+ * Strip the +/- prefix from diff lines for cleaner display
+ */
+function formatDiffContent(line: string, type: string): string {
+    if (type === 'diff-add' || type === 'diff-remove') {
+        return line.slice(1); // Remove + or - prefix
+    }
+    if (type === 'diff-context' && line.startsWith(' ')) {
+        return line.slice(1); // Remove leading space for context lines
+    }
+    return line;
+}
+
 function parseDiff(diff: string): DiffLine[] {
     if (!diff) return [];
     
     const lines = diff.split('\n');
-    return lines.map(line => {
-        if (line.startsWith('+') && !line.startsWith('+++')) {
-            return { type: 'diff-add', content: line };
-        } else if (line.startsWith('-') && !line.startsWith('---')) {
-            return { type: 'diff-remove', content: line };
-        } else {
-            return { type: 'diff-context', content: line };
-        }
-    });
+    return lines
+        .filter(line => !isMetaLine(line)) // Filter out metadata lines
+        .map(line => {
+            if (line.startsWith('+')) {
+                return { type: 'diff-add' as const, content: formatDiffContent(line, 'diff-add') };
+            } else if (line.startsWith('-')) {
+                return { type: 'diff-remove' as const, content: formatDiffContent(line, 'diff-remove') };
+            } else {
+                return { type: 'diff-context' as const, content: formatDiffContent(line, 'diff-context') };
+            }
+        })
+        .filter(line => line.content.trim() !== '' || line.type !== 'diff-context'); // Remove empty context lines
 }
 
 function calculateDiffStats(lines: DiffLine[]): { added: number; removed: number } {

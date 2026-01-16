@@ -1,46 +1,52 @@
-/* ThoughtBlock.scss - Minimalist VS Code Style */
+/* ThoughtBlock.scss - Cursor-like thought display */
 
 .thought-block {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    margin-bottom: 4px;
+    gap: 4px;
+    margin: 4px 0;
 }
 
 .thought-header {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
-    color: var(--vcoder-text-secondary);
-    font-size: 12px;
+    gap: 6px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 13px;
     cursor: pointer;
     user-select: none;
-    padding: 2px 0;
+    padding: 3px 4px;
+    border-radius: 4px;
+    transition: background 0.1s;
+    width: fit-content;
     
     &:hover {
-        color: var(--vcoder-text-primary);
+        background: var(--vscode-list-hoverBackground);
     }
 }
 
 .thought-label {
-    font-style: italic;
+    font-weight: 400;
+    font-style: normal;
 }
 
 .thought-duration {
     color: var(--vscode-disabledForeground);
     font-style: normal;
+    font-size: 12px;
 }
 
 .thought-content {
-    padding-left: 12px;
-    margin-left: 6px; /* Align with chevron center roughly */
-    border-left: 1px solid var(--vcoder-border);
-    color: var(--vcoder-text-secondary);
+    padding: 8px 12px;
+    margin-left: 4px;
+    border-left: 2px solid var(--vscode-panel-border);
+    color: var(--vscode-descriptionForeground);
     font-size: 12px;
-    line-height: var(--vscode-editor-lineHeight, 1.5);
-    font-style: italic;
+    line-height: 1.6;
+    font-style: normal;
     white-space: pre-wrap;
-    opacity: 0.9;
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 /* Icon rotation handling */
@@ -48,20 +54,34 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
+    opacity: 0.6;
     
     svg {
-        width: 12px;
-        height: 12px;
+        width: 10px;
+        height: 10px;
         fill: currentColor;
+        transition: transform 0.15s;
     }
 }
 
 .codicon-chevron-right svg {
-    transition: transform 0.1s;
+    transform: rotate(0deg);
 }
 
 .codicon-chevron-down svg {
     transform: rotate(90deg);
+}
+
+/* Thinking animation */
+.thought-block.is-thinking {
+    .thought-label {
+        animation: thinking-pulse 1.5s ease-in-out infinite;
+    }
+}
+
+@keyframes thinking-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
