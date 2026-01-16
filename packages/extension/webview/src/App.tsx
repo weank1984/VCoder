@@ -61,6 +61,7 @@ function App() {
   // Disable virtual list for history mode to avoid height estimation issues
   const useVirtual = viewMode === 'live' && messages.length > VIRTUAL_LIST_THRESHOLD;
   const hideUserMessagesInList = true;
+  const enableStickyUserPrompt = true;
 
   // Smart auto-scroll: only scroll when at bottom, show jump button when scrolled up
   const { containerRef, endRef, onScroll: smartScrollHandler, autoScroll, jumpToBottom } = useSmartScroll(messages, {
@@ -86,9 +87,21 @@ function App() {
   });
 
   const recomputeActiveUserMessage = useCallback(() => {
+    if (!enableStickyUserPrompt) return;
     if (typeof document === 'undefined' || typeof document.elementFromPoint !== 'function') return;
     const container = (useVirtual ? virtualContainerRef.current : containerRef.current) as HTMLDivElement | null;
     if (!container) return;
+
+    // If the conversation doesn't scroll (or user is at bottom), the "active" user prompt
+    // should be the latest one; otherwise new user prompts appear to "disappear" because
+    // user messages are hidden from the list.
+    const isScrollable = container.scrollHeight - container.clientHeight > 2;
+    if (!isScrollable || autoScroll) {
+      const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+      setActiveUserMessageId((prev) => (prev === (lastUser?.id ?? null) ? prev : (lastUser?.id ?? null)));
+      return;
+    }
+
     const rect = container.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
 
@@ -113,9 +126,10 @@ function App() {
 
     const firstUser = messages.find((m) => m.role === 'user');
     setActiveUserMessageId((prev) => (prev === (firstUser?.id ?? null) ? prev : (firstUser?.id ?? null)));
-  }, [containerRef, messages, useVirtual, virtualContainerRef]);
+  }, [autoScroll, containerRef, enableStickyUserPrompt, messages, useVirtual, virtualContainerRef]);
 
   const scheduleRecomputeActiveUserMessage = useCallback(() => {
+    if (!enableStickyUserPrompt) return;
     const anyGlobal = globalThis as unknown as { requestAnimationFrame?: (cb: () => void) => number };
     if (typeof anyGlobal.requestAnimationFrame !== 'function') return;
     if (activeMessageRafRef.current !== null) return;
@@ -123,7 +137,7 @@ function App() {
       activeMessageRafRef.current = null;
       recomputeActiveUserMessage();
     });
-  }, [recomputeActiveUserMessage]);
+  }, [enableStickyUserPrompt, recomputeActiveUserMessage]);
 
   // Combine scroll handlers
   const handleScroll = useCallback(() => {
@@ -156,7 +170,7 @@ function App() {
   // Recompute active user message when overlay height or messages change
   useEffect(() => {
     scheduleRecomputeActiveUserMessage();
-  }, [messages.length, scheduleRecomputeActiveUserMessage, useVirtual]);
+  }, [enableStickyUserPrompt, messages.length, scheduleRecomputeActiveUserMessage, useVirtual]);
 
   // Messages to render (all or windowed)
   const visibleMessages = useMemo(() => {
@@ -326,10 +340,11 @@ function App() {
   ]);
 
   const activeUserMessage = useMemo(() => {
+    if (!enableStickyUserPrompt) return null;
     if (!activeUserMessageId) return null;
     const found = messages.find((m) => m.id === activeUserMessageId);
     return found?.role === 'user' ? found : null;
-  }, [activeUserMessageId, messages]);
+  }, [activeUserMessageId, enableStickyUserPrompt, messages]);
 
   const handleStickyPromptHeightChange = useCallback((height: number) => {
     setStickyPromptHeight(height);
@@ -337,9 +352,9 @@ function App() {
 
   const messagesContainerStyle = useMemo(
     () => ({
-      '--vc-sticky-user-prompt-offset': `${stickyPromptHeight}px`,
+      '--vc-sticky-user-prompt-offset': `${enableStickyUserPrompt ? stickyPromptHeight : 0}px`,
     }) as CSSProperties,
-    [stickyPromptHeight]
+    [enableStickyUserPrompt, stickyPromptHeight]
   );
 
   return (
@@ -353,12 +368,14 @@ function App() {
       )}
 
       <div className="messages-panel">
-        <StickyUserPrompt
-          message={activeUserMessage}
-          disabled={isLoading || viewMode === 'history'}
-          onApplyToComposer={(text) => inputAreaRef.current?.setText(text, { focus: true })}
-          onHeightChange={handleStickyPromptHeightChange}
-        />
+        {enableStickyUserPrompt && (
+          <StickyUserPrompt
+            message={activeUserMessage}
+            disabled={isLoading || viewMode === 'history'}
+            onApplyToComposer={(text) => inputAreaRef.current?.setText(text, { focus: true })}
+            onHeightChange={handleStickyPromptHeightChange}
+          />
+        )}
         <div 
           className={`messages-container${isEmpty ? ' messages-container--empty' : ''}`} 
           ref={useVirtual ? virtualContainerRef : containerRef}

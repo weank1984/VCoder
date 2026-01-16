@@ -1,0 +1,214 @@
+/**
+ * Modal Component Styles
+ */
+
+@use '../../styles/mixins' as *;
+
+// Root container
+.vc-modal-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  
+  &:has(.vc-modal.is-visible) {
+    pointer-events: auto;
+  }
+}
+
+// Mask (backdrop)
+.vc-modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
+  
+  &.is-visible {
+    opacity: 1;
+  }
+  
+  &.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+// Wrap (container for modal)
+.vc-modal-wrap {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: auto;
+  z-index: 1000;
+  @include scrollbar;
+}
+
+// Modal
+.vc-modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  background: var(--vc-bg);
+  border: 1px solid var(--vc-color-border);
+  border-radius: var(--vc-radius-lg);
+  box-shadow: var(--vc-box-shadow-lg);
+  max-height: calc(100vh - 64px);
+  transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
+  
+  // Sizes
+  &--small {
+    width: 90%;
+    max-width: 400px;
+  }
+  
+  &--medium {
+    width: 90%;
+    max-width: 600px;
+  }
+  
+  &--large {
+    width: 90%;
+    max-width: 900px;
+  }
+  
+  &--full {
+    width: calc(100% - 32px);
+    height: calc(100vh - 64px);
+    max-width: none;
+  }
+  
+  // Centered
+  &--centered {
+    margin-top: 32px;
+    margin-bottom: 32px;
+  }
+  
+  // Animation states
+  &.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  &.is-hidden {
+    opacity: 0;
+    transform: translateY(-20px);
+    pointer-events: none;
+  }
+}
+
+// Header
+.vc-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--vc-padding) * 4 / 3);
+  border-bottom: 1px solid var(--vc-color-border);
+  flex-shrink: 0;
+}
+
+.vc-modal-title {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vc-color-text);
+  line-height: 1.4;
+  margin-right: var(--vc-padding);
+}
+
+.vc-modal-close {
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity var(--vc-motion-duration-fast) var(--vc-motion-ease-out);
+  
+  &:hover {
+    opacity: 1;
+  }
+}
+
+// Body
+.vc-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: calc(var(--vc-padding) * 4 / 3);
+  color: var(--vc-color-text);
+  font-size: 13px;
+  line-height: 1.6;
+  @include scrollbar;
+}
+
+// Footer
+.vc-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: calc(var(--vc-padding) / 2);
+  padding: calc(var(--vc-padding) * 4 / 3);
+  border-top: 1px solid var(--vc-color-border);
+  flex-shrink: 0;
+}
+
+// Dialog specific styles
+.vc-dialog-actions {
+  display: flex;
+  gap: calc(var(--vc-padding) / 2);
+  width: 100%;
+  justify-content: flex-end;
+}
+
+// Animations
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes maskFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.vc-modal.is-visible {
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+.vc-modal-mask.is-visible {
+  animation: maskFadeIn 0.2s ease-out;
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .vc-modal {
+    &--small,
+    &--medium,
+    &--large {
+      width: calc(100% - 32px);
+      max-width: none;
+    }
+  }
+  
+  .vc-modal-header,
+  .vc-modal-body,
+  .vc-modal-footer {
+    padding: var(--vc-padding);
+  }
+}

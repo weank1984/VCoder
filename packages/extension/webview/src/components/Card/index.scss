@@ -1,0 +1,192 @@
+/**
+ * Card Component Styles
+ */
+
+@use '../../styles/mixins' as *;
+
+.vc-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--vc-radius-md);
+  transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
+  
+  // Variants
+  &--default {
+    background: var(--vc-bg-secondary);
+    border: 1px solid var(--vc-color-border);
+  }
+  
+  &--elevated {
+    background: var(--vc-bg-secondary);
+    border: none;
+    box-shadow: var(--vc-box-shadow);
+  }
+  
+  &--outlined {
+    background: transparent;
+    border: 1px solid var(--vc-color-border);
+  }
+  
+  &--flat {
+    background: var(--vc-bg-secondary);
+    border: none;
+    box-shadow: none;
+  }
+  
+  // Padding sizes
+  &--padding-none {
+    padding: 0;
+  }
+  
+  &--padding-small {
+    padding: calc(var(--vc-padding) * 2 / 3); // 8px
+  }
+  
+  &--padding-medium {
+    padding: var(--vc-padding); // 12px
+  }
+  
+  &--padding-large {
+    padding: calc(var(--vc-padding) * 4 / 3); // 16px
+  }
+  
+  // Interactive state
+  &--interactive {
+    cursor: pointer;
+    
+    &:hover:not(.is-disabled) {
+      background: var(--vscode-list-hoverBackground);
+      transform: translateY(-1px);
+      
+      &.vc-card--elevated {
+        box-shadow: var(--vc-box-shadow-lg);
+      }
+    }
+    
+    &:active:not(.is-disabled) {
+      transform: translateY(0);
+    }
+  }
+  
+  // Clickable state
+  &.is-clickable {
+    cursor: pointer;
+    
+    &:hover:not(.is-disabled) {
+      border-color: var(--vscode-focusBorder);
+    }
+  }
+  
+  // Disabled state
+  &.is-disabled {
+    @include disabled-state;
+  }
+}
+
+// Card Header
+.vc-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--vc-padding);
+  padding: var(--vc-padding);
+  padding-bottom: calc(var(--vc-padding) * 2 / 3);
+  
+  // 如果Card已经有padding，则减少header的padding
+  .vc-card--padding-medium & {
+    padding: 0 0 calc(var(--vc-padding) * 2 / 3) 0;
+  }
+  
+  .vc-card--padding-large & {
+    padding: 0 0 var(--vc-padding) 0;
+  }
+  
+  .vc-card--padding-small & {
+    padding: 0 0 calc(var(--vc-padding) / 2) 0;
+  }
+}
+
+.vc-card-header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.vc-card-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vc-color-text);
+  line-height: 1.4;
+  @include text-ellipsis;
+}
+
+.vc-card-header-subtitle {
+  margin-top: calc(var(--vc-padding) / 4);
+  font-size: 12px;
+  color: var(--vc-color-text-secondary);
+  line-height: 1.4;
+  @include text-ellipsis;
+}
+
+.vc-card-header-action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--vc-padding) / 2);
+}
+
+// Card Body
+.vc-card-body {
+  flex: 1;
+  
+  // 如果Card已经有padding，则不需要额外padding
+  .vc-card--padding-none & {
+    padding: var(--vc-padding);
+  }
+}
+
+// Card Footer
+.vc-card-footer {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--vc-padding) / 2);
+  padding: var(--vc-padding);
+  padding-top: calc(var(--vc-padding) * 2 / 3);
+  border-top: 1px solid var(--vc-color-border);
+  
+  // 如果Card已经有padding，则减少footer的padding
+  .vc-card--padding-medium & {
+    padding: calc(var(--vc-padding) * 2 / 3) 0 0 0;
+  }
+  
+  .vc-card--padding-large & {
+    padding: var(--vc-padding) 0 0 0;
+  }
+  
+  .vc-card--padding-small & {
+    padding: calc(var(--vc-padding) / 2) 0 0 0;
+  }
+  
+  &--left {
+    justify-content: flex-start;
+  }
+  
+  &--center {
+    justify-content: center;
+  }
+  
+  &--right {
+    justify-content: flex-end;
+  }
+}
+
+// 紧凑的卡片布局（header + body + footer 之间无额外间距）
+.vc-card--compact {
+  .vc-card-header {
+    padding-bottom: 0;
+  }
+  
+  .vc-card-footer {
+    padding-top: 0;
+    border-top: none;
+  }
+}

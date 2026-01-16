@@ -1,3 +1,6 @@
+// Sticky User Prompt - 头顶输入框
+// 复用 InputArea 的样式，只添加必要的定制
+
 .vc-sticky-user-prompt {
     position: absolute;
     top: var(--vc-padding);
@@ -9,62 +12,58 @@
     justify-content: center;
     align-items: center;
     padding: 0 var(--vc-padding);
-
-    &::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 22px;
-        background: var(--vscode-input-background);
-        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.22);
-        backdrop-filter: blur(18px);
-        pointer-events: none;
-        z-index: -2;
-    }
-
-    &::after {
-        content: '';
-        position: absolute;
-        left: var(--vc-padding);
-        right: var(--vc-padding);
-        bottom: -28px;
-        height: 44px;
-        pointer-events: none;
-        background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, var(--vscode-input-background) 65%, rgba(255, 255, 255, 0.6) 100%);
-        filter: blur(16px);
-        z-index: -1;
-    }
 }
 
 .vc-sticky-user-prompt-inner {
     width: 100%;
-    max-width: 840px;
-    margin: 0 auto;
     display: flex;
     justify-content: center;
     box-sizing: border-box;
 }
 
+.vc-sticky-user-prompt-inner > .input-wrapper {
+    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+}
+
+.vc-sticky-user-prompt-inner .composer-toolbar {
+    flex-wrap: wrap;
+    row-gap: 6px;
+}
+
+.vc-sticky-user-prompt-inner .composer-toolbar .toolbar-left,
+.vc-sticky-user-prompt-inner .composer-toolbar .toolbar-right {
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+// 展开状态 - 使用额外的类来添加特殊样式
+.vc-sticky-expanded {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+// 折叠状态
 .vc-sticky-user-prompt-collapsed {
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 16px 18px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--vscode-widget-border, var(--vscode-input-border));
+    background: var(--vscode-input-background);
     color: var(--vscode-input-foreground);
     cursor: pointer;
     text-align: center;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     position: relative;
-    backdrop-filter: blur(20px);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
     &:hover {
-        border-color: var(--vscode-input-border);
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+        border-color: var(--vscode-focusBorder, var(--vscode-input-border));
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
     }
 }
 
@@ -79,43 +78,4 @@
     text-align: center;
 }
 
-.vc-sticky-user-prompt-textarea {
-    width: 100%;
-    padding: 10px 14px;
-    border: none;
-    outline: none;
-    resize: vertical;
-    min-height: 64px;
-    max-height: 220px;
-    background: transparent;
-    color: var(--vscode-input-foreground);
-    font-family: var(--vscode-font-family, "Inter", sans-serif);
-    font-size: 13px;
-    line-height: 1.6;
-}
-
-.vc-sticky-user-prompt-btn {
-    border: 1px solid var(--vscode-input-border);
-    background: transparent;
-    color: var(--vscode-foreground);
-    font-size: 12px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-}
-
-.vc-sticky-user-prompt-btn--primary {
-    background: var(--vscode-button-background);
-    border-color: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-
-    &:hover:not(:disabled) {
-        background: var(--vscode-button-hoverBackground);
-        border-color: var(--vscode-button-hoverBackground);
-    }
-}
+// Action button styles are now in ComposerToolbar/index.scss

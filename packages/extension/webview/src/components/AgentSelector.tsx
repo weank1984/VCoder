@@ -1,11 +1,13 @@
 /**
  * Agent Selector Component
  * Allows users to view and switch between different agents
+ * Refactored to use the unified Dropdown component
  */
 
-import { useState } from 'react';
-import type { MouseEvent } from 'react';
+import { useMemo } from 'react';
 import type { AgentProfile } from '@vcoder/shared';
+import { Dropdown } from './Dropdown';
+import type { DropdownItem } from './Dropdown';
 import { postMessage } from '../utils/vscode';
 import './AgentSelector.scss';
 
@@ -44,25 +46,33 @@ function getStatusBadge(status: AgentStatus): { icon: string; className: string;
 }
 
 export function AgentSelector({ agents, currentAgentId, onSelectAgent }: AgentSelectorProps) {
-    const [showList, setShowList] = useState(false);
-
     const currentAgent = agents.find((a) => a.profile.id === currentAgentId);
     const status = currentAgent?.status || 'offline';
     const statusBadge = getStatusBadge(status);
 
-    const handleSelectAgent = (agentId: string) => {
-        if (agentId === currentAgentId) {
-            setShowList(false);
-            return;
-        }
-        
-        onSelectAgent(agentId);
-        setShowList(false);
-    };
+    // Convert agents to dropdown items
+    const dropdownItems = useMemo<DropdownItem[]>(() => {
+        return agents.map((agent) => {
+            const agentBadge = getStatusBadge(agent.status);
+            return {
+                id: agent.profile.id,
+                label: (
+                    <div className="agent-item-content">
+                        <div className="agent-info">
+                            <span className="agent-name">{agent.profile.name}</span>
+                            <span className="agent-command">{agent.profile.command}</span>
+                        </div>
+                    </div>
+                ),
+                icon: <span className={`agent-status-icon ${agentBadge.className}`}>{agentBadge.icon}</span>,
+                disabled: agent.status !== 'online',
+                data: agent,
+            };
+        });
+    }, [agents]);
 
-    const handleRefreshAgents = (e: MouseEvent<HTMLButtonElement>) => {
-        e.stopPropagation();
-        postMessage({ type: 'refreshAgents' });
+    const handleSelectAgent = (item: DropdownItem) => {
+        onSelectAgent(item.id);
     };
 
     // If no agents configured, show a message
@@ -81,73 +91,61 @@ export function AgentSelector({ agents, currentAgentId, onSelectAgent }: AgentSe
         );
     }
 
-    return (
-        <div className="agent-selector">
+    // Header content with title and refresh button
+    const headerContent = (
+        <div className="agent-list-header">
+            <span className="agent-list-title">选择 Agent</span>
             <button
-                className="agent-selector-button"
-                onClick={() => setShowList(!showList)}
-                title={`当前 Agent: ${currentAgent?.profile.name || '未选择'} (${statusBadge.label})`}
+                className="agent-list-refresh"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    postMessage({ type: 'refreshAgents' });
+                }}
+                title="刷新 Agent 列表"
             >
-                <span className={`agent-status-icon ${statusBadge.className}`}>{statusBadge.icon}</span>
-                <span className="agent-selector-label">
-                    {currentAgent?.profile.name || '选择 Agent'}
-                </span>
-                <span className="agent-selector-arrow">▾</span>
+                ⟳
             </button>
-
-            {showList && (
-                <div className="agent-list-dropdown">
-                    <div className="agent-list-header">
-                        <span className="agent-list-title">选择 Agent</span>
-                        <button
-                            className="agent-list-refresh"
-                            onClick={handleRefreshAgents}
-                            title="刷新 Agent 列表"
-                        >
-                            ⟳
-                        </button>
-                    </div>
-
-                    <div className="agent-list">
-                        {agents.map((agent) => {
-                            const agentBadge = getStatusBadge(agent.status);
-                            const isActive = agent.profile.id === currentAgentId;
-
-                            return (
-                                <div
-                                    key={agent.profile.id}
-                                    className={`agent-item ${isActive ? 'agent-item--active' : ''} ${
-                                        agent.status !== 'online' ? 'agent-item--disabled' : ''
-                                    }`}
-                                    onClick={() => handleSelectAgent(agent.profile.id)}
-                                    title={`${agent.profile.name} - ${agentBadge.label}`}
-                                >
-                                    <span className={`agent-status-icon ${agentBadge.className}`}>
-                                        {agentBadge.icon}
-                                    </span>
-                                    <div className="agent-info">
-                                        <span className="agent-name">{agent.profile.name}</span>
-                                        <span className="agent-command">{agent.profile.command}</span>
-                                    </div>
-                                    {isActive && <span className="agent-active-mark">✓</span>}
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    <div className="agent-list-footer">
-                        <button
-                            className="agent-list-settings"
-                            onClick={() => {
-                                postMessage({ type: 'openSettings', setting: 'vcoder.agentProfiles' });
-                                setShowList(false);
-                            }}
-                        >
-                            ⚙️ 配置 Agent
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
+    );
+
+    // Footer content with settings button
+    const footerContent = (
+        <button
+            className="agent-list-settings"
+            onClick={() => postMessage({ type: 'openSettings', setting: 'vcoder.agentProfiles' })}
+        >
+            ⚙️ 配置 Agent
+        </button>
+    );
+
+    // Trigger button
+    const trigger = (
+        <button
+            className="agent-selector-button"
+            title={`当前 Agent: ${currentAgent?.profile.name || '未选择'} (${statusBadge.label})`}
+        >
+            <span className={`agent-status-icon ${statusBadge.className}`}>{statusBadge.icon}</span>
+            <span className="agent-selector-label">
+                {currentAgent?.profile.name || '选择 Agent'}
+            </span>
+            <span className="agent-selector-arrow">▾</span>
+        </button>
+    );
+
+    return (
+        <Dropdown
+            trigger={trigger}
+            items={dropdownItems}
+            selectedId={currentAgentId || undefined}
+            onSelect={handleSelectAgent}
+            placement="bottom"
+            headerContent={headerContent}
+            footerContent={footerContent}
+            className="agent-selector"
+            popoverClassName="agent-list-dropdown"
+            minWidth={280}
+            maxHeight={300}
+            showCheckmark={true}
+        />
     );
 }

@@ -82,7 +82,7 @@ function getStatusClass(status: TodoItem['status']): string {
     }
 }
 
-export function TodoWriteEntry({ input, isExpanded = false, onToggle }: TodoWriteEntryProps) {
+export function TodoWriteEntry({ input, isExpanded = true, onToggle }: TodoWriteEntryProps) {
     const { t } = useI18n();
     const [expanded, setExpanded] = useState(isExpanded);
     

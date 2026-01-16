@@ -6,11 +6,10 @@ import { forwardRef, useImperativeHandle, useState, useRef, useEffect, useCallba
 import type { KeyboardEvent } from 'react';
 import { postMessage } from '../utils/vscode';
 import { useStore } from '../store/useStore';
-import type { ModelId } from '@vcoder/shared';
 import { FilePicker } from './FilePicker';
 import { PermissionRulesPanel } from './PermissionRulesPanel';
-import { AtIcon, WebIcon, ImageIcon, ArrowBottomIcon, SendIcon, StopIcon, CloseIcon, CheckIcon, ThinkIcon, ChatIcon, ListCheckIcon } from './Icon';
-import { IconButton } from './IconButton';
+import { ComposerToolbar } from './ComposerToolbar';
+import { CloseIcon } from './Icon';
 import { PendingChangesBar } from './PendingChangesBar';
 import { useI18n } from '../i18n/I18nProvider';
 import { loadPersistedState, savePersistedState } from '../utils/persist';
@@ -23,12 +22,6 @@ interface Attachment {
     name: string;
     content?: string;
 }
-
-const MODELS: { id: ModelId; name: string }[] = [
-    { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5' },
-    { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5' },
-    { id: 'glm-4.6', name: 'GLM 4.6' },
-];
 
 export interface InputAreaHandle {
     setText: (text: string, options?: { focus?: boolean }) => void;
@@ -48,11 +41,6 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
     const [isComposing, setIsComposing] = useState(false);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [showPermissionRules, setShowPermissionRules] = useState(false);
-    
-    // Model Picker State
-    const [showModelPicker, setShowModelPicker] = useState(false);
-    const [modelSearch, setModelSearch] = useState('');
-    const [showAgentPicker, setShowAgentPicker] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -115,8 +103,6 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
     useEffect(() => {
         if (!isLoading) return;
         setShowPicker(false);
-        setShowModelPicker(false);
-        setShowAgentPicker(false);
         setShowPermissionRules(false);
     }, [isLoading]);
 
@@ -254,11 +240,19 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
         }
     }, [input]);
 
-    const selectedModel = MODELS.find(m => m.id === model);
     const currentAgent = agents.find(a => a.profile.id === currentAgentId);
     
     // Check if send button should be disabled
     const isSendDisabled = !input.trim() && attachments.length === 0;
+
+    // Handle mention button click
+    const handleMentionClick = () => {
+        const newText = input + '@';
+        setInput(newText);
+        textareaRef.current?.focus();
+        setShowPicker(true);
+        setPickerQuery('');
+    };
 
     return (
         <div className="input-area">
@@ -335,170 +329,24 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                         }}
                     />
 
-                    <div className="input-toolbar">
-
-                        <div className="toolbar-left">
-                            <div
-                                className={`composer-unified-dropdown ${isComposerLocked ? 'is-disabled' : ''}`}
-                                onClick={() => {
-                                    if (isComposerLocked) return;
-                                    setShowAgentPicker(!showAgentPicker);
-                                }}
-                            >
-                                <div className="dropdown-content">
-                                    <span className="codicon codicon-infinity">♾️</span>
-                                    <span className="dropdown-label">{currentAgent?.profile.name || 'Agent'}</span>
-                                </div>
-                                <span className="codicon-chevron-down"><ArrowBottomIcon /></span>
-                                
-                                {showAgentPicker && (
-                                    <>
-                                        <div className="dropdown-select-overlay" onClick={(e) => { e.stopPropagation(); setShowAgentPicker(false); }} />
-                                        <div className="agent-selector-popover" onClick={e => e.stopPropagation()}>
-                                            <div className="agent-list-item selected" onClick={() => setShowAgentPicker(false)}>
-                                                <span className="agent-icon"><span className="codicon codicon-infinity" style={{ fontSize: '14px' }}>♾️</span></span>
-                                                <span className="agent-label">Agent</span>
-                                                <span className="agent-shortcut">⌘I</span>
-                                                <CheckIcon />
-                                            </div>
-                                            <div className="agent-list-item" onClick={() => setShowAgentPicker(false)}>
-                                                <span className="agent-icon"><ListCheckIcon /></span>
-                                                <span className="agent-label">Plan</span>
-                                            </div>
-                                            <div className="agent-list-item" onClick={() => setShowAgentPicker(false)}>
-                                                <span className="agent-icon"><span className="codicon codicon-debug-alt" style={{ fontSize: '14px' }}></span></span>
-                                                <span className="agent-label">Debug</span>
-                                            </div>
-                                            <div className="agent-list-item" onClick={() => setShowAgentPicker(false)}>
-                                                <span className="agent-icon"><ChatIcon /></span>
-                                                <span className="agent-label">Ask</span>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            <div
-                                className={`composer-unified-dropdown-model ${isComposerLocked ? 'is-disabled' : ''}`}
-                                onClick={() => {
-                                    if (isComposerLocked) return;
-                                    setShowModelPicker(!showModelPicker);
-                                }}
-                            >
-                                <span className="model-label">{selectedModel?.name || 'Model'}</span>
-                                <span className="codicon-chevron-down"><ArrowBottomIcon /></span>
-                                
-                                {showModelPicker && (
-                                    <>
-                                        <div className="dropdown-select-overlay" onClick={(e) => { e.stopPropagation(); setShowModelPicker(false); }} />
-                                        <div className="model-selector-popover" onClick={e => e.stopPropagation()}>
-                                            <div className="model-search-wrapper">
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Search models" 
-                                                    autoFocus
-                                                    value={modelSearch}
-                                                    onChange={e => setModelSearch(e.target.value)}
-                                                />
-                                            </div>
-                                            
-                                            <div className="model-section">
-                                                <div className="model-toggle-item">
-                                                    <span>Auto</span>
-                                                    <div className="toggle-switch" />
-                                                </div>
-                                                <div className="model-toggle-item">
-                                                    <span>MAX Mode</span>
-                                                    <div className="toggle-switch" />
-                                                </div>
-                                                <div className="model-toggle-item">
-                                                    <span>Use Multiple Models</span>
-                                                    <div className="toggle-switch" />
-                                                </div>
-                                            </div>
-
-                                            <div className="model-section">
-                                                {MODELS.filter(m => m.name.toLowerCase().includes(modelSearch.toLowerCase())).map((m) => (
-                                                    <div 
-                                                        key={m.id} 
-                                                        className={`model-list-item ${model === m.id ? 'selected' : ''}`}
-                                                        onClick={() => {
-                                                            setModel(m.id);
-                                                            setShowModelPicker(false);
-                                                        }}
-                                                    >
-                                                        <div className="model-item-left">
-                                                            <span>{m.name}</span>
-                                                            <span className="brain-icon"><ThinkIcon /></span>
-                                                        </div>
-                                                        {model === m.id && <CheckIcon />}
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            <div className="model-footer">
-                                                Add Models {'>'}
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="toolbar-right">
-                            {/* Context/Mention Button */}
-                            <IconButton
-                                icon={<AtIcon />}
-                                label="Mention"
-                                disabled={isComposerLocked}
-                                onClick={() => {
-                                    const newText = input + '@';
-                                    setInput(newText);
-                                    textareaRef.current?.focus();
-                                    // Trigger React state update manually if needed to check regex immediately
-                                    // But onChange handler on textarea usually handles it.
-                                    // We might need to manually trigger the picker logic if changing state directly doesn't fire onChange.
-                                    // Actually just setting input and focus is enough for next keystroke, but to show picker immediately:
-                                    setShowPicker(true);
-                                    setPickerQuery('');
-                                }}
-                            />
-
-                            {/* Web/Globe Button */}
-                            <IconButton
-                                icon={<WebIcon />}
-                                label="Web Search"
-                                disabled={isComposerLocked}
-                                onClick={() => {
-                                    // Placeholder
-                                }}
-                            />
-
-                            {/* Add File Button */}
-                            <IconButton
-                                icon={<ImageIcon />}
-                                label="Add Files"
-                                disabled={isComposerLocked}
-                                onClick={handleAddFiles}
-                            />
-                            
-                            {/* Send / Stop Button */}
-                             {isLoading ? (
-                                <IconButton
-                                    icon={<StopIcon />}
-                                    label="Stop Generating"
-                                    onClick={() => postMessage({ type: 'cancel' })}
-                                />
-                            ) : (
-                                <IconButton
-                                    icon={<SendIcon />}
-                                    label="Send Message"
-                                    disabled={isSendDisabled}
-                                    onClick={handleSubmit}
-                                />
-                            )}
-                        </div>
-                    </div>
+                    <ComposerToolbar
+                        showAgentSelector
+                        showModelSelector
+                        currentAgentName={currentAgent?.profile.name || 'Agent'}
+                        selectedModel={model}
+                        onSelectModel={setModel}
+                        showMentionButton
+                        showWebButton
+                        showImageButton
+                        onMentionClick={handleMentionClick}
+                        onImageClick={handleAddFiles}
+                        primaryAction="send"
+                        isLoading={isLoading}
+                        isSendDisabled={isSendDisabled}
+                        onSend={handleSubmit}
+                        onStop={() => postMessage({ type: 'cancel' })}
+                        disabled={isComposerLocked}
+                    />
                 </div>
             </div>
         </div>

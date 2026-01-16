@@ -1,13 +1,12 @@
 /**
  * Agent Selector Styles
+ * Simplified after refactoring to use Dropdown component
  */
 
 .agent-selector {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    
     &--empty {
+        display: inline-flex;
+        align-items: center;
         gap: calc(var(--vc-padding) / 2);
     }
 }
@@ -102,29 +101,12 @@
     }
 }
 
-// Dropdown
-.agent-list-dropdown {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: calc(var(--vc-padding) / 3);
-    min-width: 280px;
-    max-width: 400px;
-    background: var(--vscode-dropdown-background);
-    border: 1px solid var(--vscode-dropdown-border, var(--vscode-widget-border));
-    border-radius: calc(var(--vc-radius-sm) - 2px);
-    box-shadow: var(--vc-box-shadow);
-    z-index: 1000;
-    overflow: hidden;
-}
-
+// Dropdown customizations (used via Dropdown component)
 .agent-list-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: calc(var(--vc-padding) / 1.5) var(--vc-padding);
-    background: var(--vscode-sideBar-background);
-    border-bottom: 1px solid var(--vscode-widget-border, var(--vc-color-border));
+    width: 100%;
 }
 
 .agent-list-title {
@@ -149,44 +131,11 @@
     }
 }
 
-.agent-list {
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.agent-item {
+// Agent item content (rendered inside dropdown items)
+.agent-item-content {
     display: flex;
     align-items: center;
-    gap: calc(var(--vc-padding) / 1.5);
-    padding: calc(var(--vc-padding) * 5 / 6) var(--vc-padding);
-    cursor: pointer;
-    border-bottom: 1px solid var(--vscode-widget-border, var(--vc-color-border-secondary));
-    transition: background var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
-
-    &:hover {
-        background: var(--vscode-list-hoverBackground);
-    }
-
-    &:last-child {
-        border-bottom: none;
-    }
-
-    &--active {
-        background: var(--vscode-list-activeSelectionBackground);
-        
-        .agent-name {
-            font-weight: 600;
-        }
-    }
-
-    &--disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-
-        &:hover {
-            background: transparent;
-        }
-    }
+    width: 100%;
 }
 
 .agent-info {
@@ -212,18 +161,7 @@
     white-space: nowrap;
 }
 
-.agent-active-mark {
-    color: var(--vscode-testing-iconPassed, var(--vscode-terminal-ansiGreen));
-    font-size: 16px;
-    font-weight: bold;
-}
-
-.agent-list-footer {
-    padding: calc(var(--vc-padding) / 1.5) var(--vc-padding);
-    background: var(--vscode-sideBar-background);
-    border-top: 1px solid var(--vscode-widget-border, var(--vc-color-border));
-}
-
+// Settings button (in dropdown footer)
 .agent-list-settings {
     width: 100%;
     padding: calc(var(--vc-padding) / 2) calc(var(--vc-padding) * 5 / 6);

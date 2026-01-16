@@ -80,7 +80,7 @@ function truncate(text: string, maxLen: number): string {
 
 export function TaskEntry({ toolCall, status, hideHeader = false }: TaskEntryProps) {
     const { t } = useI18n();
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(true);
     
     const taskInfo = useMemo(() => parseTaskInfo(toolCall.input), [toolCall.input]);
     

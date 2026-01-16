@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { ChatMessage } from '../types';
+import { useStore } from '../store/useStore';
+import { ComposerToolbar } from './ComposerToolbar';
 import { useI18n } from '../i18n/I18nProvider';
 import './StickyUserPrompt.scss';
 import './ComposerSurface.scss';
@@ -15,10 +17,13 @@ export interface StickyUserPromptProps {
 
 export function StickyUserPrompt({ message, disabled, onApplyToComposer, onHeightChange }: StickyUserPromptProps) {
     const { t } = useI18n();
+    const { model, setModel, agents, currentAgentId } = useStore();
     const rootRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [expanded, setExpanded] = useState(false);
     const [draft, setDraft] = useState('');
+
+    const currentAgent = agents.find(a => a.profile.id === currentAgentId);
 
     const hasMessage = Boolean(message && message.role === 'user' && message.content.trim().length > 0);
 
@@ -75,14 +80,15 @@ export function StickyUserPrompt({ message, disabled, onApplyToComposer, onHeigh
         <div className="vc-sticky-user-prompt" ref={rootRef}>
             <div className="vc-sticky-user-prompt-inner">
                 {expanded ? (
-                    <div className="input-wrapper vc-composer-surface vc-composer-surface--interactive">
+                    <div className="input-wrapper vc-composer-surface vc-composer-surface--interactive vc-sticky-expanded">
                         <div className="input-content">
                             <textarea
                                 ref={textareaRef}
-                                className="input-field vc-sticky-user-prompt-textarea"
+                                className="input-field"
                                 value={draft}
                                 onChange={(e) => setDraft(e.target.value)}
                                 rows={3}
+                                placeholder={t('Chat.EditPinnedPrompt')}
                                 onKeyDown={(e: KeyboardEvent<HTMLTextAreaElement>) => {
                                     if (e.key === 'Escape') {
                                         e.preventDefault();
@@ -98,28 +104,23 @@ export function StickyUserPrompt({ message, disabled, onApplyToComposer, onHeigh
                                     }
                                 }}
                             />
-                            <div className="input-toolbar">
-                                <div className="toolbar-right">
-                                    <button
-                                        className="vc-sticky-user-prompt-btn"
-                                        onClick={() => setExpanded(false)}
-                                        type="button"
-                                    >
-                                        {t('Agent.Cancel')}
-                                    </button>
-                                    <button
-                                        className="vc-sticky-user-prompt-btn vc-sticky-user-prompt-btn--primary"
-                                        onClick={() => {
-                                            if (!disabled) onApplyToComposer(draft);
-                                            setExpanded(false);
-                                        }}
-                                        type="button"
-                                        disabled={disabled}
-                                    >
-                                        {t('Chat.UseAsInput')}
-                                    </button>
-                                </div>
-                            </div>
+                            <ComposerToolbar
+                                showAgentSelector
+                                showModelSelector
+                                currentAgentName={currentAgent?.profile.name || 'Agent'}
+                                selectedModel={model}
+                                onSelectModel={setModel}
+                                showMentionButton
+                                showWebButton
+                                showImageButton
+                                primaryAction="apply"
+                                onApply={() => {
+                                    if (!disabled) onApplyToComposer(draft);
+                                    setExpanded(false);
+                                }}
+                                onCancel={() => setExpanded(false)}
+                                disabled={disabled}
+                            />
                         </div>
                     </div>
                 ) : (

@@ -9,11 +9,26 @@ export type { ButtonProps } from './Button';
 
 export { IconButton } from './IconButton';
 
+export { Dropdown } from './Dropdown';
+export type { DropdownProps, DropdownItem } from './Dropdown';
+
+export { AgentSelector } from './AgentSelector';
+export type { AgentInfo, AgentStatus } from './AgentSelector';
+
+export { ModelSelector } from './ModelSelector';
+
+export { ComposerToolbar } from './ComposerToolbar';
+export type { ComposerToolbarProps } from './ComposerToolbar';
+
 // === 图标 ===
 export * from './Icon';
 
 // === 布局组件 ===
-// (待添加: Card, Container 等)
+export { Card, CardHeader, CardBody, CardFooter } from './Card';
+export type { CardProps, CardHeaderProps, CardBodyProps, CardFooterProps } from './Card';
+
+export { Modal, Dialog } from './Modal';
+export type { ModalProps, DialogProps } from './Modal';
 
 // === 表单组件 ===
 export { InputArea } from './InputArea';

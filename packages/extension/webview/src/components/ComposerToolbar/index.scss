@@ -1,0 +1,189 @@
+/* ComposerToolbar - Shared toolbar styles */
+
+.composer-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(var(--vc-padding) / 1.5) var(--vc-padding) calc(var(--vc-padding) * 5 / 6);
+    margin-top: 2px;
+    
+    .toolbar-left, .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--vc-padding) / 2);
+    }
+}
+
+/* Unified Dropdowns */
+.composer-unified-dropdown {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--vc-padding) / 2);
+    font-size: 12px;
+    height: 26px;
+    padding: 0 calc(var(--vc-padding) / 1.5);
+    border-radius: var(--vc-radius-sm);
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+    transition: background var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
+    
+    &:hover {
+        background: var(--vscode-button-secondaryHoverBackground);
+    }
+    
+    .dropdown-content {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--vc-padding) / 2);
+    }
+    
+    .codicon-infinity {
+        font-size: 14px;
+    }
+
+    .dropdown-label {
+        font-weight: 500;
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .codicon-chevron-down {
+        opacity: 0.7;
+        display: flex;
+        svg { width: 10px; height: 10px; fill: currentColor; }
+    }
+}
+
+.composer-unified-dropdown.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Agent Selector Popover */
+.agent-selector-popover {
+    padding: calc(var(--vc-padding) / 3);
+    background: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-radius: calc(var(--vc-padding) / 1.5);
+    box-shadow: var(--vc-box-shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--vscode-foreground);
+    position: absolute;
+    bottom: calc(100% + calc(var(--vc-padding) / 1.5));
+    left: 0;
+    z-index: 1000;
+    animation: fadeIn var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
+    width: 220px;
+
+    .agent-list-item {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--vc-padding) / 1.5);
+        padding: calc(var(--vc-padding) / 1.5);
+        cursor: pointer;
+        border-radius: var(--vc-radius-sm);
+        font-size: 12px;
+        transition: background var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
+        
+        &:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+        
+        &.selected {
+            background: var(--vscode-list-activeSelectionBackground);
+            color: var(--vscode-list-activeSelectionForeground);
+        }
+
+        .agent-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            opacity: 0.9;
+        }
+
+        .agent-label {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .agent-shortcut {
+            font-size: 10px;
+            opacity: 0.6;
+            background: var(--vscode-keybindingLabel-background);
+            border: 1px solid var(--vscode-keybindingLabel-border);
+            color: var(--vscode-keybindingLabel-foreground);
+            padding: 1px calc(var(--vc-padding) / 3);
+            border-radius: 3px;
+        }
+    }
+}
+
+/* Dropdown Overlay */
+.dropdown-select-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 999;
+}
+
+/* Apply Actions (for StickyUserPrompt mode) */
+.toolbar-apply-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Action Buttons */
+.vc-action-btn {
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+    white-space: nowrap;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+}
+
+.vc-action-btn--secondary {
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+
+    &:hover:not(:disabled) {
+        background: var(--vscode-button-secondaryHoverBackground);
+    }
+}
+
+.vc-action-btn--primary {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+
+    &:hover:not(:disabled) {
+        background: var(--vscode-button-hoverBackground);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
