@@ -386,9 +386,12 @@ export const useStore = create<AppStore>((set, get) => ({
                 subagentRuns: [],
                 sessionStatus: 'idle',
                 lastActivityTime: Date.now(),
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
             };
             
             sessionState.messages = [...sessionState.messages, message];
+            sessionState.updatedAt = Date.now();
             newSessionStates.set(state.currentSessionId!, sessionState);
             
             return { 
@@ -629,6 +632,8 @@ export const useStore = create<AppStore>((set, get) => ({
                 subagentRuns: [],
                 sessionStatus: 'idle',
                 lastActivityTime: Date.now(),
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
             };
             
             sessionState.tasks = tasks;
@@ -664,6 +669,8 @@ export const useStore = create<AppStore>((set, get) => ({
                     subagentRuns: [],
                     sessionStatus: 'idle',
                     lastActivityTime: Date.now(),
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
                 };
                 newSessionStates.set(sessionId, sessionState);
             }
@@ -684,9 +691,9 @@ export const useStore = create<AppStore>((set, get) => ({
                 tasks: currentSessionData.tasks,
                 subagentRuns: currentSessionData.subagentRuns,
                 sessionStatus: currentSessionData.sessionStatus,
+                sessionCompleteReason: sessionState?.sessionCompleteReason,
+                sessionCompleteMessage: sessionState?.sessionCompleteMessage,
                 pendingFileChanges: [],
-                sessionCompleteReason: undefined,
-                sessionCompleteMessage: undefined,
                 error: null,
             };
         });
@@ -709,9 +716,10 @@ export const useStore = create<AppStore>((set, get) => ({
             permissionMode: mode,
             // Update planMode for backward compatibility
             planMode: mode === 'plan',
-            // Clear tasks/subagentRuns when switching to plan mode
+            // Clear tasks/subagentRuns/pendingFileChanges when switching to plan mode
             tasks: mode === 'plan' && state.permissionMode !== 'plan' ? [] : state.tasks,
             subagentRuns: mode === 'plan' && state.permissionMode !== 'plan' ? [] : state.subagentRuns,
+            pendingFileChanges: mode === 'plan' && state.permissionMode !== 'plan' ? [] : state.pendingFileChanges,
         }));
         postMessage({ type: 'setPermissionMode', mode });
     },
@@ -866,14 +874,37 @@ export const useStore = create<AppStore>((set, get) => ({
             }
             case 'subagent_run': {
                 const run = content as SubagentRunUpdate;
-                set((state) => {
-                    const subagentRuns = [...state.subagentRuns];
+                const state = get();
+                const currentSessionId = state.currentSessionId;
+                
+                // Strict session filtering: ignore updates for other sessions
+                if (sessionId && currentSessionId && sessionId !== currentSessionId) {
+                    return;
+                }
+                
+                set((prevState) => {
+                    const subagentRuns = [...prevState.subagentRuns];
                     const idx = subagentRuns.findIndex((r) => r.id === run.id);
                     if (idx >= 0) {
                         subagentRuns[idx] = { ...subagentRuns[idx], ...run };
                     } else {
                         subagentRuns.push(run);
                     }
+                    
+                    if (currentSessionId) {
+                        const newSessionStates = new Map(prevState.sessionStates);
+                        const sessionState = newSessionStates.get(currentSessionId);
+                        if (sessionState) {
+                            sessionState.subagentRuns = [...subagentRuns];
+                            sessionState.updatedAt = Date.now();
+                            newSessionStates.set(currentSessionId, sessionState);
+                        }
+                        return { 
+                            subagentRuns,
+                            sessionStates: newSessionStates
+                        };
+                    }
+                    
                     return { subagentRuns };
                 });
                 break;
@@ -974,6 +1005,8 @@ export const useStore = create<AppStore>((set, get) => ({
                 subagentRuns: [],
                 sessionStatus: 'idle',
                 lastActivityTime: Date.now(),
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
             };
             set((prevState: AppState) => {
                 const newSessionStates = new Map(prevState.sessionStates);

@@ -415,6 +415,8 @@ export interface SessionState {
     sessionCompleteReason?: SessionCompleteReason;
     sessionCompleteMessage?: string;
     lastActivityTime: number;
+    createdAt: number;
+    updatedAt: number;
 }
 
 export interface AppState {
