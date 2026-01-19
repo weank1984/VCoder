@@ -3,9 +3,11 @@
  * Used by both InputArea and StickyUserPrompt
  */
 
-import { useState } from 'react';
+
 import type { ModelId } from '@vcoder/shared';
 import { ModelSelector } from '../ModelSelector';
+import { AgentSelector } from '../AgentSelector';
+import type { AgentInfo } from '../AgentSelector';
 import { IconButton } from '../IconButton';
 import { 
     AtIcon, 
@@ -13,10 +15,8 @@ import {
     ImageIcon, 
     ArrowBottomIcon, 
     SendIcon, 
-    StopIcon, 
-    CheckIcon, 
-    ChatIcon, 
-    ListCheckIcon
+    StopIcon,
+    ManageIcon
 } from '../Icon';
 import { useI18n } from '../../i18n/I18nProvider';
 import './index.scss';
@@ -25,18 +25,23 @@ export interface ComposerToolbarProps {
     // Left toolbar - Agent & Model selectors
     showAgentSelector?: boolean;
     showModelSelector?: boolean;
+    agents?: AgentInfo[];
+    currentAgentId?: string | null;
+    onAgentSelect?: (agentId: string) => void;
     currentAgentName?: string;
+    onAgentChange?: (agentId: string) => void;
     selectedModel?: ModelId;
     onSelectModel?: (model: ModelId) => void;
-    onAgentChange?: (agentId: string) => void;
     
     // Right toolbar - Action buttons
     showMentionButton?: boolean;
     showWebButton?: boolean;
     showImageButton?: boolean;
+    showPermissionButton?: boolean;
     onMentionClick?: () => void;
     onWebClick?: () => void;
     onImageClick?: () => void;
+    onPermissionClick?: () => void;
     
     // Primary action configuration
     primaryAction: 'send' | 'apply';
@@ -54,6 +59,9 @@ export interface ComposerToolbarProps {
 export function ComposerToolbar({
     showAgentSelector = true,
     showModelSelector = true,
+    agents = [],
+    currentAgentId = null,
+    onAgentSelect,
     currentAgentName = 'Agent',
     selectedModel,
     onSelectModel,
@@ -61,9 +69,11 @@ export function ComposerToolbar({
     showMentionButton = true,
     showWebButton = true,
     showImageButton = true,
+    showPermissionButton = true,
     onMentionClick,
     onWebClick,
     onImageClick,
+    onPermissionClick,
     primaryAction,
     isLoading = false,
     isSendDisabled = false,
@@ -74,23 +84,29 @@ export function ComposerToolbar({
     disabled = false,
 }: ComposerToolbarProps) {
     const { t } = useI18n();
-    const [showAgentPicker, setShowAgentPicker] = useState(false);
-
-    const handleAgentSelect = (agentId: string) => {
-        onAgentChange?.(agentId);
-        setShowAgentPicker(false);
-    };
 
     return (
         <div className="composer-toolbar">
             <div className="toolbar-left">
-                {/* Agent Selector */}
-                {showAgentSelector && (
+                
+                {showAgentSelector && agents.length > 0 && (
+                    <AgentSelector
+                        agents={agents}
+                        currentAgentId={currentAgentId}
+                        onSelectAgent={onAgentSelect || (() => {})}
+                    />
+                )}
+                
+                
+                {showAgentSelector && agents.length === 0 && onAgentChange && (
                     <div
                         className={`composer-unified-dropdown ${disabled ? 'is-disabled' : ''}`}
                         onClick={() => {
-                            if (disabled) return;
-                            setShowAgentPicker(!showAgentPicker);
+                            if (disabled || !currentAgentName) return;
+                            const modes = ['Agent', 'Plan', 'Debug', 'Ask'];
+                            const currentIndex = modes.indexOf(currentAgentName);
+                            const nextMode = modes[(currentIndex + 1) % modes.length];
+                            onAgentChange(nextMode.toLowerCase());
                         }}
                     >
                         <div className="dropdown-content">
@@ -98,54 +114,6 @@ export function ComposerToolbar({
                             <span className="dropdown-label">{currentAgentName}</span>
                         </div>
                         <span className="codicon-chevron-down"><ArrowBottomIcon /></span>
-                        
-                        {showAgentPicker && (
-                            <>
-                                <div 
-                                    className="dropdown-select-overlay" 
-                                    onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        setShowAgentPicker(false); 
-                                    }} 
-                                />
-                                <div className="agent-selector-popover" onClick={e => e.stopPropagation()}>
-                                    <div 
-                                        className="agent-list-item selected" 
-                                        onClick={() => handleAgentSelect('agent')}
-                                    >
-                                        <span className="agent-icon">
-                                            <span className="codicon codicon-infinity" style={{ fontSize: '14px' }}>♾️</span>
-                                        </span>
-                                        <span className="agent-label">Agent</span>
-                                        <span className="agent-shortcut">⌘I</span>
-                                        <CheckIcon />
-                                    </div>
-                                    <div 
-                                        className="agent-list-item" 
-                                        onClick={() => handleAgentSelect('plan')}
-                                    >
-                                        <span className="agent-icon"><ListCheckIcon /></span>
-                                        <span className="agent-label">Plan</span>
-                                    </div>
-                                    <div 
-                                        className="agent-list-item" 
-                                        onClick={() => handleAgentSelect('debug')}
-                                    >
-                                        <span className="agent-icon">
-                                            <span className="codicon codicon-debug-alt" style={{ fontSize: '14px' }}></span>
-                                        </span>
-                                        <span className="agent-label">Debug</span>
-                                    </div>
-                                    <div 
-                                        className="agent-list-item" 
-                                        onClick={() => handleAgentSelect('ask')}
-                                    >
-                                        <span className="agent-icon"><ChatIcon /></span>
-                                        <span className="agent-label">Ask</span>
-                                    </div>
-                                </div>
-                            </>
-                        )}
                     </div>
                 )}
 
@@ -187,6 +155,15 @@ export function ComposerToolbar({
                         label="Add Files"
                         disabled={disabled}
                         onClick={onImageClick}
+                    />
+                )}
+
+                {showPermissionButton && (
+                    <IconButton
+                        icon={<ManageIcon />}
+                        label="Permission Rules"
+                        disabled={disabled}
+                        onClick={onPermissionClick}
                     />
                 )}
 

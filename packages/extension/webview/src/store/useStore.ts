@@ -1,5 +1,5 @@
 import { create } from './createStore';
-import type { AppState, ChatMessage, ContentBlock, ToolCall, UiLanguage, AgentInfo, SessionStatus } from '../types';
+import type { AppState, ChatMessage, ContentBlock, ToolCall, UiLanguage, AgentInfo, SessionStatus, SessionState } from '../types';
 import type { Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, FileChangeUpdate, SessionCompleteReason } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
 
@@ -98,6 +98,10 @@ interface AppStore extends AppState {
     setSessionStatus: (status: SessionStatus) => void;
     handleSessionComplete: (reason: SessionCompleteReason, message?: string, error?: ErrorUpdate) => void;
     updateActivity: () => void;
+    // Session management helpers
+    getCurrentSessionState: () => SessionState | null;
+    getOrCreateSessionState: (sessionId: string) => SessionState;
+    updateCurrentSessionState: (updates: Partial<SessionState>) => void;
     // History Actions
     setHistorySessions: (sessions: HistorySession[]) => void;
     loadHistorySession: (sessionId: string, messages: HistoryChatMessage[]) => void;
@@ -297,6 +301,8 @@ function appendContentBlock(target: ChatMessage, block: ContentBlock): void {
 const initialState: AppState = {
     sessions: [],
     currentSessionId: null,
+    sessionStates: new Map(),
+    // Legacy fields for backward compatibility during migration
     messages: [],
     tasks: [],
     subagentRuns: [],
@@ -309,7 +315,7 @@ const initialState: AppState = {
     error: null,
     workspaceFiles: [],
     uiLanguage: 'auto',
-    // Session status tracking
+    // Session status tracking - managed both in sessionStates and legacy fields
     sessionStatus: 'idle',
     sessionCompleteReason: undefined,
     sessionCompleteMessage: undefined,
@@ -367,8 +373,31 @@ export const useStore = create<AppStore>((set, get) => ({
     ...restoredState,
 
 
-    addMessage: (message) =>
-        set((state) => ({ messages: [...state.messages, message] })),
+    addMessage: (message) => {
+        const state = get();
+        if (!state.currentSessionId) return;
+        
+        set((prevState) => {
+            const newSessionStates = new Map(prevState.sessionStates);
+            const sessionState = newSessionStates.get(state.currentSessionId!) || {
+                id: state.currentSessionId!,
+                messages: [],
+                tasks: [],
+                subagentRuns: [],
+                sessionStatus: 'idle',
+                lastActivityTime: Date.now(),
+            };
+            
+            sessionState.messages = [...sessionState.messages, message];
+            newSessionStates.set(state.currentSessionId!, sessionState);
+            
+            return { 
+                sessionStates: newSessionStates,
+                // Keep legacy field in sync for backward compatibility
+                messages: sessionState.messages 
+            };
+        });
+    },
 
     updateMessage: (id, updates) =>
         set((state) => ({
@@ -587,7 +616,31 @@ export const useStore = create<AppStore>((set, get) => ({
         });
     },
 
-    setTasks: (tasks) => set({ tasks }),
+    setTasks: (tasks) => {
+        const state = get();
+        if (!state.currentSessionId) return;
+        
+        set((prevState) => {
+            const newSessionStates = new Map(prevState.sessionStates);
+            const sessionState = newSessionStates.get(state.currentSessionId!) || {
+                id: state.currentSessionId!,
+                messages: [],
+                tasks: [],
+                subagentRuns: [],
+                sessionStatus: 'idle',
+                lastActivityTime: Date.now(),
+            };
+            
+            sessionState.tasks = tasks;
+            newSessionStates.set(state.currentSessionId!, sessionState);
+            
+            return { 
+                sessionStates: newSessionStates,
+                // Keep legacy field in sync for backward compatibility
+                tasks: sessionState.tasks 
+            };
+        });
+    },
 
     setSubagentRuns: (subagentRuns) => set({ subagentRuns }),
 
@@ -598,15 +651,46 @@ export const useStore = create<AppStore>((set, get) => ({
             pendingFileChanges: state.currentSessionId ? state.pendingFileChanges : [],
         })),
 
-    setCurrentSession: (sessionId) => set({ 
-        currentSessionId: sessionId, 
-        viewMode: 'live', 
-        pendingFileChanges: [],
-        sessionStatus: 'idle',
-        sessionCompleteReason: undefined,
-        sessionCompleteMessage: undefined,
-        error: null,
-    }),
+    setCurrentSession: (sessionId) => {
+        set((prevState) => {
+            const newSessionStates = new Map(prevState.sessionStates);
+            
+            let sessionState = sessionId ? newSessionStates.get(sessionId) : undefined;
+            if (!sessionState && sessionId) {
+                sessionState = {
+                    id: sessionId,
+                    messages: [],
+                    tasks: [],
+                    subagentRuns: [],
+                    sessionStatus: 'idle',
+                    lastActivityTime: Date.now(),
+                };
+                newSessionStates.set(sessionId, sessionState);
+            }
+            
+            const currentSessionData = sessionState || {
+                messages: [],
+                tasks: [],
+                subagentRuns: [],
+                sessionStatus: 'idle' as const,
+                lastActivityTime: Date.now(),
+            };
+            
+            return {
+                currentSessionId: sessionId,
+                sessionStates: newSessionStates,
+                viewMode: 'live',
+                messages: currentSessionData.messages,
+                tasks: currentSessionData.tasks,
+                subagentRuns: currentSessionData.subagentRuns,
+                sessionStatus: currentSessionData.sessionStatus,
+                pendingFileChanges: [],
+                sessionCompleteReason: undefined,
+                sessionCompleteMessage: undefined,
+                error: null,
+            };
+        });
+    },
 
     clearPendingFileChanges: () => set({ pendingFileChanges: [] }),
 
@@ -688,6 +772,12 @@ export const useStore = create<AppStore>((set, get) => ({
 
     handleUpdate: (update) => {
         const { type, content, sessionId } = update;
+        const state = get();
+        
+        // Strict session filtering: ignore updates for other sessions
+        if (sessionId && state.currentSessionId && sessionId !== state.currentSessionId) {
+            return;
+        }
         
         // Update activity timestamp for any update
         get().updateActivity();
@@ -863,6 +953,50 @@ export const useStore = create<AppStore>((set, get) => ({
     selectAgent: (agentId) => {
         set({ currentAgentId: agentId });
         postMessage({ type: 'selectAgent', agentId });
+    },
+
+    // Session management helpers
+    getCurrentSessionState: (): SessionState | null => {
+        const state = useStore.getState();
+        const { currentSessionId } = state;
+        if (!currentSessionId) return null;
+        return state.sessionStates.get(currentSessionId) || null;
+    },
+
+    getOrCreateSessionState: (sessionId: string): SessionState => {
+        const state = useStore.getState();
+        let sessionState = state.sessionStates.get(sessionId);
+        if (!sessionState) {
+            sessionState = {
+                id: sessionId,
+                messages: [],
+                tasks: [],
+                subagentRuns: [],
+                sessionStatus: 'idle',
+                lastActivityTime: Date.now(),
+            };
+            set((prevState: AppState) => {
+                const newSessionStates = new Map(prevState.sessionStates);
+                newSessionStates.set(sessionId, sessionState!);
+                return { sessionStates: newSessionStates };
+            });
+        }
+        return sessionState;
+    },
+
+    updateCurrentSessionState: (updates: Partial<SessionState>): void => {
+        const state = useStore.getState();
+        const { currentSessionId } = state;
+        if (!currentSessionId) return;
+        
+        set((prevState: AppState) => {
+            const newSessionStates = new Map(prevState.sessionStates);
+            const currentSessionState = newSessionStates.get(currentSessionId);
+            if (currentSessionState !== undefined) {
+                newSessionStates.set(currentSessionId, { ...currentSessionState, ...updates });
+            }
+            return { sessionStates: newSessionStates };
+        });
     },
 
     reset: () => set(initialState),

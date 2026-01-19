@@ -604,16 +604,24 @@ export interface RequestPermissionParams {
     };
 }
 
+export interface PermissionRule {
+    id: string;
+    toolName?: string;
+    pattern?: string;
+    action: 'allow' | 'deny';
+    createdAt: string;
+    updatedAt: string;
+    expiresAt?: string;
+    description?: string;
+}
+
 export interface RequestPermissionResult {
     /** Permission outcome */
     outcome: 'allow' | 'deny';
     /** Optional reason for denial */
     reason?: string;
     /** Updated permission rules (if "Always allow" selected) */
-    updatedRules?: {
-        /** Tools/patterns to always allow */
-        allowAlways?: string[];
-    };
+    updatedRules?: PermissionRule[];
 }
 
 // =============================================================================
@@ -673,6 +681,35 @@ export interface TerminalReleaseParams {
 }
 
 // =============================================================================
+// Permission Rules Management (V0.6)
+// =============================================================================
+
+export interface PermissionRulesListParams {
+    sessionId?: string;
+    toolName?: string;
+}
+
+export interface PermissionRulesListResult {
+    rules: PermissionRule[];
+}
+
+export interface PermissionRuleAddParams {
+    sessionId: string;
+    rule: Omit<PermissionRule, 'id' | 'createdAt' | 'updatedAt'>;
+}
+
+export interface PermissionRuleUpdateParams {
+    sessionId: string;
+    ruleId: string;
+    updates: Partial<Omit<PermissionRule, 'id' | 'createdAt'>>;
+}
+
+export interface PermissionRuleDeleteParams {
+    sessionId: string;
+    ruleId: string;
+}
+
+// =============================================================================
 // V0.2: ACP File System Capabilities
 // =============================================================================
 
@@ -695,12 +732,109 @@ export interface FsReadTextFileResult {
 }
 
 export interface FsWriteTextFileParams {
-    /** Session ID for permission tracking */
-    sessionId: string;
-    /** File path (workspace-relative or absolute) */
+    /** Absolute or relative file path */
     path: string;
-    /** New file content */
+    /** Content to write */
     content: string;
+    /** Session ID for access control */
+    sessionId?: string;
+}
+
+export interface LspGoToDefinitionParams {
+    /** Absolute file path */
+    filePath: string;
+    /** Line number (1-indexed) */
+    line: number;
+    /** Column number (0-indexed) */
+    character: number;
+    /** Session ID for access control */
+    sessionId?: string;
+}
+
+export interface LspGoToDefinitionResult {
+    /** Definition location */
+    uri?: string;
+    /** Line number (1-indexed) */
+    line?: number;
+    /** Column number (0-indexed) */
+    character?: number;
+    /** Text range around definition */
+    range?: {
+        start: { line: number; character: number };
+        end: { line: number; character: number };
+    };
+}
+
+export interface LspFindReferencesParams {
+    /** Absolute file path */
+    filePath: string;
+    /** Line number (1-indexed) */
+    line: number;
+    /** Column number (0-indexed) */
+    character: number;
+    /** Session ID for access control */
+    sessionId?: string;
+}
+
+export interface LspFindReferencesResult {
+    /** Array of reference locations */
+    references: Array<{
+        uri: string;
+        line: number;
+        character: number;
+        range?: {
+            start: { line: number; character: number };
+            end: { line: number; character: number };
+        };
+    }>;
+}
+
+export interface LspHoverParams {
+    /** Absolute file path */
+    filePath: string;
+    /** Line number (1-indexed) */
+    line: number;
+    /** Column number (0-indexed) */
+    character: number;
+    /** Session ID for access control */
+    sessionId?: string;
+}
+
+export interface LspHoverResult {
+    /** Hover text/markdown content */
+    content?: string;
+    /** Documentation string */
+    documentation?: string;
+}
+
+export interface LspDiagnosticsParams {
+    /** Absolute file path (optional, if not provided, get workspace diagnostics) */
+    filePath?: string;
+    /** Session ID for access control */
+    sessionId?: string;
+}
+
+export interface LspDiagnostic {
+    /** Diagnostic severity */
+    severity: 1 | 2 | 3 | 4; // Error, Warning, Info, Hint
+    /** Diagnostic message */
+    message: string;
+    /** Source (e.g., 'TypeScript', 'ESLint') */
+    source?: string;
+    /** Code */
+    code?: string | number;
+    /** File location */
+    uri: string;
+    /** Start position */
+    range: {
+        start: { line: number; character: number };
+        end: { line: number; character: number };
+    };
+}
+
+export interface LspDiagnosticsResult {
+    /** Array of diagnostics */
+    diagnostics: LspDiagnostic[];
 }
 
 export interface FsWriteTextFileResult {
@@ -729,3 +863,69 @@ export interface AgentProfile {
     /** Environment variables */
     env?: Record<string, string>;
 }
+
+// =============================================================================
+// ACP Method Constants
+// =============================================================================
+
+export const ACPMethods = {
+    // Core methods
+    INITIALIZE: 'initialize',
+    
+    // Session management
+    SESSION_NEW: 'session.new',
+    SESSION_UPDATE: 'session.update',
+    SESSION_COMPLETE: 'session.complete',
+    SESSION_LIST: 'session.list',
+    SESSION_SWITCH: 'session.switch',
+    SESSION_DELETE: 'session.delete',
+    SESSION_CANCEL: 'session.cancel',
+    
+    // Interaction
+    SESSION_PROMPT: 'session.prompt',
+    SETTINGS_CHANGE: 'settings.change',
+    
+    // File operations
+    FILE_ACCEPT: 'file.accept',
+    FILE_REJECT: 'file.reject',
+    
+    // Bash operations
+    BASH_CONFIRM: 'bash.confirm',
+    BASH_SKIP: 'bash.skip',
+    
+    // Plan operations
+    PLAN_CONFIRM: 'plan.confirm',
+    
+    // Tool operations
+    TOOL_CONFIRM: 'tool.confirm',
+    
+    // History operations
+    HISTORY_LIST: 'history.list',
+    HISTORY_LOAD: 'history.load',
+    HISTORY_DELETE: 'history.delete',
+    
+    // Permission management
+    PERMISSION_RULES_LIST: 'permissionRules.list',
+    PERMISSION_RULE_ADD: 'permissionRule.add',
+    PERMISSION_RULE_UPDATE: 'permissionRule.update',
+    PERMISSION_RULE_DELETE: 'permissionRule.delete',
+    
+    // File system operations
+    FS_READ_TEXT_FILE: 'fs.readTextFile',
+    FS_WRITE_TEXT_FILE: 'fs.writeTextFile',
+    
+    // Terminal operations
+    TERMINAL_CREATE: 'terminal.create',
+    TERMINAL_OUTPUT: 'terminal.output',
+    TERMINAL_WAIT_FOR_EXIT: 'terminal.waitForExit',
+    TERMINAL_KILL: 'terminal.kill',
+    TERMINAL_RELEASE: 'terminal.release',
+    
+    // LSP operations
+    LSP_GO_TO_DEFINITION: 'lsp.goToDefinition',
+    LSP_FIND_REFERENCES: 'lsp.findReferences',
+    LSP_HOVER: 'lsp.hover',
+    LSP_GET_DIAGNOSTICS: 'lsp.getDiagnostics',
+} as const;
+
+export type ACPMethod = typeof ACPMethods[keyof typeof ACPMethods];

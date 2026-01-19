@@ -126,10 +126,11 @@
                     ],
                     "description": "Default AI model"
                 },
-                "vcoder.trustMode": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Skip bash command confirmation"
+                "vcoder.permissionMode": {
+                    "type": "string",
+                    "enum": ["default", "plan", "acceptEdits", "bypassPermissions"],
+                    "default": "default",
+                    "description": "Permission mode for agent behavior: 'default' (normal permissions), 'plan' (plan-before-execute), 'acceptEdits' (auto-accept file edits), 'bypassPermissions' (skip all permissions, sandbox only)"
                 },
                 "vcoder.agentProfiles": {
                     "type": "array",
@@ -244,6 +245,7 @@
     "devDependencies": {
         "@types/node": "^20.0.0",
         "@types/vscode": "^1.80.0",
+        "@vscode/vsce": "^3.7.1",
         "typescript": "^5.3.0"
     }
 }

@@ -82,9 +82,8 @@ export class PermissionProvider {
 
         // Handle "Always allow" option
         if (data.trustAlways && data.outcome === 'allow') {
-            result.updatedRules = {
-                allowAlways: [], // TODO: implement rule persistence
-            };
+            result.updatedRules = [];
+            console.log('[PermissionProvider] Always allow requested but rule persistence not yet implemented');
         }
 
         pending.resolve(result);

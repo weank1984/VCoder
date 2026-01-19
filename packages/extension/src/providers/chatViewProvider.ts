@@ -19,6 +19,13 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
     private flushTimer: NodeJS.Timeout | null = null;
     private readonly BATCH_DELAY = 16; // ~60fps
     private readonly MAX_BATCH_SIZE = 10;
+    
+    private batchMetrics = {
+        totalMessages: 0,
+        batchesSent: 0,
+        immediateMessages: 0,
+        averageBatchSize: 0
+    };
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -57,7 +64,7 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
         });
 
         this.acpClient.on('session/complete', (params: unknown) => {
-            this.postMessage({ type: 'complete', data: params });
+            this.postMessage({ type: 'complete', data: params }, true);
         });
     }
 
@@ -73,6 +80,7 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
             enableScripts: true,
             localResourceRoots: [
                 this.distRoot,
+                vscode.Uri.joinPath(this.distRoot, 'assets'),
             ],
         };
 
@@ -92,8 +100,8 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         const mcpServers = this.getMcpServerConfig();
                         const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
                         const session = await this.acpClient.newSession(undefined, { cwd, mcpServers });
-                        this.postMessage({ type: 'currentSession', data: { sessionId: session.id } });
-                        this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() });
+                        this.postMessage({ type: 'currentSession', data: { sessionId: session.id } }, true);
+                        this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() }, true);
                     }
                     await this.acpClient.prompt(message.content, message.attachments);
                     break;
@@ -114,11 +122,11 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                     }
                 case 'switchSession':
                     await this.acpClient.switchSession(message.sessionId);
-                    this.postMessage({ type: 'currentSession', data: { sessionId: message.sessionId } });
+                    this.postMessage({ type: 'currentSession', data: { sessionId: message.sessionId } }, true);
                     break;
                 case 'deleteSession':
                     await this.acpClient.deleteSession(message.sessionId);
-                    this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() });
+                    this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() }, true);
                     break;
                 case 'acceptChange':
                     await this.acpClient.acceptFileChange(message.path);
@@ -149,7 +157,7 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         } catch (err) {
                             console.warn('[VCoder] Failed to update uiLanguage setting:', err);
                         }
-                        this.postMessage({ type: 'uiLanguage', data: { uiLanguage } });
+                        this.postMessage({ type: 'uiLanguage', data: { uiLanguage } }, true);
                     }
                     break;
                 case 'confirmBash':
@@ -169,7 +177,7 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                     break;
                 case 'cancel':
                     await this.acpClient.cancelSession();
-                    this.postMessage({ type: 'complete' });
+                    this.postMessage({ type: 'complete' }, true);
                     break;
                 case 'getWorkspaceFiles':
                     {
@@ -234,8 +242,8 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                                 cwd,
                                 mcpServers,
                             });
-                            this.postMessage({ type: 'currentSession', data: { sessionId: session.id } });
-                            this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() });
+this.postMessage({ type: 'currentSession', data: { sessionId: session.id } }, true);
+                        this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() }, true);
                         } catch (err) {
                             console.error('[VCoder] Failed to resume history:', err);
                         }
@@ -245,10 +253,10 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                     {
                         // Get agent profiles from configuration
                         const agents = this.getAgentProfiles();
-                        this.postMessage({ type: 'agents', data: agents });
+                        this.postMessage({ type: 'agents', data: agents }, true);
                         // Send current agent (for now, we'll send the first one if available)
                         const currentAgentId = agents.length > 0 ? agents[0].profile.id : null;
-                        this.postMessage({ type: 'currentAgent', data: { agentId: currentAgentId } });
+                        this.postMessage({ type: 'currentAgent', data: { agentId: currentAgentId } }, true);
                     }
                     break;
                 case 'selectAgent':
@@ -256,7 +264,7 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         // For now, just acknowledge the selection
                         // In a full implementation, this would switch to a different AgentProcessManager
                         console.log('[VCoder] Agent selected:', message.agentId);
-                        this.postMessage({ type: 'currentAgent', data: { agentId: message.agentId } });
+                        this.postMessage({ type: 'currentAgent', data: { agentId: message.agentId } }, true);
                         // Show info message
                         vscode.window.showInformationMessage(`已选择 Agent: ${message.agentId}`);
                     }
@@ -269,20 +277,16 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                     break;
                 case 'getPermissionRules':
                     {
-                        // For now, return empty array as rule persistence is not fully implemented
-                        // In a full implementation, this would fetch from PermissionProvider
                         this.postMessage({ type: 'permissionRules', data: [] });
                     }
                     break;
                 case 'deletePermissionRule':
                     {
-                        // TODO: Implement rule deletion when rule persistence is added
                         console.log('[VCoder] Delete permission rule:', message.ruleId);
                     }
                     break;
                 case 'clearPermissionRules':
                     {
-                        // TODO: Implement clear all rules when rule persistence is added
                         console.log('[VCoder] Clear all permission rules');
                         this.postMessage({ type: 'permissionRules', data: [] });
                     }
@@ -390,8 +394,11 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
             return;
         }
 
+        this.batchMetrics.totalMessages++;
+
         // For critical messages, send immediately
         if (immediate) {
+            this.batchMetrics.immediateMessages++;
             this.flushMessageQueue();
             this.webviewView.webview.postMessage(message);
             return;
@@ -429,12 +436,18 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
             return;
         }
 
+        const batchSize = this.messageQueue.length;
+        
         // Send all messages at once
-        if (this.messageQueue.length === 1) {
+        if (batchSize === 1) {
             // Single message - send directly
             this.webviewView?.webview.postMessage(this.messageQueue[0]);
         } else {
             // Multiple messages - send as batch
+            this.batchMetrics.batchesSent++;
+            this.batchMetrics.averageBatchSize = 
+                (this.batchMetrics.averageBatchSize * (this.batchMetrics.batchesSent - 1) + batchSize) / this.batchMetrics.batchesSent;
+            
             this.webviewView?.webview.postMessage({
                 type: 'batch',
                 messages: this.messageQueue,
@@ -443,6 +456,10 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
 
         // Clear queue
         this.messageQueue = [];
+    }
+
+    public getBatchMetrics() {
+        return { ...this.batchMetrics };
     }
 
     private getHtmlContent(webview: vscode.Webview): string {
@@ -467,7 +484,7 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'nonce-${nonce}';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'nonce-${nonce}'; connect-src ${webview.cspSource};">
   <link rel="stylesheet" href="${styleUri}">
   <title>VCoder</title>
 </head>

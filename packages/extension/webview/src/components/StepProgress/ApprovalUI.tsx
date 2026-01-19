@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import type { ToolCall, ConfirmationType } from '../../types';
+import type { ToolCall } from '../../types';
+import type { ConfirmationType } from '@vcoder/shared';
 import { ApprovalHeader } from './ApprovalHeader';
 import { ApprovalContent } from './ApprovalContent';
 import { ApprovalActions } from './ApprovalActions';

@@ -6,6 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    setupFiles: ['./tests/setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -24,6 +25,7 @@ export default defineConfig({
     alias: {
       '@vcoder/shared': resolve(__dirname, './packages/shared/src'),
       '@vcoder/server': resolve(__dirname, './packages/server/src'),
+      'vscode': resolve(__dirname, './tests/mocks/vscode.ts'),
     },
   },
 });

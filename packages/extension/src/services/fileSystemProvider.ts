@@ -11,7 +11,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as crypto from 'crypto';
+import * as readline from 'readline';
 import {
     FsReadTextFileParams,
     FsReadTextFileResult,
@@ -51,6 +53,7 @@ const LOCK_TIMEOUT = 30000; // 30 seconds
 const MAX_HISTORY_SIZE = 50;
 const LARGE_FILE_THRESHOLD = 1 * 1024 * 1024; // 1MB
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const LINE_CHUNK_SIZE = 50 * 1024;
 
 /**
  * FileSystemProvider implements ACP fs/* capabilities.
@@ -74,8 +77,68 @@ export class FileSystemProvider {
     private writeHistory: WriteOperation[] = [];
 
     constructor(private context: vscode.ExtensionContext) {
-        // Periodically clean up expired locks
         setInterval(() => this.cleanupExpiredLocks(), 10000);
+    }
+
+    async readTextFileLines(
+        filePath: string, 
+        startLine: number = 0, 
+        limit?: number
+    ): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const fileStream = fsSync.createReadStream(filePath, { encoding: 'utf-8' });
+            const rl = readline.createInterface({
+                input: fileStream,
+                crlfDelay: Infinity
+            });
+
+            const lines: string[] = [];
+            let currentLine = 0;
+            let linesToRead = limit;
+            let hasStarted = startLine === 0;
+
+            try {
+                rl.on('line', (line) => {
+                    if (!hasStarted) {
+                        if (currentLine >= startLine) {
+                            hasStarted = true;
+                        } else {
+                            currentLine++;
+                            return;
+                        }
+                    }
+
+                    if (linesToRead === undefined || linesToRead > 0) {
+                        lines.push(line);
+                        currentLine++;
+                        if (linesToRead !== undefined) {
+                            linesToRead--;
+                        }
+                    } else {
+                        rl.close();
+                        fileStream.destroy();
+                    }
+                });
+
+                rl.on('close', () => {
+                    resolve(lines.join('\n'));
+                });
+
+                rl.on('error', (error) => {
+                    fileStream.destroy();
+                    reject(error);
+                });
+
+                fileStream.on('error', (error) => {
+                    rl.close();
+                    reject(error);
+                });
+            } catch (error) {
+                fileStream.destroy();
+                rl.close();
+                reject(error);
+            }
+        });
     }
 
     /**
@@ -111,20 +174,26 @@ export class FileSystemProvider {
                 );
             }
 
-            // Read file content
-            const content = await vscode.workspace.fs.readFile(uri);
-            const text = Buffer.from(content).toString('utf-8');
+            let result: string;
+            
+            if ((params.line !== undefined || params.limit !== undefined) && fileSize > LARGE_FILE_THRESHOLD) {
+                const startLine = Math.max(0, (params.line || 1) - 1);
+                result = await this.readTextFileLines(absolutePath, startLine, params.limit);
+            } else {
+                const content = await vscode.workspace.fs.readFile(uri);
+                const text = Buffer.from(content).toString('utf-8');
 
-            // Apply line-based slicing if requested
-            let result = text;
-            if (params.line !== undefined || params.limit !== undefined) {
-                const lines = text.split('\n');
-                const startLine = Math.max(0, (params.line || 1) - 1); // 1-indexed to 0-indexed
-                const endLine = params.limit 
-                    ? startLine + params.limit 
-                    : lines.length;
-                
-                result = lines.slice(startLine, endLine).join('\n');
+                if (params.line !== undefined || params.limit !== undefined) {
+                    const lines = text.split('\n');
+                    const startLine = Math.max(0, (params.line || 1) - 1);
+                    const endLine = params.limit 
+                        ? startLine + params.limit 
+                        : lines.length;
+                    
+                    result = lines.slice(startLine, endLine).join('\n');
+                } else {
+                    result = text;
+                }
             }
 
             console.log(`[FileSystemProvider] Read ${result.length} chars from ${absolutePath}`);

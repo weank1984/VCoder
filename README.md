@@ -134,7 +134,7 @@ AI 建议代码修改时会显示 Diff 预览：
 
 ```json
 {
-  "vcoder.trustMode": false,  // 是否跳过 bash 命令确认
+  "vcoder.permissionMode": "default",  // 权限模式: 'default', 'plan', 'acceptEdits', 'bypassPermissions'
   "vcoder.agentProfiles": []  // Agent 配置文件
 }
 ```

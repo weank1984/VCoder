@@ -6,8 +6,10 @@ tsconfig.json
 **/*.map
 test/**
 src/**
-node_modules/**
 !node_modules/@vcoder/shared/**
+# Keep runtime dependencies for VSIX packaging
+node_modules/node-pty/**
+# Exclude webview source, but include built dist
 webview/src/**
 webview/node_modules/**
 webview/tsconfig.json

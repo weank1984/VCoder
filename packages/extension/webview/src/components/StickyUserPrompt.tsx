@@ -2,8 +2,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { ChatMessage } from '../types';
 import { useStore } from '../store/useStore';
+import { PermissionRulesPanel } from './PermissionRulesPanel';
 import { ComposerToolbar } from './ComposerToolbar';
 import { useI18n } from '../i18n/I18nProvider';
+import { postMessage } from '../utils/vscode';
 import './StickyUserPrompt.scss';
 import './ComposerSurface.scss';
 import './InputArea.scss';
@@ -22,8 +24,13 @@ export function StickyUserPrompt({ message, disabled, onApplyToComposer, onHeigh
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [expanded, setExpanded] = useState(false);
     const [draft, setDraft] = useState('');
+    const [showPermissionRules, setShowPermissionRules] = useState(false);
 
     const currentAgent = agents.find(a => a.profile.id === currentAgentId);
+
+    const handleAgentSelect = (agentId: string) => {
+        postMessage({ type: 'selectAgent', agentId });
+    };
 
     const hasMessage = Boolean(message && message.role === 'user' && message.content.trim().length > 0);
 
@@ -107,13 +114,18 @@ export function StickyUserPrompt({ message, disabled, onApplyToComposer, onHeigh
                             <ComposerToolbar
                                 showAgentSelector
                                 showModelSelector
+                                agents={agents}
+                                currentAgentId={currentAgentId}
+                                onAgentSelect={handleAgentSelect}
                                 currentAgentName={currentAgent?.profile.name || 'Agent'}
                                 selectedModel={model}
                                 onSelectModel={setModel}
                                 showMentionButton
                                 showWebButton
                                 showImageButton
+                                showPermissionButton
                                 primaryAction="apply"
+                                onPermissionClick={() => setShowPermissionRules(true)}
                                 onApply={() => {
                                     if (!disabled) onApplyToComposer(draft);
                                     setExpanded(false);
@@ -133,8 +145,13 @@ export function StickyUserPrompt({ message, disabled, onApplyToComposer, onHeigh
                     >
                         <span className="vc-sticky-user-prompt-text">{collapsedText}</span>
                     </button>
-                )}
+)}
             </div>
+            
+            <PermissionRulesPanel
+                visible={showPermissionRules}
+                onClose={() => setShowPermissionRules(false)}
+            />
         </div>
     );
 }

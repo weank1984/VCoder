@@ -870,11 +870,12 @@ export class ClaudeCodeWrapper extends EventEmitter {
             const proposedContent = typeof toolInput.content === 'string' ? toolInput.content : undefined;
             if (filePath && typeof proposedContent === 'string' && Buffer.byteLength(proposedContent, 'utf8') <= 1 * 1024 * 1024) {
                 try {
-                    diff = generateUnifiedDiff({
+                    const { diff: generatedDiff } = generateUnifiedDiff({
                         workingDirectory: this.options.workingDirectory,
                         filePath,
                         proposedContent,
-                    }).diff;
+                    });
+                    diff = generatedDiff;
                 } catch {
                     diff = undefined;
                 }

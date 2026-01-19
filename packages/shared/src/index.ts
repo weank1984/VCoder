@@ -35,6 +35,12 @@ export const ACPMethods = {
     // Tool confirmation (unified)
     TOOL_CONFIRM: 'tool/confirm',
 
+    // Permission Rules Management
+    PERMISSION_RULES_LIST: 'permission/rules/list',
+    PERMISSION_RULES_ADD: 'permission/rules/add',
+    PERMISSION_RULES_UPDATE: 'permission/rules/update',
+    PERMISSION_RULES_DELETE: 'permission/rules/delete',
+
     // Server -> Client (Notifications)
     SESSION_UPDATE: 'session/update',
     SESSION_COMPLETE: 'session/complete',

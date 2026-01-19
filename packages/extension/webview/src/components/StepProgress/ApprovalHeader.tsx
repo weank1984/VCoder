@@ -1,4 +1,4 @@
-import type { ConfirmationType } from '../../types';
+import type { ConfirmationType } from '@vcoder/shared';
 import { useI18n } from '../../i18n/I18nProvider';
 
 interface ApprovalHeaderProps {

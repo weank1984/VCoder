@@ -2,7 +2,7 @@
  * Webview Types
  */
 
-import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, AgentProfile, FileChangeUpdate, SessionCompleteReason } from '@vcoder/shared';
+import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, AgentProfile, FileChangeUpdate, SessionCompleteReason, ConfirmationType } from '@vcoder/shared';
 
 export type { SessionCompleteReason };
 
@@ -374,13 +374,7 @@ export interface ToolCall {
     confirmationData?: ConfirmationData;
 }
 
-export type ConfirmationType = 
-    | 'bash'         // Shell 命令执行
-    | 'file_write'   // 文件创建/修改
-    | 'file_delete'  // 文件删除
-    | 'plan'         // 计划模式确认
-    | 'mcp'          // MCP 工具调用
-    | 'dangerous';   // 其他危险操作
+
 
 export interface ConfirmationData {
     /** Bash 命令内容 */
@@ -410,12 +404,33 @@ export interface ConfirmationData {
 
 export type SessionStatus = 'idle' | 'active' | 'completed' | 'cancelled' | 'error' | 'timeout';
 
-export interface AppState {
-    sessions: Session[];
-    currentSessionId: string | null;
+// Session-specific state
+export interface SessionState {
+    id: string;
     messages: ChatMessage[];
     tasks: Task[];
     subagentRuns: SubagentRunUpdate[];
+    // Session status tracking
+    sessionStatus: SessionStatus;
+    sessionCompleteReason?: SessionCompleteReason;
+    sessionCompleteMessage?: string;
+    lastActivityTime: number;
+}
+
+export interface AppState {
+    sessions: Session[];
+    currentSessionId: string | null;
+    // Session data - organized by session ID
+    sessionStates: Map<string, SessionState>;
+    // Legacy fields for backward compatibility during migration
+    messages: ChatMessage[];
+    tasks: Task[];
+    subagentRuns: SubagentRunUpdate[];
+    sessionStatus: SessionStatus;
+    sessionCompleteReason?: SessionCompleteReason;
+    sessionCompleteMessage?: string;
+    lastActivityTime: number;
+    // Global state (not session-specific)
     pendingFileChanges: Array<FileChangeUpdate & { sessionId: string; receivedAt: number }>;
     planMode: boolean;
     permissionMode: PermissionMode;
@@ -425,11 +440,6 @@ export interface AppState {
     error: ErrorUpdate | null;
     workspaceFiles: string[];
     uiLanguage: UiLanguage;
-    // Session status tracking
-    sessionStatus: SessionStatus;
-    sessionCompleteReason?: SessionCompleteReason;
-    sessionCompleteMessage?: string;
-    lastActivityTime: number;
     // History
     historySessions: HistorySession[];
     viewMode: 'live' | 'history';

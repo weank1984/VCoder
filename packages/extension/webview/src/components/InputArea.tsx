@@ -126,7 +126,14 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
         const files = e.target.files;
         if (!files) return;
 
+        const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
+        
         Array.from(files).forEach((file) => {
+            if (file.size > MAX_ATTACHMENT_SIZE) {
+                console.warn(`[InputArea] File too large: ${file.name} (${Math.round(file.size / 1024 / 1024)}MB, max ${MAX_ATTACHMENT_SIZE / 1024 / 1024}MB)`);
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = () => {
                 setAttachments((prev) => [
@@ -138,6 +145,11 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                     },
                 ]);
             };
+            
+            reader.onerror = () => {
+                console.error(`[InputArea] Failed to read file: ${file.name}`);
+            };
+            
             reader.readAsDataURL(file);
         });
 
@@ -252,6 +264,10 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
     }, [input]);
 
     const currentAgent = agents.find(a => a.profile.id === currentAgentId);
+    
+    const handleAgentSelect = (agentId: string) => {
+        postMessage({ type: 'selectAgent', agentId });
+    };
     
     // Check if send button should be disabled
     const isSendDisabled = !input.trim() && attachments.length === 0;
@@ -368,7 +384,12 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                     <ComposerToolbar
                         showAgentSelector
                         showModelSelector
+                        showPermissionButton={viewMode !== 'history'}
+                        agents={agents}
+                        currentAgentId={currentAgentId}
+                        onAgentSelect={handleAgentSelect}
                         currentAgentName={currentAgent?.profile.name || 'Agent'}
+                        onPermissionClick={() => setShowPermissionRules(true)}
                         selectedModel={model}
                         onSelectModel={setModel}
                         showMentionButton

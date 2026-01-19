@@ -4,9 +4,17 @@
  */
 
 import MarkdownIt from 'markdown-it';
-import { createHighlighter, type Highlighter, type BundledLanguage } from 'shiki';
+import { createHighlighter, type Highlighter } from 'shiki';
+import type { BundledLanguage } from 'shiki';
 import DOMPurify from 'dompurify';
 import { isFilePath, parseFilePathWithLine } from '../components/FilePath';
+import { highlightCodeAsync } from './highlightWorker';
+
+const byteLength = (str: string): number => {
+    const encoder = new TextEncoder();
+    const encoded = encoder.encode(str);
+    return encoded.byteLength;
+}
 
 // ============ Shiki Highlighter ============
 
@@ -67,8 +75,13 @@ function createMarkdownIt(theme: 'dark' | 'light'): MarkdownIt {
         breaks: false,      // 不将换行转为 <br>
         highlight: (code, lang) => {
             const hl = getHighlighterSync();
+            const codeSize = byteLength(code);
+            
+            if (codeSize > 1024) {
+                return `<pre class="shiki-large-code" data-worker-highlight="true" data-lang="${escapeAttr(lang)}" data-theme="${theme}">${escapeHtml(code)}</pre>`;
+            }
+            
             if (!hl) {
-                // Highlighter 未初始化时使用纯文本
                 return `<pre class="shiki-pending"><code>${escapeHtml(code)}</code></pre>`;
             }
             
@@ -81,7 +94,6 @@ function createMarkdownIt(theme: 'dark' | 'light'): MarkdownIt {
                     theme: themeName,
                 });
             } catch {
-                // 语言不支持时降级为纯文本
                 return `<pre class="shiki"><code>${escapeHtml(code)}</code></pre>`;
             }
         },
@@ -207,6 +219,30 @@ function normalizeLanguage(lang: string): BundledLanguage {
     return (langMap[normalized] || normalized || 'text') as BundledLanguage;
 }
 
+async function processLargeCodeBlocks(html: string, theme: 'dark' | 'light' = 'dark'): Promise<string> {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    const largeCodeBlocks = tempDiv.querySelectorAll('pre[data-worker-highlight="true"]');
+    
+    const promises = Array.from(largeCodeBlocks).map(async (pre) => {
+        const code = pre.textContent || '';
+        const lang = pre.getAttribute('data-lang') || '';
+        
+        try {
+            const highlighted = await highlightCodeAsync(code, lang, theme);
+            const replacementDiv = document.createElement('div');
+            replacementDiv.innerHTML = highlighted;
+            pre.replaceWith(replacementDiv.firstElementChild || pre);
+        } catch (error) {
+            console.warn('[Markdown] Failed to highlight large code block:', error);
+        }
+    });
+    
+    await Promise.all(promises);
+    return tempDiv.innerHTML;
+}
+
 /**
  * 预处理 markdown 内容
  */
@@ -255,12 +291,18 @@ export function renderMarkdown(content: string, theme: 'dark' | 'light' = 'dark'
     return safeHtml;
 }
 
-/**
- * 异步渲染（确保 highlighter 已初始化）
- */
 export async function renderMarkdownAsync(content: string, theme: 'dark' | 'light' = 'dark'): Promise<string> {
+    if (!content) return '';
+    
     await getHighlighter();
-    return renderMarkdown(content, theme);
+    
+    const baseHtml = renderMarkdown(content, theme);
+    
+    if (typeof window === 'undefined') {
+        return baseHtml;
+    }
+    
+    return await processLargeCodeBlocks(baseHtml, theme);
 }
 
 // ============ 导出 ============

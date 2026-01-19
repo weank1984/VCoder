@@ -500,13 +500,20 @@ export class PersistentSession extends EventEmitter {
                 filePath &&
                 typeof proposedContent === 'string' &&
                 Buffer.byteLength(proposedContent, 'utf8') <= 1 * 1024 * 1024;
-            const { diff, didExist } = shouldComputeDiff
-                ? generateUnifiedDiff({
-                      workingDirectory: this.options.workingDirectory,
-                      filePath,
-                      proposedContent,
-                  })
-                : { diff: '', didExist: true };
+            
+            const { diff, didExist } = { diff: '', didExist: true };
+            
+            if (shouldComputeDiff) {
+                try {
+                    const { diff: generatedDiff } = generateUnifiedDiff({
+                        workingDirectory: this.options.workingDirectory,
+                        filePath,
+                        proposedContent,
+                    });
+                } catch (error) {
+                    console.error('[PersistentSession] Diff generation failed:', error);
+                }
+            }
 
             const toolInputForUi =
                 shouldComputeDiff && diff

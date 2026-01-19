@@ -47,13 +47,14 @@ export class ACPClient extends EventEmitter {
         resolve: (value: unknown) => void;
         reject: (error: Error) => void;
     }> = new Map();
-
+    
     // Handler for agent->client requests
     private requestHandlers: Map<string, (params: unknown) => Promise<unknown>> = new Map();
-
+    
     private currentSession: Session | null = null;
     private desiredSettings: Pick<SettingsChangeParams, 'model' | 'planMode' | 'permissionMode' | 'maxThinkingTokens'> = {};
     private writeCallback: ((line: string) => void) | null = null;
+    private readlineInterface: ReturnType<typeof createInterface> | null = null;
 
     constructor(private stdio: { stdin: Writable; stdout: Readable }) {
         super();
@@ -61,14 +62,23 @@ export class ACPClient extends EventEmitter {
     }
 
     updateTransport(stdout: Readable, stdin: Writable) {
+        // 1. Clean up old readline interface if exists
+        if (this.readlineInterface) {
+            this.readlineInterface.close();
+            this.readlineInterface.removeAllListeners();
+            this.readlineInterface = null;
+        }
+        
+        // 2. Update stdio streams
         this.stdio = { stdout, stdin };
-        // Remove old listeners if any (though readline handles this mostly)
-        // Re-setup message handler for new stdout
+        
+        // 3. Set up new message handler for new stdout
         this.setupMessageHandler();
     }
 
     private setupMessageHandler(): void {
         const rl = createInterface({ input: this.stdio.stdout });
+        this.readlineInterface = rl;
 
         rl.on('line', (line) => {
             this.handleMessage(line);
@@ -450,6 +460,72 @@ export class ACPClient extends EventEmitter {
     }
 
     async shutdown(): Promise<void> {
-        // Cleanup
+        // Clean up readline interface
+        if (this.readlineInterface) {
+            this.readlineInterface.close();
+            this.readlineInterface.removeAllListeners();
+            this.readlineInterface = null;
+        }
+        
+        // Clear pending requests
+        const pendingRequests = Array.from(this.pendingRequests.values());
+        pendingRequests.forEach(pending => {
+            pending.reject(new Error('ACPClient shutdown'));
+        });
+        this.pendingRequests.clear();
+        
+        // Clear handlers
+        this.requestHandlers.clear();
+        
+        // Remove all listeners
+        this.removeAllListeners();
+        
+        // Clear session state
+        this.currentSession = null;
+        this.desiredSettings = {};
+        this.writeCallback = null;
+    }
+    
+    /**
+     * Destroy method for complete cleanup
+     */
+    destroy(): void {
+        // 同步清理，避免异步问题
+        try {
+            // Clean up readline interface
+            if (this.readlineInterface) {
+                this.readlineInterface.close();
+                this.readlineInterface.removeAllListeners();
+                this.readlineInterface = null;
+            }
+        } catch (error) {
+            console.error('[ACPClient] Error during readline cleanup:', error);
+        }
+        
+        // Clear pending requests synchronously
+        const pendingRequests = Array.from(this.pendingRequests.values());
+        pendingRequests.forEach(pending => {
+            try {
+                pending.reject(new Error('ACPClient destroyed'));
+            } catch (error) {
+                console.error('[ACPClient] Error rejecting pending request:', error);
+            }
+        });
+        this.pendingRequests.clear();
+        
+        // Clear handlers
+        this.requestHandlers.clear();
+        
+        // Remove all event listeners
+        try {
+            this.removeAllListeners();
+        } catch (error) {
+            console.error('[ACPClient] Error removing listeners:', error);
+        }
+        
+        // Clear state
+        this.currentSession = null;
+        this.desiredSettings = {};
+        this.writeCallback = null;
     }
 }

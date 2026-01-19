@@ -9,6 +9,7 @@
  */
 
 import * as vscode from 'vscode';
+import type { PermissionRule } from '@vcoder/shared';
 
 export interface SessionState {
     id: string;
@@ -45,12 +46,7 @@ export interface SessionToolCall {
     timestamp: number;
 }
 
-export interface PermissionRule {
-    toolName: string;
-    pattern?: string;
-    decision: 'allow' | 'deny';
-    createdAt: number;
-}
+
 
 export interface SessionExportData {
     version: string;
@@ -388,6 +384,65 @@ export class SessionStore {
         } catch (error) {
             console.error('[SessionStore] Failed to cleanup old sessions:', error);
             return 0;
+        }
+    }
+
+    /**
+     * Get all permission rules.
+     */
+    async getPermissionRules(): Promise<PermissionRule[]> {
+        try {
+            return this.globalState.get<PermissionRule[]>('permissionRules') || [];
+        } catch (error) {
+            console.error('[SessionStore] Failed to get permission rules:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Add a permission rule.
+     */
+    async addPermissionRule(rule: PermissionRule): Promise<void> {
+        try {
+            const rules = await this.getPermissionRules();
+            const existingIndex = rules.findIndex(r => r.id === rule.id);
+            
+            if (existingIndex >= 0) {
+                rules[existingIndex] = rule;
+            } else {
+                rules.push(rule);
+            }
+            
+            await this.globalState.update('permissionRules', rules);
+            console.log('[SessionStore] Added/updated permission rule:', rule.id);
+        } catch (error) {
+            console.error('[SessionStore] Failed to add permission rule:', error);
+        }
+    }
+
+    /**
+     * Delete a permission rule by ID.
+     */
+    async deletePermissionRule(ruleId: string): Promise<void> {
+        try {
+            const rules = await this.getPermissionRules();
+            const filteredRules = rules.filter(r => r.id !== ruleId);
+            await this.globalState.update('permissionRules', filteredRules);
+            console.log('[SessionStore] Deleted permission rule:', ruleId);
+        } catch (error) {
+            console.error('[SessionStore] Failed to delete permission rule:', error);
+        }
+    }
+
+    /**
+     * Clear all permission rules.
+     */
+    async clearPermissionRules(): Promise<void> {
+        try {
+            await this.globalState.update('permissionRules', []);
+            console.log('[SessionStore] Cleared all permission rules');
+        } catch (error) {
+            console.error('[SessionStore] Failed to clear permission rules:', error);
         }
     }
 

@@ -294,6 +294,14 @@ export class ACPServer {
         if (!this.sessions.has(params.sessionId)) {
             throw new Error(`Session not found: ${params.sessionId}`);
         }
+        
+        // Notify webview of session switch
+        this.sendNotification(ACPMethods.SESSION_UPDATE, {
+            sessionId: params.sessionId,
+            type: 'session_switch',
+            content: { previousSessionId: this.currentSessionId, newSessionId: params.sessionId }
+        });
+        
         this.currentSessionId = params.sessionId;
     }
 

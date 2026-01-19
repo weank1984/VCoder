@@ -480,6 +480,12 @@ export class BuiltinMcpServer {
             ? filePath
             : path.join(workspaceRoot.uri.fsPath, filePath);
 
+        // Security check: ensure file path is within workspace
+        const workspacePath = workspaceRoot.uri.fsPath;
+        if (!absolutePath.startsWith(workspacePath + path.sep) && absolutePath !== workspacePath) {
+            throw new Error(`Access denied: ${absolutePath} is outside workspace ${workspacePath}`);
+        }
+
         const uri = vscode.Uri.file(absolutePath);
         const document = await vscode.workspace.openTextDocument(uri);
         const editor = await vscode.window.showTextDocument(document);

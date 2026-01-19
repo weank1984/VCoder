@@ -1,4 +1,5 @@
-import type { ToolCall, ConfirmationType } from '../../types';
+import type { ToolCall } from '../../types';
+import type { ConfirmationType } from '@vcoder/shared';
 import { BashApprovalContent } from './BashApprovalContent';
 import { FileApprovalContent } from './FileApprovalContent';
 import { PlanApprovalContent } from './PlanApprovalContent';

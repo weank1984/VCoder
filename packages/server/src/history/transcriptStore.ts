@@ -6,6 +6,7 @@
  */
 
 import * as fs from 'fs';
+import * as fsPromises from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import * as readline from 'readline';
@@ -168,6 +169,15 @@ function isPathWithin(parentDir: string, childPath: string): boolean {
     return child.startsWith(parent);
 }
 
+async function getFileSize(filePath: string): Promise<number> {
+    try {
+        const stats = await fsPromises.stat(filePath);
+        return stats.size;
+    } catch {
+        return 0;
+    }
+}
+
 async function listSessionIdsFromHistoryIndex(workspacePath: string): Promise<string[]> {
     const historyIndexPath = getClaudeHistoryIndexPath();
     if (!fs.existsSync(historyIndexPath)) return [];
@@ -315,6 +325,15 @@ async function extractSessionMetadata(
     sessionId: string,
     projectKey: string
 ): Promise<HistorySession | null> {
+    const fileSize = await getFileSize(filePath);
+    
+    const CHUNK_SIZE = 1024 * 1024;
+    const MAX_FILE_SIZE_FOR_FULL_SCAN = 10 * 1024 * 1024;
+    
+    if (fileSize > MAX_FILE_SIZE_FOR_FULL_SCAN) {
+        return extractMetadataFromLargeFile(filePath, sessionId, projectKey, CHUNK_SIZE);
+    }
+
     const fileStream = fs.createReadStream(filePath);
     const rl = readline.createInterface({
         input: fileStream,
@@ -696,6 +715,79 @@ function cleanAttachmentsFromContent(content: string): string {
     }
     
     return content;
+}
+
+async function extractMetadataFromLargeFile(
+    filePath: string,
+    sessionId: string,
+    projectKey: string,
+    chunkSize: number
+): Promise<HistorySession | null> {
+    const fileStream = fs.createReadStream(filePath, { start: 0, end: chunkSize - 1 });
+    const rl = readline.createInterface({
+        input: fileStream,
+        crlfDelay: Infinity,
+    });
+
+    let firstEvent: any = null;
+    let title = '未命名会话';
+
+    try {
+        for await (const line of rl) {
+            if (!line.trim()) continue;
+
+            try {
+                const event = JSON.parse(line);
+                
+                if (event.isSidechain === true) {
+                    continue;
+                }
+                
+                if (!firstEvent) {
+                    firstEvent = event;
+                }
+
+                const role = getEventRole(event);
+                if (role === 'user' && event.message) {
+                    let content = extractTextContent(event.message.content);
+                    content = cleanAttachmentsFromContent(content);
+                    if (content && content.trim().toLowerCase() === 'warmup') {
+                        continue;
+                    }
+                    if (content) {
+                        title = content.slice(0, 50) + (content.length > 50 ? '...' : '');
+                        break;
+                    }
+                } else if (role === 'assistant' && event.message) {
+                    const content = extractTextContent(event.message.content);
+                    if (content) {
+                        title = content.slice(0, 50) + (content.length > 50 ? '...' : '');
+                        break;
+                    }
+                }
+            } catch {
+                continue;
+            }
+        }
+    } finally {
+        rl.close();
+        fileStream.destroy();
+    }
+
+    if (!firstEvent) {
+        return null;
+    }
+
+    const createdAt = extractTimestamp(firstEvent) || new Date().toISOString();
+    const updatedAt = createdAt;
+
+    return {
+        id: sessionId,
+        projectKey,
+        title,
+        createdAt,
+        updatedAt,
+    };
 }
 
 /**

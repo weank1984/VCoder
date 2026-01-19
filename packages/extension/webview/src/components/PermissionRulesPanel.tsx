@@ -4,17 +4,11 @@
  */
 
 import { useState, useMemo } from 'react';
+import type { PermissionRule } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
 import './PermissionRulesPanel.scss';
 
-export interface PermissionRule {
-    id: string;
-    toolName: string;
-    category: string;
-    pattern: string;
-    createdAt: number;
-    sessionId?: string;
-}
+
 
 interface PermissionRulesPanelProps {
     visible: boolean;
@@ -49,6 +43,8 @@ export function PermissionRulesPanel({ visible, onClose }: PermissionRulesPanelP
     const [rules, setRules] = useState<PermissionRule[]>([]);
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [editingRule, setEditingRule] = useState<PermissionRule | null>(null);
+    const [isCreatingNew, setIsCreatingNew] = useState(false);
 
     // Request rules when panel becomes visible
     useState(() => {
@@ -70,10 +66,62 @@ export function PermissionRulesPanel({ visible, onClose }: PermissionRulesPanelP
         return () => window.removeEventListener('message', handleMessage);
     });
 
-    const handleDeleteRule = (ruleId: string) => {
+const handleDeleteRule = (ruleId: string) => {
         postMessage({ type: 'deletePermissionRule', ruleId });
-        // Optimistically remove from UI
         setRules(rules.filter((r) => r.id !== ruleId));
+    };
+
+    const handleEditRule = (rule: PermissionRule) => {
+        setEditingRule({ ...rule });
+        setIsCreatingNew(false);
+    };
+
+    const handleCreateNew = () => {
+        const newRule = {
+            action: 'allow' as const,
+            toolName: '',
+            pattern: '',
+            description: '',
+        };
+        setEditingRule({
+            id: '',
+            toolName: newRule.toolName,
+            pattern: newRule.pattern,
+            action: newRule.action,
+            description: newRule.description,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        });
+        setIsCreatingNew(true);
+    };
+
+    const handleSaveRule = () => {
+        if (!editingRule) return;
+
+        const ruleToSave = {
+            ...editingRule,
+            updatedAt: new Date().toISOString(),
+            ...(isCreatingNew && { 
+                id: `rule_${Date.now()}`, 
+                createdAt: new Date().toISOString() 
+            })
+        };
+
+        if (isCreatingNew) {
+            postMessage({ type: 'addPermissionRule', rule: ruleToSave });
+            setRules([...rules, ruleToSave]);
+        } else {
+            postMessage({ type: 'updatePermissionRule', ruleId: editingRule.id, updates: ruleToSave });
+            setRules(rules.map(r => r.id === editingRule.id ? ruleToSave : r));
+        }
+
+        setEditingRule(null);
+        setIsCreatingNew(false);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingRule(null);
+        setIsCreatingNew(false);
     };
 
     const handleClearAll = () => {
@@ -89,7 +137,7 @@ export function PermissionRulesPanel({ visible, onClose }: PermissionRulesPanelP
         return rules.filter((rule) => {
             // Filter by category
             if (selectedCategory !== 'all') {
-                const category = getToolCategory(rule.toolName);
+                const category = getToolCategory(rule.toolName || '');
                 if (category !== selectedCategory) {
                     return false;
                 }
@@ -99,8 +147,8 @@ export function PermissionRulesPanel({ visible, onClose }: PermissionRulesPanelP
             if (searchQuery) {
                 const query = searchQuery.toLowerCase();
                 return (
-                    rule.toolName.toLowerCase().includes(query) ||
-                    rule.pattern.toLowerCase().includes(query)
+                    (rule.toolName?.toLowerCase().includes(query) || false) ||
+                    (rule.pattern?.toLowerCase().includes(query) || false)
                 );
             }
 
@@ -152,6 +200,9 @@ export function PermissionRulesPanel({ visible, onClose }: PermissionRulesPanelP
                                 清除全部
                             </button>
                         )}
+                        <button className="create-rule-btn" onClick={handleCreateNew}>
+                            + 新建规则
+                        </button>
                     </div>
                 </div>
 
@@ -177,26 +228,49 @@ export function PermissionRulesPanel({ visible, onClose }: PermissionRulesPanelP
                         filteredRules.map((rule) => (
                             <div key={rule.id} className="rule-item">
                                 <div className="rule-icon">
-                                    {getToolCategory(rule.toolName) === 'file' && '📄'}
-                                    {getToolCategory(rule.toolName) === 'terminal' && '⌨️'}
-                                    {getToolCategory(rule.toolName) === 'mcp' && '🔧'}
-                                    {getToolCategory(rule.toolName) === 'other' && '⚙️'}
+                                    {getToolCategory(rule.toolName || '') === 'file' && '📄'}
+                                    {getToolCategory(rule.toolName || '') === 'terminal' && '⌨️'}
+                                    {getToolCategory(rule.toolName || '') === 'mcp' && '🔧'}
+                                    {getToolCategory(rule.toolName || '') === 'other' && '⚙️'}
                                 </div>
                                 <div className="rule-info">
-                                    <div className="rule-tool-name">{rule.toolName}</div>
-                                    <div className="rule-pattern">{rule.pattern}</div>
+                                    <div className="rule-tool-name">
+                                        {rule.toolName || 'Unknown'}
+                                        <span className={`rule-action ${rule.action}`}>
+                                            {rule.action === 'allow' ? '✅' : '🚫'}
+                                        </span>
+                                    </div>
+                                    <div className="rule-pattern">{rule.pattern || 'No pattern'}</div>
+                                    {rule.description && (
+                                        <div className="rule-description">{rule.description}</div>
+                                    )}
                                     <div className="rule-meta">
                                         创建于 {new Date(rule.createdAt).toLocaleString('zh-CN')}
+                                        {rule.expiresAt && (
+                                            <span className="rule-expiry">
+                                                · 过期于 {new Date(rule.expiresAt).toLocaleString('zh-CN')}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
-                                <button
-                                    className="rule-delete"
-                                    onClick={() => handleDeleteRule(rule.id)}
-                                    aria-label="删除规则"
-                                    title="删除规则"
-                                >
-                                    🗑️
-                                </button>
+                                <div className="rule-actions">
+                                    <button
+                                        className="rule-edit"
+                                        onClick={() => handleEditRule(rule)}
+                                        aria-label="编辑规则"
+                                        title="编辑规则"
+                                    >
+                                        ✏️
+                                    </button>
+                                    <button
+                                        className="rule-delete"
+                                        onClick={() => handleDeleteRule(rule.id)}
+                                        aria-label="删除规则"
+                                        title="删除规则"
+                                    >
+                                        🗑️
+                                    </button>
+                                </div>
                             </div>
                         ))
                     )}
@@ -209,6 +283,84 @@ export function PermissionRulesPanel({ visible, onClose }: PermissionRulesPanelP
                     </div>
                 </div>
             </div>
+
+            {editingRule && (
+                <div className="rule-edit-modal">
+                    <div className="modal-overlay" onClick={handleCancelEdit} />
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h3>{isCreatingNew ? '新建权限规则' : '编辑权限规则'}</h3>
+                            <button className="modal-close" onClick={handleCancelEdit}>
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="modal-body">
+                            <div className="form-group">
+                                <label>工具名称</label>
+                                <input
+                                    type="text"
+                                    value={editingRule.toolName || ''}
+                                    onChange={(e) => setEditingRule({ ...editingRule, toolName: e.target.value })}
+                                    placeholder="例如: bash, fs.writeFile, mcp__github"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>匹配模式</label>
+                                <input
+                                    type="text"
+                                    value={editingRule.pattern || ''}
+                                    onChange={(e) => setEditingRule({ ...editingRule, pattern: e.target.value })}
+                                    placeholder="例如: /home/**/*, npm install, *.txt"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>操作</label>
+                                <select
+                                    value={editingRule.action}
+                                    onChange={(e) => setEditingRule({ ...editingRule, action: e.target.value as 'allow' | 'deny' })}
+                                >
+                                    <option value="allow">允许</option>
+                                    <option value="deny">拒绝</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label>描述 (可选)</label>
+                                <textarea
+                                    value={editingRule.description || ''}
+                                    onChange={(e) => setEditingRule({ ...editingRule, description: e.target.value })}
+                                    placeholder="描述此规则的用途..."
+                                    rows={2}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>过期时间 (可选)</label>
+                                <input
+                                    type="datetime-local"
+                                    value={editingRule.expiresAt ? new Date(editingRule.expiresAt).toISOString().slice(0, 16) : ''}
+                                    onChange={(e) => setEditingRule({ 
+                                        ...editingRule, 
+                                        expiresAt: e.target.value ? new Date(e.target.value).toISOString() : undefined 
+                                    })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="modal-footer">
+                            <button className="modal-btn modal-btn--cancel" onClick={handleCancelEdit}>
+                                取消
+                            </button>
+                            <button className="modal-btn modal-btn--save" onClick={handleSaveRule}>
+                                {isCreatingNew ? '创建' : '保存'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
