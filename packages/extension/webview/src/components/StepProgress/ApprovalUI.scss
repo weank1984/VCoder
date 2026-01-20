@@ -1,11 +1,29 @@
 /* Approval UI - Cursor-like command approval card */
 
 .approval-container {
-  border: 1px solid var(--vscode-panel-border);
-  border-top: 3px solid #4d9de0; // Blue accent for bash commands
-  background: var(--vscode-editor-background);
-  border-radius: 8px;
+  border: 1px solid var(--vc-color-border);
+  border-top: 3px solid var(--vc-terminal-accent); // Replace hardcoded #4d9de0
+  background: var(--vc-depth-bg); // Background with depth
+  border-radius: var(--vc-radius-lg); // 8px using tokens
   overflow: hidden;
+  
+  // Add depth and elevation
+  box-shadow: var(--vc-shadow-raised);
+  position: relative;
+  z-index: var(--vc-z-surface);
+  transition: all var(--vc-transition-mid);
+  
+  // Hover effects
+  &:hover {
+    box-shadow: var(--vc-shadow-elevated);
+    transform: translateY(-1px) translateZ(0);
+  }
+  
+  // Focus state
+  &:focus-within {
+    box-shadow: var(--vc-shadow-accent), 0 0 0 2px var(--vc-color-primary);
+    z-index: var(--vc-z-floating);
+  }
   
   &.type-file_write,
   &.type-file_delete {
@@ -21,8 +39,29 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  color: var(--vscode-foreground);
+  padding: var(--vc-spacing-component-md) var(--vc-spacing-component-lg); // 10px 14px using tokens
+  color: var(--vc-color-text-primary);
+  background: var(--vc-depth-midground); // elevated header
+  border-bottom: 1px solid var(--vc-color-border-secondary);
+  position: relative;
+  z-index: var(--vc-z-surface) + 1;
+  
+  // Subtle surface lighting
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
 }
 
 .approval-header .header-title {
@@ -44,11 +83,19 @@
 .risk-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 4px;
+  gap: var(--vc-spacing-component-xs); // 4px using tokens
+  padding: calc(var(--vc-spacing-component-xs) / 2) var(--vc-spacing-component-sm); // 2px 8px using tokens
+  border-radius: var(--vc-radius-sm); // 4px using tokens
   font-size: 11px;
   font-weight: 500;
+  transition: all var(--vc-transition-mid);
+  position: relative;
+  z-index: var(--vc-z-base) + 1;
+  
+  // Hover elevation
+  &:hover {
+    transform: translateZ(1px);
+  }
   
   &.risk-low {
     color: var(--vscode-descriptionForeground);
@@ -69,28 +116,99 @@
 .risk-badge svg {
   width: 12px;
   height: 12px;
+  transition: transform var(--vc-transition-mid);
+}
+
+.risk-badge:hover svg {
+  transform: scale(1.1);
+}
+
+// High risk badge animation
+.risk-badge.risk-high {
+  animation: risk-pulse 2s ease-in-out infinite;
+}
+
+@keyframes risk-pulse {
+  0%, 100% { 
+    opacity: 1; 
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  50% { 
+    animation-timing-function: ease-out;
+    opacity: 0.9;
+    box-shadow: 0 0 0 2px rgba(255, 53, 53, 0.1);
+  }
+}
+
+// Mobile responsive adjustments
+@media (max-width: 768px) {
+  .approval-container {
+    &:hover {
+      transform: translateY(0) translateZ(0); // Disable hover elevation on mobile
+    }
+  }
+  
+  .approval-content {
+    font-size: 12px; // Smaller font on mobile
+  }
+  
+  .command-preview {
+    font-size: 12px;
+  }
+}
+
+// Loading state for approval
+.approval-container.loading {
+  animation: approval-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes approval-loading {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
 
 .approval-content {
-  padding: 0 14px 12px;
+  padding: 0 var(--vc-spacing-component-lg) var(--vc-spacing-component-lg); // 0 14px 12px using tokens
   font-size: 13px;
-  color: var(--vscode-foreground);
+  color: var(--vc-color-text-primary);
+  background: var(--vc-depth-foreground); // elevated content
+  margin: 0 var(--vc-spacing-component-lg) var(--vc-spacing-component-lg);
+  border-radius: var(--vc-radius-md);
+  position: relative;
+  z-index: var(--vc-z-surface);
+  
+  // Glass effect
+  backdrop-filter: blur(1px);
+  border: 1px solid var(--vc-depth-foreground-border);
 }
 
 // Cursor-style command preview with syntax highlighting
 .command-preview {
   display: flex;
-  gap: 8px;
+  gap: var(--vc-spacing-component-lg); // 8px using tokens
   align-items: flex-start;
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: 13px;
   line-height: 1.6;
-  padding: 12px 14px;
-  border-radius: 6px;
-  background: var(--vscode-terminal-background);
-  color: var(--vscode-terminal-foreground);
+  padding: var(--vc-spacing-component-md) var(--vc-spacing-component-lg); // 12px 14px using tokens
+  border-radius: var(--vc-radius-md); // 6px using tokens
+  background: var(--vc-terminal-background);
+  color: var(--vc-terminal-foreground);
   overflow: hidden;
   word-break: break-word;
+  
+  // Add inset effect for depth
+  box-shadow: var(--vc-shadow-inset-light);
+  border: 1px solid var(--vc-color-border-tertiary);
+  
+  // Surface lighting
+  background: 
+    var(--vc-surface-subtle),
+    var(--vc-terminal-background);
+  
+  // Position for layering
+  position: relative;
+  z-index: var(--vc-z-base);
 }
 
 .command-preview .command-prompt {

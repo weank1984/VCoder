@@ -1,5 +1,410 @@
-/* 
- * Theme overrides or specific component themes can go here.
- * Currently, we rely primarily on --vscode-* variables defined in index.scss 
- * and global scope by the editor itself.
+/**
+ * ==========================================================================
+ * VCoder Theme Extensions
+ * Component-specific theme overrides and enhancements
+ * ==========================================================================
  */
+
+:root {
+    /* ==========================================================================
+       BUTTON COMPONENT TOKENS
+       ========================================================================== */
+
+    /* Button Sizes */
+    --vc-button-height-xs: 20px;
+    --vc-button-height-sm: 24px;
+    --vc-button-height-md: 28px;
+    --vc-button-height-lg: 32px;
+    --vc-button-height-xl: 36px;
+
+    /* Button Padding */
+    --vc-button-padding-x-xs: 6px;
+    --vc-button-padding-x-sm: 8px;
+    --vc-button-padding-x-md: 10px;
+    --vc-button-padding-x-lg: 12px;
+    --vc-button-padding-x-xl: 16px;
+
+    /* Button Gap (between icon and text) */
+    --vc-button-gap: 6px;
+
+    /* Button Icons */
+    --vc-button-icon-size-sm: 12px;
+    --vc-button-icon-size-md: 14px;
+    --vc-button-icon-size-lg: 16px;
+
+    /* ==========================================================================
+       INPUT / FORM COMPONENT TOKENS
+       ========================================================================== */
+
+    /* Input Sizes */
+    --vc-input-height-xs: 24px;
+    --vc-input-height-sm: 28px;
+    --vc-input-height-md: 32px;
+    --vc-input-height-lg: 36px;
+
+    /* Input Padding */
+    --vc-input-padding-y: 6px;
+    --vc-input-padding-x: 10px;
+    --vc-input-padding-y-sm: 4px;
+    --vc-input-padding-x-sm: 8px;
+
+    /* Input States */
+    --vc-input-border-width: 1px;
+    --vc-input-border-color: var(--vscode-input-border, rgba(127, 127, 127, 0.25));
+    --vc-input-border-focus: var(--vscode-focusBorder);
+    --vc-input-border-error: var(--vc-color-error-text);
+    --vc-input-border-warning: var(--vc-color-warning-text);
+    --vc-input-border-success: var(--vc-color-success-text);
+
+    /* Input Focus Ring */
+    --vc-input-focus-ring-width: 2px;
+    --vc-input-focus-ring-color: var(--vscode-focusBorder);
+    --vc-input-focus-ring-opacity: 0.3;
+
+    /* ==========================================================================
+       CARD COMPONENT TOKENS
+       ========================================================================== */
+
+    /* Card Variants */
+    --vc-card-border-default: 1px solid var(--vc-color-border);
+    --vc-card-shadow-default: none;
+    --vc-card-shadow-hover: var(--vc-shadow-sm);
+    --vc-card-shadow-elevated: var(--vc-shadow-md);
+
+    /* Card Header */
+    --vc-card-header-padding: var(--vc-spacing-component-md);
+    --vc-card-header-gap: var(--vc-spacing-component-sm);
+
+    /* Card Body */
+    --vc-card-body-padding: var(--vc-spacing-component-md);
+
+    /* Card Footer */
+    --vc-card-footer-padding: var(--vc-spacing-component-md);
+    --vc-card-footer-gap: var(--vc-spacing-component-sm);
+
+    /* ==========================================================================
+       MODAL COMPONENT TOKENS
+       ========================================================================== */
+
+    /* Modal Sizes */
+    --vc-modal-width-sm: 360px;
+    --vc-modal-width-md: 480px;
+    --vc-modal-width-lg: 640px;
+    --vc-modal-width-xl: 800px;
+    --vc-modal-width-full: calc(100% - 32px);
+
+    /* Modal Padding */
+    --vc-modal-padding-sm: var(--vc-spacing-component-md);
+    --vc-modal-padding-md: calc(var(--vc-spacing-component-lg) + var(--vc-spacing-component-xs));
+    --vc-modal-padding-lg: var(--vc-spacing-component-lg);
+
+    /* Modal Header */
+    --vc-modal-header-height: 56px;
+    --vc-modal-header-padding: var(--vc-modal-padding-md);
+
+    /* Modal Footer */
+    --vc-modal-footer-height: 56px;
+    --vc-modal-footer-padding: var(--vc-modal-padding-md);
+
+    /* Modal Animation */
+    --vc-modal-animation-duration: var(--vc-motion-duration-slow);
+    --vc-modal-animation-easing: var(--vc-motion-ease-out);
+
+    /* ==========================================================================
+       DROPDOWN / POPOVER COMPONENT TOKENS
+       ========================================================================== */
+
+    /* Dropdown Sizes */
+    --vc-dropdown-width-sm: 180px;
+    --vc-dropdown-width-md: 220px;
+    --vc-dropdown-width-lg: 280px;
+    --vc-dropdown-width-xl: 340px;
+
+    /* Dropdown Item */
+    --vc-dropdown-item-height: 32px;
+    --vc-dropdown-item-padding: 6px 10px;
+    --vc-dropdown-item-padding-sm: 4px 8px;
+
+    /* Dropdown Group Label */
+    --vc-dropdown-group-label-padding: 6px 10px;
+    --vc-dropdown-group-label-font-size: var(--vc-font-size-xs);
+    --vc-dropdown-group-label-font-weight: var(--vc-font-weight-semibold);
+
+    /* Dropdown Shadow */
+    --vc-dropdown-shadow: var(--vc-shadow-lg);
+    --vc-dropdown-border: 1px solid var(--vc-color-border);
+
+    /* ==========================================================================
+       BADGE / TAG COMPONENT TOKENS
+       ========================================================================== */
+
+    /* Badge Sizes */
+    --vc-badge-height-sm: 20px;
+    --vc-badge-height-md: 24px;
+
+    /* Badge Padding */
+    --vc-badge-padding-x-sm: 6px;
+    --vc-badge-padding-x-md: 8px;
+
+    /* Badge Font */
+    --vc-badge-font-size: var(--vc-font-size-xs);
+    --vc-badge-font-weight: var(--vc-font-weight-medium);
+
+    /* Badge Border Radius */
+    --vc-badge-radius: var(--vc-radius-full);
+
+    /* ==========================================================================
+       TOOLTIP COMPONENT TOKENS
+       ========================================================================== */
+
+    /* Tooltip Padding */
+    --vc-tooltip-padding: 6px 10px;
+
+    /* Tooltip Font */
+    --vc-tooltip-font-size: var(--vc-font-size-xs);
+    --vc-tooltip-line-height: var(--vc-line-height-tight);
+
+    /* Tooltip Border Radius */
+    --vc-tooltip-radius: var(--vc-radius-sm);
+
+    /* Tooltip Shadow */
+    --vc-tooltip-shadow: var(--vc-shadow-md);
+
+    /* ==========================================================================
+       DIVIDER / SEPARATOR TOKENS
+       ========================================================================== */
+
+    /* Divider Thickness */
+    --vc-divider-thickness-thin: 1px;
+    --vc-divider-thickness-medium: 2px;
+    --vc-divider-thickness-thick: 4px;
+
+    /* Divider Margin */
+    --vc-divider-margin-y: var(--vc-spacing-component-md);
+
+    /* Divider Color */
+    --vc-divider-color: var(--vc-color-border);
+    --vc-divider-color-light: var(--vc-color-border-secondary);
+
+    /* ==========================================================================
+       CHAT / MESSAGE COMPONENT TOKENS
+       ========================================================================== */
+
+    /* Message Bubble */
+    --vc-message-bubble-radius: var(--vc-radius-md);
+    --vc-message-bubble-padding: var(--vc-spacing-component-md);
+
+    /* Message Gap */
+    --vc-message-gap: var(--vc-spacing-component-lg);
+
+    /* Message Avatar */
+    --vc-message-avatar-size: 28px;
+    --vc-message-avatar-size-lg: 32px;
+
+    /* ==========================================================================
+       PROGRESS INDICATOR TOKENS
+       ========================================================================== */
+
+    /* Progress Bar Height */
+    --vc-progress-height-sm: 4px;
+    --vc-progress-height-md: 6px;
+    --vc-progress-height-lg: 8px;
+
+    /* Progress Bar Radius */
+    --vc-progress-radius: var(--vc-radius-full);
+
+    /* Progress Track Color */
+    --vc-progress-track-color: var(--vc-color-bg-tertiary);
+
+    /* Progress Fill Color */
+    --vc-progress-fill-color: var(--vc-color-primary);
+
+    /* ==========================================================================
+       TAB COMPONENT TOKENS
+       ========================================================================== */
+
+    /* Tab Height */
+    --vc-tab-height-sm: 32px;
+    --vc-tab-height-md: 36px;
+    --vc-tab-height-lg: 40px;
+
+    /* Tab Padding */
+    --vc-tab-padding-x-sm: 12px;
+    --vc-tab-padding-x-md: 16px;
+    --vc-tab-padding-x-lg: 20px;
+
+    /* Tab Indicator */
+    --vc-tab-indicator-height: 2px;
+    --vc-tab-indicator-color: var(--vc-color-primary);
+
+    /* ==========================================================================
+       TABLE COMPONENT TOKENS
+       ========================================================================== */
+
+    /* Table Cell Padding */
+    --vc-table-cell-padding-y: var(--vc-spacing-component-sm);
+    --vc-table-cell-padding-x: var(--vc-spacing-component-md);
+
+    /* Table Border */
+    --vc-table-border-color: var(--vc-color-border);
+    --vc-table-border-width: var(--vc-input-border-width);
+
+    /* Table Row Hover */
+    --vc-table-row-hover-bg: var(--vc-color-hover-bg);
+    --vc-table-row-selected-bg: var(--vc-color-selected-bg);
+
+    /* ==========================================================================
+       SKELETON LOADING TOKENS
+       ========================================================================== */
+
+    /* Skeleton Animation */
+    --vc-skeleton-duration: 1.5s;
+    --vc-skeleton-shimmer-gradient: linear-gradient(
+        90deg,
+        var(--vc-color-bg-tertiary) 0%,
+        var(--vc-color-bg-secondary) 50%,
+        var(--vc-color-bg-tertiary) 100%
+    );
+
+    /* Skeleton Border Radius */
+    --vc-skeleton-radius-sm: var(--vc-radius-xs);
+    --vc-skeleton-radius-md: var(--vc-radius-sm);
+    --vc-skeleton-radius-lg: var(--vc-radius-md);
+
+    /* ==========================================================================
+       NOTIFICATION / TOAST TOKENS
+       ========================================================================== */
+
+    /* Toast Sizes */
+    --vc-toast-width-sm: 280px;
+    --vc-toast-width-md: 340px;
+    --vc-toast-width-lg: 400px;
+
+    /* Toast Padding */
+    --vc-toast-padding: var(--vc-spacing-component-md);
+
+    /* Toast Border Radius */
+    --vc-toast-radius: var(--vc-radius-md);
+
+    /* Toast Shadow */
+    --vc-toast-shadow: var(--vc-shadow-lg);
+
+    /* Toast Icons */
+    --vc-toast-icon-size: 18px;
+    --vc-toast-icon-spacing: var(--vc-spacing-component-sm);
+
+    /* ==========================================================================
+       FILE PATH / BREADCRUMB TOKENS
+       ========================================================================== */
+
+    /* Breadcrumb Item */
+    --vc-breadcrumb-item-font-size: var(--vc-font-size-sm);
+    --vc-breadcrumb-item-color: var(--vc-color-text-secondary);
+
+    /* Breadcrumb Separator */
+    --vc-breadcrumb-separator-spacing: var(--vc-spacing-component-xs);
+    --vc-breadcrumb-separator-color: var(--vc-color-text-tertiary);
+
+    /* File Path Padding */
+    --vc-filepath-padding: 2px 6px;
+    --vc-filepath-radius: var(--vc-radius-xs);
+
+    /* File Path Colors */
+    --vc-filepath-bg: var(--vc-color-bg-tertiary);
+    --vc-filepath-text: var(--vc-color-text-secondary);
+
+    /* ==========================================================================
+       CODE / SYNTAX HIGHLIGHTING TOKENS
+       ========================================================================== */
+
+    /* Code Block Background */
+    --vc-code-bg: var(--vc-color-bg-secondary);
+    --vc-code-bg-inline: var(--vc-color-bg-tertiary);
+
+    /* Code Font */
+    --vc-code-font-size: var(--vc-font-size-sm);
+    --vc-code-line-height: var(--vc-line-height-relaxed);
+
+    /* Code Border Radius */
+    --vc-code-radius: var(--vc-radius-sm);
+    --vc-code-radius-inline: var(--vc-radius-xs);
+
+    /* Code Padding */
+    --vc-code-padding: var(--vc-spacing-component-md);
+    --vc-code-padding-inline: 2px 6px;
+}
+
+/* ==========================================================================
+   COMPONENT-SPECIFIC STATE CLASSES
+   ========================================================================== */
+
+/* Disabled State Helper */
+.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Loading State Helper */
+.is-loading {
+    cursor: wait;
+    pointer-events: none;
+}
+
+/* Focused State Helper */
+.is-focused {
+    outline: 2px solid var(--vc-color-focus-ring);
+    outline-offset: 2px;
+}
+
+/* Selected State Helper */
+.is-selected {
+    background: var(--vc-color-selected-bg);
+    color: var(--vc-color-selected-fg);
+}
+
+/* Active State Helper */
+.is-active {
+    background: var(--vc-color-selected-bg);
+    color: var(--vc-color-selected-fg);
+}
+
+/* Hover State Helper (with media query support) */
+@media (hover: hover) {
+    .hover\:hover:hover {
+        background: var(--vc-color-hover-bg);
+    }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY IMPROVEMENTS
+   ========================================================================== */
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    :root {
+        --vc-color-border: currentColor;
+        --vc-color-focus-ring: currentColor;
+    }
+}
+
+/* Dark Mode Adjustments (if needed beyond VS Code theme) */
+@media (prefers-color-scheme: dark) {
+    /* Additional dark mode specific adjustments can go here */
+}
+
+/* Light Mode Adjustments (if needed beyond VS Code theme) */
+@media (prefers-color-scheme: light) {
+    /* Additional light mode specific adjustments can go here */
+}

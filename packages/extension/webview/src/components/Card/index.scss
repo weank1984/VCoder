@@ -1,192 +1,508 @@
 /**
- * Card Component Styles
+ * Card Component Styles - Enhanced with Design System
  */
 
 @use '../../styles/mixins' as *;
 
+/* ==========================================================================
+   CARD BASE STYLES
+   ========================================================================== */
+
 .vc-card {
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--vc-radius-md);
-  transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
-  
-  // Variants
-  &--default {
-    background: var(--vc-bg-secondary);
-    border: 1px solid var(--vc-color-border);
-  }
-  
-  &--elevated {
-    background: var(--vc-bg-secondary);
-    border: none;
-    box-shadow: var(--vc-box-shadow);
-  }
-  
-  &--outlined {
-    background: transparent;
-    border: 1px solid var(--vc-color-border);
-  }
-  
-  &--flat {
-    background: var(--vc-bg-secondary);
-    border: none;
-    box-shadow: none;
-  }
-  
-  // Padding sizes
-  &--padding-none {
-    padding: 0;
-  }
-  
-  &--padding-small {
-    padding: calc(var(--vc-padding) * 2 / 3); // 8px
-  }
-  
-  &--padding-medium {
-    padding: var(--vc-padding); // 12px
-  }
-  
-  &--padding-large {
-    padding: calc(var(--vc-padding) * 4 / 3); // 16px
-  }
-  
-  // Interactive state
-  &--interactive {
-    cursor: pointer;
-    
-    &:hover:not(.is-disabled) {
-      background: var(--vscode-list-hoverBackground);
-      transform: translateY(-1px);
-      
-      &.vc-card--elevated {
-        box-shadow: var(--vc-box-shadow-lg);
-      }
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--vc-radius-md);
+    transition: all var(--vc-transition-mid);
+
+    /* Variants */
+    &--default {
+        background: var(--vc-color-bg-secondary);
+        border: 1px solid var(--vc-color-border);
     }
-    
-    &:active:not(.is-disabled) {
-      transform: translateY(0);
+
+    &--elevated {
+        background: var(--vc-color-bg-secondary);
+        border: none;
+        box-shadow: var(--vc-card-shadow-elevated);
     }
-  }
-  
-  // Clickable state
-  &.is-clickable {
-    cursor: pointer;
-    
-    &:hover:not(.is-disabled) {
-      border-color: var(--vscode-focusBorder);
+
+    &--outlined {
+        background: transparent;
+        border: 1px solid var(--vc-color-border);
     }
-  }
-  
-  // Disabled state
-  &.is-disabled {
-    @include disabled-state;
-  }
+
+    &--flat {
+        background: var(--vc-color-bg-secondary);
+        border: none;
+        box-shadow: var(--vc-card-shadow-default);
+    }
+
+    /* Semantic Variants */
+    &--success {
+        background: var(--vc-color-success-bg-subtle);
+        border: 1px solid var(--vc-color-success-border);
+    }
+
+    &--warning {
+        background: var(--vc-color-warning-bg-subtle);
+        border: 1px solid var(--vc-color-warning-border);
+    }
+
+    &--error {
+        background: var(--vc-color-error-bg-subtle);
+        border: 1px solid var(--vc-color-error-border);
+    }
+
+    &--info {
+        background: var(--vc-color-info-bg-subtle);
+        border: 1px solid var(--vc-color-info-border);
+    }
+
+    /* Padding Sizes */
+    &--padding-none {
+        padding: 0;
+    }
+
+    &--padding-small {
+        padding: var(--vc-spacing-component-sm);
+    }
+
+    &--padding-medium {
+        padding: var(--vc-spacing-component-md);
+    }
+
+    &--padding-large {
+        padding: var(--vc-spacing-component-lg);
+    }
+
+    /* Interactive State */
+    &--interactive {
+        cursor: pointer;
+
+        &:hover:not(.is-disabled) {
+            background: var(--vc-color-hover-bg);
+            transform: translateY(-1px);
+            border-color: var(--vc-color-border-focus);
+
+            &.vc-card--elevated {
+                box-shadow: var(--vc-shadow-lg);
+            }
+        }
+
+        &:active:not(.is-disabled) {
+            transform: translateY(0);
+        }
+    }
+
+    /* Clickable State */
+    &.is-clickable {
+        cursor: pointer;
+
+        &:hover:not(.is-disabled) {
+            border-color: var(--vc-color-border-focus);
+        }
+    }
+
+    /* Disabled State */
+    &.is-disabled {
+        @include disabled-state;
+    }
+
+    /* Compact Layout (no spacing between sections) */
+    &--compact {
+        .vc-card-header {
+            padding-bottom: 0;
+        }
+
+        .vc-card-footer {
+            padding-top: 0;
+            border-top: none;
+        }
+    }
 }
 
-// Card Header
+/* ==========================================================================
+   CARD HEADER
+   ========================================================================== */
+
 .vc-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--vc-padding);
-  padding: var(--vc-padding);
-  padding-bottom: calc(var(--vc-padding) * 2 / 3);
-  
-  // 如果Card已经有padding，则减少header的padding
-  .vc-card--padding-medium & {
-    padding: 0 0 calc(var(--vc-padding) * 2 / 3) 0;
-  }
-  
-  .vc-card--padding-large & {
-    padding: 0 0 var(--vc-padding) 0;
-  }
-  
-  .vc-card--padding-small & {
-    padding: 0 0 calc(var(--vc-padding) / 2) 0;
-  }
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--vc-card-header-gap);
+    padding: var(--vc-card-header-padding);
+    padding-bottom: calc(var(--vc-spacing-component-md) * 2 / 3);
+    flex-shrink: 0;
+
+    /* Adjust padding when card has padding */
+    .vc-card--padding-medium & {
+        padding: 0 0 calc(var(--vc-spacing-component-md) * 2 / 3) 0;
+    }
+
+    .vc-card--padding-large & {
+        padding: 0 0 var(--vc-spacing-component-md) 0;
+    }
+
+    .vc-card--padding-small & {
+        padding: 0 0 calc(var(--vc-spacing-component-sm) / 2) 0;
+    }
+
+    /* With icon */
+    &--with-icon {
+        display: flex;
+        align-items: center;
+        gap: var(--vc-spacing-component-sm);
+    }
 }
 
 .vc-card-header-content {
-  flex: 1;
-  min-width: 0;
+    flex: 1;
+    min-width: 0;
 }
 
 .vc-card-header-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--vc-color-text);
-  line-height: 1.4;
-  @include text-ellipsis;
+    font-size: var(--vc-font-size-md);
+    font-weight: var(--vc-font-weight-semibold);
+    color: var(--vc-color-text-primary);
+    line-height: var(--vc-line-height-snug);
+    @include text-ellipsis;
 }
 
 .vc-card-header-subtitle {
-  margin-top: calc(var(--vc-padding) / 4);
-  font-size: 12px;
-  color: var(--vc-color-text-secondary);
-  line-height: 1.4;
-  @include text-ellipsis;
+    margin-top: var(--vc-space-1);
+    font-size: var(--vc-font-size-sm);
+    color: var(--vc-color-text-secondary);
+    line-height: var(--vc-line-height-snug);
+    @include text-ellipsis;
 }
 
 .vc-card-header-action {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: calc(var(--vc-padding) / 2);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--vc-spacing-component-sm);
 }
 
-// Card Body
-.vc-card-body {
-  flex: 1;
-  
-  // 如果Card已经有padding，则不需要额外padding
-  .vc-card--padding-none & {
-    padding: var(--vc-padding);
-  }
-}
-
-// Card Footer
-.vc-card-footer {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--vc-padding) / 2);
-  padding: var(--vc-padding);
-  padding-top: calc(var(--vc-padding) * 2 / 3);
-  border-top: 1px solid var(--vc-color-border);
-  
-  // 如果Card已经有padding，则减少footer的padding
-  .vc-card--padding-medium & {
-    padding: calc(var(--vc-padding) * 2 / 3) 0 0 0;
-  }
-  
-  .vc-card--padding-large & {
-    padding: var(--vc-padding) 0 0 0;
-  }
-  
-  .vc-card--padding-small & {
-    padding: calc(var(--vc-padding) / 2) 0 0 0;
-  }
-  
-  &--left {
-    justify-content: flex-start;
-  }
-  
-  &--center {
+.vc-card-header-icon {
+    display: flex;
+    align-items: center;
     justify-content: center;
-  }
-  
-  &--right {
-    justify-content: flex-end;
-  }
+    width: 24px;
+    height: 24px;
+    color: var(--vc-color-text-secondary);
+    flex-shrink: 0;
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
 }
 
-// 紧凑的卡片布局（header + body + footer 之间无额外间距）
-.vc-card--compact {
-  .vc-card-header {
-    padding-bottom: 0;
-  }
-  
-  .vc-card-footer {
-    padding-top: 0;
-    border-top: none;
-  }
+/* ==========================================================================
+   CARD BODY
+   ========================================================================== */
+
+.vc-card-body {
+    flex: 1;
+
+    /* Add padding when card has no padding */
+    .vc-card--padding-none & {
+        padding: var(--vc-card-body-padding);
+    }
+}
+
+/* ==========================================================================
+   CARD FOOTER
+   ========================================================================== */
+
+.vc-card-footer {
+    display: flex;
+    align-items: center;
+    gap: var(--vc-card-footer-gap);
+    padding: var(--vc-card-footer-padding);
+    padding-top: calc(var(--vc-spacing-component-md) * 2 / 3);
+    border-top: 1px solid var(--vc-color-border);
+    flex-shrink: 0;
+
+    /* Adjust padding when card has padding */
+    .vc-card--padding-medium & {
+        padding: calc(var(--vc-spacing-component-md) * 2 / 3) 0 0 0;
+    }
+
+    .vc-card--padding-large & {
+        padding: var(--vc-spacing-component-md) 0 0 0;
+    }
+
+    .vc-card--padding-small & {
+        padding: calc(var(--vc-spacing-component-sm) / 2) 0 0 0;
+    }
+
+    /* Alignment Variants */
+    &--left {
+        justify-content: flex-start;
+    }
+
+    &--center {
+        justify-content: center;
+    }
+
+    &--right {
+        justify-content: flex-end;
+    }
+
+    &--space-between {
+        justify-content: space-between;
+    }
+}
+
+/* ==========================================================================
+   CARD MEDIA (IMAGE/VIDEO)
+   ========================================================================== */
+
+.vc-card-media {
+    width: 100%;
+    overflow: hidden;
+    background: var(--vc-color-bg-tertiary);
+
+    &--top {
+        border-radius: var(--vc-radius-md) var(--vc-radius-md) 0 0;
+    }
+
+    &--bottom {
+        border-radius: 0 0 var(--vc-radius-md) var(--vc-radius-md);
+    }
+
+    img,
+    video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+/* ==========================================================================
+   CARD ACTIONS
+   ========================================================================== */
+
+.vc-card-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--vc-spacing-component-sm);
+    padding: var(--vc-spacing-component-sm);
+    border-top: 1px solid var(--vc-color-border);
+
+    &--vertical {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+/* ==========================================================================
+   CARD OVERLAY
+   ========================================================================== */
+
+.vc-card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity var(--vc-transition-mid);
+    border-radius: var(--vc-radius-md);
+    z-index: 10;
+}
+
+.vc-card--interactive:hover .vc-card-overlay {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   CARD LIST ITEM
+   ========================================================================== */
+
+.vc-card-list-item {
+    display: flex;
+    align-items: center;
+    gap: var(--vc-spacing-component-md);
+    padding: var(--vc-spacing-component-sm) var(--vc-spacing-component-md);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--vc-color-border-secondary);
+    cursor: pointer;
+    transition: background var(--vc-transition-fast);
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &:hover {
+        background: var(--vc-color-hover-bg);
+    }
+
+    &.is-selected {
+        background: var(--vc-color-selected-bg);
+        color: var(--vc-color-selected-fg);
+    }
+
+    &--disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+}
+
+.vc-card-list-item-avatar {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--vc-radius-full);
+    background: var(--vc-color-bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--vc-color-text-secondary);
+    font-size: var(--vc-font-size-sm);
+    font-weight: var(--vc-font-weight-medium);
+}
+
+.vc-card-list-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.vc-card-list-item-title {
+    font-size: var(--vc-font-size-sm);
+    font-weight: var(--vc-font-weight-medium);
+    color: var(--vc-color-text-primary);
+    line-height: var(--vc-line-height-snug);
+    @include text-ellipsis;
+}
+
+.vc-card-list-item-subtitle {
+    font-size: var(--vc-font-size-xs);
+    color: var(--vc-color-text-secondary);
+    line-height: var(--vc-line-height-tight);
+    @include text-ellipsis;
+}
+
+.vc-card-list-item-action {
+    flex-shrink: 0;
+    margin-left: var(--vc-spacing-component-sm);
+}
+
+/* ==========================================================================
+   CARD STATS
+   ========================================================================== */
+
+.vc-card-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: var(--vc-spacing-component-md);
+    padding: var(--vc-spacing-component-md);
+}
+
+.vc-card-stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--vc-space-1);
+}
+
+.vc-card-stat-label {
+    font-size: var(--vc-font-size-xs);
+    color: var(--vc-color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: var(--vc-letter-spacing-wide);
+}
+
+.vc-card-stat-value {
+    font-size: var(--vc-font-size-xl);
+    font-weight: var(--vc-font-weight-bold);
+    color: var(--vc-color-text-primary);
+    line-height: var(--vc-line-height-tight);
+}
+
+.vc-card-stat-change {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--vc-space-1);
+    font-size: var(--vc-font-size-xs);
+    font-weight: var(--vc-font-weight-medium);
+
+    &--positive {
+        color: var(--vc-color-success-text);
+    }
+
+    &--negative {
+        color: var(--vc-color-error-text);
+    }
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+@media (max-width: 640px) {
+    .vc-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--vc-spacing-component-sm);
+    }
+
+    .vc-card-header-action {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .vc-card-actions {
+        flex-direction: column;
+        width: 100%;
+
+        &--vertical {
+            width: 100%;
+        }
+
+        .vc-button {
+            width: 100%;
+        }
+    }
+
+    .vc-card-list-item {
+        padding: var(--vc-spacing-component-sm);
+    }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .vc-card,
+    .vc-card-list-item,
+    .vc-card-overlay {
+        transition: none;
+    }
+}
+
+/* Focus styles for keyboard navigation */
+.vc-card--interactive:focus-visible,
+.vc-card.is-clickable:focus-visible {
+    outline: 2px solid var(--vc-color-focus-ring);
+    outline-offset: 2px;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .vc-card--default,
+    .vc-card--outlined {
+        border-width: 2px;
+    }
+
+    .vc-card-footer {
+        border-width: 2px;
+    }
 }

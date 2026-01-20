@@ -1,34 +1,53 @@
 /**
- * SCSS Mixins - 可复用的样式模式
- * 使用方式: @use '../styles/mixins' as *;
+ * SCSS Mixins - VCoder Design System
+ * Reusable style patterns and utilities
+ *
+ * Usage: @use '../styles/mixins' as *;
  */
+
+/* ==========================================================================
+   SURFACE & CONTAINER MIXINS
+   ========================================================================== */
 
 /**
  * Surface 表面样式
- * 用于输入框风格的容器
+ * Used for input-style containers with proper focus states
  */
 @mixin surface {
-  background: var(--vscode-input-background);
-  border: 1px solid var(--vscode-input-border);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  background: var(--vc-color-bg-input);
+  border: 1px solid var(--vc-input-border-color);
+  border-radius: var(--vc-radius-lg);
+  box-shadow: var(--vc-shadow-xs);
+  transition: border-color var(--vc-transition-fast), box-shadow var(--vc-transition-fast);
 }
 
 /**
  * Surface 交互状态（focus）
  */
 @mixin surface-focus {
-  border-color: var(--vscode-focusBorder);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--vc-input-border-focus);
+  box-shadow: 0 0 0 2px var(--vc-input-focus-ring-color);
 }
 
 /**
- * 标准 Hover 效果
+ * Elevated surface with stronger shadow
  */
-@mixin hover-effect($bg: var(--vscode-list-hoverBackground)) {
-  transition: background var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
-  
+@mixin surface-elevated {
+  background: var(--vc-color-bg-elevated);
+  box-shadow: var(--vc-shadow-md);
+}
+
+/* ==========================================================================
+   INTERACTION STATE MIXINS
+   ========================================================================== */
+
+/**
+ * 标准 Hover 效果
+ * @param {color} $bg - Hover background color
+ */
+@mixin hover-effect($bg: var(--vc-color-hover-bg)) {
+  transition: background var(--vc-transition-mid);
+
   &:hover:not(:disabled):not(.is-disabled) {
     background: $bg;
   }
@@ -40,13 +59,14 @@
 @mixin active-state {
   &.is-active,
   &:active {
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
+    background: var(--vc-color-selected-bg);
+    color: var(--vc-color-selected-fg);
   }
 }
 
 /**
  * 标准 Disabled 状态
+ * @param {number} $opacity - Opacity value
  */
 @mixin disabled-state($opacity: 0.5) {
   &:disabled,
@@ -58,14 +78,43 @@
 }
 
 /**
+ * Loading 状态
+ */
+@mixin loading-state {
+  &.is-loading {
+    cursor: wait;
+    pointer-events: none;
+
+    & > * {
+      opacity: 0.5;
+    }
+  }
+}
+
+/**
  * Focus 可见轮廓
  */
 @mixin focus-visible {
   &:focus-visible {
-    outline: 1px solid var(--vscode-focusBorder);
+    outline: 2px solid var(--vc-color-focus-ring);
     outline-offset: 2px;
   }
 }
+
+/**
+ * Focus ring with optional offset
+ * @param {number} $offset - Outline offset value
+ */
+@mixin focus-ring($offset: 2px) {
+  &:focus-visible {
+    outline: 2px solid var(--vc-color-focus-ring);
+    outline-offset: $offset;
+  }
+}
+
+/* ==========================================================================
+   TEXT MIXINS
+   ========================================================================== */
 
 /**
  * 文本溢出省略
@@ -78,7 +127,7 @@
 
 /**
  * 多行文本溢出省略
- * @param {number} $lines - 显示的行数
+ * @param {number} $lines - Number of lines to display
  */
 @mixin text-ellipsis-multiline($lines: 2) {
   display: -webkit-box;
@@ -89,38 +138,58 @@
 }
 
 /**
- * 弹出层容器（Popover/Dropdown）
+ * Text gradient (modern browser support)
+ * @param {color} $start - Start color
+ * @param {color} $end - End color
  */
-@mixin popover {
-  padding: 4px;
+@mixin text-gradient($start: #667eea, $end: #764ba2) {
+  background: linear-gradient(135deg, $start 0%, $end 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ==========================================================================
+   COMPONENT MIXINS
+   ========================================================================== */
+
+/**
+ * 弹出层容器（Popover/Dropdown）
+ * @param {number} $padding - Padding value
+ * @param {string} $shadow - Shadow token
+ */
+@mixin popover($padding: 4px, $shadow: var(--vc-dropdown-shadow)) {
+  padding: $padding;
   background: var(--vscode-dropdown-background);
-  border: 1px solid var(--vscode-dropdown-border);
-  border-radius: 8px;
-  box-shadow: var(--vc-box-shadow);
+  border: var(--vc-dropdown-border);
+  border-radius: var(--vc-radius-lg);
+  box-shadow: $shadow;
   position: absolute;
-  z-index: 1000;
-  animation: fadeIn 0.1s ease-out;
+  z-index: var(--vc-z-index-popover);
+  animation: fadeIn var(--vc-transition-fast);
 }
 
 /**
  * 列表项（可点击）
+ * @param {number} $padding - Padding value
+ * @param {string} $radius - Border radius
  */
-@mixin list-item {
+@mixin list-item($padding: 8px, $radius: var(--vc-radius-sm)) {
   display: flex;
   align-items: center;
-  padding: 8px;
+  padding: $padding;
   cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.05s;
-  
+  border-radius: $radius;
+  transition: background var(--vc-transition-fast);
+
   &:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--vc-color-hover-bg);
   }
-  
+
   &.is-active,
   &.selected {
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
+    background: var(--vc-color-selected-bg);
+    color: var(--vc-color-selected-fg);
   }
 }
 
@@ -129,45 +198,54 @@
  */
 @mixin scrollbar {
   &::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: var(--vc-scrollbar-width);
+    height: var(--vc-scrollbar-height);
   }
 
   &::-webkit-scrollbar-thumb {
-    background-color: var(--vscode-scrollbarSlider-background);
+    background-color: var(--vc-scrollbar-thumb);
     border-radius: 5px;
     border: 2px solid transparent;
     background-clip: content-box;
 
     &:hover {
-      background-color: var(--vscode-scrollbarSlider-hoverBackground);
+      background-color: var(--vc-scrollbar-thumb-hover);
     }
 
     &:active {
-      background-color: var(--vscode-scrollbarSlider-activeBackground);
+      background-color: var(--vc-scrollbar-thumb-active);
     }
   }
 
   &::-webkit-scrollbar-track {
+    background: var(--vc-scrollbar-track);
+  }
+
+  &::-webkit-scrollbar-corner {
     background: transparent;
   }
 }
 
 /**
- * 按钮基础样式
+ * Button 基础样式
+ * @param {string} $height - Height token
+ * @param {string} $padding-x - Horizontal padding token
  */
-@mixin button-base {
+@mixin button-base($height: var(--vc-button-height-md), $padding-x: var(--vc-button-padding-x-md)) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 12px;
+  gap: var(--vc-button-gap);
+  height: $height;
+  padding: 0 $padding-x;
   border-radius: var(--vc-radius-sm);
-  font-size: 13px;
-  font-weight: 500;
+  font-family: var(--vc-font-family-base);
+  font-size: var(--vc-font-size-sm);
+  font-weight: var(--vc-font-weight-medium);
   cursor: pointer;
   border: none;
-  transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
-  
+  transition: all var(--vc-transition-mid);
+
   @include focus-visible;
   @include disabled-state;
 }
@@ -177,11 +255,15 @@
  */
 @mixin button-primary {
   @include button-base;
-  background: var(--vscode-button-background);
+  background: var(--vc-color-primary);
   color: var(--vscode-button-foreground);
-  
+
   &:hover:not(:disabled) {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--vc-color-primary-hover);
+  }
+
+  &:active {
+    transform: scale(0.98);
   }
 }
 
@@ -190,11 +272,15 @@
  */
 @mixin button-secondary {
   @include button-base;
-  background: var(--vscode-button-secondaryBackground);
+  background: var(--vc-color-secondary);
   color: var(--vscode-button-secondaryForeground);
-  
+
   &:hover:not(:disabled) {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--vc-color-secondary-hover);
+  }
+
+  &:active {
+    transform: scale(0.98);
   }
 }
 
@@ -204,100 +290,155 @@
 @mixin button-ghost {
   @include button-base;
   background: transparent;
-  color: var(--vscode-foreground);
-  
+  color: var(--vc-color-text-primary);
+
   &:hover:not(:disabled) {
-    background: var(--vscode-toolbar-hoverBackground);
+    background: var(--vc-color-hover-bg);
+  }
+
+  &:active {
+    background: var(--vc-color-selected-bg);
+  }
+}
+
+/**
+ * 危险按钮样式
+ */
+@mixin button-danger {
+  @include button-base;
+  background: var(--vc-color-danger-text);
+  color: var(--vc-color-text-inverse);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--vc-color-danger-text) 85%, black);
+  }
+
+  &:active {
+    transform: scale(0.98);
   }
 }
 
 /**
  * 卡片样式
+ * @param {string} $variant - Card variant (default, elevated, outlined, flat)
  */
-@mixin card {
-  background: var(--vc-bg-secondary);
-  border: 1px solid var(--vc-color-border);
+@mixin card($variant: 'default') {
   border-radius: var(--vc-radius-md);
-  padding: var(--vc-padding);
+  transition: all var(--vc-transition-mid);
+
+  @if $variant == 'default' {
+    background: var(--vc-color-bg-secondary);
+    border: var(--vc-card-border-default);
+  } @else if $variant == 'elevated' {
+    background: var(--vc-color-bg-secondary);
+    border: none;
+    box-shadow: var(--vc-card-shadow-elevated);
+  } @else if $variant == 'outlined' {
+    background: transparent;
+    border: var(--vc-card-border-default);
+  } @else if $variant == 'flat' {
+    background: var(--vc-color-bg-secondary);
+    border: none;
+    box-shadow: var(--vc-card-shadow-default);
+  }
 }
 
 /**
  * 输入框样式
+ * @param {string} $height - Height token
+ * @param {string} $padding-y - Vertical padding token
+ * @param {string} $padding-x - Horizontal padding token
  */
-@mixin input {
+@mixin input(
+  $height: var(--vc-input-height-md),
+  $padding-y: var(--vc-input-padding-y),
+  $padding-x: var(--vc-input-padding-x)
+) {
   width: 100%;
-  padding: 8px 12px;
-  background: var(--vscode-input-background);
+  height: $height;
+  padding: $padding-y $padding-x;
+  background: var(--vc-color-bg-input);
   color: var(--vscode-input-foreground);
-  border: 1px solid var(--vscode-input-border);
+  border: var(--vc-input-border-width) solid var(--vc-input-border-color);
   border-radius: var(--vc-radius-sm);
-  font-family: var(--vc-font-family);
-  font-size: 13px;
+  font-family: var(--vc-font-family-base);
+  font-size: var(--vc-font-size-sm);
   outline: none;
-  transition: border-color 0.15s;
-  
+  transition: border-color var(--vc-transition-fast), box-shadow var(--vc-transition-fast);
+
   &::placeholder {
     color: var(--vscode-input-placeholderForeground);
   }
-  
+
   &:focus {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--vc-input-border-focus);
+    box-shadow: 0 0 0 var(--vc-input-focus-ring-width) var(--vc-input-focus-ring-color);
   }
-  
+
   @include disabled-state;
 }
 
 /**
  * 标签/徽章样式
+ * @param {string} $variant - Badge variant (default, primary, success, warning, error, info)
  */
-@mixin badge {
+@mixin badge($variant: 'default') {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 500;
-  border-radius: 12px;
-  background: var(--vc-bg-tertiary);
-  color: var(--vc-color-text-secondary);
+  height: var(--vc-badge-height-sm);
+  padding: 0 var(--vc-badge-padding-x-sm);
+  font-size: var(--vc-badge-font-size);
+  font-weight: var(--vc-badge-font-weight);
+  border-radius: var(--vc-badge-radius);
+
+  @if $variant == 'default' {
+    background: var(--vc-color-bg-tertiary);
+    color: var(--vc-color-text-secondary);
+  } @else if $variant == 'primary' {
+    background: var(--vc-color-primary-bg-hover);
+    color: var(--vc-color-primary);
+  } @else if $variant == 'success' {
+    background: var(--vc-color-success-bg-subtle);
+    color: var(--vc-color-success-text);
+  } @else if $variant == 'warning' {
+    background: var(--vc-color-warning-bg-subtle);
+    color: var(--vc-color-warning-text);
+  } @else if $variant == 'error' {
+    background: var(--vc-color-error-bg-subtle);
+    color: var(--vc-color-error-text);
+  } @else if $variant == 'info' {
+    background: var(--vc-color-info-bg-subtle);
+    color: var(--vc-color-info-text);
+  }
 }
 
 /**
  * 分隔线
+ * @param {string} $direction - Divider direction (horizontal, vertical)
+ * @param {string} $thickness - Border thickness
+ * @param {string} $color - Border color
  */
-@mixin divider($direction: horizontal) {
-  @if $direction == horizontal {
+@mixin divider(
+  $direction: 'horizontal',
+  $thickness: var(--vc-divider-thickness-thin),
+  $color: var(--vc-divider-color)
+) {
+  @if $direction == 'horizontal' {
     width: 100%;
-    height: 1px;
-    background: var(--vc-color-border);
-    margin: var(--vc-padding) 0;
+    height: $thickness;
+    background: $color;
+    margin: var(--vc-divider-margin-y) 0;
   } @else {
-    width: 1px;
+    width: $thickness;
     height: 100%;
-    background: var(--vc-color-border);
-    margin: 0 var(--vc-padding);
+    background: $color;
+    margin: 0 var(--vc-divider-margin-y);
   }
 }
 
-/**
- * 淡入动画关键帧
- */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/**
- * 淡入动画（使用）
- */
-@mixin fade-in-animation($duration: 0.2s) {
-  animation: fadeIn $duration ease-out;
-}
+/* ==========================================================================
+   LAYOUT MIXINS
+   ========================================================================== */
 
 /**
  * Flexbox 居中
@@ -309,6 +450,25 @@
 }
 
 /**
+ * Flexbox 列居中
+ */
+@mixin flex-column-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/**
+ * Flexbox 间距
+ * @param {string} $gap - Gap value
+ */
+@mixin flex-gap($gap: var(--vc-spacing-component-sm)) {
+  display: flex;
+  gap: $gap;
+}
+
+/**
  * 绝对定位居中
  */
 @mixin absolute-center {
@@ -316,6 +476,59 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+}
+
+/**
+ * 绝对定位覆盖
+ */
+@mixin absolute-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/**
+ * 固定定位覆盖
+ */
+@mixin fixed-cover {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ==========================================================================
+   RESPONSIVE MIXINS
+   ========================================================================== */
+
+/**
+ * 响应式断点 - Mobile
+ */
+@mixin mobile {
+  @media (max-width: 640px) {
+    @content;
+  }
+}
+
+/**
+ * 响应式断点 - Tablet
+ */
+@mixin tablet {
+  @media (min-width: 641px) and (max-width: 1024px) {
+    @content;
+  }
+}
+
+/**
+ * 响应式断点 - Desktop
+ */
+@mixin desktop {
+  @media (min-width: 1025px) {
+    @content;
+  }
 }
 
 /**
@@ -338,4 +551,204 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* ==========================================================================
+   ANIMATION MIXINS
+   ========================================================================== */
+
+/**
+ * 淡入动画
+ * @param {string} $duration - Animation duration
+ */
+@mixin fade-in-animation($duration: var(--vc-transition-slow)) {
+  animation: fadeIn $duration var(--vc-motion-ease-out);
+}
+
+/**
+ * 淡出动画
+ * @param {string} $duration - Animation duration
+ */
+@mixin fade-out-animation($duration: var(--vc-transition-slow)) {
+  animation: fadeOut $duration var(--vc-motion-ease-out);
+}
+
+/**
+ * 滑入动画
+ * @param {string} $duration - Animation duration
+ * @param {string} $direction - Direction (up, down, left, right)
+ */
+@mixin slide-in-animation($duration: var(--vc-transition-slow), $direction: 'up') {
+  animation: slideIn-#{$direction} $duration var(--vc-motion-ease-out);
+}
+
+/**
+ * 缩放动画
+ * @param {string} $duration - Animation duration
+ */
+@mixin scale-animation($duration: var(--vc-transition-slow)) {
+  animation: scaleIn $duration var(--vc-motion-ease-out);
+}
+
+/**
+ * 加载动画 (旋转)
+ */
+@mixin spin-animation {
+  animation: spin 1s linear infinite;
+}
+
+/* ==========================================================================
+   KEYFRAME ANIMATIONS
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideIn-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn-left {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideIn-right {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================================================
+   UTILTY MIXINS
+   ========================================================================== */
+
+/**
+ * 清除浮动
+ */
+@mixin clearfix {
+  &::after {
+    content: '';
+    display: table;
+    clear: both;
+  }
+}
+
+/**
+ * 文本选择颜色
+ * @param {color} $bg - Background color
+ * @param {color} $text - Text color
+ */
+@mixin selection($bg: var(--vc-color-primary), $text: #fff) {
+  ::selection {
+    background: $bg;
+    color: $text;
+  }
+  ::-moz-selection {
+    background: $bg;
+    color: $text;
+  }
+}
+
+/**
+ * 占位符样式
+ * @param {color} $color - Placeholder color
+ */
+@mixin placeholder($color: var(--vscode-input-placeholderForeground)) {
+  &::placeholder {
+    color: $color;
+  }
+  &::-webkit-input-placeholder {
+    color: $color;
+  }
+  &::-moz-placeholder {
+    color: $color;
+    opacity: 1;
+  }
+  &:-ms-input-placeholder {
+    color: $color;
+  }
+}
+
+/**
+ * 硬件加速
+ */
+@mixin hardware-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/**
+ * 居中块级元素
+ */
+@mixin center-block {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 }

@@ -1,110 +1,400 @@
 :root {
     color-scheme: light dark;
-    font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif);
-    font-size: var(--vscode-font-size, 13px);
-    line-height: normal;
-    
-    /* Core Backgrounds */
-    --vcoder-bg: var(--vscode-editor-background);
-    --vcoder-fg: var(--vscode-editor-foreground);
-    
-    /* Inputs */
-    --vcoder-input-bg: var(--vscode-input-background);
-    --vcoder-input-fg: var(--vscode-input-foreground);
-    --vcoder-input-border: var(--vscode-input-border, transparent);
-    --vcoder-input-placeholder: var(--vscode-input-placeholderForeground);
-    
-    /* Borders & Separators */
-    --vcoder-border: var(--vscode-panel-border, var(--vscode-sideBarSectionHeader-border));
-    --vcoder-focus-border: var(--vscode-focusBorder);
-    
-    /* Text Colors */
-    --vcoder-text-primary: var(--vscode-editor-foreground);
-    --vcoder-text-secondary: var(--vscode-descriptionForeground);
-    --vcoder-link: var(--vscode-textLink-foreground);
-    --vcoder-link-hover: var(--vscode-textLink-activeForeground);
-    
-    /* Semantic Colors */
-    --vcoder-error: var(--vscode-errorForeground);
-    --vcoder-warning: var(--vscode-charts-yellow); 
-    --vcoder-success: var(--vscode-charts-green);
 
-    /* Layout Spacing */
-    --vcoder-radius-sm: 2px;
-    --vcoder-radius-md: 4px;
-    --vcoder-radius-lg: 6px;
-    
-    /* Component Specifics */
-    --composer-pane-background: var(--vscode-editor-background); 
+    /* ==========================================================================
+       VCoder Design System - Unified Token Architecture
+       A comprehensive, maintainable design system for the VCoder extension.
 
-    /* =========================================================================
-       VCoder Design Tokens (Cursor-like)
-       Many components use `--vc-*` tokens; keep them defined here and map to
-       VS Code theme variables to ensure consistent look across themes.
-       ========================================================================= */
+       Token Naming Convention:
+       --vc-{category}-{property}-{variant}-{state}
 
-    /* Typography */
-    --vc-font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif);
-    --vc-font-family-code: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace);
-    --vc-font-size: var(--vscode-font-size, 13px);
-    --vc-line-height: 1.55;
+       Categories:
+       - color: All color-related tokens
+       - typography: Font family, size, weight, line-height
+       - spacing: All spacing values (8-point grid)
+       - radius: Border radius values
+       - shadow: Box shadows
+       - motion: Animation duration, easing
+       - z-index: Z-index layering
+       ========================================================================== */
 
-    /* Layout */
-    --vc-padding: 12px;
-    --vc-radius-sm: 6px;
-    --vc-radius-md: 10px;
-    --vc-radius-lg: 14px;
+    /* ==========================================================================
+       1. TYPOGRAPHY SYSTEM
+       ========================================================================== */
 
-    /* Backgrounds */
-    --vc-bg: var(--vscode-sideBar-background, var(--vscode-editor-background));
-    --vc-bg-secondary: color-mix(in srgb, var(--vc-bg) 92%, var(--vscode-editor-foreground, #000) 8%);
-    --vc-bg-tertiary: color-mix(in srgb, var(--vc-bg) 86%, var(--vscode-editor-foreground, #000) 14%);
+    /* Font Families */
+    --vc-font-family-base: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif);
+    --vc-font-family-code: var(--vscode-editor-font-family, 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace);
 
-    /* Text */
-    --vc-color-text: var(--vscode-foreground, var(--vscode-editor-foreground));
-    --vc-color-text-heading: var(--vscode-foreground, var(--vscode-editor-foreground));
+    /* Base Font Settings */
+    --vc-font-size-base: 13px;
+    --vc-line-height-base: 1.55;
+    --vc-letter-spacing-base: 0;
+
+    /* Modular Type Scale (Major Third: 1.25) */
+    --vc-font-size-xs: 11px;   /* 11px - Labels, tags, small text */
+    --vc-font-size-sm: 12px;   /* 12px - Captions, hints */
+    --vc-font-size-md: 13px;   /* 13px - Base body text */
+    --vc-font-size-lg: 14px;   /* 14px - Subheadings, emphasis */
+    --vc-font-size-xl: 16px;   /* 16px - Headings, titles */
+    --vc-font-size-2xl: 18px;  /* 18px - Large headings */
+    --vc-font-size-3xl: 20px;  /* 20px - Page titles */
+
+    /* Line Heights (Optimized for readability) */
+    --vc-line-height-tight: 1.25;
+    --vc-line-height-snug: 1.4;
+    --vc-line-height-normal: 1.55;
+    --vc-line-height-relaxed: 1.7;
+    --vc-line-height-loose: 1.9;
+
+    /* Font Weights */
+    --vc-font-weight-light: 300;
+    --vc-font-weight-regular: 400;
+    --vc-font-weight-medium: 500;
+    --vc-font-weight-semibold: 600;
+    --vc-font-weight-bold: 700;
+
+    /* Letter Spacing */
+    --vc-letter-spacing-tight: -0.01em;
+    --vc-letter-spacing-normal: 0;
+    --vc-letter-spacing-wide: 0.02em;
+    --vc-letter-spacing-wider: 0.05em;
+
+    /* ==========================================================================
+       2. COLOR SYSTEM
+       ========================================================================== */
+
+    /* ----- Core Backgrounds ----- */
+    --vc-color-bg-base: var(--vscode-editor-background);
+    --vc-color-bg-secondary: color-mix(in srgb, var(--vc-color-bg-base) 92%, var(--vscode-editor-foreground, #000) 8%);
+    --vc-color-bg-tertiary: color-mix(in srgb, var(--vc-color-bg-base) 86%, var(--vscode-editor-foreground, #000) 14%);
+    --vc-color-bg-elevated: color-mix(in srgb, var(--vc-color-bg-base) 96%, #fff 4%);
+
+    /* Input Backgrounds */
+    --vc-color-bg-input: var(--vscode-input-background);
+    --vc-color-bg-input-hover: var(--vscode-input-hoverBackground);
+    --vc-color-bg-input-active: var(--vscode-input-activeBackground);
+
+    /* ----- Text Colors ----- */
+    --vc-color-text-primary: var(--vscode-editor-foreground);
     --vc-color-text-secondary: var(--vscode-descriptionForeground);
     --vc-color-text-tertiary: color-mix(in srgb, var(--vscode-descriptionForeground, #666) 70%, transparent);
-    --vc-color-text-description: var(--vscode-descriptionForeground);
+    --vc-color-text-inverse: #ffffff;
+    --vc-color-text-disabled: color-mix(in srgb, var(--vscode-foreground) 50%, transparent);
 
-    /* Borders */
-    --vc-color-border: var(--vscode-panel-border, var(--vscode-sideBarSectionHeader-border, rgba(127, 127, 127, 0.25)));
-    --vc-color-border-secondary: color-mix(in srgb, var(--vc-color-border) 70%, transparent);
-
-    /* Brand / Primary */
-    --vc-color-primary: var(--vscode-button-background);
-    --vc-color-primary-hover: var(--vscode-button-hoverBackground);
-    --vc-color-primary-active: var(--vscode-button-hoverBackground);
-    --vc-color-primary-rgb: 0, 122, 204;
-    --vc-color-primary-bg-hover: color-mix(in srgb, var(--vc-color-primary) 16%, transparent);
-
-    /* Link */
+    /* Link Colors */
     --vc-color-link: var(--vscode-textLink-foreground);
     --vc-color-link-hover: var(--vscode-textLink-activeForeground);
     --vc-color-link-active: var(--vscode-textLink-activeForeground);
 
-    /* Status */
+    /* Icon Colors */
+    --vc-color-icon-primary: var(--vscode-foreground);
+    --vc-color-icon-secondary: var(--vscode-descriptionForeground);
+    --vc-color-icon-tertiary: color-mix(in srgb, var(--vscode-descriptionForeground) 70%, transparent);
+
+    /* ----- Border Colors ----- */
+    --vc-color-border: var(--vscode-panel-border, var(--vscode-sideBarSectionHeader-border, rgba(127, 127, 127, 0.25)));
+    --vc-color-border-secondary: color-mix(in srgb, var(--vc-color-border) 70%, transparent);
+    --vc-color-border-tertiary: color-mix(in srgb, var(--vc-color-border) 40%, transparent);
+    --vc-color-border-focus: var(--vscode-focusBorder);
+
+    /* ----- Brand / Primary Colors ----- */
+    --vc-color-primary: var(--vscode-button-background);
+    --vc-color-primary-hover: var(--vscode-button-hoverBackground);
+    --vc-color-primary-active: var(--vscode-button-secondaryHoverBackground);
+    --vc-color-primary-rgb: 0, 122, 204;
+    --vc-color-primary-bg-hover: color-mix(in srgb, var(--vc-color-primary) 16%, transparent);
+    --vc-color-primary-bg-active: color-mix(in srgb, var(--vc-color-primary) 24%, transparent);
+
+    /* ----- Secondary Colors ----- */
+    --vc-color-secondary: var(--vscode-button-secondaryBackground);
+    --vc-color-secondary-hover: var(--vscode-button-secondaryHoverBackground);
+    --vc-color-secondary-active: var(--vscode-button-secondaryBackground);
+    --vc-color-secondary-rgb: 128, 128, 128;
+
+    /* ----- Semantic Colors ----- */
+
+    /* Success State */
+    --vc-color-success-text: var(--vscode-charts-green, #4ec9b0);
+    --vc-color-success-bg: color-mix(in srgb, var(--vc-color-success-text) 12%, transparent);
+    --vc-color-success-bg-hover: color-mix(in srgb, var(--vc-color-success-text) 18%, transparent);
+    --vc-color-success-border: color-mix(in srgb, var(--vc-color-success-text) 35%, transparent);
+    --vc-color-success-bg-subtle: color-mix(in srgb, var(--vc-color-success-text) 8%, transparent);
+
+    /* Warning State */
+    --vc-color-warning-text: var(--vscode-charts-yellow, #dcdcaa);
+    --vc-color-warning-bg: color-mix(in srgb, var(--vc-color-warning-text) 12%, transparent);
+    --vc-color-warning-bg-hover: color-mix(in srgb, var(--vc-color-warning-text) 18%, transparent);
+    --vc-color-warning-border: color-mix(in srgb, var(--vc-color-warning-text) 35%, transparent);
+    --vc-color-warning-bg-subtle: color-mix(in srgb, var(--vc-color-warning-text) 8%, transparent);
+
+    /* Error State */
     --vc-color-error-text: var(--vscode-errorForeground);
     --vc-color-error-bg: color-mix(in srgb, var(--vscode-errorForeground) 12%, transparent);
+    --vc-color-error-bg-hover: color-mix(in srgb, var(--vscode-errorForeground) 18%, transparent);
     --vc-color-error-border: color-mix(in srgb, var(--vscode-errorForeground) 35%, transparent);
-    --vc-color-danger: var(--vscode-errorForeground);
+    --vc-color-error-bg-subtle: color-mix(in srgb, var(--vscode-errorForeground) 8%, transparent);
+
+    /* Danger State (Destructive actions) */
+    --vc-color-danger-text: var(--vscode-errorForeground);
     --vc-color-danger-bg: color-mix(in srgb, var(--vscode-errorForeground) 12%, transparent);
+    --vc-color-danger-bg-hover: color-mix(in srgb, var(--vscode-errorForeground) 85%, black);
+    --vc-color-danger-border: color-mix(in srgb, var(--vscode-errorForeground) 35%, transparent);
 
-    /* Misc */
-    --vc-color-white: #ffffff;
-    --vc-color-icon: var(--vscode-foreground);
-    --vc-control-item-bg-hover: var(--vscode-list-hoverBackground);
-    --vc-color-bg-mask: rgba(0, 0, 0, 0.35);
+    /* Info State */
+    --vc-color-info-text: var(--vscode-charts-blue, #4fc1ff);
+    --vc-color-info-bg: color-mix(in srgb, var(--vc-color-info-text) 12%, transparent);
+    --vc-color-info-bg-hover: color-mix(in srgb, var(--vc-color-info-text) 18%, transparent);
+    --vc-color-info-border: color-mix(in srgb, var(--vc-color-info-text) 35%, transparent);
+    --vc-color-info-bg-subtle: color-mix(in srgb, var(--vc-color-info-text) 8%, transparent);
 
-    /* Motion + Elevation */
-    --vc-motion-duration-mid: 140ms;
-    --vc-motion-ease-out: cubic-bezier(0.2, 0, 0, 1);
+    /* ----- Interaction States ----- */
+    --vc-color-hover-bg: var(--vscode-list-hoverBackground);
+    --vc-color-hover-bg-subtle: color-mix(in srgb, var(--vscode-list-hoverBackground, rgba(127, 127, 127, 0.08)) 50%, transparent);
+    --vc-color-selected-bg: var(--vscode-list-activeSelectionBackground);
+    --vc-color-selected-fg: var(--vscode-list-activeSelectionForeground);
+    --vc-color-focus-ring: var(--vscode-focusBorder);
+    --vc-color-focus-ring-opacity: rgba(0, 122, 204, 0.4);
+
+    /* ----- Mask / Overlay ----- */
+    --vc-color-mask: rgba(0, 0, 0, 0.45);
+    --vc-color-mask-light: rgba(0, 0, 0, 0.35);
+    --vc-color-mask-dark: rgba(0, 0, 0, 0.55);
+
+    /* ==========================================================================
+       3. SPACING SYSTEM (8-Point Grid)
+       ========================================================================== */
+
+    /* Base spacing unit: 8px */
+    --vc-space-0: 0;
+    --vc-space-1: 4px;    /* 0.5x - Tightest */
+    --vc-space-2: 8px;    /* 1x - Base unit */
+    --vc-space-3: 12px;   /* 1.5x - Default padding */
+    --vc-space-4: 16px;   /* 2x - Standard spacing */
+    --vc-space-5: 20px;   /* 2.5x - Medium-large */
+    --vc-space-6: 24px;   /* 3x - Large */
+    --vc-space-7: 32px;   /* 4x - Extra large */
+    --vc-space-8: 40px;   /* 5x - Huge */
+    --vc-space-9: 48px;   /* 6x - Massive */
+
+    /* Semantic spacing aliases */
+    --vc-spacing-tightest: var(--vc-space-1);   /* 4px */
+    --vc-spacing-tighter: var(--vc-space-2);   /* 8px */
+    --vc-spacing-tight: var(--vc-space-3);     /* 12px */
+    --vc-spacing-normal: var(--vc-space-4);    /* 16px */
+    --vc-spacing-relaxed: var(--vc-space-5);    /* 20px */
+    --vc-spacing-loose: var(--vc-space-6);     /* 24px */
+    --vc-spacing-looser: var(--vc-space-7);    /* 32px */
+
+    /* Component-specific spacing */
+    --vc-spacing-component-xs: var(--vc-space-1);   /* 4px - Tightest component spacing */
+    --vc-spacing-component-sm: var(--vc-space-2);    /* 8px - Small component spacing */
+    --vc-spacing-component-md: var(--vc-space-3);    /* 12px - Default component spacing */
+    --vc-spacing-component-lg: var(--vc-space-4);    /* 16px - Large component spacing */
+    --vc-spacing-component-xl: var(--vc-space-5);    /* 20px - Extra large component spacing */
+
+    /* ==========================================================================
+       4. BORDER RADIUS SYSTEM
+       ========================================================================== */
+
+    --vc-radius-none: 0;
+    --vc-radius-xs: 2px;   /* Minimal radius - Tags, badges */
+    --vc-radius-sm: 4px;   /* Small radius - Buttons, inputs, cards */
+    --vc-radius-md: 6px;   /* Medium radius - Panels, containers */
+    --vc-radius-lg: 8px;   /* Large radius - Cards, modals */
+    --vc-radius-xl: 10px;  /* Extra large radius - Special containers */
+    --vc-radius-2xl: 12px; /* Huge radius - Hero elements */
+    --vc-radius-full: 9999px; /* Pill shapes */
+
+    /* ==========================================================================
+       5. SHADOW / ELEVATION SYSTEM
+       ========================================================================== */
+
+    --vc-shadow-none: none;
+    --vc-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --vc-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --vc-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.04);
+    --vc-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+    --vc-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.04);
+    --vc-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.25);
+
+    /* Legacy shadow tokens (for backward compatibility) */
     --vc-box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
     --vc-box-shadow-secondary: 0 12px 32px rgba(0, 0, 0, 0.24);
     --vc-box-shadow-tertiary: 0 6px 18px rgba(0, 0, 0, 0.14);
+    --vc-box-shadow-lg: var(--vc-shadow-lg);
 
+    /* ==========================================================================
+       6. MOTION / ANIMATION SYSTEM
+       ========================================================================== */
+
+    /* Durations */
+    --vc-motion-duration-instant: 50ms;
+    --vc-motion-duration-fast: 100ms;
+    --vc-motion-duration-mid: 140ms;
+    --vc-motion-duration-slow: 200ms;
+    --vc-motion-duration-slower: 300ms;
+    --vc-motion-duration-slowest: 500ms;
+
+    /* Easing Functions */
+    --vc-motion-ease-linear: linear;
+    --vc-motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --vc-motion-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --vc-motion-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --vc-motion-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Transition presets */
+    --vc-transition-fast: var(--vc-motion-duration-fast) var(--vc-motion-ease-out);
+    --vc-transition-mid: var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
+    --vc-transition-slow: var(--vc-motion-duration-slow) var(--vc-motion-ease-out);
+
+    /* ==========================================================================
+       7. Z-INDEX SYSTEM
+       ========================================================================== */
+
+    --vc-z-index-dropdown: 1000;
+    --vc-z-index-sticky: 100;
+    --vc-z-index-fixed: 200;
+    --vc-z-index-modal-backdrop: 1000;
+    --vc-z-index-modal: 1001;
+    --vc-z-index-popover: 1002;
+    --vc-z-index-tooltip: 1003;
+    --vc-z-index-notification: 2000;
+
+    /* ==========================================================================
+       8. SCROLLBAR SYSTEM
+       ========================================================================== */
+
+    --vc-scrollbar-width: 10px;
+    --vc-scrollbar-height: 10px;
     --vc-scrollbar-thumb: var(--vscode-scrollbarSlider-background, rgba(121, 121, 121, 0.4));
+    --vc-scrollbar-thumb-hover: var(--vscode-scrollbarSlider-hoverBackground, rgba(121, 121, 121, 0.6));
+    --vc-scrollbar-thumb-active: var(--vscode-scrollbarSlider-activeBackground, rgba(121, 121, 121, 0.8));
+    --vc-scrollbar-track: transparent;
+
+    /* ==========================================================================
+       9. LEGACY TOKENS (For backward compatibility)
+       These will be deprecated in future versions.
+       ========================================================================== */
+
+    /* Legacy vcoder tokens - mapped to new system */
+    --vcoder-bg: var(--vc-color-bg-base);
+    --vcoder-fg: var(--vc-color-text-primary);
+    --vcoder-input-bg: var(--vc-color-bg-input);
+    --vcoder-input-fg: var(--vscode-input-foreground);
+    --vcoder-input-border: var(--vscode-input-border, transparent);
+    --vcoder-input-placeholder: var(--vscode-input-placeholderForeground);
+    --vcoder-border: var(--vc-color-border);
+    --vcoder-focus-border: var(--vc-color-border-focus);
+    --vcoder-text-primary: var(--vc-color-text-primary);
+    --vcoder-text-secondary: var(--vc-color-text-secondary);
+    --vcoder-link: var(--vc-color-link);
+    --vcoder-link-hover: var(--vc-color-link-hover);
+    --vcoder-error: var(--vc-color-error-text);
+    --vcoder-warning: var(--vc-color-warning-text);
+    --vcoder-success: var(--vc-color-success-text);
+    --vcoder-radius-sm: var(--vc-radius-sm);
+    --vcoder-radius-md: var(--vc-radius-md);
+    --vcoder-radius-lg: var(--vc-radius-lg);
+
+    /* Legacy vc tokens - mapped to new system */
+    --vc-font-family: var(--vc-font-family-base);
+    --vc-font-size: var(--vc-font-size-base);
+    --vc-line-height: var(--vc-line-height-base);
+    --vc-padding: var(--vc-spacing-component-md);
+    --vc-radius-sm: var(--vc-radius-sm);
+    --vc-radius-md: var(--vc-radius-md);
+    --vc-radius-lg: var(--vc-radius-lg);
+    --vc-bg: var(--vc-color-bg-base);
+    --vc-bg-secondary: var(--vc-color-bg-secondary);
+    --vc-bg-tertiary: var(--vc-color-bg-tertiary);
+    --vc-color-text: var(--vc-color-text-primary);
+    --vc-color-text-heading: var(--vc-color-text-primary);
+    --vc-color-text-secondary: var(--vc-color-text-secondary);
+    --vc-color-text-tertiary: var(--vc-color-text-tertiary);
+    --vc-color-text-description: var(--vc-color-text-secondary);
+    --vc-color-border: var(--vc-color-border);
+    --vc-color-border-secondary: var(--vc-color-border-secondary);
+    --vc-color-primary: var(--vc-color-primary);
+    --vc-color-primary-hover: var(--vc-color-primary-hover);
+    --vc-color-primary-active: var(--vc-color-primary-active);
+    --vc-color-primary-rgb: var(--vc-color-primary-rgb);
+    --vc-color-primary-bg-hover: var(--vc-color-primary-bg-hover);
+    --vc-color-link: var(--vc-color-link);
+    --vc-color-link-hover: var(--vc-color-link-hover);
+    --vc-color-link-active: var(--vc-color-link-active);
+    --vc-color-error-text: var(--vc-color-error-text);
+    --vc-color-error-bg: var(--vc-color-error-bg);
+    --vc-color-error-border: var(--vc-color-error-border);
+    --vc-color-danger: var(--vc-color-danger-text);
+    --vc-color-danger-bg: var(--vc-color-danger-bg);
+    --vc-color-white: #ffffff;
+    --vc-color-icon: var(--vc-color-icon-primary);
+    --vc-control-item-bg-hover: var(--vc-color-hover-bg);
+    --vc-color-bg-mask: var(--vc-color-mask);
+    --vc-motion-duration-mid: var(--vc-motion-duration-mid);
+    --vc-motion-ease-out: var(--vc-motion-ease-out);
+    --vc-box-shadow: var(--vc-box-shadow);
+    --vc-scrollbar-thumb: var(--vc-scrollbar-thumb);
+    --composer-pane-background: var(--vc-color-bg-base);
+
+/* Legacy padding tokens */
+    --vc-sticky-user-prompt-offset: 0px;
+
+    /* ==========================================================================
+      11. TODO & TASK COMPONENT TOKENS
+      Specific tokens for todo lists and task management
+      ========================================================================== */
+
+    /* ----- Todo/Task Priority Colors ----- */
+    --vc-todo-priority-high: var(--vscode-colors.red, #ff5722);        // Red for urgent
+    --vc-todo-priority-medium: var(--vscode-charts-orange, #f78c6c);    // Orange for medium 
+    --vc-todo-priority-low: var(--vscode-charts.gray, #8a8a8a);         // Gray for low
+
+    /* ----- Status-Based Colors ----- */
+    --vc-todo-status-pending: var(--vc-color-text-secondary);
+    --vc-todo-status-progress: var(--vscode-terminal-ansiYellow);
+    --vc-todo-status-completed: var(--vc-color-success-text);
+    --vc-todo-status-cancelled: var(--vc-color-error-text);
+
+    /* ----- Background Colors by Priority ----- */
+    --vc-todo-bg-high: color-mix(in srgb, var(--vc-todo-priority-high) 8%, transparent);
+    --vc-todo-bg-medium: color-mix(in srgb, var(--vc-todo-priority-medium) 6%, transparent);
+    --vc-todo-bg-low: color-mix(in srgb, var(--vc-todo-priority-low) 4%, transparent);
+
+    /* ----- Todo Manager Sizing ----- */
+    --vc-todo-manager-height-default: 240px;
+    --vc-todo-manager-height-expanded: 320px;
+    --vc-todo-height-todo-only: 180px;
+    --vc-todo-manager-full: 60vh;
+
+    /* ----- Todo Item Heights ----- */
+    --vc-todo-item-height-compact: 32px;
+    --vc-todo-item-height-comfortable: 40px;
+    --vc-todo-item-height-expanded: 48px;
+
+    /* ----- Progress Indicators ----- */
+    --vc-todo-progress-stroke: 2px;
+    --vc-todo-progress-radius: 9999px;
+
+    /* ----- Task Status Colors ----- */
+    --vc-task-status-pending: var(--vscode-terminal-ansiYellow);
+    --vc-task-status-running: var(--vscode-terminal-ansiBlue);
+    --vc-task-status-success: var(--vscode-gitDecoration-addedResourceForeground);
+    --vc-task-status-error: var(--vscode-terminal-ansiRed);
+
+    /* ----- Background Colors for Task Types ----- */
+    --vc-task-bg-brainstorm: color-mix(in srgb, var(--vscode-symbolIcon-classForeground, #4584b6) 8%, transparent);
+    --vc-task-bg-codegen: color-mix(in srgb, var(--vscode-symbolIcon-methodForeground, #563d7c) 8%, transparent);
+    --vc-task-bg-execute: color-mix(in srgb, var(--vscode-symbolIcon-interfaceForeground, #a971f8) 8%, transparent);
+    --vc-task-bg-refactor: color-mix(in srgb, var(--vscode-symbolIcon-eventForeground) 8%, transparent);
+    --vc-task-bg-test: color-mix(in srgb, var(--vscode-terminal-ansiGreen) 8%, transparent);
+    --vc-task-bg-unknown: var(--vc-bg-secondary);
 }
+
+/* ==========================================================================
+   GLOBAL RESET & BASE STYLES
+   ========================================================================== */
 
 *,
 *::before,
@@ -112,7 +402,7 @@
     box-sizing: border-box;
 }
 
-h1,h2,h3,h4,h5,h6,p {
+h1, h2, h3, h4, h5, h6, p {
     margin: 0;
 }
 
@@ -121,9 +411,16 @@ html, body, #root {
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background: var(--vcoder-bg);
-    color: var(--vcoder-fg);
+    background: var(--vc-color-bg-base);
+    color: var(--vc-color-text-primary);
+    font-family: var(--vc-font-family-base);
+    font-size: var(--vc-font-size-base);
+    line-height: var(--vc-line-height-base);
 }
+
+/* ==========================================================================
+   INTERACTIVE ELEMENTS
+   ========================================================================== */
 
 button {
     cursor: pointer;
@@ -134,39 +431,80 @@ button {
 }
 
 a {
-    color: var(--vcoder-link);
+    color: var(--vc-color-link);
     text-decoration: none;
+
     &:hover {
-        color: var(--vcoder-link-hover);
+        color: var(--vc-color-link-hover);
         text-decoration: underline;
     }
 }
 
-/* VS Code Native Scrollbar Style */
+/* ==========================================================================
+   SCROLLBAR STYLES
+   ========================================================================== */
+
 ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: var(--vc-scrollbar-width);
+    height: var(--vc-scrollbar-height);
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: var(--vscode-scrollbarSlider-background);
+    background-color: var(--vc-scrollbar-thumb);
     border-radius: 5px;
-    border: 2px solid transparent; 
-    background-clip: content-box; 
-}
+    border: 2px solid transparent;
+    background-clip: content-box;
 
-::-webkit-scrollbar-thumb:hover {
-    background-color: var(--vscode-scrollbarSlider-hoverBackground);
+    &:hover {
+        background-color: var(--vc-scrollbar-thumb-hover);
+    }
 }
 
 ::-webkit-scrollbar-thumb:active {
-    background-color: var(--vscode-scrollbarSlider-activeBackground);
+    background-color: var(--vc-scrollbar-thumb-active);
 }
 
 ::-webkit-scrollbar-track {
-    background: transparent;
+    background: var(--vc-scrollbar-track);
 }
 
 ::-webkit-scrollbar-corner {
     background: transparent;
+}
+
+/* ==========================================================================
+   UTILITY CLASSES
+   ========================================================================== */
+
+/* Focus visible utility */
+.focus-visible-outline {
+    &:focus-visible {
+        outline: 2px solid var(--vc-color-focus-ring);
+        outline-offset: 2px;
+    }
+}
+
+/* Screen reader only */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* No select */
+.no-select {
+    user-select: none;
+}
+
+/* Truncate text */
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

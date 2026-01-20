@@ -1,211 +1,469 @@
 /**
- * Dropdown Component Styles
+ * Dropdown Component Styles - Enhanced with Design System
  */
 
 @use '../../styles/mixins' as *;
 
-.vc-dropdown {
-  position: relative;
-  display: inline-block;
+/* ==========================================================================
+   DROPDOWN CONTAINER
+   ========================================================================== */
 
-  &.is-disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
+.vc-dropdown {
+    position: relative;
+    display: inline-block;
+
+    &.is-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
 }
+
+/* ==========================================================================
+   DROPDOWN TRIGGER
+   ========================================================================== */
 
 .vc-dropdown-trigger {
-  cursor: pointer;
-  user-select: none;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+
+    @include focus-visible;
+
+    &.is-disabled {
+        cursor: not-allowed;
+        pointer-events: none;
+    }
 }
 
-// Overlay (backdrop)
+/* ==========================================================================
+   DROPDOWN OVERLAY (BACKDROP)
+   ========================================================================== */
+
 .vc-dropdown-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 999;
-  background: transparent;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--vc-z-index-dropdown);
+    background: transparent;
 }
 
-// Popover container
+/* ==========================================================================
+   DROPDOWN POPOVER
+   ========================================================================== */
+
 .vc-dropdown-popover {
-  @include popover;
-  display: flex;
-  flex-direction: column;
-  min-width: 200px;
-  z-index: 1000;
+    @include popover(4px, var(--vc-dropdown-shadow));
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+    z-index: var(--vc-z-index-popover);
 
-  &--top {
-    bottom: calc(100% + 4px);
-  }
+    /* Position Variants */
+    &--top {
+        bottom: calc(100% + var(--vc-space-1));
+    }
 
-  &--bottom {
-    top: calc(100% + 4px);
-  }
+    &--bottom {
+        top: calc(100% + var(--vc-space-1));
+    }
 
-  &--left {
-    right: calc(100% + 4px);
-  }
+    &--left {
+        right: calc(100% + var(--vc-space-1));
+    }
 
-  &--right {
-    left: calc(100% + 4px);
-  }
+    &--right {
+        left: calc(100% + var(--vc-space-1));
+    }
+
+    /* Alignment Variants */
+    &--align-start {
+        left: 0;
+    }
+
+    &--align-end {
+        right: 0;
+    }
+
+    &--align-center {
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    /* Size Variants */
+    &--small {
+        min-width: var(--vc-dropdown-width-sm);
+    }
+
+    &--medium {
+        min-width: var(--vc-dropdown-width-md);
+    }
+
+    &--large {
+        min-width: var(--vc-dropdown-width-lg);
+    }
+
+    &--extra-large {
+        min-width: var(--vc-dropdown-width-xl);
+    }
 }
 
-// Header
+/* ==========================================================================
+   DROPDOWN HEADER
+   ========================================================================== */
+
 .vc-dropdown-header {
-  padding: calc(var(--vc-padding) / 2);
-  border-bottom: 1px solid var(--vc-color-border);
+    padding: var(--vc-dropdown-group-label-padding);
+    border-bottom: 1px solid var(--vc-color-border);
 }
+
+.vc-dropdown-title {
+    font-size: var(--vc-font-size-sm);
+    font-weight: var(--vc-font-weight-semibold);
+    color: var(--vc-color-text-primary);
+}
+
+.vc-dropdown-subtitle {
+    font-size: var(--vc-font-size-xs);
+    color: var(--vc-color-text-secondary);
+    margin-top: var(--vc-space-1);
+}
+
+/* ==========================================================================
+   DROPDOWN SEARCH
+   ========================================================================== */
 
 .vc-dropdown-search {
-  padding: calc(var(--vc-padding) / 3);
+    padding: var(--vc-space-1);
 }
 
 .vc-dropdown-search-input {
-  @include input;
-  width: 100%;
-  padding: calc(var(--vc-padding) / 2) calc(var(--vc-padding) * 2 / 3);
-  font-size: 13px;
+    width: 100%;
+    padding: var(--vc-input-padding-y-sm) var(--vc-input-padding-x-sm);
+    background: var(--vc-color-bg-input);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vc-input-border-color);
+    border-radius: var(--vc-radius-sm);
+    outline: none;
+    font-size: var(--vc-font-size-sm);
+    transition: border-color var(--vc-transition-fast), box-shadow var(--vc-transition-fast);
+
+    &::placeholder {
+        color: var(--vscode-input-placeholderForeground);
+    }
+
+    &:focus {
+        border-color: var(--vc-input-border-focus);
+        box-shadow: 0 0 0 var(--vc-input-focus-ring-width) var(--vc-input-focus-ring-color);
+    }
 }
 
-// Items container
+/* ==========================================================================
+   DROPDOWN ITEMS CONTAINER
+   ========================================================================== */
+
 .vc-dropdown-items {
-  @include scrollbar;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: calc(var(--vc-padding) / 3);
-  max-height: inherit;
+    @include scrollbar;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--vc-space-1);
+    max-height: inherit;
 }
 
-// Group
+/* ==========================================================================
+   DROPDOWN GROUP
+   ========================================================================== */
+
 .vc-dropdown-group {
-  & + & {
-    margin-top: calc(var(--vc-padding) / 2);
-    padding-top: calc(var(--vc-padding) / 2);
-    border-top: 1px solid var(--vc-color-border);
-  }
+    & + & {
+        margin-top: var(--vc-spacing-component-sm);
+        padding-top: var(--vc-spacing-component-sm);
+        border-top: 1px solid var(--vc-color-border-secondary);
+    }
 }
 
 .vc-dropdown-group-label {
-  padding: calc(var(--vc-padding) / 3) calc(var(--vc-padding) * 2 / 3);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--vc-color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+    padding: var(--vc-dropdown-group-label-padding);
+    font-size: var(--vc-dropdown-group-label-font-size);
+    font-weight: var(--vc-dropdown-group-label-font-weight);
+    color: var(--vc-color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: var(--vc-letter-spacing-wider);
 }
 
-// Item
+/* ==========================================================================
+   DROPDOWN ITEM
+   ========================================================================== */
+
 .vc-dropdown-item {
-  @include list-item;
-  display: flex;
-  align-items: center;
-  gap: calc(var(--vc-padding) / 2);
-  padding: calc(var(--vc-padding) / 2) calc(var(--vc-padding) * 2 / 3);
-  cursor: pointer;
-  border-radius: var(--vc-radius-sm);
-  transition: background var(--vc-motion-duration-fast) var(--vc-motion-ease-out);
-  user-select: none;
-  font-size: 13px;
-  color: var(--vc-color-text);
+    display: flex;
+    align-items: center;
+    gap: var(--vc-spacing-component-sm);
+    padding: var(--vc-dropdown-item-padding);
+    cursor: pointer;
+    border-radius: var(--vc-radius-sm);
+    transition: background var(--vc-transition-fast);
+    user-select: none;
+    font-size: var(--vc-font-size-sm);
+    color: var(--vc-color-text-primary);
+    position: relative;
 
-  &:hover:not(.is-disabled) {
-    background: var(--vscode-list-hoverBackground);
-  }
+    &:hover:not(.is-disabled) {
+        background: var(--vc-color-hover-bg);
+    }
 
-  &.is-focused:not(.is-disabled) {
-    background: var(--vscode-list-hoverBackground);
-  }
+    &.is-focused:not(.is-disabled) {
+        background: var(--vc-color-hover-bg);
+        outline: 2px solid var(--vc-color-focus-ring);
+        outline-offset: -1px;
+    }
 
-  &.is-selected {
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
-  }
+    &.is-selected {
+        background: var(--vc-color-selected-bg);
+        color: var(--vc-color-selected-fg);
+    }
 
-  &.is-disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
+    &.is-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    /* Item Sizes */
+    &--small {
+        padding: var(--vc-dropdown-item-padding-sm);
+        min-height: var(--vc-dropdown-item-height);
+    }
+
+    &--medium {
+        padding: var(--vc-dropdown-item-padding);
+        min-height: 36px;
+    }
+
+    &--large {
+        padding: 10px 12px;
+        min-height: 40px;
+    }
+
+    /* Dangerous Item */
+    &--danger {
+        color: var(--vc-color-error-text);
+
+        &:hover {
+            background: var(--vc-color-error-bg);
+        }
+    }
 }
 
-.vc-dropdown-item-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  
-  svg {
-    width: 16px;
-    height: 16px;
-  }
+/* Item Description */
+.vc-dropdown-item-description {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--vc-space-1);
 }
 
 .vc-dropdown-item-label {
-  flex: 1;
-  min-width: 0;
-  @include text-ellipsis;
+    flex: 1;
+    min-width: 0;
+    @include text-ellipsis;
 }
 
-.vc-dropdown-item-right {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  font-size: 11px;
-  color: var(--vc-color-text-tertiary);
-  margin-left: auto;
-  padding-left: calc(var(--vc-padding) / 2);
+.vc-dropdown-item-subtext {
+    font-size: var(--vc-font-size-xs);
+    color: var(--vc-color-text-tertiary);
+    @include text-ellipsis;
 }
 
+/* Item Icon */
+.vc-dropdown-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: var(--vc-space-2);
+    height: var(--vc-space-2);
+    color: var(--vc-color-text-secondary);
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+/* Item Check */
 .vc-dropdown-item-check {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  margin-left: auto;
-  color: currentColor;
-  font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: auto;
+    color: currentColor;
+    font-size: var(--vc-font-size-md);
+    width: 16px;
+    height: 16px;
 }
 
-// Divider
+/* Item Right Side Content */
+.vc-dropdown-item-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    font-size: var(--vc-font-size-xs);
+    color: var(--vc-color-text-tertiary);
+    margin-left: auto;
+    padding-left: var(--vc-spacing-component-sm);
+    gap: var(--vc-space-1);
+}
+
+.vc-dropdown-item-shortcut {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    font-size: var(--vc-font-size-xs);
+    background: var(--vc-color-bg-tertiary);
+    border-radius: var(--vc-radius-xs);
+    color: var(--vc-color-text-secondary);
+}
+
+.vc-dropdown-item-badge {
+    @include badge('primary');
+}
+
+/* ==========================================================================
+   DROPDOWN DIVIDER
+   ========================================================================== */
+
 .vc-dropdown-divider {
-  height: 1px;
-  margin: calc(var(--vc-padding) / 3) 0;
-  background: var(--vc-color-border);
+    height: var(--vc-divider-thickness-thin);
+    margin: var(--vc-space-1) 0;
+    background: var(--vc-color-border-secondary);
 }
 
-// Empty state
+/* ==========================================================================
+   DROPDOWN EMPTY STATE
+   ========================================================================== */
+
 .vc-dropdown-empty {
-  padding: var(--vc-padding);
-  text-align: center;
-  color: var(--vc-color-text-secondary);
-  font-size: 13px;
+    padding: var(--vc-spacing-component-md);
+    text-align: center;
+    color: var(--vc-color-text-secondary);
+    font-size: var(--vc-font-size-sm);
 }
 
-// Footer
+.vc-dropdown-empty-icon {
+    font-size: var(--vc-font-size-3xl);
+    color: var(--vc-color-text-tertiary);
+    margin-bottom: var(--vc-spacing-component-sm);
+}
+
+.vc-dropdown-empty-text {
+    margin-bottom: var(--vc-space-1);
+}
+
+.vc-dropdown-empty-action {
+    color: var(--vc-color-link);
+    cursor: pointer;
+    font-weight: var(--vc-font-weight-medium);
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+/* ==========================================================================
+   DROPDOWN FOOTER
+   ========================================================================== */
+
 .vc-dropdown-footer {
-  padding: calc(var(--vc-padding) / 2);
-  border-top: 1px solid var(--vc-color-border);
+    padding: var(--vc-dropdown-group-label-padding);
+    border-top: 1px solid var(--vc-color-border);
 }
 
-// Animation
+/* ==========================================================================
+   DROPDOWN MULTIPLE SELECT
+   ========================================================================== */
+
+.vc-dropdown-item--checkbox {
+    .vc-dropdown-item-check {
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--vc-color-border);
+        border-radius: var(--vc-radius-xs);
+        background: var(--vc-color-bg-base);
+        color: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all var(--vc-transition-fast);
+        margin-left: 0;
+        margin-right: var(--vc-spacing-component-sm);
+    }
+
+    &.is-selected .vc-dropdown-item-check {
+        background: var(--vc-color-primary);
+        border-color: var(--vc-color-primary);
+        color: var(--vscode-button-foreground);
+    }
+
+    &.is-indeterminate .vc-dropdown-item-check {
+        background: var(--vc-color-primary);
+        border-color: var(--vc-color-primary);
+        color: var(--vscode-button-foreground);
+    }
+}
+
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
+
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .vc-dropdown-popover {
-  animation: fadeIn 0.1s ease-out;
+    animation: fadeIn 0.1s ease-out;
+}
+
+/* ==========================================================================
+   ACCESSIBILITY
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .vc-dropdown-popover {
+        animation: none;
+    }
+
+    .vc-dropdown-item {
+        transition: none;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .vc-dropdown-popover {
+        border-width: 2px;
+        border-color: currentColor;
+    }
+
+    .vc-dropdown-item.is-focused:not(.is-disabled) {
+        outline: 3px solid currentColor;
+    }
+}
+
+/* Keyboard navigation focus visible */
+.vc-dropdown-trigger:focus-visible,
+.vc-dropdown-item:focus-visible {
+    outline: 2px solid var(--vc-color-focus-ring);
+    outline-offset: 2px;
 }

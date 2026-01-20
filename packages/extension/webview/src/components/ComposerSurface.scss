@@ -1,19 +1,259 @@
-/* Shared surface styles for composer-like UI elements */
+/* Enhanced Composer Surface with Advanced Interactions */
 
 .vc-composer-surface {
-    background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-input-border);
-    border-radius: 12px;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background: var(--vc-color-bg-input);
+    border: 1px solid var(--vc-color-border);
+    border-radius: var(--vc-radius-lg);
+    transition: all var(--vc-transition-mid) var(--vc-motion-ease-out);
+    box-shadow: var(--vc-shadow-xs);
+    position: relative;
+    overflow: hidden;
+
+    /* Subtle inner glow effect */
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+            135deg,
+            transparent 0%,
+            color-mix(in srgb, var(--vc-color-primary) 3%, transparent) 50%,
+            transparent 100%
+        );
+        opacity: 0;
+        transition: opacity var(--vc-transition-slow) var(--vc-motion-ease-out);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* Interactive states */
+    &--interactive {
+        cursor: pointer;
+        
+        &:hover {
+            border-color: var(--vc-color-border-secondary);
+            box-shadow: var(--vc-shadow-sm);
+            transform: translateY(-1px);
+        }
+    }
+
+    &--interactive:focus-within {
+        border-color: var(--vc-color-focus-ring);
+        box-shadow: 
+            var(--vc-shadow-md),
+            0 0 0 2px color-mix(in srgb, var(--vc-color-focus-ring) 20%, transparent);
+        transform: translateY(-2px);
+        
+        &::before {
+            opacity: 1;
+        }
+    }
+
+    /* Loading/muted state */
+    &--muted {
+        opacity: 0.7;
+        border-color: var(--vc-color-border-tertiary);
+        cursor: not-allowed;
+        box-shadow: var(--vc-shadow-none);
+        
+        &:hover {
+            transform: none;
+            border-color: var(--vc-color-border-tertiary);
+            box-shadow: var(--vc-shadow-none);
+        }
+        
+        &::before {
+            opacity: 0;
+        }
+    }
+
+    /* Success state (for successful operations) */
+    &--success {
+        border-color: var(--vc-color-success-border);
+        box-shadow: 
+            var(--vc-shadow-xs),
+            0 0 0 1px color-mix(in srgb, var(--vc-color-success-bg) 50%, transparent);
+        
+        &::before {
+            background: linear-gradient(
+                135deg,
+                transparent 0%,
+                color-mix(in srgb, var(--vc-color-success) 2%, transparent) 50%,
+                transparent 100%
+            );
+            opacity: 1;
+        }
+    }
+
+    /* Error state (for validation errors) */
+    &--error {
+        border-color: var(--vc-color-error-border);
+        box-shadow: 
+            var(--vc-shadow-xs),
+            0 0 0 1px color-mix(in srgb, var(--vc-color-error-bg) 50%, transparent);
+        animation: vc-error-shake 0.3s var(--vc-motion-ease-out);
+        
+        &::before {
+            background: linear-gradient(
+                135deg,
+                transparent 0%,
+                color-mix(in srgb, var(--vc-color-error) 2%, transparent) 50%,
+                transparent 100%
+            );
+            opacity: 1;
+        }
+    }
+
+    /* Warning state (for warnings) */
+    &--warning {
+        border-color: var(--vc-color-warning-border);
+        box-shadow: 
+            var(--vc-shadow-xs),
+            0 0 0 1px color-mix(in srgb, var(--vc-color-warning-bg) 50%, transparent);
+        
+        &::before {
+            background: linear-gradient(
+                135deg,
+                transparent 0%,
+                color-mix(in srgb, var(--vc-color-warning) 2%, transparent) 50%,
+                transparent 100%
+            );
+            opacity: 1;
+        }
+    }
+
+    /* Enhanced content positioning */
+    > * {
+        position: relative;
+        z-index: 1;
+    }
 }
 
-.vc-composer-surface--interactive:focus-within {
-    border-color: var(--vscode-focusBorder);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+/* Enhanced focus ring animation */
+@keyframes vc-focus-ring {
+    0% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.02);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
-.vc-composer-surface--muted {
-    opacity: 0.8;
+/* Error shake animation */
+@keyframes vc-error-shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-2px);
+    }
+    75% {
+        transform: translateX(2px);
+    }
 }
 
+/* Success pulse animation */
+@keyframes vc-success-pulse {
+    0% {
+        box-shadow: var(--vc-shadow-xs);
+    }
+    50% {
+        box-shadow: var(--vc-shadow-md), 0 0 0 2px color-mix(in srgb, var(--vc-color-success-bg) 30%, transparent);
+    }
+    100% {
+        box-shadow: var(--vc-shadow-xs);
+    }
+}
+
+/* Pulse animation for loading states */
+.vc-composer-surface--loading {
+    &::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        right: 2px;
+        bottom: 2px;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            color-mix(in srgb, var(--vc-color-primary-bg-hover) 40%, transparent) 50%,
+            transparent 100%
+        );
+        border-radius: calc(var(--vc-radius-lg) - 2px);
+        animation: vc-loading-sweep 1.5s infinite;
+        pointer-events: none;
+        z-index: 2;
+    }
+}
+
+@keyframes vc-loading-sweep {
+    0% {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Accessibility enhancements */
+@media (prefers-reduced-motion: reduce) {
+    .vc-composer-surface {
+        transition: none;
+        
+        &--loading::after {
+            animation: none;
+            opacity: 0;
+        }
+        
+        &--error {
+            animation: none;
+        }
+    }
+}
+
+/* High contrast mode improvements */
+@media (prefers-contrast: high) {
+    .vc-composer-surface {
+        border-width: 2px;
+        
+        &--interactive:focus-within {
+            box-shadow: 0 0 0 3px var(--vc-color-focus-ring);
+        }
+        
+        &--success,
+        &--error,
+        &--warning {
+            border-width: 3px;
+        }
+    }
+}
+
+/* Container query support for responsive behavior */
+@container (max-width: 300px) {
+    .vc-composer-surface {
+        border-radius: var(--vc-radius-md);
+        
+        &--interactive:hover {
+            transform: none;
+        }
+        
+        &--interactive:focus-within {
+            transform: none;
+        }
+    }
+}

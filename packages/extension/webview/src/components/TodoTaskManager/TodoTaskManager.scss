@@ -1,0 +1,567 @@
+// VCoder TodoTaskManager Component Styles
+// Uses VCoder Design Tokens from index.scss
+
+.vc-todo-task-manager {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vc-spacing-xs);
+  padding: var(--vc-spacing-sm);
+  background-color: var(--vc-color-surface);
+  border-radius: var(--vc-radius-md);
+  border: 1px solid var(--vc-color-border);
+  font-size: var(--vc-font-size-sm);
+  line-height: var(--vc-line-height-base);
+  overflow: hidden;
+  transition: all var(--vc-motion-duration-fast) var(--vc-motion-easing-ease-out);
+
+  // Header
+  .vc-todo-manager-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--vc-spacing-xs) var(--vc-spacing-sm);
+    border-bottom: 1px solid var(--vc-color-border);
+
+    .vc-todo-manager-title {
+      display: flex;
+      align-items: center;
+      gap: var(--vc-spacing-xs);
+
+      .vc-todo-manager-title-text {
+        font-weight: var(--vc-font-weight-semibold);
+        color: var(--vc-color-text-primary);
+      }
+
+      .vc-todo-manager-count {
+        font-size: var(--vc-font-size-xs);
+        font-weight: var(--vc-font-weight-semibold);
+        color: var(--vc-color-text-secondary);
+        background-color: var(--vc-color-fill-tertiary);
+        padding: 2px 8px;
+        border-radius: var(--vc-radius-sm);
+      }
+    }
+
+    .vc-todo-manager-actions {
+      display: flex;
+      gap: var(--vc-spacing-xs);
+    }
+
+    .vc-todo-manager-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      border-radius: var(--vc-radius-sm);
+      color: var(--vc-color-text-secondary);
+      cursor: pointer;
+      transition: all var(--vc-motion-duration-fast) var(--vc-motion-easing-ease-out);
+
+      &:hover {
+        background-color: var(--vc-color-fill-secondary);
+        color: var(--vc-color-text-primary);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+  }
+
+  // Summary Stats
+  .vc-todo-manager-summary {
+    display: flex;
+    gap: var(--vc-spacing-md);
+    padding: var(--vc-spacing-xs) var(--vc-spacing-sm);
+
+    .vc-todo-summary-stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: var(--vc-font-size-xs);
+      color: var(--vc-color-text-secondary);
+
+      &[data-priority="high"] {
+        color: var(--vc-todo-priority-high);
+        font-weight: var(--vc-font-weight-medium);
+      }
+    }
+  }
+
+  // Tabs
+  .vc-todo-manager-tabs {
+    display: flex;
+    gap: var(--vc-spacing-xs);
+    padding: var(--vc-spacing-xs) var(--vc-spacing-sm);
+    border-bottom: 1px solid var(--vc-color-border);
+
+    .vc-todo-tab {
+      padding: var(--vc-spacing-xs) var(--vc-spacing-sm);
+      font-size: var(--vc-font-size-xs);
+      font-weight: var(--vc-font-weight-medium);
+      color: var(--vc-color-text-secondary);
+      background: transparent;
+      border: none;
+      border-radius: var(--vc-radius-sm);
+      cursor: pointer;
+      transition: all var(--vc-motion-duration-fast) var(--vc-motion-easing-ease-out);
+
+      &:hover {
+        background-color: var(--vc-color-fill-secondary);
+        color: var(--vc-color-text-primary);
+      }
+
+      &.vc-todo-tab-active {
+        color: var(--vc-color-primary);
+        background-color: var(--vc-color-primary-light);
+      }
+    }
+  }
+
+  // Content Area
+  .vc-todo-manager-content {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--vc-spacing-sm);
+    padding: var(--vc-spacing-xs) var(--vc-spacing-sm);
+
+    // Section
+    .vc-todo-section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--vc-spacing-xs);
+
+      .vc-todo-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--vc-spacing-xs) 0;
+
+        .vc-todo-section-title {
+          font-size: var(--vc-font-size-xs);
+          font-weight: var(--vc-font-weight-semibold);
+          color: var(--vc-color-text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .vc-todo-section-count {
+          font-size: var(--vc-font-size-xs);
+          color: var(--vc-color-text-tertiary);
+        }
+      }
+    }
+
+    // Empty State
+    .vc-todo-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--vc-spacing-sm);
+      padding: var(--vc-spacing-xl);
+      color: var(--vc-color-text-tertiary);
+      font-size: var(--vc-font-size-xs);
+    }
+
+    // TODO Items
+    .vc-todo-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--vc-spacing-xs);
+    }
+
+    .vc-todo-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--vc-spacing-sm);
+      border-radius: var(--vc-radius-sm);
+      border: 1px solid transparent;
+      transition: all var(--vc-motion-duration-fast) var(--vc-motion-easing-ease-out);
+
+      // Priority backgrounds
+      &.vc-todo-priority-high {
+        background-color: var(--vc-todo-bg-high);
+        border-color: color-mix(in srgb, var(--vc-todo-priority-high) 20%, transparent);
+      }
+
+      &.vc-todo-priority-medium {
+        background-color: var(--vc-todo-bg-medium);
+        border-color: color-mix(in srgb, var(--vc-todo-priority-medium) 15%, transparent);
+      }
+
+      &.vc-todo-priority-low {
+        background-color: var(--vc-todo-bg-low);
+        border-color: color-mix(in srgb, var(--vc-todo-priority-low) 10%, transparent);
+      }
+
+      &:hover {
+        background-color: var(--vc-color-fill-secondary);
+        transform: translateX(2px);
+      }
+
+      // Compact view
+      &.vc-todo-item-compact {
+        height: var(--vc-todo-item-height-compact);
+      }
+
+      // Comfortable view
+      &.vc-todo-item-comfortable {
+        min-height: var(--vc-todo-item-height-comfortable);
+      }
+
+      // Status styles
+      &[data-status="completed"] {
+        opacity: 0.6;
+      }
+
+      .vc-todo-item-main {
+        display: flex;
+        align-items: center;
+        gap: var(--vc-spacing-xs);
+        flex: 1;
+        min-width: 0;
+
+        .vc-todo-checkbox {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          padding: 0;
+          border: 1px solid var(--vc-color-border);
+          border-radius: var(--vc-radius-xs);
+          background-color: var(--vc-color-surface);
+          cursor: pointer;
+          transition: all var(--vc-motion-duration-fast) var(--vc-motion-easing-ease-out);
+          flex-shrink: 0;
+
+          &:hover {
+            border-color: var(--vc-color-primary);
+          }
+
+          &.vc-todo-checkbox-checked {
+            background-color: var(--vc-color-success);
+            border-color: var(--vc-color-success);
+            color: var(--vc-color-white);
+          }
+        }
+
+        .vc-todo-content {
+          flex: 1;
+          font-size: var(--vc-font-size-sm);
+          color: var(--vc-color-text-primary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          transition: all var(--vc-motion-duration-fast) var(--vc-motion-easing-ease-out);
+
+          &.vc-todo-content-completed {
+            text-decoration: line-through;
+            color: var(--vc-color-text-tertiary);
+          }
+        }
+      }
+
+      .vc-todo-item-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--vc-spacing-xs);
+        flex-shrink: 0;
+
+        .vc-todo-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 2px 6px;
+          font-size: var(--vc-font-size-xs);
+          font-weight: var(--vc-font-weight-medium);
+          border-radius: var(--vc-radius-xs);
+          text-transform: uppercase;
+
+          &.vc-todo-badge-high {
+            background-color: color-mix(in srgb, var(--vc-todo-priority-high) 15%, transparent);
+            color: var(--vc-todo-priority-high);
+          }
+
+          &.vc-todo-badge-medium {
+            background-color: color-mix(in srgb, var(--vc-todo-priority-medium) 15%, transparent);
+            color: var(--vc-todo-priority-medium);
+          }
+
+          &.vc-todo-badge-low {
+            background-color: color-mix(in srgb, var(--vc-todo-priority-low) 15%, transparent);
+            color: var(--vc-todo-priority-low);
+          }
+        }
+
+        .vc-todo-action-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 20px;
+          padding: 0;
+          border: none;
+          background: transparent;
+          border-radius: var(--vc-radius-xs);
+          color: var(--vc-color-text-tertiary);
+          cursor: pointer;
+          transition: all var(--vc-motion-duration-fast) var(--vc-motion-easing-ease-out);
+
+          &:hover {
+            background-color: var(--vc-color-error-light);
+            color: var(--vc-color-error);
+          }
+        }
+      }
+    }
+
+    // Task Items
+    .vc-task-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--vc-spacing-sm);
+      border-radius: var(--vc-radius-sm);
+      border: 1px solid var(--vc-color-border);
+      transition: all var(--vc-motion-duration-fast) var(--vc-motion-easing-ease-out);
+
+      // Status-based styling
+      &.vc-task-status-running {
+        background-color: color-mix(in srgb, var(--vc-color-warning) 8%, transparent);
+        border-color: color-mix(in srgb, var(--vc-color-warning) 20%, transparent);
+      }
+
+      &.vc-task-status-success {
+        background-color: color-mix(in srgb, var(--vc-color-success) 8%, transparent);
+        opacity: 0.8;
+      }
+
+      &.vc-task-status-error {
+        background-color: color-mix(in srgb, var(--vc-color-error) 8%, transparent);
+        border-color: color-mix(in srgb, var(--vc-color-error) 20%, transparent);
+      }
+
+      &:hover {
+        transform: translateX(2px);
+      }
+
+      // Compact view
+      &.vc-task-item-compact {
+        height: var(--vc-todo-item-height-compact);
+      }
+
+      // Comfortable view
+      &.vc-task-item-comfortable {
+        min-height: var(--vc-todo-item-height-comfortable);
+      }
+
+      .vc-task-item-main {
+        display: flex;
+        align-items: center;
+        gap: var(--vc-spacing-xs);
+        flex: 1;
+        min-width: 0;
+
+        .vc-task-status-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          flex-shrink: 0;
+        }
+
+        .vc-task-content {
+          flex: 1;
+          font-size: var(--vc-font-size-sm);
+          color: var(--vc-color-text-primary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+
+      .vc-task-item-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--vc-spacing-xs);
+        flex-shrink: 0;
+
+        .vc-task-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 2px 6px;
+          font-size: var(--vc-font-size-xs);
+          font-weight: var(--vc-font-weight-medium);
+          border-radius: var(--vc-radius-xs);
+          background-color: var(--vc-color-fill-secondary);
+          color: var(--vc-color-text-secondary);
+        }
+
+        .vc-task-progress {
+          width: 60px;
+          height: 4px;
+          background-color: var(--vc-color-fill-tertiary);
+          border-radius: var(--vc-todo-progress-radius);
+          overflow: hidden;
+
+          .vc-task-progress-bar {
+            height: 100%;
+            background-color: var(--vc-color-primary);
+            border-radius: var(--vc-todo-progress-radius);
+            transition: width var(--vc-motion-duration-normal) var(--vc-motion-easing-ease-out);
+          }
+        }
+      }
+    }
+  }
+
+  // Quick Actions
+  .vc-todo-quick-actions {
+    display: flex;
+    gap: var(--vc-spacing-xs);
+    padding: var(--vc-spacing-xs) var(--vc-spacing-sm);
+    border-top: 1px solid var(--vc-color-border);
+
+    .vc-todo-quick-action {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--vc-spacing-xs);
+      padding: var(--vc-spacing-xs) var(--vc-spacing-sm);
+      font-size: var(--vc-font-size-xs);
+      font-weight: var(--vc-font-weight-medium);
+      color: var(--vc-color-text-secondary);
+      background: transparent;
+      border: 1px solid var(--vc-color-border);
+      border-radius: var(--vc-radius-sm);
+      cursor: pointer;
+      transition: all var(--vc-motion-duration-fast) var(--vc-motion-easing-ease-out);
+
+      &:hover {
+        background-color: var(--vc-color-fill-secondary);
+        color: var(--vc-color-text-primary);
+        border-color: var(--vc-color-primary);
+      }
+
+      &:active {
+        transform: scale(0.98);
+      }
+    }
+  }
+
+  // Responsive Design
+  @media (max-width: 768px) {
+    padding: var(--vc-spacing-xs);
+
+    .vc-todo-manager-header {
+      padding: var(--vc-spacing-xs);
+    }
+
+    .vc-todo-manager-summary {
+      padding: var(--vc-spacing-xs);
+      gap: var(--vc-spacing-sm);
+    }
+
+    .vc-todo-manager-content {
+      padding: var(--vc-spacing-xs);
+    }
+
+    .vc-todo-item,
+    .vc-task-item {
+      &.vc-todo-item-compact,
+      &.vc-task-item-compact {
+        height: 36px;
+      }
+
+      &.vc-todo-item-comfortable,
+      &.vc-task-item-comfortable {
+        min-height: 44px;
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .vc-todo-manager-title-text {
+      font-size: var(--vc-font-size-sm);
+    }
+
+    .vc-todo-item-actions,
+    .vc-task-item-actions {
+      gap: 2px;
+    }
+
+    .vc-todo-badge,
+    .vc-task-badge {
+      font-size: 10px;
+      padding: 1px 4px;
+    }
+
+    .vc-task-progress {
+      width: 40px;
+    }
+  }
+
+  // Dark mode adjustments
+  @media (prefers-color-scheme: dark) {
+    .vc-todo-priority-high {
+      background-color: color-mix(in srgb, var(--vc-todo-priority-high) 12%, transparent);
+    }
+
+    .vc-todo-priority-medium {
+      background-color: color-mix(in srgb, var(--vc-todo-priority-medium) 10%, transparent);
+    }
+
+    .vc-todo-priority-low {
+      background-color: color-mix(in srgb, var(--vc-todo-priority-low) 8%, transparent);
+    }
+  }
+
+  // Animation for new items
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .vc-todo-item,
+  .vc-task-item {
+    animation: slideIn var(--vc-motion-duration-normal) var(--vc-motion-easing-ease-out);
+  }
+
+  // Scrollbar styling
+  .vc-todo-manager-content {
+    scrollbar-width: thin;
+    scrollbar-color: var(--vc-color-border) transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--vc-color-border);
+      border-radius: var(--vc-radius-sm);
+
+      &:hover {
+        background-color: var(--vc-color-text-tertiary);
+      }
+    }
+  }
+}

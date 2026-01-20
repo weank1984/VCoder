@@ -1,95 +1,354 @@
-/* App Layout */
+/**
+ * App Layout - Enhanced with Design System
+ */
+
+@use './styles/mixins' as *;
+
+/* ==========================================================================
+   APP CONTAINER
+   ========================================================================== */
+
 .app {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-  background: var(--vc-bg);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: var(--vc-color-bg-base);
 }
 
-/* Messages Area */
+/* ==========================================================================
+   MESSAGES PANEL
+   ========================================================================== */
+
 .messages-panel {
-  flex: 1;
-  min-height: 0;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .messages-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--vc-padding);
-  padding-top: calc(var(--vc-padding) + var(--vc-sticky-user-prompt-offset, 0px));
-  background: var(--vc-bg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--vc-padding);
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--vc-spacing-component-md);
+    padding-top: calc(var(--vc-spacing-component-md) + var(--vc-sticky-user-prompt-offset, 0px));
+    background: var(--vc-color-bg-base);
+    display: flex;
+    flex-direction: column;
+    gap: var(--vc-spacing-component-md);
+    @include scrollbar;
 }
 
 .messages-container--empty {
-  padding: 0;
-  gap: 0;
+    padding: 0;
+    gap: 0;
 }
 
-/* Error Banner */
+/* ==========================================================================
+   ERROR BANNER
+   ========================================================================== */
+
 .error-banner {
-  background-color: var(--vc-color-error-bg);
-  border: 1px solid var(--vc-color-error-border);
-  padding: 8px 12px;
-  margin: 0 16px 16px 16px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  animation: slideIn 0.3s ease-out;
+    background-color: var(--vc-color-error-bg);
+    border: 1px solid var(--vc-color-error-border);
+    padding: var(--vc-space-2) var(--vc-spacing-component-md);
+    margin: 0 var(--vc-spacing-component-lg) var(--vc-spacing-component-lg);
+    border-radius: var(--vc-radius-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--vc-space-2);
+    animation: slideIn var(--vc-transition-slow) var(--vc-motion-ease-out);
+    flex-shrink: 0;
 }
 
 .error-content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--vc-spacing-component-md);
+    flex-wrap: wrap;
 }
 
 .error-icon {
-  font-size: 16px;
-  color: var(--vc-color-error-text);
+    font-size: var(--vc-font-size-md);
+    color: var(--vc-color-error-text);
+    flex-shrink: 0;
 }
 
 .error-message {
-  font-size: 13px;
-  color: var(--vc-color-text);
+    font-size: var(--vc-font-size-sm);
+    color: var(--vc-color-text-primary);
+    flex: 1;
+}
+
+.error-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--vc-space-2);
 }
 
 .error-action-btn {
-  background-color: var(--vc-bg);
-  color: var(--vc-color-text);
-  border: 1px solid var(--vc-color-border);
-  padding: 4px 8px;
-  border-radius: 2px;
-  cursor: pointer;
-  font-size: 12px;
-}
+    background-color: var(--vc-color-bg-base);
+    color: var(--vc-color-text-primary);
+    border: 1px solid var(--vc-color-border);
+    padding: var(--vc-space-1) var(--vc-space-2);
+    border-radius: var(--vc-radius-xs);
+    cursor: pointer;
+    font-size: var(--vc-font-size-xs);
+    transition: all var(--vc-transition-fast);
 
-.error-action-btn:hover {
-  background-color: var(--vc-control-item-bg-hover);
+    &:hover {
+        background-color: var(--vc-color-hover-bg);
+        border-color: var(--vc-color-border-focus);
+    }
+
+    &:active {
+        background-color: var(--vc-color-selected-bg);
+    }
 }
 
 .error-dismiss {
-  background: none;
-  border: none;
-  color: var(--vc-color-text-description);
-  cursor: pointer;
-  font-size: 18px;
-  opacity: 0.7;
-  padding: 0 4px;
-  margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--vc-color-text-secondary);
+    cursor: pointer;
+    font-size: var(--vc-font-size-lg);
+    opacity: 0.7;
+    padding: 0 var(--vc-space-1);
+    margin-left: auto;
+    transition: all var(--vc-transition-fast);
+
+    &:hover {
+        opacity: 1;
+        color: var(--vc-color-text-primary);
+    }
 }
 
-.error-dismiss:hover {
-  opacity: 1;
-  color: var(--vc-color-text);
+/* ==========================================================================
+   WARNING BANNER
+   ========================================================================== */
+
+.warning-banner {
+    background-color: var(--vc-color-warning-bg);
+    border: 1px solid var(--vc-color-warning-border);
+    padding: var(--vc-space-2) var(--vc-spacing-component-md);
+    margin: 0 var(--vc-spacing-component-lg) var(--vc-spacing-component-lg);
+    border-radius: var(--vc-radius-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--vc-space-2);
+    animation: slideIn var(--vc-transition-slow) var(--vc-motion-ease-out);
+    flex-shrink: 0;
+}
+
+.warning-icon {
+    font-size: var(--vc-font-size-md);
+    color: var(--vc-color-warning-text);
+    flex-shrink: 0;
+}
+
+.warning-message {
+    font-size: var(--vc-font-size-sm);
+    color: var(--vc-color-text-primary);
+    flex: 1;
+}
+
+/* ==========================================================================
+   SUCCESS BANNER
+   ========================================================================== */
+
+.success-banner {
+    background-color: var(--vc-color-success-bg);
+    border: 1px solid var(--vc-color-success-border);
+    padding: var(--vc-space-2) var(--vc-spacing-component-md);
+    margin: 0 var(--vc-spacing-component-lg) var(--vc-spacing-component-lg);
+    border-radius: var(--vc-radius-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--vc-space-2);
+    animation: slideIn var(--vc-transition-slow) var(--vc-motion-ease-out);
+    flex-shrink: 0;
+}
+
+.success-icon {
+    font-size: var(--vc-font-size-md);
+    color: var(--vc-color-success-text);
+    flex-shrink: 0;
+}
+
+.success-message {
+    font-size: var(--vc-font-size-sm);
+    color: var(--vc-color-text-primary);
+    flex: 1;
+}
+
+/* ==========================================================================
+   INFO BANNER
+   ========================================================================== */
+
+.info-banner {
+    background-color: var(--vc-color-info-bg);
+    border: 1px solid var(--vc-color-info-border);
+    padding: var(--vc-space-2) var(--vc-spacing-component-md);
+    margin: 0 var(--vc-spacing-component-lg) var(--vc-spacing-component-lg);
+    border-radius: var(--vc-radius-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--vc-space-2);
+    animation: slideIn var(--vc-transition-slow) var(--vc-motion-ease-out);
+    flex-shrink: 0;
+}
+
+.info-icon {
+    font-size: var(--vc-font-size-md);
+    color: var(--vc-color-info-text);
+    flex-shrink: 0;
+}
+
+.info-message {
+    font-size: var(--vc-font-size-sm);
+    color: var(--vc-color-text-primary);
+    flex: 1;
+}
+
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+.banner-dismissing {
+    animation: slideOut var(--vc-transition-slow) var(--vc-motion-ease-out);
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+@media (max-width: 640px) {
+    .error-banner,
+    .warning-banner,
+    .success-banner,
+    .info-banner {
+        margin: 0 var(--vc-spacing-component-md) var(--vc-spacing-component-md);
+        padding: var(--vc-space-2) var(--vc-spacing-component-sm);
+    }
+
+    .error-content,
+    .warning-content,
+    .success-content,
+    .info-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--vc-space-2);
+    }
+
+    .error-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .error-dismiss {
+        margin-left: 0;
+        position: absolute;
+        top: var(--vc-space-1);
+        right: var(--vc-space-1);
+    }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .error-banner,
+    .warning-banner,
+    .success-banner,
+    .info-banner {
+        animation: none;
+    }
+
+    .banner-dismissing {
+        display: none;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .error-banner,
+    .warning-banner,
+    .success-banner,
+    .info-banner {
+        border-width: 2px;
+    }
+
+    .error-banner {
+        border-color: var(--vc-color-error-text);
+    }
+
+    .warning-banner {
+        border-color: var(--vc-color-warning-text);
+    }
+
+    .success-banner {
+        border-color: var(--vc-color-success-text);
+    }
+
+    .info-banner {
+        border-color: var(--vc-color-info-text);
+    }
+}
+
+/* ==========================================================================
+   UTILITY CLASSES
+   ========================================================================== */
+
+.fade-in {
+    animation: fadeIn var(--vc-transition-slow) var(--vc-motion-ease-out);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.slide-up {
+    animation: slideUp var(--vc-transition-slow) var(--vc-motion-ease-out);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

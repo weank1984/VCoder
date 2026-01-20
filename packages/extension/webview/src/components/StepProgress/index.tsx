@@ -11,9 +11,11 @@ import { postMessage } from '../../utils/vscode';
 import { useStore } from '../../store/useStore';
 import { StepItem } from './StepItem';
 import { isStepCollapsed, toggleStepOverride, type CollapseMode } from '../../utils/stepCollapse';
-import { 
-    CheckIcon, 
-    LoadingIcon, 
+import { TodoTaskManager } from '../TodoTaskManager';
+import type { EnhancedTodoItem, TaskItem } from '../TodoTaskManager';
+import {
+    CheckIcon,
+    LoadingIcon,
     WarningIcon,
     CollapseIcon,
     ExpandIcon,
@@ -70,6 +72,55 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
     
     // Get progress stats
     const stats = useMemo(() => getProgressStats(steps), [steps]);
+
+    // Extract TODOs from TodoWrite tool calls
+    const todoItems = useMemo(() => {
+        const todoWriteCall = toolCalls.find(tc => tc.name === 'TodoWrite');
+        if (!todoWriteCall || !todoWriteCall.input) return [];
+
+        const input = todoWriteCall.input as Record<string, unknown>;
+        const tasks = input.tasks ?? input.todos ?? input.items;
+
+        if (!Array.isArray(tasks)) return [];
+
+        return tasks.map((task, index) => {
+            if (typeof task === 'string') {
+                return {
+                    id: `todo-${Date.now()}-${index}`,
+                    content: task,
+                    status: 'pending' as const,
+                    priority: 'medium' as const,
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                };
+            }
+            const t = task as Record<string, unknown>;
+            return {
+                id: String(t.id ?? `todo-${Date.now()}-${index}`),
+                content: String(t.content ?? t.title ?? t.description ?? ''),
+                status: (t.status as 'pending' | 'in_progress' | 'completed' | 'cancelled') ?? 'pending',
+                priority: (t.priority as 'high' | 'medium' | 'low') ?? 'medium',
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+            };
+        }) as EnhancedTodoItem[];
+    }, [toolCalls]);
+
+    // Extract TASKs from Task tool calls (subagent runs)
+    const taskItems = useMemo(() => {
+        return toolCalls
+            .filter(tc => tc.name === 'Task')
+            .map(tc => ({
+                id: tc.id,
+                description: (tc.input as Record<string, unknown>)?.description ?? 'Subagent task',
+                subagentType: (tc.input as Record<string, unknown>)?.subagent_type as string,
+                status: tc.status === 'completed' ? 'success' :
+                        tc.status === 'failed' ? 'error' :
+                        tc.status === 'running' ? 'running' : 'pending',
+                startTime: undefined,
+                endTime: undefined,
+            })) as TaskItem[];
+    }, [toolCalls]);
 
     const areAllCollapsed = useMemo(() => {
         if (steps.length === 0) return false;
@@ -243,9 +294,16 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
     }, []);
     
     if (steps.length === 0) return null;
-    
+
     return (
         <div className="step-progress-list">
+            <TodoTaskManager
+                todos={todoItems}
+                tasks={taskItems}
+                expandByDefault={viewMode === 'live'}
+                showFilters={true}
+                sortable={true}
+            />
             <div className="step-progress-header">
                 <span className={`header-status-icon ${stats.failed > 0 ? 'failed' : stats.running > 0 ? 'running' : 'completed'}`}>
                     {headerIcon}

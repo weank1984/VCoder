@@ -1,214 +1,481 @@
 /**
- * Modal Component Styles
+ * Modal Component Styles - Enhanced with Design System
  */
 
 @use '../../styles/mixins' as *;
 
-// Root container
+/* ==========================================================================
+   MODAL ROOT
+   ========================================================================== */
+
 .vc-modal-root {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  
-  &:has(.vc-modal.is-visible) {
-    pointer-events: auto;
-  }
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+
+    &:has(.vc-modal.is-visible) {
+        pointer-events: auto;
+    }
 }
 
-// Mask (backdrop)
+/* ==========================================================================
+   MODAL MASK (BACKDROP)
+   ========================================================================== */
+
 .vc-modal-mask {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 1000;
-  opacity: 0;
-  transition: opacity var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
-  
-  &.is-visible {
-    opacity: 1;
-  }
-  
-  &.is-hidden {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--vc-color-mask);
+    z-index: var(--vc-z-index-modal-backdrop);
     opacity: 0;
-    pointer-events: none;
-  }
+    transition: opacity var(--vc-modal-animation-duration) var(--vc-modal-animation-easing);
+
+    &.is-visible {
+        opacity: 1;
+    }
+
+    &.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
 }
 
-// Wrap (container for modal)
+/* ==========================================================================
+   MODAL WRAP
+   ========================================================================== */
+
 .vc-modal-wrap {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: auto;
-  z-index: 1000;
-  @include scrollbar;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+    z-index: var(--vc-z-index-modal);
+    @include scrollbar;
 }
 
-// Modal
+/* ==========================================================================
+   MODAL CONTENT
+   ========================================================================== */
+
 .vc-modal {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  margin: 0 auto;
-  background: var(--vc-bg);
-  border: 1px solid var(--vc-color-border);
-  border-radius: var(--vc-radius-lg);
-  box-shadow: var(--vc-box-shadow-lg);
-  max-height: calc(100vh - 64px);
-  transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
-  
-  // Sizes
-  &--small {
-    width: 90%;
-    max-width: 400px;
-  }
-  
-  &--medium {
-    width: 90%;
-    max-width: 600px;
-  }
-  
-  &--large {
-    width: 90%;
-    max-width: 900px;
-  }
-  
-  &--full {
-    width: calc(100% - 32px);
-    height: calc(100vh - 64px);
-    max-width: none;
-  }
-  
-  // Centered
-  &--centered {
-    margin-top: 32px;
-    margin-bottom: 32px;
-  }
-  
-  // Animation states
-  &.is-visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  
-  &.is-hidden {
-    opacity: 0;
-    transform: translateY(-20px);
-    pointer-events: none;
-  }
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    margin: 0 auto;
+    background: var(--vc-color-bg-base);
+    border: 1px solid var(--vc-color-border);
+    border-radius: var(--vc-radius-lg);
+    box-shadow: var(--vc-box-shadow-lg);
+    max-height: calc(100vh - var(--vc-space-8));
+    transition: all var(--vc-modal-animation-duration) var(--vc-modal-animation-easing);
+
+    /* Size Variants */
+    &--small {
+        width: 90%;
+        max-width: var(--vc-modal-width-sm);
+    }
+
+    &--medium {
+        width: 90%;
+        max-width: var(--vc-modal-width-md);
+    }
+
+    &--large {
+        width: 90%;
+        max-width: var(--vc-modal-width-lg);
+    }
+
+    &--extra-large {
+        width: 90%;
+        max-width: var(--vc-modal-width-xl);
+    }
+
+    &--full {
+        width: var(--vc-modal-width-full);
+        height: calc(100vh - var(--vc-space-8));
+        max-width: none;
+    }
+
+    /* Centered */
+    &--centered {
+        margin-top: var(--vc-space-6);
+        margin-bottom: var(--vc-space-6);
+    }
+
+    /* Animation States */
+    &.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    &.is-hidden {
+        opacity: 0;
+        transform: translateY(-20px);
+        pointer-events: none;
+    }
 }
 
-// Header
+/* ==========================================================================
+   MODAL HEADER
+   ========================================================================== */
+
 .vc-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: calc(var(--vc-padding) * 4 / 3);
-  border-bottom: 1px solid var(--vc-color-border);
-  flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--vc-modal-header-padding);
+    border-bottom: 1px solid var(--vc-color-border);
+    flex-shrink: 0;
 }
 
 .vc-modal-title {
-  flex: 1;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--vc-color-text);
-  line-height: 1.4;
-  margin-right: var(--vc-padding);
+    flex: 1;
+    font-size: var(--vc-font-size-lg);
+    font-weight: var(--vc-font-weight-semibold);
+    color: var(--vc-color-text-primary);
+    line-height: var(--vc-line-height-snug);
+    margin-right: var(--vc-spacing-component-md);
+}
+
+.vc-modal-subtitle {
+    font-size: var(--vc-font-size-sm);
+    font-weight: var(--vc-font-weight-regular);
+    color: var(--vc-color-text-secondary);
+    line-height: var(--vc-line-height-tight);
+    margin-top: var(--vc-space-1);
 }
 
 .vc-modal-close {
-  flex-shrink: 0;
-  opacity: 0.6;
-  transition: opacity var(--vc-motion-duration-fast) var(--vc-motion-ease-out);
-  
-  &:hover {
-    opacity: 1;
-  }
+    flex-shrink: 0;
+    opacity: 0.6;
+    transition: opacity var(--vc-transition-fast);
+
+    &:hover {
+        opacity: 1;
+    }
 }
 
-// Body
+/* ==========================================================================
+   MODAL BODY
+   ========================================================================== */
+
 .vc-modal-body {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: calc(var(--vc-padding) * 4 / 3);
-  color: var(--vc-color-text);
-  font-size: 13px;
-  line-height: 1.6;
-  @include scrollbar;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--vc-modal-padding-md);
+    color: var(--vc-color-text-primary);
+    font-size: var(--vc-font-size-sm);
+    line-height: var(--vc-line-height-relaxed);
+    @include scrollbar;
+
+    /* Remove padding when full width modal */
+    .vc-modal--full & {
+        padding: var(--vc-spacing-component-lg);
+    }
 }
 
-// Footer
+/* ==========================================================================
+   MODAL FOOTER
+   ========================================================================== */
+
 .vc-modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: calc(var(--vc-padding) / 2);
-  padding: calc(var(--vc-padding) * 4 / 3);
-  border-top: 1px solid var(--vc-color-border);
-  flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: calc(var(--vc-spacing-component-md) / 2);
+    padding: var(--vc-modal-footer-padding);
+    border-top: 1px solid var(--vc-color-border);
+    flex-shrink: 0;
 }
 
-// Dialog specific styles
+/* ==========================================================================
+   DIALOG ACTIONS
+   ========================================================================== */
+
 .vc-dialog-actions {
-  display: flex;
-  gap: calc(var(--vc-padding) / 2);
-  width: 100%;
-  justify-content: flex-end;
+    display: flex;
+    gap: calc(var(--vc-spacing-component-md) / 2);
+    width: 100%;
+    justify-content: flex-end;
+
+    &--left {
+        justify-content: flex-start;
+    }
+
+    &--center {
+        justify-content: center;
+    }
+
+    &--space-between {
+        justify-content: space-between;
+    }
 }
 
-// Animations
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
+
 @keyframes modalFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes maskFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalFadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+@keyframes maskFadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
 }
 
 .vc-modal.is-visible {
-  animation: modalFadeIn 0.2s ease-out;
+    animation: modalFadeIn var(--vc-modal-animation-duration) var(--vc-modal-animation-easing);
 }
 
 .vc-modal-mask.is-visible {
-  animation: maskFadeIn 0.2s ease-out;
+    animation: maskFadeIn var(--vc-modal-animation-duration) var(--vc-modal-animation-easing);
 }
 
-// Responsive
-@media (max-width: 768px) {
-  .vc-modal {
-    &--small,
-    &--medium,
-    &--large {
-      width: calc(100% - 32px);
-      max-width: none;
+.vc-modal.is-hidden {
+    animation: modalFadeOut var(--vc-modal-animation-duration) var(--vc-modal-animation-easing);
+}
+
+.vc-modal-mask.is-hidden {
+    animation: maskFadeOut var(--vc-modal-animation-duration) var(--vc-modal-animation-easing);
+}
+
+/* ==========================================================================
+   MODAL VARIANTS
+   ========================================================================== */
+
+/* Alert Modal */
+.vc-modal--alert {
+    .vc-modal-header {
+        padding-left: var(--vc-spacing-component-lg);
+
+        &::before {
+            content: '!';
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--vc-color-warning-bg);
+            color: var(--vc-color-warning-text);
+            border-radius: var(--vc-radius-full);
+            font-size: var(--vc-font-size-lg);
+            font-weight: var(--vc-font-weight-bold);
+            margin-right: var(--vc-spacing-component-md);
+            flex-shrink: 0;
+        }
     }
-  }
-  
-  .vc-modal-header,
-  .vc-modal-body,
-  .vc-modal-footer {
-    padding: var(--vc-padding);
-  }
+}
+
+/* Confirmation Modal */
+.vc-modal--confirm {
+    .vc-modal-footer {
+        justify-content: center;
+        gap: var(--vc-spacing-component-md);
+    }
+}
+
+/* Danger Modal */
+.vc-modal--danger {
+    .vc-modal-header {
+        border-bottom-color: var(--vc-color-error-border);
+    }
+
+    .vc-modal-title {
+        color: var(--vc-color-error-text);
+    }
+}
+
+/* Success Modal */
+.vc-modal--success {
+    .vc-modal-header {
+        border-bottom-color: var(--vc-color-success-border);
+    }
+
+    .vc-modal-title {
+        color: var(--vc-color-success-text);
+    }
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .vc-modal {
+        &--small,
+        &--medium,
+        &--large,
+        &--extra-large {
+            width: calc(100% - var(--vc-space-6));
+            max-width: none;
+        }
+
+        &--full {
+            width: 100%;
+            height: 100vh;
+            max-width: none;
+            border-radius: 0;
+            border: none;
+        }
+    }
+
+    .vc-modal-header,
+    .vc-modal-body,
+    .vc-modal-footer {
+        padding: var(--vc-modal-padding-sm);
+    }
+
+    .vc-modal-header {
+        padding-left: var(--vc-spacing-component-md);
+        padding-right: var(--vc-spacing-component-md);
+    }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .vc-modal,
+    .vc-modal-mask {
+        transition: none;
+        animation: none;
+    }
+
+    .vc-modal.is-hidden {
+        display: none;
+    }
+
+    .vc-modal-mask.is-hidden {
+        display: none;
+    }
+}
+
+/* Focus trap for modal */
+.vc-modal[role='dialog'] {
+    outline: none;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .vc-modal {
+        border: 2px solid currentColor;
+        box-shadow: none;
+    }
+
+    .vc-modal-header,
+    .vc-modal-footer {
+        border-width: 2px;
+    }
+}
+
+/* ==========================================================================
+   MODAL WITH BACKDROP BLUR
+   ========================================================================== */
+
+.vc-modal-mask--blur {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* ==========================================================================
+   LOADING STATE
+   ========================================================================== */
+
+.vc-modal--loading {
+    .vc-modal-body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+    }
+}
+
+.modal-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--vc-color-bg-tertiary);
+    border-top-color: var(--vc-color-primary);
+    border-radius: var(--vc-radius-full);
+    animation: modalSpin 0.8s linear infinite;
+}
+
+@keyframes modalSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ==========================================================================
+   MODAL CONTENT WRAPPERS
+   ========================================================================== */
+
+.modal-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--vc-spacing-component-md);
+}
+
+.modal-content-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--vc-spacing-component-sm);
+
+    &--horizontal {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+}
+
+.modal-content-label {
+    font-size: var(--vc-font-size-sm);
+    font-weight: var(--vc-font-weight-medium);
+    color: var(--vc-color-text-secondary);
+}
+
+.modal-content-value {
+    font-size: var(--vc-font-size-sm);
+    font-weight: var(--vc-font-weight-regular);
+    color: var(--vc-color-text-primary);
 }

@@ -1,0 +1,293 @@
+/* ==========================================================================
+   Modern Loading System Styles
+   Context-aware loading animations for different action types
+   ========================================================================== */
+
+.vc-loading {
+    display: flex;
+    align-items: center;
+    gap: var(--vc-spacing-component-sm);
+    font-family: var(--vc-font-family-base);
+    color: var(--vc-color-text-secondary);
+
+    /* Size variants */
+    &--sm {
+        font-size: var(--vc-font-size-sm);
+    }
+
+    &--md {
+        font-size: var(--vc-font-size-base);
+    }
+
+    &--lg {
+        font-size: var(--vc-font-size-lg);
+    }
+
+    /* Inline variant */
+    &--inline {
+        display: inline-flex;
+    }
+
+    /* Animation container */
+    &__animation {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    /* Content container */
+    &__content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--vc-spacing-component-xs);
+    }
+
+    &__message {
+        font-weight: var(--vc-font-weight-regular);
+        line-height: var(--vc-line-height-normal);
+        white-space: nowrap;
+        animation: vc-fade-in var(--vc-transition-mid) var(--vc-motion-ease-out);
+    }
+
+    /* Progress components */
+    &__progress-container {
+        display: flex;
+        align-items: center;
+        gap: var(--vc-spacing-component-xs);
+    }
+
+    &__progress-bar {
+        flex: 1;
+        height: 3px;
+        background: var(--vc-color-bg-tertiary);
+        border-radius: var(--vc-radius-full);
+        overflow: hidden;
+    }
+
+    &__progress-fill {
+        height: 100%;
+        background: var(--vc-color-primary);
+        border-radius: var(--vc-radius-full);
+        transition: width var(--vc-transition-slow) var(--vc-motion-ease-out);
+    }
+
+    &__progress-text {
+        font-size: var(--vc-font-size-xs);
+        color: var(--vc-color-text-tertiary);
+        min-width: 2.5rem;
+        text-align: right;
+    }
+
+    /* ==========================================================================
+       Typing Animation (for chat)
+       ========================================================================== */
+
+    &--typing &__typing-indicator {
+        display: flex;
+        gap: 3px;
+    }
+
+    &__typing-dot {
+        width: 6px;
+        height: 6px;
+        background: var(--vc-color-text-secondary);
+        border-radius: var(--vc-radius-full);
+        animation: vc-typing-dot 1.4s infinite;
+    }
+
+    &__typing-dot:nth-child(1) { animation-delay: 0s; }
+    &__typing-dot:nth-child(2) { animation-delay: 0.16s; }
+    &__typing-dot:nth-child(3) { animation-delay: 0.32s; }
+
+    /* ==========================================================================
+       Thinking Animation (for AI processing)
+       ========================================================================== */
+
+    &--thinking &__thinking-indicator {
+        display: flex;
+        align-items: center;
+    }
+
+    &__spin-icon {
+        animation: vc-spin 1s linear infinite;
+    }
+
+    /* ==========================================================================
+       Processing Animation (for data processing)
+       ========================================================================== */
+
+    &--processing &__processing-indicator {
+        display: flex;
+        gap: 2px;
+    }
+
+    &__processing-circle {
+        width: 8px;
+        height: 8px;
+        background: var(--vc-color-primary);
+        border-radius: var(--vc-radius-full);
+        animation: vc-processing-pulse 1.2s infinite;
+    }
+
+    &__processing-circle:nth-child(1) { animation-delay: 0s; }
+    &__processing-circle:nth-child(2) { animation-delay: 0.15s; }
+    &__processing-circle:nth-child(3) { animation-delay: 0.3s; }
+
+    /* ==========================================================================
+       Searching Animation (for search operations)
+       ========================================================================== */
+
+    &--searching &__searching-indicator {
+        display: flex;
+        gap: 1px;
+        align-items: flex-end;
+    }
+
+    &__search-bar {
+        width: 3px;
+        background: var(--vc-color-primary);
+        border-radius: var(--vc-radius-xs);
+        animation: vc-search-wave 0.8s infinite;
+    }
+
+    &__search-bar:nth-child(1) { 
+        height: 12px; 
+        animation-delay: 0s; 
+    }
+    &__search-bar:nth-child(2) { 
+        height: 16px; 
+        animation-delay: 0.2s; 
+    }
+    &__search-bar:nth-child(3) { 
+        height: 12px; 
+        animation-delay: 0.4s; 
+    }
+
+    /* ==========================================================================
+       Executing Animation (for command execution)
+       ========================================================================== */
+
+    &--executing &__executing-indicator {
+        display: flex;
+        align-items: center;
+    }
+
+    &__executing-terminal {
+        position: relative;
+        padding: var(--vc-spacing-component-xs) var(--vc-spacing-component-sm);
+        background: var(--vc-color-bg-tertiary);
+        border-radius: var(--vc-radius-sm);
+        font-family: var(--vc-font-family-code);
+        font-size: var(--vc-font-size-xs);
+        color: var(--vc-color-success-text);
+    }
+
+    &__terminal-cursor {
+        display: inline-block;
+        width: 8px;
+        height: 12px;
+        background: var(--vc-color-success-text);
+        animation: vc-terminal-blink 1s infinite;
+    }
+
+    /* Default icon animation */
+    &__default-icon {
+        animation: vc-spin 1s linear infinite;
+    }
+
+    /* ==========================================================================
+       Keyframe Animations
+       ========================================================================== */
+
+    @keyframes vc-fade-in {
+        from {
+            opacity: 0;
+            transform: translateY(4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes vc-typing-dot {
+        0%, 80%, 100% {
+            opacity: 0.3;
+            transform: scale(0.8);
+        }
+        40% {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @keyframes vc-spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @keyframes vc-processing-pulse {
+        0%, 80%, 100% {
+            opacity: 0.3;
+            transform: scale(0.8);
+        }
+        50% {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @keyframes vc-search-wave {
+        0%, 100% {
+            opacity: 0.3;
+            transform: scaleY(0.5);
+        }
+        50% {
+            opacity: 1;
+            transform: scaleY(1);
+        }
+    }
+
+    @keyframes vc-terminal-blink {
+        0%, 50% {
+            opacity: 1;
+        }
+        51%, 100% {
+            opacity: 0;
+        }
+    }
+}
+
+/* ==========================================================================
+   Dark mode adaptations
+   ========================================================================== */
+
+@media (prefers-color-scheme: dark) {
+    .vc-loading {
+        &__typing-dot {
+            background: var(--vc-color-text-secondary);
+        }
+
+        &__processing-circle {
+            background: var(--vc-color-primary);
+        }
+
+        &__search-bar {
+            background: var(--vc-color-primary);
+        }
+
+        &__executing-terminal {
+            background: var(--vc-color-bg-secondary);
+            color: var(--vc-color-success-text);
+        }
+
+        &__terminal-cursor {
+            background: var(--vc-color-success-text);
+        }
+    }
+}

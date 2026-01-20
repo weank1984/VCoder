@@ -1,0 +1,307 @@
+/* Enhanced Input Field Styles with Advanced Interactions */
+
+.vc-input-field {
+    width: 100%;
+    padding: var(--vc-spacing-component-md);
+    border: none !important;
+    outline: none !important;
+    background: transparent;
+    color: var(--vc-color-text-primary);
+    font-family: var(--vc-font-family-base);
+    font-size: var(--vc-font-size-sm);
+    line-height: var(--vc-line-height-relaxed);
+    resize: none;
+    min-height: 44px;
+    max-height: 300px;
+    transition: all var(--vc-transition-mid) var(--vc-motion-ease-out);
+    position: relative;
+    z-index: 2;
+
+    /* Placeholder styling with animation */
+    &::placeholder {
+        color: var(--vc-color-text-tertiary);
+        opacity: 0;
+        transition: opacity var(--vc-transition-mid) var(--vc-motion-ease-out);
+    }
+
+    /* Show placeholder when empty and not focused */
+    &:placeholder-shown:not(:focus) {
+        &::placeholder {
+            opacity: 1;
+        }
+    }
+
+    /* Focus states */
+    &:focus {
+        color: var(--vc-color-text-primary);
+        
+        &::placeholder {
+            opacity: 0.7;
+        }
+    }
+
+    /* Disabled state */
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        color: var(--vc-color-text-disabled);
+        
+        &::placeholder {
+            opacity: 0.3;
+        }
+    }
+
+    /* Error state */
+    &.vc-input-field--error {
+        color: var(--vc-color-error-text);
+        
+        &::placeholder {
+            color: color-mix(in srgb, var(--vc-color-error-text) 70%, transparent);
+        }
+    }
+
+    /* Success state */
+    &.vc-input-field--success {
+        color: var(--vc-color-success-text);
+        
+        &::placeholder {
+            color: color-mix(in srgb, var(--vc-color-success-text) 70%, transparent);
+        }
+    }
+
+    /* Selection styling */
+    &::selection {
+        background: var(--vc-color-primary-bg-hover);
+        color: var(--vc-color-selected-fg);
+    }
+
+    /* Caret animation for focus feedback */
+    &:focus {
+        animation: vc-caret-blink 1s infinite;
+    }
+}
+
+/* Enhanced textarea specific styles */
+textarea.vc-input-field {
+    /* Smooth auto-resize */
+    transition: height var(--vc-transition-slow) var(--vc-motion-ease-out);
+    
+    /* Custom scrollbar for textarea */
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+        background: var(--vc-scrollbar-thumb);
+        border-radius: var(--vc-radius-full);
+        border: none;
+    }
+    
+    &::-webkit-scrollbar-thumb:hover {
+        background: var(--vc-scrollbar-thumb-hover);
+    }
+}
+
+/* Input field variants */
+.vc-input-field--lg {
+    padding: var(--vc-spacing-component-lg) var(--vc-spacing-component-md);
+    font-size: var(--vc-font-size-base);
+    min-height: 52px;
+}
+
+.vc-input-field--sm {
+    padding: var(--vc-spacing-component-sm) var(--vc-spacing-component-md);
+    font-size: var(--vc-font-size-xs);
+    min-height: 36px;
+}
+
+.vc-input-field--inline {
+    display: inline-flex;
+    width: auto;
+    min-width: 200px;
+}
+
+/* Character counter and helper text */
+.vc-input-wrapper {
+    position: relative;
+    
+    .vc-input-helper {
+        position: absolute;
+        bottom: calc(var(--vc-spacing-component-xs) * -1);
+        right: var(--vc-spacing-component-xs);
+        font-size: var(--vc-font-size-xs);
+        color: var(--vc-color-text-tertiary);
+        transition: color var(--vc-transition-fast);
+    }
+    
+    .vc-input-character-count {
+        font-weight: var(--vc-font-weight-medium);
+        
+        &.warning {
+            color: var(--vc-color-warning-text);
+        }
+        
+        &.error {
+            color: var(--vc-color-error-text);
+        }
+    }
+}
+
+/* Animated underline effect */
+.vc-input-field--with-underline {
+    position: relative;
+    
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: var(--vc-color-primary);
+        transition: width var(--vc-transition-mid) var(--vc-motion-ease-out);
+        border-radius: var(--vc-radius-sm);
+    }
+    
+    &:focus::after {
+        width: 100%;
+    }
+}
+
+/* Floating label effect */
+.vc-input-group--floating {
+    position: relative;
+    
+    .vc-floating-label {
+        position: absolute;
+        left: var(--vc-spacing-component-md);
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: var(--vc-font-size-sm);
+        color: var(--vc-color-text-tertiary);
+        transition: all var(--vc-transition-mid) var(--vc-motion-ease-out);
+        pointer-events: none;
+        background: var(--vc-color-bg-input);
+        padding: 0 var(--vc-spacing-component-xs);
+        border-radius: var(--vc-radius-xs);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: calc(100% - var(--vc-spacing-component-lg));
+    }
+    
+    .vc-input-field:focus ~ .vc-floating-label,
+    .vc-input-field:not(:placeholder-shown) ~ .vc-floating-label,
+    .vc-input-field.vc-input-field--has-value ~ .vc-floating-label {
+        top: 0;
+        transform: translateY(-50%) scale(0.85);
+        color: var(--vc-color-primary);
+        font-weight: var(--vc-font-weight-medium);
+    }
+}
+
+/* Input validation states */
+.vc-input-group--valid {
+    .vc-input-field {
+        border-color: var(--vc-color-success-border);
+        
+        &:focus {
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-color-success-bg) 30%, transparent);
+        }
+    }
+}
+
+.vc-input-group--invalid {
+    .vc-input-field {
+        border-color: var(--vc-color-error-border);
+        animation: vc-input-error-shake 0.3s var(--vc-motion-ease-out);
+        
+        &:focus {
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-color-error-bg) 30%, transparent);
+        }
+    }
+}
+
+/* Loading state */
+.vc-input-field--loading {
+    background-image: linear-gradient(
+        90deg,
+        var(--vc-color-bg-input) 0%,
+        color-mix(in srgb, var(--vc-color-bg-input) 85%, var(--vc-color-primary) 15%) 50%,
+        var(--vc-color-bg-input) 100%
+    );
+    background-size: 200% 100%;
+    animation: vc-input-loading 1.5s infinite;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    
+    &::placeholder {
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+    }
+}
+
+/* Keyframe animations */
+@keyframes vc-caret-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+@keyframes vc-input-error-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+}
+
+@keyframes vc-input-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Accessibility enhancements */
+@media (prefers-reduced-motion: reduce) {
+    .vc-input-field {
+        transition: none;
+        animation: none;
+        
+        &::after {
+            transition: none;
+        }
+        
+        &.vc-input-field--loading {
+            animation: none;
+            background-image: none;
+            color: var(--vc-color-text-primary);
+            
+            &::placeholder {
+                color: var(--vc-color-text-tertiary);
+                opacity: 0.7;
+            }
+        }
+    }
+    
+    .vc-floating-label {
+        transition: none;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .vc-input-field {
+        border-width: 2px;
+        
+        &:focus {
+            border-width: 3px;
+        }
+    }
+    
+    .vc-input-field--with-underline::after {
+        height: 3px;
+    }
+}

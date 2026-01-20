@@ -3,13 +3,47 @@
  */
 
 .terminal-output {
-    margin: 8px 0;
-    border-radius: 8px;
-    border: 1px solid var(--vscode-panel-border);
-    border-top: 3px solid #4d9de0; // Cursor-style blue accent border
-    background: var(--vscode-editor-background);
+    // Use design tokens for spacing and sizing
+    margin: calc(var(--vc-spacing-component-md) / 1.5) 0;  // 8px using tokens
+    border-radius: var(--vc-radius-lg);                    // 8px using tokens
+    border: 1px solid var(--vc-color-border);
+    border-top: 3px solid var(--vc-terminal-accent);       // Replace hardcoded #4d9de0
+    background: var(--vc-depth-bg);                        // Background with depth
     overflow: hidden;
-    transition: all 0.15s ease;
+    transition: all var(--vc-transition-mid);               // Standardized transition
+    
+    // Add depth and visual interest
+    box-shadow: var(--vc-shadow-raised);
+    position: relative;
+    z-index: var(--vc-z-surface);
+    
+    // Hover effects with elevation
+    &:hover {
+        box-shadow: var(--vc-shadow-elevated);
+        transform: translateY(-1px) translateZ(0);
+    }
+    
+    // Focus state with colored glow
+    &:focus-within {
+        box-shadow: var(--vc-shadow-accent), 0 0 0 2px var(--vc-color-primary);
+        z-index: var(--vc-z-floating);
+    }
+    
+    // State-specific styling
+    &.is-running {
+        animation: terminal-pulse 3s ease-in-out infinite;
+        border-top-color: var(--vc-terminal-accent);
+    }
+    
+    &.is-success {
+        border-top-color: var(--vc-color-success-text);
+        box-shadow: var(--vc-shadow-success);
+    }
+    
+    &.is-error {
+        border-top-color: var(--vc-color-error-text);
+        box-shadow: var(--vc-shadow-error);
+    }
 }
 
 // Terminal Title Bar - "Running command: xxx"
@@ -17,9 +51,33 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px;
-    background: transparent;
+    padding: var(--vc-spacing-component-md) var(--vc-spacing-component-lg); // 10px 14px using tokens
+    background: var(--vc-depth-midground);                      // Layer with depth
+    border-bottom: 1px solid var(--vc-color-border-secondary);
     user-select: none;
+    position: relative;
+    z-index: calc(var(--vc-z-surface) + 1);
+    
+    // Add subtle surface lighting
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.1) 50%,
+            transparent 100%
+        );
+        pointer-events: none;
+    }
+    
+    &:hover {
+        background: var(--vc-color-hover-bg);
+    }
 }
 
 .terminal-title-text {
@@ -35,7 +93,7 @@
 .terminal-title-actions {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: var(--vc-spacing-component-xs); // 2px using token
     flex-shrink: 0;
     
     button {
@@ -47,10 +105,10 @@
         padding: 0;
         border: none;
         background: transparent;
-        color: var(--vscode-descriptionForeground);
+        color: var(--vc-color-icon-secondary);
         cursor: pointer;
-        border-radius: 4px;
-        transition: all 0.1s ease;
+        border-radius: var(--vc-radius-sm); // 4px using token
+        transition: all var(--vc-transition-fast); // Standardized transition
         
         svg {
             width: 14px;
@@ -58,8 +116,13 @@
         }
         
         &:hover {
-            background: var(--vscode-toolbar-hoverBackground);
-            color: var(--vscode-foreground);
+            background: var(--vc-color-hover-bg);
+            color: var(--vc-color-icon-primary);
+            transform: translateZ(1px); // Subtle elevation
+        }
+        
+        &:active {
+            transform: translateZ(0) scale(0.95); // Press effect
         }
     }
     
@@ -75,15 +138,52 @@
 .terminal-content {
     display: flex;
     flex-direction: column;
-    padding: 0 14px 14px;
-    gap: 10px;
+    padding: 0 var(--vc-spacing-component-lg) var(--vc-spacing-component-lg); // 0 14px 14px using tokens
+    gap: calc(var(--vc-spacing-component-lg) + var(--vc-spacing-component-xs)); // 12px (10px rounded) using tokens
+    
+    // Make content elevated layer for depth
+    margin: 0;
+    background: var(--vc-depth-foreground);
+    border-radius: var(--vc-radius-md);
+    position: relative;
+    z-index: var(--vc-z-surface);
+    
+    // Add subtle glass effect
+    backdrop-filter: blur(1px);
+    border: 1px solid var(--vc-depth-foreground-border);
+    
+    // Additional surface lighting
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.05) 50%,
+            transparent 100%
+        );
+        pointer-events: none;
+    }
 }
 
 // Command Display Section - Cursor-style syntax highlighted command
 .terminal-command-display {
-    background: var(--vscode-terminal-background);
-    border-radius: 6px;
-    padding: 12px 14px;
+    background: var(--vc-terminal-background);
+    border-radius: var(--vc-radius-md);    // 6px using token
+    padding: var(--vc-spacing-component-md) var(--vc-spacing-component-lg); // 12px 14px using tokens
+    
+    // Add inset effect for depth
+    box-shadow: var(--vc-shadow-inset-light);
+    border: 1px solid var(--vc-color-border-tertiary);
+    
+    // Add subtle surface lighting
+    background: 
+        var(--vc-surface-subtle),
+        var(--vc-terminal-background);
 }
 
 .terminal-command-line {
@@ -106,15 +206,15 @@
         word-break: break-word;
         flex: 1;
         
-        // Command syntax highlighting
+        // Command syntax highlighting using design tokens
         .cmd-path {
-            color: #e5c07b; // Yellow for paths
+            color: var(--vc-terminal-path); // VSCode terminal yellow for paths
         }
         .cmd-flag {
-            color: #e06c75; // Red for flags
+            color: var(--vc-terminal-flag); // VSCode terminal red for flags
         }
         .cmd-name {
-            color: #98c379; // Green for command names
+            color: var(--vc-terminal-command); // VSCode terminal green for command names
         }
     }
 }
@@ -172,22 +272,35 @@
     color: var(--vscode-descriptionForeground);
 }
 
-// Output Display
+// Output Display with optimized height
 .terminal-output-text {
     margin: 0;
-    padding: 10px 12px;
+    padding: calc(var(--vc-spacing-component-lg) - 2px) var(--vc-spacing-component-lg); // 10px 12px using tokens
     font-family: var(--vscode-editor-font-family);
     font-size: 12px;
     line-height: 1.5;
-    color: var(--vscode-terminal-foreground);
-    background: var(--vscode-terminal-background);
-    border-radius: 6px;
+    color: var(--vc-terminal-foreground);
+    background: var(--vc-terminal-background);
+    border-radius: var(--vc-radius-md); // 6px using token
     overflow-x: auto;
     overflow-y: auto;
-    max-height: 260px;
-    min-height: 32px;
+    max-height: var(--vc-terminal-height-default); // 120px optimized height
+    min-height: var(--vc-terminal-min-height);   // 60px min height
     white-space: pre-wrap;
     word-wrap: break-word;
+    
+    // Position for layering
+    position: relative;
+    z-index: var(--vc-z-base);
+    
+    // Responsive height adjustments
+    &.has-short-output {
+        max-height: var(--vc-terminal-height-compact); // 90px for short output
+    }
+    
+    &.has-error {
+        min-height: 80px; // More height for error context
+    }
     
     // Custom scrollbar
     &::-webkit-scrollbar {
@@ -209,13 +322,77 @@
     }
 }
 
-// Collapsed state
+// Collapsed state 
 .terminal-output.collapsed {
     .terminal-content {
         display: none;
     }
     
     .terminal-title-bar {
-        padding-bottom: 10px;
+        padding-bottom: var(--vc-spacing-component-lg); // 10px using tokens
+    }
+    
+    // Reduce scale when collapsed for visual indication
+    transform: scale(0.98) translateZ(0);
+    opacity: 0.9;
+    
+    &:hover {
+        transform: scale(1) translateZ(0);
+        opacity: 1;
+    }
+}
+
+// Running state animation
+@keyframes terminal-pulse {
+    0%, 100% { 
+        box-shadow: var(--vc-shadow-raised);
+        border-top-color: var(--vc-terminal-accent);
+    }
+    50% { 
+        box-shadow: var(--vc-shadow-accent), var(--vc-shadow-elevated);
+        border-top-color: var(--vc-color-primary);
+    }
+}
+
+// Success state highlight animation
+@keyframes terminal-success-flash {
+    0% { border-top-color: var(--vc-terminal-accent); }
+    50% { border-top-color: var(--vc-color-success-text); }
+    100% { border-top-color: var(--vc-color-success-text); }
+}
+
+// Error state animation
+@keyframes terminal-error-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+// Apply state animations
+.terminal-output.is-success {
+    animation: terminal-success-flash 0.5s ease-out forwards;
+}
+
+.terminal-output.is-error {
+    animation: terminal-error-shake 0.3s ease-out ease-in-out;
+}
+
+// Mobile responsive adjustments
+@media (max-width: 768px) {
+    .terminal-output-text {
+        max-height: var(--vc-terminal-height-mobile); // 100px on mobile
+        font-size: 11px; // Smaller font on mobile
+    }
+    
+    .terminal-output {
+        &:hover {
+            transform: translateY(0) translateZ(0); // Disable hover elevation on mobile for performance
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .terminal-output-text {
+        max-height: 80px; // Even smaller on very small screens
     }
 }

@@ -1,137 +1,231 @@
 /**
- * Button Component Styles
+ * Button Component Styles - Enhanced with Design System
  */
 
 @use '../../styles/mixins' as *;
 
+/* ==========================================================================
+   BUTTON BASE STYLES
+   ========================================================================== */
+
 .vc-button {
-  // 基础样式
+  // Base styles
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-family: var(--vc-font-family);
-  font-weight: 500;
+  gap: var(--vc-button-gap);
+  font-family: var(--vc-font-family-base);
+  font-weight: var(--vc-font-weight-medium);
   border: none;
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
-  transition: all var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
-  
+  transition: all var(--vc-transition-mid);
+
   @include focus-visible;
-  
-  // 禁用状态
-  &:disabled,
-  &.is-disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-  
-  // 加载状态
+  @include disabled-state;
+
+  // Loading state
   &.is-loading {
     cursor: wait;
-    
+
     .vc-button__label {
       visibility: hidden;
     }
+
+    .vc-button__spinner {
+      position: absolute;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+  }
+
+  // Active state (scale effect)
+  &:active:not(:disabled):not(.is-disabled) {
+    transform: scale(0.98);
   }
 }
 
-// ========== 尺寸变体 ==========
+/* ==========================================================================
+   BUTTON SIZES
+   ========================================================================== */
 
 .vc-button--small {
-  padding: 4px 10px;
-  font-size: 12px;
-  border-radius: var(--vc-radius-sm);
-  min-height: 24px;
+  height: var(--vc-button-height-sm);
+  padding: 0 var(--vc-button-padding-x-sm);
+  font-size: var(--vc-font-size-xs);
+  border-radius: var(--vc-radius-xs);
+
+  .vc-button__icon svg {
+    width: var(--vc-button-icon-size-sm);
+    height: var(--vc-button-icon-size-sm);
+  }
 }
 
 .vc-button--medium {
-  padding: 6px 12px;
-  font-size: 13px;
+  height: var(--vc-button-height-md);
+  padding: 0 var(--vc-button-padding-x-md);
+  font-size: var(--vc-font-size-sm);
   border-radius: var(--vc-radius-sm);
-  min-height: 28px;
+
+  .vc-button__icon svg {
+    width: var(--vc-button-icon-size-md);
+    height: var(--vc-button-icon-size-md);
+  }
 }
 
 .vc-button--large {
-  padding: 8px 16px;
-  font-size: 14px;
+  height: var(--vc-button-height-lg);
+  padding: 0 var(--vc-button-padding-x-lg);
+  font-size: var(--vc-font-size-md);
   border-radius: var(--vc-radius-md);
-  min-height: 36px;
+
+  .vc-button__icon svg {
+    width: var(--vc-button-icon-size-lg);
+    height: var(--vc-button-icon-size-lg);
+  }
 }
 
-// ========== 颜色变体 ==========
+.vc-button--xlarge {
+  height: var(--vc-button-height-xl);
+  padding: 0 var(--vc-button-padding-x-xl);
+  font-size: var(--vc-font-size-md);
+  border-radius: var(--vc-radius-md);
 
+  .vc-button__icon svg {
+    width: var(--vc-button-icon-size-lg);
+    height: var(--vc-button-icon-size-lg);
+  }
+}
+
+/* ==========================================================================
+   BUTTON VARIANTS
+   ========================================================================== */
+
+// Primary Button
 .vc-button--primary {
-  background: var(--vscode-button-background);
+  background: var(--vc-color-primary);
   color: var(--vscode-button-foreground);
-  
+
   &:hover:not(:disabled):not(.is-disabled) {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--vc-color-primary-hover);
+    box-shadow: var(--vc-shadow-xs);
   }
-  
-  &:active {
-    transform: scale(0.98);
+
+  &:active:not(:disabled):not(.is-disabled) {
+    background: var(--vc-color-primary-active);
+  }
+
+  // Focus ring
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--vc-input-focus-ring-color);
   }
 }
 
+// Secondary Button
 .vc-button--secondary {
-  background: var(--vscode-button-secondaryBackground);
+  background: var(--vc-color-secondary);
   color: var(--vscode-button-secondaryForeground);
-  
+
   &:hover:not(:disabled):not(.is-disabled) {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--vc-color-secondary-hover);
+    box-shadow: var(--vc-shadow-xs);
   }
-  
-  &:active {
-    transform: scale(0.98);
+
+  &:active:not(:disabled):not(.is-disabled) {
+    background: var(--vc-color-secondary-active);
   }
 }
 
+// Ghost Button
 .vc-button--ghost {
   background: transparent;
-  color: var(--vscode-foreground);
-  
+  color: var(--vc-color-text-primary);
+
   &:hover:not(:disabled):not(.is-disabled) {
-    background: var(--vscode-toolbar-hoverBackground);
+    background: var(--vc-color-hover-bg);
   }
-  
-  &:active {
-    background: var(--vscode-list-activeSelectionBackground);
+
+  &:active:not(:disabled):not(.is-disabled) {
+    background: var(--vc-color-selected-bg);
   }
 }
 
+// Danger Button
 .vc-button--danger {
-  background: var(--vc-color-danger);
-  color: var(--vscode-button-foreground);
-  
+  background: var(--vc-color-danger-text);
+  color: var(--vc-color-text-inverse);
+
   &:hover:not(:disabled):not(.is-disabled) {
-    background: color-mix(in srgb, var(--vc-color-danger) 85%, black);
+    background: color-mix(in srgb, var(--vc-color-danger-text) 85%, black);
+    box-shadow: var(--vc-shadow-xs);
   }
-  
-  &:active {
-    transform: scale(0.98);
+
+  &:active:not(:disabled):not(.is-disabled) {
+    background: color-mix(in srgb, var(--vc-color-danger-text) 70%, black);
   }
 }
 
-// ========== 宽度变体 ==========
+// Success Button
+.vc-button--success {
+  background: var(--vc-color-success-text);
+  color: var(--vc-color-text-inverse);
+
+  &:hover:not(:disabled):not(.is-disabled) {
+    background: color-mix(in srgb, var(--vc-color-success-text) 85%, black);
+    box-shadow: var(--vc-shadow-xs);
+  }
+}
+
+// Warning Button
+.vc-button--warning {
+  background: var(--vc-color-warning-text);
+  color: var(--vscode-editor-background);
+
+  &:hover:not(:disabled):not(.is-disabled) {
+    background: color-mix(in srgb, var(--vc-color-warning-text) 85%, black);
+    box-shadow: var(--vc-shadow-xs);
+  }
+}
+
+// Info Button
+.vc-button--info {
+  background: var(--vc-color-info-text);
+  color: var(--vscode-editor-background);
+
+  &:hover:not(:disabled):not(.is-disabled) {
+    background: color-mix(in srgb, var(--vc-color-info-text) 85%, black);
+    box-shadow: var(--vc-shadow-xs);
+  }
+}
+
+/* ==========================================================================
+   BUTTON WIDTH VARIANTS
+   ========================================================================== */
 
 .vc-button--full-width {
   width: 100%;
 }
 
-// ========== 内部元素 ==========
+.vc-button--auto-width {
+  width: auto;
+}
 
+/* ==========================================================================
+   BUTTON INTERNAL ELEMENTS
+   ========================================================================== */
+
+// Icon
 .vc-button__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  
+
   svg {
-    width: 14px;
-    height: 14px;
+    width: var(--vc-button-icon-size-md);
+    height: var(--vc-button-icon-size-md);
     fill: currentColor;
   }
 }
@@ -144,12 +238,19 @@
   margin-left: -2px;
 }
 
+.vc-button__icon--only {
+  margin: 0;
+}
+
+// Label
 .vc-button__label {
   display: inline-flex;
   align-items: center;
 }
 
-// ========== 加载动画 ==========
+/* ==========================================================================
+   BUTTON LOADING SPINNER
+   ========================================================================== */
 
 .vc-button__spinner {
   position: absolute;
@@ -164,13 +265,17 @@
   border-radius: 50%;
   background: currentColor;
   animation: spinner-bounce 1.4s ease-in-out infinite;
-  
+
   &:nth-child(1) {
     animation-delay: -0.32s;
   }
-  
+
   &:nth-child(2) {
     animation-delay: -0.16s;
+  }
+
+  &:nth-child(3) {
+    animation-delay: 0s;
   }
 }
 
@@ -182,5 +287,119 @@
   40% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* ==========================================================================
+   BUTTON GROUPS
+   ========================================================================== */
+
+.vc-button-group {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--vc-radius-sm);
+  overflow: hidden;
+  box-shadow: var(--vc-shadow-xs);
+
+  .vc-button {
+    border-radius: 0;
+    border: 1px solid var(--vc-color-border);
+    border-left: none;
+    box-shadow: none;
+    margin: 0;
+
+    &:first-child {
+      border-left: 1px solid var(--vc-color-border);
+      border-top-left-radius: inherit;
+      border-bottom-left-radius: inherit;
+    }
+
+    &:last-child {
+      border-top-right-radius: inherit;
+      border-bottom-right-radius: inherit;
+    }
+
+    &:not(:last-child) {
+      border-right: 1px solid var(--vc-color-border);
+    }
+
+    &:hover:not(:disabled):not(.is-disabled) {
+      z-index: 1;
+    }
+  }
+}
+
+.vc-button-group--vertical {
+  flex-direction: column;
+
+  .vc-button {
+    border: 1px solid var(--vc-color-border);
+    border-top: none;
+
+    &:first-child {
+      border-top: 1px solid var(--vc-color-border);
+      border-top-left-radius: inherit;
+      border-top-right-radius: inherit;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    &:last-child {
+      border-bottom-left-radius: inherit;
+      border-bottom-right-radius: inherit;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
+
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--vc-color-border);
+    }
+  }
+}
+
+/* ==========================================================================
+   BUTTON WITH BADGE
+   ========================================================================== */
+
+.vc-button__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: var(--vc-font-weight-bold);
+  line-height: 16px;
+  text-align: center;
+  background: var(--vc-color-error-text);
+  color: var(--vc-color-text-inverse);
+  border-radius: var(--vc-radius-full);
+  border: 2px solid var(--vc-color-bg-base);
+}
+
+/* ==========================================================================
+   ACCESSIBILITY
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .vc-button {
+    transition: none;
+
+    &:active:not(:disabled):not(.is-disabled) {
+      transform: none;
+    }
+  }
+}
+
+/* Focus styles for high contrast mode */
+@media (prefers-contrast: high) {
+  .vc-button {
+    border: 2px solid currentColor;
+
+    &:focus-visible {
+      outline: 3px solid currentColor;
+      outline-offset: 2px;
+    }
   }
 }

@@ -3,19 +3,19 @@
  */
 
 .diff-viewer {
-    margin: 8px 0;
-    border-radius: 8px;
-    border: 1px solid var(--vscode-panel-border);
+    margin: calc(var(--vc-spacing-component-md) / 1.5) 0; // 8px using tokens
+    border-radius: var(--vc-radius-lg);                    // 8px using tokens
+    border: 1px solid var(--vc-color-border);
     background: var(--vscode-editor-background);
     overflow: hidden;
-    transition: all 0.15s ease;
+    transition: all var(--vc-transition-mid);               // Standardized transition
 }
 
 .diff-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: calc(var(--vc-spacing-component-lg) - var(--vc-spacing-component-sm)); // 10px using tokens
+    padding: var(--vc-spacing-component-md) var(--vc-spacing-component-lg); // 10px 14px using tokens
     cursor: pointer;
     user-select: none;
     background: transparent;
@@ -187,7 +187,7 @@
     color: var(--vscode-editor-foreground);
     background: var(--vscode-editor-background);
     overflow-x: auto;
-    max-height: 400px;
+    max-height: var(--vc-diff-height-default); // 180px optimized height
     overflow-y: auto;
     
     // Custom scrollbar

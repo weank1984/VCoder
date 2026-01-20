@@ -21,7 +21,11 @@ export { ComposerToolbar } from './ComposerToolbar';
 export type { ComposerToolbarProps } from './ComposerToolbar';
 
 // === 图标 ===
+// === 图标 ===
 export * from './Icon';
+
+// === 任务管理组件 ===
+export { TodoTaskManager } from './TodoTaskManager';
 
 // === 布局组件 ===
 export { Card, CardHeader, CardBody, CardFooter } from './Card';

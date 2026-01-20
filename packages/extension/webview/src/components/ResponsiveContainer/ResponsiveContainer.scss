@@ -1,0 +1,341 @@
+/* ResponsiveContainer Styles - Modern Container Query System */
+
+.vc-responsive-container {
+    container-type: inline-size;
+    width: 100%;
+    position: relative;
+    transition: all var(--vc-transition-mid) var(--vc-motion-ease-out);
+
+    /* Size-based breakpoints */
+    &--xs {
+        container-name: vc-container-xs;
+    }
+
+    &--sm {
+        container-name: vc-container-sm;
+    }
+
+    &--md {
+        container-name: vc-container-md;
+    }
+
+    &--lg {
+        container-name: vc-container-lg;
+    }
+
+    &--xl {
+        container-name: vc-container-xl;
+    }
+
+    &--2xl {
+        container-name: vc-container-2xl;
+    }
+
+    /* Type-specific variations */
+    &--type-sidebar {
+        display: flex;
+        flex-direction: column;
+        
+        @container (max-width: 280px) {
+            .vc-composer-toolbar {
+                flex-direction: column;
+                gap: var(--vc-spacing-component-sm);
+            }
+            
+            .vc-model-selector {
+                width: 100%;
+            }
+        }
+        
+        @container (max-width: 200px) {
+            .vc-agent-selector {
+                display: none;
+            }
+            
+            .vc-input-field {
+                font-size: var(--vc-font-size-xs);
+            }
+        }
+    }
+
+    &--type-main {
+        display: flex;
+        flex-direction: column;
+        
+        @container (max-width: 400px) {
+            .vc-message-bubble {
+                padding: var(--vc-spacing-component-sm);
+            }
+            
+            .vc-code-block {
+                margin: var(--vc-spacing-component-sm) 0;
+            }
+        }
+        
+        @container (max-width: 300px) {
+            .vc-message-bubble .vc-message-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--vc-spacing-component-xs);
+            }
+            
+            .vc-toolbar-actions {
+                flex-wrap: wrap;
+            }
+        }
+    }
+
+    &--type-modal {
+        @container (max-width: 320px) {
+            .vc-modal-content {
+                padding: var(--vc-spacing-component-md);
+            }
+            
+            .vc-modal-header {
+                padding-bottom: var(--vc-spacing-component-sm);
+            }
+            
+            .vc-modal-footer {
+                flex-direction: column;
+                gap: var(--vc-spacing-component-sm);
+            }
+        }
+        
+        @container (max-width: 250px) {
+            .vc-modal-title {
+                font-size: var(--vc-font-size-lg);
+            }
+            
+            .vc-modal-actions {
+                flex-direction: column;
+            }
+        }
+    }
+
+    &--type-popover {
+        @container (max-width: 200px) {
+            .vc-popover-content {
+                padding: var(--vc-spacing-component-sm);
+            }
+            
+            .vc-popover-item {
+                padding: var(--vc-spacing-component-xs) var(--vc-spacing-component-sm);
+            }
+        }
+    }
+}
+
+/* Container query styles for component adaptation */
+
+/* Input area adaptations */
+@container (max-width: 300px) {
+    .vc-input-area {
+        .vc-composer-surface {
+            border-radius: var(--vc-radius-md);
+        }
+        
+        .vc-composer-toolbar {
+            flex-direction: column;
+            gap: var(--vc-spacing-component-xs);
+            padding: var(--vc-spacing-component-sm);
+        }
+        
+        .vc-toolbar-left,
+        .vc-toolbar-right {
+            width: 100%;
+            justify-content: space-between;
+        }
+    }
+}
+
+/* Message bubble adaptations */
+@container (max-width: 350px) {
+    .vc-message-bubble {
+        .vc-message-content {
+            padding: var(--vc-spacing-component-sm);
+        }
+        
+        .vc-message-actions {
+            flex-wrap: wrap;
+            gap: var(--vc-spacing-component-xs);
+        }
+        
+        .vc-code-block {
+            font-size: var(--vc-font-size-xs);
+        }
+    }
+}
+
+/* Agent selector adaptations */
+@container (max-width: 280px) {
+    .vc-agent-selector {
+        .vc-dropdown-trigger {
+            min-width: 120px;
+        }
+        
+        .vc-dropdown-content {
+            font-size: var(--vc-font-size-sm);
+        }
+    }
+}
+
+/* Model selector adaptations */
+@container (max-width: 320px) {
+    .vc-model-selector {
+        .vc-model-option {
+            padding: var(--vc-spacing-component-xs) var(--vc-spacing-component-sm);
+        }
+        
+        .vc-model-search {
+            input {
+                font-size: var(--vc-font-size-sm);
+                padding: var(--vc-spacing-component-xs);
+            }
+        }
+    }
+}
+
+/* Toolbar adaptations */
+@container (max-width: 400px) {
+    .vc-composer-toolbar {
+        .vc-btn-group {
+            flex-wrap: wrap;
+            gap: var(--vc-spacing-component-xs);
+        }
+        
+        .vc-btn {
+            min-width: 32px;
+            padding: var(--vc-spacing-component-xs);
+        }
+        
+        .vc-btn-icon {
+            font-size: var(--vc-font-size-sm);
+        }
+    }
+}
+
+/* Chat bubble specific adaptations */
+@container (max-width: 450px) {
+    .vc-chat-bubble {
+        .vc-bubble-header {
+            margin-bottom: var(--vc-spacing-component-xs);
+        }
+        
+        .vc-bubble-content {
+            font-size: var(--vc-font-size-sm);
+        }
+        
+        .vc-bubble-meta {
+            margin-top: var(--vc-spacing-component-xs);
+            font-size: var(--vc-font-size-xs);
+        }
+    }
+}
+
+/* Loading system adaptations */
+@container (max-width: 250px) {
+    .vc-loading {
+        &__content {
+            .vc-loading__message {
+                display: none;
+            }
+        }
+        
+        &__progress-container {
+            .vc-loading__progress-text {
+                display: none;
+            }
+        }
+    }
+}
+
+/* File picker adaptations */
+@container (max-width: 280px) {
+    .vc-file-picker {
+        .vc-file-item {
+            padding: var(--vc-spacing-component-xs) var(--vc-spacing-component-sm);
+        }
+        
+        .vc-file-icon {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .vc-file-name {
+            font-size: var(--vc-font-size-xs);
+        }
+    }
+}
+
+/* Permission panel adaptations */
+@container (max-width: 350px) {
+    .vc-permission-panel {
+        .vc-panel-content {
+            padding: var(--vc-spacing-component-md);
+        }
+        
+        .vc-permission-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--vc-spacing-component-xs);
+        }
+        
+        .vc-panel-actions {
+            flex-direction: column;
+        }
+    }
+}
+
+/* Error boundary adaptations */
+@container (max-width: 300px) {
+    .vc-error-boundary {
+        padding: var(--vc-spacing-component-md);
+        
+        .vc-error-title {
+            font-size: var(--vc-font-size-base);
+        }
+        
+        .vc-error-message {
+            font-size: var(--vc-font-size-sm);
+        }
+        
+        .vc-error-actions {
+            flex-direction: column;
+            gap: var(--vc-spacing-component-xs);
+        }
+    }
+}
+
+/* Smooth transitions for size changes */
+.vc-responsive-container {
+    transition: all var(--vc-transition-mid) var(--vc-motion-ease-out);
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .vc-responsive-container {
+        transition: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .vc-responsive-container {
+        border: 1px solid var(--vc-color-border);
+    }
+}
+
+/* Dark mode enhancements */
+@media (prefers-color-scheme: dark) {
+    .vc-responsive-container {
+        &--type-modal {
+            background: var(--vc-color-bg-tertiary);
+            border-color: var(--vc-color-border-secondary);
+        }
+        
+        &--type-popover {
+            background: var(--vc-color-bg-secondary);
+            border-color: var(--vc-color-border);
+        }
+    }
+}
