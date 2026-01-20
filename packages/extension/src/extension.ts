@@ -8,14 +8,10 @@ import { ACPClient } from './acp/client';
 import { ChatViewProvider } from './providers/chatViewProvider';
 import { ServerManager } from './services/serverManager';
 import { CapabilityOrchestrator, createCapabilityOrchestrator } from './services/capabilityOrchestrator';
-import { BuiltinMcpServer } from './services/builtinMcpServer';
-import { VCoderFileDecorationProvider } from './providers/fileDecorationProvider';
-import { TerminalProvider } from './services/terminalProvider';
-import { PermissionProvider } from './services/permissionProvider';
-import { DiffManager } from './services/diffManager';
 import { FileSystemProvider } from './services/fileSystemProvider';
-import { SessionStore } from './services/sessionStore';
-import { AuditLogger } from './services/auditLogger';
+import { TerminalProvider } from './services/terminalProvider';
+import { DiffManager } from './services/diffManager';
+import { VCoderFileDecorationProvider } from './providers/fileDecorationProvider';
 import type { UpdateNotificationParams } from '@vcoder/shared';
 
 // Declare output channel at top level
@@ -24,12 +20,8 @@ const outputChannel = vscode.window.createOutputChannel('VCoder', 'VCoder');
 // Global extension state
 let serverManager: ServerManager | undefined;
 let acpClient: ACPClient | undefined;
-let permissionProvider: PermissionProvider | undefined;
 let terminalProvider: TerminalProvider | undefined;
 let fileSystemProvider: FileSystemProvider | undefined;
-let sessionStore: SessionStore | undefined;
-let auditLogger: AuditLogger | undefined;
-let builtinMcpServer: BuiltinMcpServer | undefined;
 let chatViewProvider: ChatViewProvider | undefined;
 let statusBarItem: vscode.StatusBarItem;
 let capabilityOrchestrator: CapabilityOrchestrator | null = null;
@@ -44,10 +36,7 @@ export async function activate(context: vscode.ExtensionContext) {
     try {
         capabilityOrchestrator = await createCapabilityOrchestrator(context);
         
-        // Get capability instances from orchestrator
-        sessionStore = capabilityOrchestrator.getSessionStore();
-        auditLogger = capabilityOrchestrator.getAuditLogger();
-        builtinMcpServer = capabilityOrchestrator.getBuiltinMcpServer();
+        
         
         context.subscriptions.push({
             dispose: async () => {

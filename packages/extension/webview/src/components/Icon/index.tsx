@@ -1,6 +1,6 @@
 // React not needed for re-exports
 
-export { default as AcceptedIcon } from "./icons/AccetpedIcon";
+export { default as AcceptedIcon } from "./icons/AcceptedIcon";
 export { default as AddIcon } from "./icons/AddIcon";
 export { default as PlusIcon } from "./icons/AddIcon";
 export { default as AloneTop } from "./icons/AloneTop";
@@ -18,7 +18,7 @@ export { default as BackIcon } from "./icons/BackIcon";
 export { default as CancelIcon } from "./icons/CancelIcon";
 export { default as ChatIcon } from "./icons/ChatIcon";
 export { default as ChevronRightIcon } from "./icons/RightIcon"; // Alias
-export { default as ClearIcon } from "./icons/ClearIcon";
+
 export { default as CloseIcon } from "./icons/CloseIcon";
 export { default as CloudDownloadIcon } from "./icons/CloudDownloadIcon";
 export { default as CodebaseIcon } from "./icons/CodebaseIcon";
@@ -27,7 +27,7 @@ export { default as CollapseIcon } from "./icons/CollapseIcon";
 export { default as CheckIcon } from "./icons/CheckIcon";
 export { default as CopiedIcon } from "./icons/CopiedIcon";
 export { default as CopyIcon } from "./icons/CopyIcon";
-export { default as DeleteIcon } from "./icons/DeleteIcon";
+
 export { default as DiffIcon } from "./icons/DiffIcon";
 export { default as DislikeIcon } from "./icons/DislikeIcon";
 export { default as DislikeFillIcon } from "./icons/DislikeFillIcon";
@@ -59,15 +59,9 @@ export { default as LogoutIcon } from "./icons/LogoutIcon";
 export { default as ManageIcon } from "./icons/ManageIcon";
 export { default as McpIcon } from "./icons/McpIcon";
 export { default as MoreIcon } from "./icons/MoreIcon";
-export { default as NotebookIcon } from "./icons/NotebookIcon";
-export { default as PauseIcon } from "./icons/PauseIcon";
 export { default as PlayIcon } from "./icons/PlayIcon";
-export { default as PrivateIcon } from "./icons/PrivateIcon";
-export { default as PublicIcon } from "./icons/PublicIcon";
-export { default as RefreshIcon } from "./icons/RefreshIcon";
-export { default as RevertIcon } from "./icons/RevertIcon";
-export { default as RevertedIcon } from "./icons/RevertedIcon";
-export { default as RestoreIcon } from "./icons/RestoreIcon";
+export { default as NotebookIcon } from "./icons/NotebookIcon";
+
 export { default as RightIcon } from "./icons/RightIcon";
 export { default as RocketIcon } from "./icons/RocketIcon";
 export { default as SearchIcon } from "./icons/SearchIcon";
