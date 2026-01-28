@@ -2,7 +2,7 @@
  * Webview Types
  */
 
-import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, AgentProfile, FileChangeUpdate, SessionCompleteReason, ConfirmationType } from '@vcoder/shared';
+import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, AgentProfile, FileChangeUpdate, SessionCompleteReason, ConfirmationType, PermissionRule } from '@vcoder/shared';
 
 export type { SessionCompleteReason };
 
@@ -206,14 +206,7 @@ export interface ClearPermissionRulesMessage {
 
 export interface PermissionRulesMessage {
     type: 'permissionRules';
-    data: Array<{
-        id: string;
-        toolName: string;
-        category: string;
-        pattern: string;
-        createdAt: number;
-        sessionId?: string;
-    }>;
+    data: PermissionRule[];
 }
 
 export interface ConfirmToolMessage {
@@ -410,6 +403,7 @@ export interface SessionState {
     messages: ChatMessage[];
     tasks: Task[];
     subagentRuns: SubagentRunUpdate[];
+    pendingFileChanges: Array<FileChangeUpdate & { sessionId: string; receivedAt: number }>;
     // Session status tracking
     sessionStatus: SessionStatus;
     sessionCompleteReason?: SessionCompleteReason;

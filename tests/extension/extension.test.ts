@@ -3,15 +3,94 @@
  * Core extension logic tests
  */
 
-import * as vscode from 'vscode';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock vscode module
-const mockVSCode = vi.mocked('vscode');
+const serverManagerState = {
+    status: 'running',
+    startError: null as Error | null,
+};
+
+vi.mock('../../packages/extension/src/services/serverManager', () => ({
+    ServerManager: class {
+        async start() {
+            if (serverManagerState.startError) {
+                throw serverManagerState.startError;
+            }
+        }
+        async stop() {}
+        getStatus() {
+            return serverManagerState.status;
+        }
+        getStdio() {
+            return { stdin: {}, stdout: {} };
+        }
+    },
+}));
+
+vi.mock('../../packages/extension/src/acp/client', () => ({
+    ACPClient: class {
+        on() {}
+        async initialize() {}
+        registerRequestHandler() {}
+        async newSession() {
+            return { id: 'session-1' };
+        }
+        async listSessions() {
+            return [];
+        }
+    },
+}));
+
+vi.mock('../../packages/extension/src/providers/chatViewProvider', () => ({
+    ChatViewProvider: class {
+        constructor() {}
+        postMessage() {}
+        on() {}
+    },
+}));
+
+vi.mock('../../packages/extension/src/services/capabilityOrchestrator', () => ({
+    createCapabilityOrchestrator: async () => ({
+        shutdown: async () => {},
+        getSessionStore: () => undefined,
+        getAuditLogger: () => undefined,
+        getBuiltinMcpServer: () => undefined,
+    }),
+}));
+
+vi.mock('../../packages/extension/src/services/diffManager', () => ({
+    DiffManager: class {
+        register() {
+            return { dispose: () => {} };
+        }
+    },
+}));
+
+vi.mock('../../packages/extension/src/providers/fileDecorationProvider', () => ({
+    VCoderFileDecorationProvider: class {},
+}));
+
+vi.mock('../../packages/extension/src/services/permissionProvider', () => ({
+    PermissionProvider: class {
+        async handlePermissionRequest() {
+            return { outcome: 'allow' };
+        }
+    },
+}));
+
+const createContext = () => ({
+    subscriptions: [],
+});
+
+const importExtension = async () => import('../../packages/extension/src/extension.js');
+const getVscode = async () => import('vscode');
 
 describe('Extension Core', () => {
     beforeEach(() => {
+        vi.resetModules();
         vi.clearAllMocks();
+        serverManagerState.status = 'running';
+        serverManagerState.startError = null;
     });
 
     afterEach(() => {
@@ -19,26 +98,37 @@ describe('Extension Core', () => {
     });
 
     describe('Extension Activation', () => {
-        it('should create output channel', () => {
+        it('should create output channel', async () => {
+            await importExtension();
+            const vscode = await getVscode();
             expect(vscode.window.createOutputChannel).toHaveBeenCalledWith('VCoder', 'VCoder');
         });
 
-        it('should create status bar item', () => {
+        it('should create status bar item', async () => {
+            const { activate } = await importExtension();
+            await activate(createContext() as any);
+            const vscode = await getVscode();
             expect(vscode.window.createStatusBarItem).toHaveBeenCalledWith(
                 vscode.StatusBarAlignment.Right,
                 100
             );
-            expect(mockVSCode.window.createStatusBarItem).toHaveProperty('command', 'vcoder.newChat');
-            expect(mockVSCode.window.createStatusBarItem).toHaveProperty('tooltip', 'New Chat');
+            const statusBarItem = (vscode.window.createStatusBarItem as any).mock.results[0]?.value;
+            expect(statusBarItem.command).toBe('vcoder.newChat');
+            expect(statusBarItem.tooltip).toBe('New Chat');
         });
 
-        it('should register webview panel provider', () => {
-            expect(vscode.window.createWebviewPanel).toHaveBeenCalledWith(
-                vscode.Uri.parse('vcoder://chat'),
-                {
-                    enableScripts: true,
-                    retainContextWhenHidden: true,
-                }
+        it('should register webview view provider', async () => {
+            const { activate } = await importExtension();
+            await activate(createContext() as any);
+            const vscode = await getVscode();
+            expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalledWith(
+                'vcoder.chatView',
+                expect.any(Object),
+                expect.objectContaining({
+                    webviewOptions: {
+                        retainContextWhenHidden: true,
+                    },
+                })
             );
         });
     });
@@ -94,16 +184,17 @@ describe('Extension Core', () => {
             expect(expectedClientCapabilities.fs?.writeTextFile).toBe(true);
         });
 
-        it('should handle workspace folders correctly', () => {
+        it('should handle workspace folders correctly', async () => {
             // Mock workspace folders
             const mockWorkspaceFolders = [
                 { uri: { fsPath: '/workspace1' } },
                 { uri: { fsPath: '/workspace2' } }
             ];
 
-            mockVSCode.workspace.workspaceFolders = mockWorkspaceFolders;
+            const vscode = await getVscode();
+            (vscode.workspace as any).workspaceFolders = mockWorkspaceFolders;
 
-            const expectedWorkspaceFolders = [
+            const expectedWorkspaceFolders: string[] = [
                 '/workspace1',
                 '/workspace2'
             ];
@@ -158,10 +249,13 @@ describe('Extension Core', () => {
             expect(expectedViews.vcoder.icon).toBe('resources/icon.svg');
         });
 
-        it('should register chat view', () => {
+        it('should register chat view', async () => {
+            const { activate } = await importExtension();
+            await activate(createContext() as any);
+            const vscode = await getVscode();
             expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalledWith(
-                'vcoder-chat',
-                expect.any(Function),
+                'vcoder.chatView',
+                expect.any(Object),
                 expect.objectContaining({
                     webviewOptions: {
                         retainContextWhenHidden: true,
@@ -172,24 +266,35 @@ describe('Extension Core', () => {
     });
 
     describe('Error Handling', () => {
-        it('should handle missing workspace gracefully', () => {
+        it('should handle missing workspace gracefully', async () => {
             // Test extension behavior when no workspace is open
-            mockVSCode.workspace.workspaceFolders = undefined;
+            const vscode = await getVscode();
+            (vscode.workspace as any).workspaceFolders = undefined;
 
-            const expectedWorkspaceFolders = [];
+            const expectedWorkspaceFolders: string[] = [];
             expect(expectedWorkspaceFolders).toEqual([]);
         });
 
-        it('should log activation errors', () => {
-            expect(console.error).toHaveBeenCalledWith(
-                expect.stringContaining('[VCoder] Failed to initialize extension:')
+        it('should log activation errors', async () => {
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            serverManagerState.status = 'stopped';
+            const { activate } = await importExtension();
+            await activate(createContext() as any);
+            expect(errorSpy).toHaveBeenCalledWith(
+                expect.stringContaining('[VCoder] Failed to initialize extension:'),
+                expect.any(Error)
             );
+            errorSpy.mockRestore();
         });
 
-        it('should log activation success', () => {
-            expect(console.log).toHaveBeenCalledWith(
+        it('should log activation success', async () => {
+            const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+            const { activate } = await importExtension();
+            await activate(createContext() as any);
+            expect(logSpy).toHaveBeenCalledWith(
                 expect.stringContaining('[VCoder] Extension initialized successfully')
             );
+            logSpy.mockRestore();
         });
     });
 

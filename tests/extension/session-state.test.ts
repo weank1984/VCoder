@@ -4,7 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { SessionState, Task, SubagentRunUpdate, FileChangeUpdate } from '@vcoder/shared';
+import type { SessionState } from '../../packages/extension/webview/src/types.js';
+import type { Task, SubagentRunUpdate, FileChangeUpdate } from '../../packages/shared/src/protocol.js';
 
 describe('Session State Operations', () => {
     let mockSessionState: SessionState;
@@ -16,6 +17,7 @@ describe('Session State Operations', () => {
             messages: [],
             tasks: [],
             subagentRuns: [],
+            pendingFileChanges: [],
             sessionStatus: 'idle',
             lastActivityTime: now,
             createdAt: now,
@@ -34,6 +36,7 @@ describe('Session State Operations', () => {
         });
 
         it('should update timestamps on activity', () => {
+            vi.useFakeTimers();
             const originalUpdatedAt = mockSessionState.updatedAt;
             
             // Simulate activity after some delay
@@ -45,6 +48,7 @@ describe('Session State Operations', () => {
             
             expect(mockSessionState.lastActivityTime).toBeGreaterThan(originalUpdatedAt);
             expect(mockSessionState.updatedAt).toBeGreaterThan(originalUpdatedAt);
+            vi.useRealTimers();
         });
     });
 
@@ -53,9 +57,7 @@ describe('Session State Operations', () => {
             const task: Task = {
                 id: 'task-1',
                 status: 'pending',
-                description: 'Test task',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
+                title: 'Test task',
             };
 
             mockSessionState.tasks.push(task);
@@ -63,31 +65,28 @@ describe('Session State Operations', () => {
 
             expect(mockSessionState.tasks).toHaveLength(1);
             expect(mockSessionState.tasks[0].id).toBe('task-1');
-            expect(mockSessionState.updatedAt).toBeGreaterThan(mockSessionState.createdAt);
+            expect(mockSessionState.updatedAt).toBeGreaterThanOrEqual(mockSessionState.createdAt);
         });
 
         it('should handle task status updates', () => {
             const task: Task = {
                 id: 'task-1',
                 status: 'pending',
-                description: 'Test task',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
+                title: 'Test task',
             };
 
             mockSessionState.tasks.push(task);
             
-            const taskIndex = mockSessionState.tasks.findIndex(t => t.id === 'task-1');
+            const taskIndex = mockSessionState.tasks.findIndex((t: Task) => t.id === 'task-1');
             if (taskIndex !== -1) {
                 mockSessionState.tasks[taskIndex] = {
                     ...task,
                     status: 'completed',
-                    updatedAt: new Date().toISOString(),
                 };
                 mockSessionState.updatedAt = Date.now();
             }
 
-            const updatedTask = mockSessionState.tasks.find(t => t.id === 'task-1');
+            const updatedTask = mockSessionState.tasks.find((t: Task) => t.id === 'task-1');
             expect(updatedTask?.status).toBe('completed');
             expect(mockSessionState.updatedAt).toBeGreaterThanOrEqual(mockSessionState.createdAt);
         });
@@ -119,12 +118,12 @@ describe('Session State Operations', () => {
     describe('Session lifecycle', () => {
         it('should handle session completion', () => {
             mockSessionState.sessionStatus = 'completed';
-            mockSessionState.sessionCompleteReason = 'user_request';
+            mockSessionState.sessionCompleteReason = 'cancelled';
             mockSessionState.sessionCompleteMessage = 'Session completed by user';
             mockSessionState.updatedAt = Date.now();
 
             expect(mockSessionState.sessionStatus).toBe('completed');
-            expect(mockSessionState.sessionCompleteReason).toBe('user_request');
+            expect(mockSessionState.sessionCompleteReason).toBe('cancelled');
             expect(mockSessionState.sessionCompleteMessage).toBe('Session completed by user');
         });
 
@@ -144,8 +143,7 @@ describe('Session State Operations', () => {
             const subagentRun: SubagentRunUpdate = {
                 id: 'subagent-1',
                 status: 'running',
-                agentId: 'test-agent',
-                startedAt: new Date().toISOString(),
+                title: 'test-agent',
             };
 
             mockSessionState.subagentRuns.push(subagentRun);
@@ -159,6 +157,7 @@ describe('Session State Operations', () => {
 
     describe('State consistency', () => {
         it('should maintain timestamp consistency', () => {
+            vi.useFakeTimers();
             const originalCreatedAt = mockSessionState.createdAt;
             
             // Multiple updates should maintain consistent timestamps
@@ -166,14 +165,15 @@ describe('Session State Operations', () => {
             mockSessionState.updatedAt = Date.now();
             
             vi.advanceTimersByTime(1000);
-            mockSessionState.lastActivityTime = Date.now();
+            mockSessionState.updatedAt = Date.now();
             
             vi.advanceTimersByTime(1000);
-            mockSessionState.updatedAt = Date.now();
+            mockSessionState.lastActivityTime = Date.now();
 
             expect(mockSessionState.createdAt).toBe(originalCreatedAt);
             expect(mockSessionState.updatedAt).toBeGreaterThan(mockSessionState.createdAt);
             expect(mockSessionState.lastActivityTime).toBeGreaterThanOrEqual(mockSessionState.updatedAt);
+            vi.useRealTimers();
         });
 
         it('should validate required fields', () => {

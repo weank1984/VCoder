@@ -12,7 +12,8 @@ import { FileSystemProvider } from './services/fileSystemProvider';
 import { TerminalProvider } from './services/terminalProvider';
 import { DiffManager } from './services/diffManager';
 import { VCoderFileDecorationProvider } from './providers/fileDecorationProvider';
-import type { UpdateNotificationParams } from '@vcoder/shared';
+import { ACPMethods, type UpdateNotificationParams, type RequestPermissionParams } from '@vcoder/shared';
+import { PermissionProvider } from './services/permissionProvider';
 
 // Declare output channel at top level
 const outputChannel = vscode.window.createOutputChannel('VCoder', 'VCoder');
@@ -25,6 +26,7 @@ let fileSystemProvider: FileSystemProvider | undefined;
 let chatViewProvider: ChatViewProvider | undefined;
 let statusBarItem: vscode.StatusBarItem;
 let capabilityOrchestrator: CapabilityOrchestrator | null = null;
+let permissionProvider: PermissionProvider | undefined;
 
 /**
  * Extension activation entry point
@@ -113,11 +115,20 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         // Register Chat webview view provider (required for "vcoder.chatView" to render)
-        chatViewProvider = new ChatViewProvider(context, acpClient);
+        const sessionStore = capabilityOrchestrator?.getSessionStore();
+        const auditLogger = capabilityOrchestrator?.getAuditLogger();
+        const builtinMcpServer = capabilityOrchestrator?.getBuiltinMcpServer();
+        chatViewProvider = new ChatViewProvider(context, acpClient, sessionStore, auditLogger, builtinMcpServer);
         context.subscriptions.push(
             vscode.window.registerWebviewViewProvider('vcoder.chatView', chatViewProvider, {
                 webviewOptions: { retainContextWhenHidden: true },
             }),
+        );
+
+        permissionProvider = new PermissionProvider(chatViewProvider, sessionStore, auditLogger);
+        acpClient.registerRequestHandler(
+            ACPMethods.SESSION_REQUEST_PERMISSION,
+            async (params) => permissionProvider!.handlePermissionRequest(params as RequestPermissionParams)
         );
 
         // Commands used by view title buttons / status bar

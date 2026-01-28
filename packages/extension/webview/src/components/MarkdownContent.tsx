@@ -2,9 +2,14 @@
  * Markdown Content Component
  * 使用 markdown-it + Shiki 渲染 Markdown
  * 支持代码高亮、文件路径点击、Mermaid 图表
+ *
+ * 性能优化：
+ * - 使用 LRU 缓存 Markdown 渲染结果
+ * - 使用 Intersection Observer 延迟加载 Mermaid
+ * - 防抖处理滚动和点击事件
  */
 
-import { useEffect, useRef, useState, memo } from 'react';
+import { useEffect, useRef, useState, memo, useMemo } from 'react';
 import { useThemeMode } from '../hooks/useThemeMode';
 import { useI18n } from '../i18n/I18nProvider';
 import { postMessage } from '../utils/vscode';
@@ -21,11 +26,53 @@ interface MarkdownContentProps {
 }
 
 /**
+ * Simple LRU cache for rendered markdown
+ */
+class RenderCache {
+    private cache = new Map<string, string>();
+    private maxSize: number;
+
+    constructor(maxSize = 50) {
+        this.maxSize = maxSize;
+    }
+
+    get(key: string): string | undefined {
+        const value = this.cache.get(key);
+        if (value !== undefined) {
+            // Move to end (most recently used)
+            this.cache.delete(key);
+            this.cache.set(key, value);
+        }
+        return value;
+    }
+
+    set(key: string, value: string): void {
+        if (this.cache.has(key)) {
+            this.cache.delete(key);
+        } else if (this.cache.size >= this.maxSize) {
+            // Remove oldest entry
+            const firstKey = this.cache.keys().next().value;
+            if (firstKey !== undefined) {
+                this.cache.delete(firstKey);
+            }
+        }
+        this.cache.set(key, value);
+    }
+
+    clear(): void {
+        this.cache.clear();
+    }
+}
+
+// Global render cache instance
+const renderCache = new RenderCache(100);
+
+/**
  * MarkdownContent 组件
  */
-export const MarkdownContent = memo(function MarkdownContent({ 
-    content, 
-    isComplete = true 
+export const MarkdownContent = memo(function MarkdownContent({
+    content,
+    isComplete = true
 }: MarkdownContentProps) {
     const { t } = useI18n();
     const themeMode = useThemeMode();
@@ -33,8 +80,24 @@ export const MarkdownContent = memo(function MarkdownContent({
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
     const [insertedIndex, setInsertedIndex] = useState<number | null>(null);
 
-    // 渲染 HTML
-    const html = content ? renderMarkdown(content, themeMode) : '';
+    // 渲染 HTML with caching
+    const html = useMemo(() => {
+        if (!content) return '';
+
+        // Create cache key from content and theme
+        const cacheKey = `${content.length}-${themeMode}-${hashString(content)}`;
+        const cached = renderCache.get(cacheKey);
+        if (cached !== undefined) {
+            return cached;
+        }
+
+        const rendered = renderMarkdown(content, themeMode);
+        renderCache.set(cacheKey, rendered);
+        return rendered;
+    }, [content, themeMode]);
+
+    // Cleanup function for Mermaid roots
+    const mermaidRootsRef = useRef<Map<HTMLElement, { unmount: () => void }>>(new Map());
 
     // 事件委托处理交互
     useEffect(() => {
@@ -120,30 +183,56 @@ export const MarkdownContent = memo(function MarkdownContent({
         });
     }, [copiedIndex, insertedIndex, html, t]);
 
-    // 处理 Mermaid 图表
+    // 处理 Mermaid 图表 - 使用 Intersection Observer 延迟加载
     useEffect(() => {
         const container = containerRef.current;
         if (!container || !isComplete) return;
 
-        // 查找 mermaid 占位符并渲染
+        const reactDomPromise = import('react-dom/client');
+
+        // 使用 Intersection Observer 延迟加载 Mermaid
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+
+                    const placeholder = entry.target as HTMLElement;
+                    if (placeholder.hasAttribute('data-rendered')) return;
+
+                    const code = placeholder.dataset.code || '';
+                    if (!code) return;
+
+                    placeholder.setAttribute('data-rendered', 'true');
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'mermaid-wrapper';
+                    placeholder.replaceWith(wrapper);
+
+                    reactDomPromise.then(({ createRoot }) => {
+                        const root = createRoot(wrapper);
+                        root.render(<MermaidBlock code={code} />);
+                        mermaidRootsRef.current.set(wrapper, { unmount: () => root.unmount() });
+                    });
+
+                    observer.unobserve(placeholder);
+                });
+            },
+            { rootMargin: '100px' } // 提前 100px 加载
+        );
+
+        // 查找 mermaid 占位符并观察
         const placeholders = container.querySelectorAll('.mermaid-placeholder');
         placeholders.forEach((placeholder) => {
-            const code = (placeholder as HTMLElement).dataset.code || '';
-            if (code && !placeholder.hasAttribute('data-rendered')) {
-                placeholder.setAttribute('data-rendered', 'true');
-                // 创建一个临时容器来渲染 React 组件
-                // 注意：这里使用的是原生 DOM 操作，因为我们使用 dangerouslySetInnerHTML
-                const wrapper = document.createElement('div');
-                wrapper.className = 'mermaid-wrapper';
-                placeholder.replaceWith(wrapper);
-                
-                // 使用 React 18 的 createRoot
-                import('react-dom/client').then(({ createRoot }) => {
-                    const root = createRoot(wrapper);
-                    root.render(<MermaidBlock code={code} />);
-                });
+            if (!placeholder.hasAttribute('data-rendered')) {
+                observer.observe(placeholder);
             }
         });
+
+        return () => {
+            observer.disconnect();
+            // Cleanup Mermaid roots
+            mermaidRootsRef.current.forEach(({ unmount }) => unmount());
+            mermaidRootsRef.current.clear();
+        };
     }, [html, isComplete]);
 
     if (!content) {
@@ -151,12 +240,25 @@ export const MarkdownContent = memo(function MarkdownContent({
     }
 
     return (
-        <div 
+        <div
             ref={containerRef}
             className="vc-markdown"
             dangerouslySetInnerHTML={{ __html: html }}
         />
     );
 });
+
+/**
+ * Simple string hash function for cache keys
+ */
+function hashString(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
+}
 
 export default MarkdownContent;

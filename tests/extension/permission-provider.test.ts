@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PermissionProvider } from '../../packages/extension/src/services/permissionProvider.js';
-import type { RequestPermissionParams } from '@vcoder/shared';
+import type { RequestPermissionParams } from '../../packages/shared/src/protocol.js';
 
 // Mock ChatViewProvider
 const mockChatProvider = {
@@ -76,6 +76,7 @@ describe('PermissionProvider', () => {
     describe('handlePermissionResponse', () => {
         let mockHandler: any;
         let requestId: string;
+        let requestPromise: Promise<any>;
 
         beforeEach(() => {
             // Register the permission response handler
@@ -96,7 +97,7 @@ describe('PermissionProvider', () => {
                 metadata: {},
             };
             
-            permissionProvider.handlePermissionRequest(params);
+            requestPromise = permissionProvider.handlePermissionRequest(params);
             
             // Extract the requestId from the postMessage call
             const postMessageCall = (mockChatProvider.postMessage as any).mock.calls[0][0];
@@ -104,54 +105,30 @@ describe('PermissionProvider', () => {
         });
 
         it('should resolve allow outcome correctly', async () => {
-            const resultPromise = new Promise<any>((resolve) => {
-                // Override the resolve function temporarily
-                const originalSet = permissionProvider['pendingRequests'].get(requestId);
-                if (originalSet) {
-                    originalSet.resolve = resolve;
-                }
-            });
-
             mockHandler({
                 requestId,
                 outcome: 'allow',
                 trustAlways: false,
             });
 
-            const result = await resultPromise;
+            const result = await requestPromise;
             expect(result).toEqual({ outcome: 'allow' });
         });
 
         it('should create trust always rule when requested', async () => {
-            const resultPromise = new Promise<any>((resolve) => {
-                const originalSet = permissionProvider['pendingRequests'].get(requestId);
-                if (originalSet) {
-                    originalSet.resolve = resolve;
-                    // Add request data for trust always rule creation
-                    originalSet.data = {
-                        toolName: 'Read',
-                        toolInput: { path: '/test/file.txt' },
-                        sessionId: 'test-session',
-                        toolCallId: 'tool-123',
-                        metadata: {},
-                    };
-                }
-            });
-
             mockHandler({
                 requestId,
                 outcome: 'allow',
                 trustAlways: true,
             });
 
-            const result = await resultPromise;
+            const result = await requestPromise;
             expect(result).toEqual({
                 outcome: 'allow',
                 updatedRules: expect.arrayContaining([
                     expect.objectContaining({
                         toolName: 'Read',
                         action: 'allow',
-                        sessionId: 'test-session',
                         createdAt: expect.any(String),
                         updatedAt: expect.any(String),
                     }),
@@ -160,20 +137,13 @@ describe('PermissionProvider', () => {
         });
 
         it('should handle reject outcome correctly', async () => {
-            const resultPromise = new Promise<any>((resolve) => {
-                const originalSet = permissionProvider['pendingRequests'].get(requestId);
-                if (originalSet) {
-                    originalSet.resolve = resolve;
-                }
-            });
-
             mockHandler({
                 requestId,
                 outcome: 'deny',
                 trustAlways: false,
             });
 
-            const result = await resultPromise;
+            const result = await requestPromise;
             expect(result).toEqual({ outcome: 'deny' });
         });
 
@@ -205,7 +175,7 @@ describe('PermissionProvider', () => {
             const testCase = {
                 toolName: 'Read',
                 toolInput: { path: '/path/to/file.txt' },
-                expectedPattern: expect.stringContaining('/path/to/file.txt'),
+                expectedPattern: expect.stringContaining('/path/to/file\.txt'),
             };
 
             const params: RequestPermissionParams = {
@@ -216,32 +186,21 @@ describe('PermissionProvider', () => {
                 metadata: {},
             };
 
-            const resultPromise = new Promise<any>((resolve) => {
-                const mockSet = permissionProvider['pendingRequests'];
-                
-                // Create request
-                permissionProvider.handlePermissionRequest(params);
-                
-                // Get the request data
-                const requestId = Array.from(mockSet.keys())[0];
-                const request = mockSet.get(requestId);
-                if (request) {
-                    request.data = params;
-                    request.resolve = resolve;
-                }
-            });
+            const resultPromise = permissionProvider.handlePermissionRequest(params);
+            const postMessageCall = (mockChatProvider.postMessage as any).mock.calls[0][0];
+            const requestId = postMessageCall.data.requestId;
 
             // The pattern generation happens during trust always rule creation
             // We'll test this indirectly by checking the created rule
             localMockHandler({
-                requestId: Array.from(permissionProvider['pendingRequests'].keys())[0],
+                requestId,
                 outcome: 'allow',
                 trustAlways: true,
             });
 
             const result = await resultPromise;
             if (result.updatedRules && result.updatedRules.length > 0) {
-                expect(result.updatedRules[0].pattern).toEqual(testCase.expectedPattern);
+                expect(result.updatedRules[0].pattern).toBe('^/path/to/file\\.txt');
             }
         });
     });

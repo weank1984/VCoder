@@ -1,5 +1,7 @@
 import type { ToolCall } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
+import { useState, useCallback } from 'react';
+import { postMessage } from '../../utils/vscode';
 
 interface FileApprovalContentProps {
     toolCall: ToolCall;
@@ -10,6 +12,22 @@ export function FileApprovalContent({ toolCall, isDelete }: FileApprovalContentP
     const { t } = useI18n();
     const filePath = toolCall.confirmationData?.filePath || '';
     const diff = toolCall.confirmationData?.diff || '';
+
+    const [showFullDiff, setShowFullDiff] = useState(false);
+
+    // Open file in VSCode editor
+    const handleOpenInEditor = useCallback(() => {
+        if (!filePath) return;
+        postMessage({
+            type: 'openFile',
+            path: filePath
+        });
+    }, [filePath]);
+
+    // Toggle full diff view
+    const handleToggleFullDiff = useCallback(() => {
+        setShowFullDiff(prev => !prev);
+    }, []);
     
     if (isDelete) {
         return (
@@ -50,24 +68,30 @@ export function FileApprovalContent({ toolCall, isDelete }: FileApprovalContentP
             
             {/* Quick actions */}
             <div className="quick-actions">
-                <button onClick={() => {/* TODO: View full diff */}}>
-                    {t('Agent.ViewFullDiff')}
+                <button
+                    onClick={handleToggleFullDiff}
+                    disabled={parsedDiff.length === 0}
+                    className={showFullDiff ? 'is-active' : ''}
+                >
+                    {showFullDiff ? t('Agent.ViewCompactDiff') : t('Agent.ViewFullDiff')}
                 </button>
-                <button onClick={() => {/* TODO: Open in editor */}}>
+                <button onClick={handleOpenInEditor} disabled={!filePath}>
                     {t('Agent.OpenInEditor')}
                 </button>
             </div>
-            
+
             {/* Inline diff preview */}
             {parsedDiff.length > 0 && (
-                <div className="inline-diff">
-                    {parsedDiff.slice(0, 20).map((line, index) => (
+                <div className={`inline-diff ${showFullDiff ? 'is-expanded' : ''}`}>
+                    {(showFullDiff ? parsedDiff : parsedDiff.slice(0, 20)).map((line, index) => (
                         <div key={index} className={`diff-line ${line.type}`}>
                             {line.content}
                         </div>
                     ))}
-                    {parsedDiff.length > 20 && (
-                        <div className="diff-line diff-context">...</div>
+                    {!showFullDiff && parsedDiff.length > 20 && (
+                        <div className="diff-line diff-context">
+                            ... {parsedDiff.length - 20} more lines ...
+                        </div>
                     )}
                     <div className="diff-stats">
                         {t('Agent.LinesAdded', stats.added)} / {t('Agent.LinesRemoved', stats.removed)}

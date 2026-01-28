@@ -6,37 +6,77 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DiffManager } from '../../packages/extension/src/services/diffManager.js';
 import { ACPClient } from '../../packages/extension/src/acp/client.js';
-import type { FileChangeUpdate } from '@vcoder/shared';
+import type { FileChangeUpdate } from '../../packages/shared/src/protocol.js';
 
-// Mock vscode
-const mockWorkspace = {
-    registerTextDocumentContentProvider: vi.fn(),
-    fs: {
-        readFile: vi.fn(),
-        writeFile: vi.fn(),
-        delete: vi.fn(),
-        createDirectory: vi.fn(),
+const { mockWorkspace, mockWindow, mockUri, MockEventEmitter } = vi.hoisted(() => ({
+    mockWorkspace: {
+        registerTextDocumentContentProvider: vi.fn(() => ({ dispose: vi.fn() })),
+        fs: {
+            readFile: vi.fn(),
+            writeFile: vi.fn(),
+            delete: vi.fn(),
+            createDirectory: vi.fn(),
+        },
+        workspaceFolders: [{ uri: { fsPath: '/workspace' } }],
     },
-    workspaceFolders: [{ uri: { fsPath: '/workspace' } }],
-};
+    mockWindow: {
+        showInformationMessage: vi.fn(),
+        showWarningMessage: vi.fn(),
+        showTextDocument: vi.fn(),
+    },
+    mockUri: {
+        file: vi.fn((path: string) => ({
+            scheme: 'file',
+            authority: '',
+            path,
+            query: '',
+            fragment: '',
+            fsPath: path,
+            with: vi.fn(),
+            toString: () => path,
+            toJSON: () => ({ path }),
+        })),
+        parse: vi.fn((value: string) => {
+            const queryIndex = value.indexOf('?');
+            const query = queryIndex >= 0 ? value.slice(queryIndex + 1) : '';
+            return {
+                scheme: 'vcoder-diff',
+                authority: '',
+                path: value,
+                query,
+                fragment: '',
+                fsPath: value,
+                with: vi.fn(),
+                toString: () => value,
+                toJSON: () => ({ value, query }),
+            };
+        }),
+    },
+    MockEventEmitter: class<T> {
+        private listeners = new Set<(event: T) => void>();
 
-// Mock vscode.window
-const mockWindow = {
-    showInformationMessage: vi.fn(),
-    showWarningMessage: vi.fn(),
-    showTextDocument: vi.fn(),
-};
+        event = (listener: (event: T) => void) => {
+            this.listeners.add(listener);
+            return { dispose: () => this.listeners.delete(listener) };
+        };
 
-// Mock vscode.Uri
-const mockUri = {
-    file: vi.fn((path: string) => ({ fsPath: path })),
-    parse: vi.fn(),
-};
+        fire(event: T) {
+            for (const listener of this.listeners) {
+                listener(event);
+            }
+        }
+
+        dispose() {
+            this.listeners.clear();
+        }
+    },
+}));
 
 vi.mock('vscode', () => ({
     workspace: mockWorkspace,
     window: mockWindow,
     Uri: mockUri,
+    EventEmitter: MockEventEmitter,
     commands: {
         executeCommand: vi.fn(),
     },
@@ -66,7 +106,7 @@ describe('DiffManager', () => {
 
     describe('providing text document content', () => {
         it('should return empty string for non-proposed entries without pending data', async () => {
-            const uri = mockUri.parse('vcoder-diff:/test.txt?sessionId=test&path=test.txt&side=proposed');
+            const uri = mockUri.parse('vcoder-diff:/test.txt?sessionId=test-session&path=test.txt&side=proposed');
             const content = await diffManager.provideTextDocumentContent(uri);
             expect(content).toBe('');
         });
@@ -89,12 +129,22 @@ describe('DiffManager', () => {
                 proposed: true,
             };
 
-            // First preview the change to populate pending
-            await diffManager.previewChange('test-session', change);
+            let resolvePick: (value: string | undefined) => void = () => {};
+            const pickPromise = new Promise<string | undefined>((resolve) => {
+                resolvePick = resolve;
+            });
+            mockWindow.showInformationMessage.mockReturnValueOnce(pickPromise);
 
-            const uri = mockUri.parse('vcoder-diff:/test.txt?sessionId=test&path=test.txt&side=proposed');
+            // First preview the change to populate pending
+            const previewPromise = diffManager.previewChange('test-session', change);
+            await Promise.resolve();
+
+            const uri = mockUri.parse('vcoder-diff:/test.txt?sessionId=test-session&path=test.txt&side=proposed');
             const content = await diffManager.provideTextDocumentContent(uri);
             expect(content).toBe('proposed content');
+
+            resolvePick(undefined);
+            await previewPromise;
         });
 
         it('should return empty string for deleted files on proposed side', async () => {

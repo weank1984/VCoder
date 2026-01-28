@@ -1,4 +1,14 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+/**
+ * StickyUserPrompt Component
+ * Displays a sticky user prompt that can be expanded for editing
+ *
+ * Performance optimizations:
+ * - Uses useEffect instead of useLayoutEffect to avoid blocking render
+ * - RAF-throttled height updates
+ * - Debounced ResizeObserver callbacks
+ */
+
+import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { ChatMessage } from '../types';
 import { useStore } from '../store/useStore';
@@ -9,6 +19,22 @@ import { postMessage } from '../utils/vscode';
 import './StickyUserPrompt.scss';
 import './ComposerSurface.scss';
 import './InputArea.scss';
+
+/**
+ * Debounce function for ResizeObserver callbacks
+ */
+function debounce<T extends (...args: unknown[]) => void>(fn: T, delay: number): (...args: Parameters<T>) => void {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    return (...args: Parameters<T>) => {
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
+        timeoutId = setTimeout(() => {
+            fn(...args);
+            timeoutId = null;
+        }, delay);
+    };
+}
 
 export interface StickyUserPromptProps {
     message: ChatMessage | null;
@@ -46,12 +72,11 @@ export function StickyUserPrompt({ message, disabled, onApplyToComposer, onHeigh
         textareaRef.current?.setSelectionRange(draft.length, draft.length);
     }, [expanded, draft.length]);
 
-    const collapsedText = useMemo(() => {
-        if (!message) return '';
-        return message.content.replace(/\s+/g, ' ').trim();
-    }, [message]);
+    // Simple text transformation - no need for useMemo as it's cheap
+    const collapsedText = message?.content?.replace(/\s+/g, ' ').trim() ?? '';
 
-    useLayoutEffect(() => {
+    // Optimized height tracking with RAF throttling and debouncing
+    useEffect(() => {
         if (!hasMessage) {
             onHeightChange?.(0);
             return;
@@ -63,23 +88,35 @@ export function StickyUserPrompt({ message, disabled, onApplyToComposer, onHeigh
             return;
         }
 
+        let rafId: number | null = null;
+
         const updateHeight = () => {
             const height = element.getBoundingClientRect().height;
             onHeightChange?.(height);
         };
 
-        updateHeight();
+        // Debounced version for ResizeObserver
+        const debouncedUpdate = debounce(updateHeight, 100);
+
+        // Initial height update (delayed to next frame to avoid blocking)
+        rafId = requestAnimationFrame(updateHeight);
 
         let observer: ResizeObserver | null = null;
         if (typeof ResizeObserver !== 'undefined') {
-            observer = new ResizeObserver(updateHeight);
+            observer = new ResizeObserver(() => {
+                // Use debounced update for resize events
+                debouncedUpdate();
+            });
             observer.observe(element);
         }
 
         return () => {
+            if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+            }
             observer?.disconnect();
         };
-    }, [hasMessage, expanded, draft, message?.content, onHeightChange]);
+    }, [hasMessage, expanded, onHeightChange]);
 
     if (!hasMessage) return null;
 

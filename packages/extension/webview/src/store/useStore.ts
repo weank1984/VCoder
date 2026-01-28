@@ -6,82 +6,144 @@ import { postMessage } from '../utils/vscode';
 const debugThinking = (globalThis as unknown as { __vcoderDebugThinking?: boolean }).__vcoderDebugThinking === true;
 const DEFAULT_MAX_THINKING_TOKENS = 16000;
 
-// Streaming text update batching with adaptive throttling
-let textBuffer = '';
-let rafId: number | null = null;
-let lastFlushTime = 0;
+// Streaming text update batching with adaptive throttling (per session)
+type TextBufferState = {
+    buffer: string;
+    rafId: number | null;
+    lastFlushTime: number;
+};
+
+const textBuffers = new Map<string, TextBufferState>();
 const MIN_FLUSH_INTERVAL = 16; // ~60fps, minimum time between flushes
 const MAX_BUFFER_SIZE = 100; // Force flush if buffer gets too large (for responsiveness)
 
-// Exported for use when immediate flush is needed (e.g., on completion)
-export function flushTextBuffer(store: { appendToLastMessage: (text: string) => void }) {
-    if (rafId !== null) {
+/**
+ * Cleanup text buffer for a specific session to prevent memory leaks
+ * Should be called when session is closed or deleted
+ */
+export function cleanupTextBuffer(sessionId?: string | null): void {
+    const sessionKey = sessionId && sessionId.trim().length > 0 ? sessionId : 'default';
+    const bufferState = textBuffers.get(sessionKey);
+    if (bufferState && bufferState.rafId !== null) {
         const anyGlobal = globalThis as unknown as { cancelAnimationFrame?: (id: number) => void };
         if (typeof anyGlobal.cancelAnimationFrame === 'function') {
-            anyGlobal.cancelAnimationFrame(rafId);
+            anyGlobal.cancelAnimationFrame(bufferState.rafId);
         }
-        rafId = null;
     }
-    if (textBuffer) {
-        store.appendToLastMessage(textBuffer);
-        textBuffer = '';
-        lastFlushTime = Date.now();
+    textBuffers.delete(sessionKey);
+}
+
+/**
+ * Cleanup all text buffers - useful for full reset
+ */
+export function cleanupAllTextBuffers(): void {
+    const anyGlobal = globalThis as unknown as { cancelAnimationFrame?: (id: number) => void };
+    for (const [, bufferState] of textBuffers.entries()) {
+        if (bufferState && bufferState.rafId !== null && typeof anyGlobal.cancelAnimationFrame === 'function') {
+            anyGlobal.cancelAnimationFrame(bufferState.rafId);
+        }
+    }
+    textBuffers.clear();
+}
+
+// Exported for use when immediate flush is needed (e.g., on completion)
+function resolveSessionKey(sessionId?: string | null): string {
+    return sessionId && sessionId.trim().length > 0 ? sessionId : 'default';
+}
+
+function getTextBufferState(sessionKey: string): TextBufferState {
+    const existing = textBuffers.get(sessionKey);
+    if (existing) return existing;
+    const created: TextBufferState = {
+        buffer: '',
+        rafId: null,
+        lastFlushTime: 0,
+    };
+    textBuffers.set(sessionKey, created);
+    return created;
+}
+
+export function flushTextBuffer(
+    store: { appendToLastMessage: (text: string, sessionId?: string) => void },
+    sessionId?: string
+) {
+    const sessionKey = resolveSessionKey(sessionId);
+    const bufferState = textBuffers.get(sessionKey);
+    if (!bufferState) return;
+
+    if (bufferState.rafId !== null) {
+        const anyGlobal = globalThis as unknown as { cancelAnimationFrame?: (id: number) => void };
+        if (typeof anyGlobal.cancelAnimationFrame === 'function') {
+            anyGlobal.cancelAnimationFrame(bufferState.rafId);
+        }
+        bufferState.rafId = null;
+    }
+    if (bufferState.buffer) {
+        store.appendToLastMessage(bufferState.buffer, sessionId);
+        bufferState.buffer = '';
+        bufferState.lastFlushTime = Date.now();
     }
 }
 
-function queueTextUpdate(text: string, store: { appendToLastMessage: (text: string) => void }) {
+function queueTextUpdate(
+    text: string,
+    store: { appendToLastMessage: (text: string, sessionId?: string) => void },
+    sessionId?: string
+) {
     const anyGlobal = globalThis as unknown as { requestAnimationFrame?: (cb: () => void) => number };
     
     // Node/test environments: apply immediately (no rAF available).
     if (typeof anyGlobal.requestAnimationFrame !== 'function') {
-        store.appendToLastMessage(text);
+        store.appendToLastMessage(text, sessionId);
         return;
     }
-    
-    textBuffer += text;
+
+    const sessionKey = resolveSessionKey(sessionId);
+    const bufferState = getTextBufferState(sessionKey);
+    bufferState.buffer += text;
     
     // Force immediate flush for large buffers or when enough time has passed
     const now = Date.now();
-    const timeSinceLastFlush = now - lastFlushTime;
+    const timeSinceLastFlush = now - bufferState.lastFlushTime;
     
-    if (textBuffer.length >= MAX_BUFFER_SIZE || timeSinceLastFlush >= MIN_FLUSH_INTERVAL * 2) {
+    if (bufferState.buffer.length >= MAX_BUFFER_SIZE || timeSinceLastFlush >= MIN_FLUSH_INTERVAL * 2) {
         // Immediate flush for better responsiveness
-        if (rafId !== null) {
+        if (bufferState.rafId !== null) {
             const caf = anyGlobal as unknown as { cancelAnimationFrame?: (id: number) => void };
             if (typeof caf.cancelAnimationFrame === 'function') {
-                caf.cancelAnimationFrame(rafId);
+                caf.cancelAnimationFrame(bufferState.rafId);
             }
-            rafId = null;
+            bufferState.rafId = null;
         }
-        store.appendToLastMessage(textBuffer);
-        textBuffer = '';
-        lastFlushTime = now;
+        store.appendToLastMessage(bufferState.buffer, sessionId);
+        bufferState.buffer = '';
+        bufferState.lastFlushTime = now;
         return;
     }
-    
-    if (rafId !== null) return; // Already scheduled
-    
-    rafId = anyGlobal.requestAnimationFrame(() => {
-        rafId = null;
-        if (textBuffer) {
-            store.appendToLastMessage(textBuffer);
-            textBuffer = '';
-            lastFlushTime = Date.now();
+
+    if (bufferState.rafId !== null) return; // Already scheduled
+
+    bufferState.rafId = anyGlobal.requestAnimationFrame(() => {
+        bufferState.rafId = null;
+        if (bufferState.buffer) {
+            store.appendToLastMessage(bufferState.buffer, sessionId);
+            bufferState.buffer = '';
+            bufferState.lastFlushTime = Date.now();
         }
     });
 }
 
 interface AppStore extends AppState {
     // Actions
-    addMessage: (message: ChatMessage) => void;
-    updateMessage: (id: string, updates: Partial<ChatMessage>) => void;
-    appendToLastMessage: (text: string) => void;
-    setThought: (thought: string, isComplete: boolean) => void;
-    addToolCall: (toolCall: ToolCall) => void;
-    updateToolCall: (id: string, updates: Partial<ToolCall>) => void;
-    confirmTool: (toolCallId: string, confirmed: boolean, options?: { trustAlways?: boolean; editedContent?: string }) => void;
-    setTasks: (tasks: Task[]) => void;
-    setSubagentRuns: (runs: SubagentRunUpdate[]) => void;
+    addMessage: (message: ChatMessage, sessionId?: string) => void;
+    updateMessage: (id: string, updates: Partial<ChatMessage>, sessionId?: string) => void;
+    appendToLastMessage: (text: string, sessionId?: string) => void;
+    setThought: (thought: string, isComplete: boolean, sessionId?: string) => void;
+    addToolCall: (toolCall: ToolCall, sessionId?: string) => void;
+    updateToolCall: (id: string, updates: Partial<ToolCall>, sessionId?: string) => void;
+    confirmTool: (toolCallId: string, confirmed: boolean, options?: { trustAlways?: boolean; editedContent?: string }, sessionId?: string) => void;
+    setTasks: (tasks: Task[], sessionId?: string) => void;
+    setSubagentRuns: (runs: SubagentRunUpdate[], sessionId?: string) => void;
     setSessions: (sessions: AppState['sessions']) => void;
     setCurrentSession: (sessionId: string | null) => void;
     clearPendingFileChanges: () => void;
@@ -95,9 +157,9 @@ interface AppStore extends AppState {
     setWorkspaceFiles: (files: string[]) => void;
     setUiLanguage: (uiLanguage: UiLanguage, source?: 'user' | 'extension') => void;
     // Session status Actions
-    setSessionStatus: (status: SessionStatus) => void;
-    handleSessionComplete: (reason: SessionCompleteReason, message?: string, error?: ErrorUpdate) => void;
-    updateActivity: () => void;
+    setSessionStatus: (status: SessionStatus, sessionId?: string) => void;
+    handleSessionComplete: (reason: SessionCompleteReason, message?: string, error?: ErrorUpdate, sessionId?: string) => void;
+    updateActivity: (sessionId?: string) => void;
     // Session management helpers
     getCurrentSessionState: () => SessionState | null;
     getOrCreateSessionState: (sessionId: string) => SessionState;
@@ -142,6 +204,21 @@ function normalizeToolName(name: string): string {
     if (lower === 'todowrite' || lower === 'todo_write') return 'TodoWrite';
 
     return raw;
+}
+
+function createSessionState(sessionId: string): SessionState {
+    const now = Date.now();
+    return {
+        id: sessionId,
+        messages: [],
+        tasks: [],
+        subagentRuns: [],
+        pendingFileChanges: [],
+        sessionStatus: 'idle',
+        lastActivityTime: now,
+        createdAt: now,
+        updatedAt: now,
+    };
 }
 
 function mergeHistoryMessages(historyMessages: HistoryChatMessage[]): ChatMessage[] {
@@ -373,51 +450,89 @@ export const useStore = create<AppStore>((set, get) => ({
     ...restoredState,
 
 
-    addMessage: (message) => {
+    addMessage: (message, sessionId) => {
         const state = get();
-        if (!state.currentSessionId) return;
-        
+        const targetSessionId = sessionId ?? state.currentSessionId;
+        if (!targetSessionId) {
+            set((prevState) => ({ messages: [...prevState.messages, message] }));
+            return;
+        }
+
         set((prevState) => {
             const newSessionStates = new Map(prevState.sessionStates);
-            const sessionState = newSessionStates.get(state.currentSessionId!) || {
-                id: state.currentSessionId!,
-                messages: [],
-                tasks: [],
-                subagentRuns: [],
-                sessionStatus: 'idle',
-                lastActivityTime: Date.now(),
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-            };
-            
-            sessionState.messages = [...sessionState.messages, message];
-            sessionState.updatedAt = Date.now();
-            newSessionStates.set(state.currentSessionId!, sessionState);
-            
-            return { 
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            const messages = [...sessionState.messages, message];
+            const nextSessionState = { ...sessionState, messages, updatedAt: Date.now() };
+            newSessionStates.set(targetSessionId, nextSessionState);
+
+            return {
                 sessionStates: newSessionStates,
                 // Keep legacy field in sync for backward compatibility
-                messages: sessionState.messages 
+                messages: targetSessionId === prevState.currentSessionId ? messages : prevState.messages,
             };
         });
     },
 
-    updateMessage: (id, updates) =>
-        set((state) => ({
-            messages: state.messages.map((m) =>
-                m.id === id ? { ...m, ...updates } : m
-            ),
-        })),
-
-    appendToLastMessage: (text) =>
+    updateMessage: (id, updates, sessionId) =>
         set((state) => {
-            const messages = [...state.messages];
+            const targetSessionId = sessionId ?? state.currentSessionId;
+            if (!targetSessionId) {
+                return {
+                    messages: state.messages.map((m) => (m.id === id ? { ...m, ...updates } : m)),
+                };
+            }
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            const messages = sessionState.messages.map((m) => (m.id === id ? { ...m, ...updates } : m));
+            newSessionStates.set(targetSessionId, { ...sessionState, messages, updatedAt: Date.now() });
+
+            return {
+                sessionStates: newSessionStates,
+                messages: targetSessionId === state.currentSessionId ? messages : state.messages,
+            };
+        }),
+
+    appendToLastMessage: (text, sessionId) =>
+        set((state) => {
+            const targetSessionId = sessionId ?? state.currentSessionId;
+            if (!targetSessionId) {
+                const messages = [...state.messages];
+                const lastIndex = messages.length - 1;
+                const last = messages[lastIndex];
+
+                let target: ChatMessage;
+                let targetIndex: number;
+
+                if (last && last.role === 'assistant' && !last.isComplete) {
+                    target = { ...last };
+                    targetIndex = lastIndex;
+                } else {
+                    target = {
+                        id: createId(),
+                        role: 'assistant',
+                        content: '',
+                        isComplete: false,
+                    };
+                    targetIndex = messages.length;
+                }
+
+                target.content = (target.content || '') + text;
+                appendContentBlock(target, { type: 'text', content: text });
+                messages[targetIndex] = target;
+
+                return { messages };
+            }
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            const messages = [...sessionState.messages];
             const lastIndex = messages.length - 1;
             const last = messages[lastIndex];
-            
+
             let target: ChatMessage;
             let targetIndex: number;
-            
+
             if (last && last.role === 'assistant' && !last.isComplete) {
                 // Clone the existing message to create a new reference
                 target = { ...last };
@@ -436,27 +551,72 @@ export const useStore = create<AppStore>((set, get) => ({
             target.content = (target.content || '') + text;
             // Track content block for chronological display
             appendContentBlock(target, { type: 'text', content: text });
-            
+
             // Replace with new object reference to trigger React re-render
             messages[targetIndex] = target;
-            return { messages };
+            newSessionStates.set(targetSessionId, { ...sessionState, messages, updatedAt: Date.now() });
+
+            return {
+                sessionStates: newSessionStates,
+                messages: targetSessionId === state.currentSessionId ? messages : state.messages,
+            };
         }),
 
-    setThought: (thought, isComplete) =>
+    setThought: (thought, isComplete, sessionId) =>
         set((state) => {
+            const targetSessionId = sessionId ?? state.currentSessionId;
+            if (!targetSessionId) {
+                if (debugThinking) {
+                    console.debug('[VCoder][thinking] setThought', {
+                        length: thought.length,
+                        isComplete,
+                    });
+                }
+
+                const messages = [...state.messages];
+                const lastIndex = messages.length - 1;
+                const last = messages[lastIndex];
+
+                let target: ChatMessage;
+                let targetIndex: number;
+
+                if (last && last.role === 'assistant' && !last.isComplete) {
+                    target = { ...last };
+                    targetIndex = lastIndex;
+                } else {
+                    target = {
+                        id: createId(),
+                        role: 'assistant',
+                        content: '',
+                        isComplete: false,
+                    };
+                    targetIndex = messages.length;
+                }
+
+                target.thought = isComplete ? thought : (target.thought || '') + thought;
+                target.thoughtIsComplete = isComplete;
+                appendContentBlock(target, { type: 'thought', content: thought, isComplete });
+                messages[targetIndex] = target;
+
+                return { messages };
+            }
+
             if (debugThinking) {
                 console.debug('[VCoder][thinking] setThought', {
                     length: thought.length,
                     isComplete,
                 });
             }
-            const messages = [...state.messages];
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            const messages = [...sessionState.messages];
             const lastIndex = messages.length - 1;
             const last = messages[lastIndex];
-            
+
             let target: ChatMessage;
             let targetIndex: number;
-            
+
             if (last && last.role === 'assistant' && !last.isComplete) {
                 // Clone the existing message to create a new reference
                 target = { ...last };
@@ -476,21 +636,69 @@ export const useStore = create<AppStore>((set, get) => ({
             target.thoughtIsComplete = isComplete;
             // Track content block for chronological display
             appendContentBlock(target, { type: 'thought', content: thought, isComplete });
-            
+
             // Replace with new object reference to trigger React re-render
             messages[targetIndex] = target;
-            return { messages };
+            newSessionStates.set(targetSessionId, { ...sessionState, messages, updatedAt: Date.now() });
+
+            return {
+                sessionStates: newSessionStates,
+                messages: targetSessionId === state.currentSessionId ? messages : state.messages,
+            };
         }),
 
-    addToolCall: (toolCall) =>
+    addToolCall: (toolCall, sessionId) =>
         set((state) => {
-            const messages = [...state.messages];
+            const targetSessionId = sessionId ?? state.currentSessionId;
+            if (!targetSessionId) {
+                const messages = [...state.messages];
+                const lastIndex = messages.length - 1;
+                const last = messages[lastIndex];
+
+                let target: ChatMessage;
+                let targetIndex: number;
+
+                if (last && last.role === 'assistant' && !last.isComplete) {
+                    target = { ...last };
+                    targetIndex = lastIndex;
+                } else {
+                    target = {
+                        id: createId(),
+                        role: 'assistant',
+                        content: '',
+                        isComplete: false,
+                    };
+                    targetIndex = messages.length;
+                }
+
+                const normalizedToolCall: ToolCall = {
+                    ...toolCall,
+                    name: normalizeToolName(toolCall.name),
+                };
+
+                const existing = target.toolCalls?.find((tc) => tc.id === normalizedToolCall.id);
+                if (existing) {
+                    target.toolCalls = target.toolCalls!.map((tc) =>
+                        tc.id === normalizedToolCall.id ? { ...tc, ...normalizedToolCall } : tc
+                    );
+                } else {
+                    target.toolCalls = [...(target.toolCalls || []), normalizedToolCall];
+                    appendContentBlock(target, { type: 'tools', toolCallIds: [normalizedToolCall.id] });
+                }
+
+                messages[targetIndex] = target;
+                return { messages };
+            }
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            const messages = [...sessionState.messages];
             const lastIndex = messages.length - 1;
             const last = messages[lastIndex];
-            
+
             let target: ChatMessage;
             let targetIndex: number;
-            
+
             if (last && last.role === 'assistant' && !last.isComplete) {
                 // Clone the existing message to create a new reference
                 target = { ...last };
@@ -522,21 +730,84 @@ export const useStore = create<AppStore>((set, get) => ({
                 // Track content block for chronological display (only for new tools)
                 appendContentBlock(target, { type: 'tools', toolCallIds: [normalizedToolCall.id] });
             }
-            
+
             // Replace with new object reference to trigger React re-render
             messages[targetIndex] = target;
-            return { messages };
+            newSessionStates.set(targetSessionId, { ...sessionState, messages, updatedAt: Date.now() });
+
+            return {
+                sessionStates: newSessionStates,
+                messages: targetSessionId === state.currentSessionId ? messages : state.messages,
+            };
         }),
 
-    updateToolCall: (id, updates) =>
+    updateToolCall: (id, updates, sessionId) =>
         set((state) => {
-            const messages = [...state.messages];
+            const targetSessionId = sessionId ?? state.currentSessionId;
+            if (!targetSessionId) {
+                const messages = [...state.messages];
+                for (let i = messages.length - 1; i >= 0; i--) {
+                    const message = messages[i];
+                    if (message.role !== 'assistant' || !message.toolCalls?.length) continue;
+                    const idx = message.toolCalls.findIndex((tc) => tc.id === id);
+                    if (idx === -1) continue;
+
+                    const newToolCalls = [...message.toolCalls];
+                    const normalizedUpdates: Partial<ToolCall> = {
+                        ...updates,
+                        ...(typeof updates.name === 'string' ? { name: normalizeToolName(updates.name) } : null),
+                    };
+                    newToolCalls[idx] = { ...newToolCalls[idx], ...normalizedUpdates };
+                    messages[i] = { ...message, toolCalls: newToolCalls };
+                    return { messages };
+                }
+
+                const lastIndex = messages.length - 1;
+                const last = messages[lastIndex];
+
+                let target: ChatMessage;
+                let targetIndex: number;
+
+                if (last && last.role === 'assistant' && !last.isComplete) {
+                    target = { ...last };
+                    targetIndex = lastIndex;
+                } else {
+                    target = {
+                        id: createId(),
+                        role: 'assistant',
+                        content: '',
+                        isComplete: false,
+                    };
+                    targetIndex = messages.length;
+                }
+
+                target.toolCalls = [
+                    ...(target.toolCalls || []),
+                    {
+                        id,
+                        name:
+                            typeof updates.name === 'string' && updates.name
+                                ? normalizeToolName(updates.name)
+                                : 'Tool',
+                        status: updates.status ?? 'running',
+                        input: updates.input,
+                        result: updates.result,
+                        error: updates.error,
+                    },
+                ];
+                messages[targetIndex] = target;
+                return { messages };
+            }
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            const messages = [...sessionState.messages];
             for (let i = messages.length - 1; i >= 0; i--) {
                 const message = messages[i];
                 if (message.role !== 'assistant' || !message.toolCalls?.length) continue;
                 const idx = message.toolCalls.findIndex((tc) => tc.id === id);
                 if (idx === -1) continue;
-                
+
                 // Clone the message and update toolCalls to create new references
                 const newToolCalls = [...message.toolCalls];
                 const normalizedUpdates: Partial<ToolCall> = {
@@ -545,16 +816,20 @@ export const useStore = create<AppStore>((set, get) => ({
                 };
                 newToolCalls[idx] = { ...newToolCalls[idx], ...normalizedUpdates };
                 messages[i] = { ...message, toolCalls: newToolCalls };
-                return { messages };
+                newSessionStates.set(targetSessionId, { ...sessionState, messages, updatedAt: Date.now() });
+                return {
+                    sessionStates: newSessionStates,
+                    messages: targetSessionId === state.currentSessionId ? messages : state.messages,
+                };
             }
 
             // Tool not found - create new message with tool
             const lastIndex = messages.length - 1;
             const last = messages[lastIndex];
-            
+
             let target: ChatMessage;
             let targetIndex: number;
-            
+
             if (last && last.role === 'assistant' && !last.isComplete) {
                 target = { ...last };
                 targetIndex = lastIndex;
@@ -583,13 +858,41 @@ export const useStore = create<AppStore>((set, get) => ({
                 },
             ];
             messages[targetIndex] = target;
-            return { messages };
+            newSessionStates.set(targetSessionId, { ...sessionState, messages, updatedAt: Date.now() });
+            return {
+                sessionStates: newSessionStates,
+                messages: targetSessionId === state.currentSessionId ? messages : state.messages,
+            };
         }),
 
-    confirmTool: (toolCallId, confirmed, options) => {
+    confirmTool: (toolCallId, confirmed, options, sessionId) => {
         // Update tool call status
         set((state) => {
-            const messages = [...state.messages];
+            const targetSessionId = sessionId ?? state.currentSessionId;
+            if (!targetSessionId) {
+                const messages = [...state.messages];
+                for (let i = 0; i < messages.length; i++) {
+                    const msg = messages[i];
+                    if (msg.toolCalls) {
+                        const tcIdx = msg.toolCalls.findIndex(t => t.id === toolCallId);
+                        if (tcIdx !== -1) {
+                            const newToolCalls = [...msg.toolCalls];
+                            const updatedTc = { ...newToolCalls[tcIdx] };
+                            updatedTc.status = confirmed ? 'running' : 'failed';
+                            delete updatedTc.confirmationType;
+                            delete updatedTc.confirmationData;
+                            newToolCalls[tcIdx] = updatedTc;
+                            messages[i] = { ...msg, toolCalls: newToolCalls };
+                            break;
+                        }
+                    }
+                }
+                return { messages };
+            }
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            const messages = [...sessionState.messages];
             for (let i = 0; i < messages.length; i++) {
                 const msg = messages[i];
                 if (msg.toolCalls) {
@@ -607,9 +910,14 @@ export const useStore = create<AppStore>((set, get) => ({
                     }
                 }
             }
-            return { messages };
+            newSessionStates.set(targetSessionId, { ...sessionState, messages, updatedAt: Date.now() });
+
+            return {
+                sessionStates: newSessionStates,
+                messages: targetSessionId === state.currentSessionId ? messages : state.messages,
+            };
         });
-        
+
         // Send message to extension
         postMessage({
             type: 'confirmTool',
@@ -619,35 +927,44 @@ export const useStore = create<AppStore>((set, get) => ({
         });
     },
 
-    setTasks: (tasks) => {
+    setTasks: (tasks, sessionId) => {
         const state = get();
-        if (!state.currentSessionId) return;
-        
+        const targetSessionId = sessionId ?? state.currentSessionId;
+        if (!targetSessionId) {
+            set((prevState) => ({ tasks: [...tasks], sessionStatus: prevState.sessionStatus }));
+            return;
+        }
+
         set((prevState) => {
             const newSessionStates = new Map(prevState.sessionStates);
-            const sessionState = newSessionStates.get(state.currentSessionId!) || {
-                id: state.currentSessionId!,
-                messages: [],
-                tasks: [],
-                subagentRuns: [],
-                sessionStatus: 'idle',
-                lastActivityTime: Date.now(),
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-            };
-            
-            sessionState.tasks = tasks;
-            newSessionStates.set(state.currentSessionId!, sessionState);
-            
-            return { 
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            const nextSessionState = { ...sessionState, tasks, updatedAt: Date.now() };
+            newSessionStates.set(targetSessionId, nextSessionState);
+
+            return {
                 sessionStates: newSessionStates,
                 // Keep legacy field in sync for backward compatibility
-                tasks: sessionState.tasks 
+                tasks: targetSessionId === prevState.currentSessionId ? nextSessionState.tasks : prevState.tasks,
             };
         });
     },
 
-    setSubagentRuns: (subagentRuns) => set({ subagentRuns }),
+    setSubagentRuns: (subagentRuns, sessionId) =>
+        set((state) => {
+            const targetSessionId = sessionId ?? state.currentSessionId;
+            if (!targetSessionId) {
+                return { subagentRuns: [...subagentRuns] };
+            }
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            newSessionStates.set(targetSessionId, { ...sessionState, subagentRuns, updatedAt: Date.now() });
+
+            return {
+                sessionStates: newSessionStates,
+                subagentRuns: targetSessionId === state.currentSessionId ? subagentRuns : state.subagentRuns,
+            };
+        }),
 
     setSessions: (sessions) =>
         set((state) => ({
@@ -658,31 +975,29 @@ export const useStore = create<AppStore>((set, get) => ({
 
     setCurrentSession: (sessionId) => {
         set((prevState) => {
+            // Flush and cleanup buffer for the old session before switching
+            if (prevState.currentSessionId && prevState.currentSessionId !== sessionId) {
+                flushTextBuffer({ appendToLastMessage: prevState.appendToLastMessage }, prevState.currentSessionId);
+                cleanupTextBuffer(prevState.currentSessionId);
+            }
+
             const newSessionStates = new Map(prevState.sessionStates);
-            
+
             let sessionState = sessionId ? newSessionStates.get(sessionId) : undefined;
             if (!sessionState && sessionId) {
-                sessionState = {
-                    id: sessionId,
-                    messages: [],
-                    tasks: [],
-                    subagentRuns: [],
-                    sessionStatus: 'idle',
-                    lastActivityTime: Date.now(),
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                };
+                sessionState = createSessionState(sessionId);
                 newSessionStates.set(sessionId, sessionState);
             }
-            
+
             const currentSessionData = sessionState || {
                 messages: [],
                 tasks: [],
                 subagentRuns: [],
+                pendingFileChanges: [],
                 sessionStatus: 'idle' as const,
                 lastActivityTime: Date.now(),
             };
-            
+
             return {
                 currentSessionId: sessionId,
                 sessionStates: newSessionStates,
@@ -693,34 +1008,100 @@ export const useStore = create<AppStore>((set, get) => ({
                 sessionStatus: currentSessionData.sessionStatus,
                 sessionCompleteReason: sessionState?.sessionCompleteReason,
                 sessionCompleteMessage: sessionState?.sessionCompleteMessage,
-                pendingFileChanges: [],
+                pendingFileChanges: currentSessionData.pendingFileChanges,
                 error: null,
             };
         });
     },
 
-    clearPendingFileChanges: () => set({ pendingFileChanges: [] }),
+    clearPendingFileChanges: () =>
+        set((state) => {
+            const currentSessionId = state.currentSessionId;
+            if (!currentSessionId) {
+                return { pendingFileChanges: [] };
+            }
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(currentSessionId) ?? createSessionState(currentSessionId);
+            newSessionStates.set(currentSessionId, {
+                ...sessionState,
+                pendingFileChanges: [],
+                updatedAt: Date.now(),
+            });
+
+            return { pendingFileChanges: [], sessionStates: newSessionStates };
+        }),
 
     setPlanMode: (enabled) => {
-        set((state) => ({
-            planMode: enabled,
-            // Avoid showing stale plan/tasks when switching into planning.
-            tasks: enabled && !state.planMode ? [] : state.tasks,
-            subagentRuns: enabled && !state.planMode ? [] : state.subagentRuns,
-        }));
+        set((state) => {
+            const shouldClear = enabled && !state.planMode;
+            const currentSessionId = state.currentSessionId;
+            if (!currentSessionId) {
+                return {
+                    planMode: enabled,
+                    // Avoid showing stale plan/tasks when switching into planning.
+                    tasks: shouldClear ? [] : state.tasks,
+                    subagentRuns: shouldClear ? [] : state.subagentRuns,
+                };
+            }
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(currentSessionId) ?? createSessionState(currentSessionId);
+            newSessionStates.set(currentSessionId, {
+                ...sessionState,
+                tasks: shouldClear ? [] : sessionState.tasks,
+                subagentRuns: shouldClear ? [] : sessionState.subagentRuns,
+                updatedAt: Date.now(),
+            });
+
+            return {
+                planMode: enabled,
+                tasks: shouldClear ? [] : state.tasks,
+                subagentRuns: shouldClear ? [] : state.subagentRuns,
+                sessionStates: newSessionStates,
+            };
+        });
         postMessage({ type: 'setPlanMode', enabled });
     },
 
     setPermissionMode: (mode) => {
-        set((state) => ({
-            permissionMode: mode,
-            // Update planMode for backward compatibility
-            planMode: mode === 'plan',
-            // Clear tasks/subagentRuns/pendingFileChanges when switching to plan mode
-            tasks: mode === 'plan' && state.permissionMode !== 'plan' ? [] : state.tasks,
-            subagentRuns: mode === 'plan' && state.permissionMode !== 'plan' ? [] : state.subagentRuns,
-            pendingFileChanges: mode === 'plan' && state.permissionMode !== 'plan' ? [] : state.pendingFileChanges,
-        }));
+        set((state) => {
+            const switchingToPlan = mode === 'plan' && state.permissionMode !== 'plan';
+            const currentSessionId = state.currentSessionId;
+
+            if (!currentSessionId) {
+                return {
+                    permissionMode: mode,
+                    // Update planMode for backward compatibility
+                    planMode: mode === 'plan',
+                    // Clear tasks/subagentRuns/pendingFileChanges when switching to plan mode
+                    tasks: switchingToPlan ? [] : state.tasks,
+                    subagentRuns: switchingToPlan ? [] : state.subagentRuns,
+                    pendingFileChanges: switchingToPlan ? [] : state.pendingFileChanges,
+                };
+            }
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(currentSessionId) ?? createSessionState(currentSessionId);
+            newSessionStates.set(currentSessionId, {
+                ...sessionState,
+                tasks: switchingToPlan ? [] : sessionState.tasks,
+                subagentRuns: switchingToPlan ? [] : sessionState.subagentRuns,
+                pendingFileChanges: switchingToPlan ? [] : sessionState.pendingFileChanges,
+                updatedAt: Date.now(),
+            });
+
+            return {
+                permissionMode: mode,
+                // Update planMode for backward compatibility
+                planMode: mode === 'plan',
+                // Clear tasks/subagentRuns/pendingFileChanges when switching to plan mode
+                tasks: switchingToPlan ? [] : state.tasks,
+                subagentRuns: switchingToPlan ? [] : state.subagentRuns,
+                pendingFileChanges: switchingToPlan ? [] : state.pendingFileChanges,
+                sessionStates: newSessionStates,
+            };
+        });
         postMessage({ type: 'setPermissionMode', mode });
     },
 
@@ -742,24 +1123,64 @@ export const useStore = create<AppStore>((set, get) => ({
 
     setError: (error) => set({ error }),
 
-    setSessionStatus: (sessionStatus) => set({ sessionStatus }),
+    setSessionStatus: (sessionStatus, sessionId) =>
+        set((state) => {
+            const targetSessionId = sessionId ?? state.currentSessionId;
+            if (!targetSessionId) return {};
 
-    handleSessionComplete: (reason, message, error) => {
-        set({
-            sessionStatus: reason === 'completed' ? 'completed' : 
-                         reason === 'cancelled' ? 'cancelled' :
-                         reason === 'timeout' ? 'timeout' : 'error',
-            sessionCompleteReason: reason,
-            sessionCompleteMessage: message,
-            isLoading: false,
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            newSessionStates.set(targetSessionId, { ...sessionState, sessionStatus, updatedAt: Date.now() });
+
+            return {
+                sessionStates: newSessionStates,
+                sessionStatus: targetSessionId === state.currentSessionId ? sessionStatus : state.sessionStatus,
+            };
+        }),
+
+    handleSessionComplete: (reason, message, error, sessionId) => {
+        const state = get();
+        const targetSessionId = sessionId ?? state.currentSessionId;
+        if (!targetSessionId) return;
+
+        const status = reason === 'completed'
+            ? 'completed'
+            : reason === 'cancelled'
+                ? 'cancelled'
+                : reason === 'timeout'
+                    ? 'timeout'
+                    : 'error';
+
+        set((prevState) => {
+            const newSessionStates = new Map(prevState.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            newSessionStates.set(targetSessionId, {
+                ...sessionState,
+                sessionStatus: status,
+                sessionCompleteReason: reason,
+                sessionCompleteMessage: message,
+                updatedAt: Date.now(),
+            });
+
+            return {
+                sessionStates: newSessionStates,
+                sessionStatus: targetSessionId === prevState.currentSessionId ? status : prevState.sessionStatus,
+                sessionCompleteReason: targetSessionId === prevState.currentSessionId ? reason : prevState.sessionCompleteReason,
+                sessionCompleteMessage: targetSessionId === prevState.currentSessionId ? message : prevState.sessionCompleteMessage,
+                isLoading: targetSessionId === prevState.currentSessionId ? false : prevState.isLoading,
+            };
         });
-        
+
         // Flush any pending text updates
-        flushTextBuffer(get());
-        
+        flushTextBuffer(get(), targetSessionId);
+
         // Mark last assistant message as complete
         set((state) => {
-            const messages = [...state.messages];
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId);
+            if (!sessionState) return {};
+
+            const messages = [...sessionState.messages];
             if (messages.length > 0) {
                 const lastIndex = messages.length - 1;
                 const last = messages[lastIndex];
@@ -767,39 +1188,90 @@ export const useStore = create<AppStore>((set, get) => ({
                     messages[lastIndex] = { ...last, isComplete: true };
                 }
             }
-            return { messages };
+
+            newSessionStates.set(targetSessionId, { ...sessionState, messages, updatedAt: Date.now() });
+            return {
+                sessionStates: newSessionStates,
+                messages: targetSessionId === state.currentSessionId ? messages : state.messages,
+            };
         });
-        
+
         // Show error if present
-        if (error) {
+        if (error && targetSessionId === state.currentSessionId) {
             get().setError(error);
         }
     },
 
-    updateActivity: () => set({ lastActivityTime: Date.now(), sessionStatus: 'active' }),
+    updateActivity: (sessionId) =>
+        set((state) => {
+            const targetSessionId = sessionId ?? state.currentSessionId;
+            if (!targetSessionId) return {};
+
+            const now = Date.now();
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            newSessionStates.set(targetSessionId, {
+                ...sessionState,
+                lastActivityTime: now,
+                sessionStatus: 'active',
+                updatedAt: now,
+            });
+
+            return {
+                sessionStates: newSessionStates,
+                lastActivityTime: targetSessionId === state.currentSessionId ? now : state.lastActivityTime,
+                sessionStatus: targetSessionId === state.currentSessionId ? 'active' : state.sessionStatus,
+            };
+        }),
 
     handleUpdate: (update) => {
         const { type, content, sessionId } = update;
         const state = get();
-        
-        // Strict session filtering: ignore updates for other sessions
-        if (sessionId && state.currentSessionId && sessionId !== state.currentSessionId) {
-            return;
+        const targetSessionId = sessionId ?? state.currentSessionId;
+        if (!targetSessionId) return;
+
+        let currentSessionId = state.currentSessionId;
+        if (!currentSessionId && sessionId) {
+            set((prevState) => {
+                const newSessionStates = new Map(prevState.sessionStates);
+                if (!newSessionStates.has(sessionId)) {
+                    const migratedSession = createSessionState(sessionId);
+                    migratedSession.messages = prevState.messages;
+                    migratedSession.tasks = prevState.tasks;
+                    migratedSession.subagentRuns = prevState.subagentRuns;
+                    migratedSession.pendingFileChanges = prevState.pendingFileChanges;
+                    migratedSession.sessionStatus = prevState.sessionStatus;
+                    migratedSession.sessionCompleteReason = prevState.sessionCompleteReason;
+                    migratedSession.sessionCompleteMessage = prevState.sessionCompleteMessage;
+                    migratedSession.lastActivityTime = prevState.lastActivityTime;
+                    migratedSession.updatedAt = Date.now();
+                    newSessionStates.set(sessionId, migratedSession);
+                }
+
+                return {
+                    currentSessionId: sessionId,
+                    viewMode: 'live',
+                    sessionStates: newSessionStates,
+                };
+            });
+            currentSessionId = sessionId;
         }
-        
+
+        currentSessionId = currentSessionId ?? targetSessionId;
+
         // Update activity timestamp for any update
-        get().updateActivity();
+        get().updateActivity(targetSessionId);
 
         switch (type) {
             case 'thought': {
                 const { content: text, isComplete } = content as { content: string; isComplete: boolean };
-                get().setThought(text, isComplete);
+                get().setThought(text, isComplete, targetSessionId);
                 break;
             }
             case 'text': {
                 const { text } = content as { text: string };
                 // Use rAF batching to reduce render frequency
-                queueTextUpdate(text, get());
+                queueTextUpdate(text, get(), targetSessionId);
                 break;
             }
             case 'tool_use': {
@@ -809,7 +1281,7 @@ export const useStore = create<AppStore>((set, get) => ({
                     name: tc.name,
                     status: tc.status,
                     input: (tc as unknown as { input?: unknown }).input,
-                });
+                }, targetSessionId);
                 break;
             }
             case 'tool_result': {
@@ -818,7 +1290,7 @@ export const useStore = create<AppStore>((set, get) => ({
                     status: error ? 'failed' : 'completed',
                     result,
                     error,
-                });
+                }, targetSessionId);
                 break;
             }
             case 'mcp_call': {
@@ -838,7 +1310,7 @@ export const useStore = create<AppStore>((set, get) => ({
                     input: mcp.input,
                     result: mcp.result,
                     error: mcp.error,
-                });
+                }, targetSessionId);
                 break;
             }
             case 'bash_request': {
@@ -848,74 +1320,71 @@ export const useStore = create<AppStore>((set, get) => ({
                     name: 'Bash',
                     status: 'pending',
                     input: { command: bash.command, CommandLine: bash.command },
-                });
+                }, targetSessionId);
                 break;
             }
             case 'task_list': {
                 const { tasks } = content as { tasks: Task[] };
-                get().setTasks(tasks);
+                get().setTasks(tasks, targetSessionId);
                 break;
             }
             case 'file_change': {
                 const change = content as FileChangeUpdate;
                 set((state) => {
-                    // Ignore updates for other sessions when multi-session is enabled.
-                    if (state.currentSessionId && sessionId && sessionId !== state.currentSessionId) {
-                        return {};
-                    }
-
-                    const existing = state.pendingFileChanges.filter((c) => c.path !== change.path);
+                    const newSessionStates = new Map(state.sessionStates);
+                    const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+                    const existing = sessionState.pendingFileChanges.filter((c) => c.path !== change.path);
                     if (change.proposed) {
-                        existing.push({ ...change, sessionId: sessionId ?? state.currentSessionId ?? '', receivedAt: Date.now() });
+                        existing.push({ ...change, sessionId: targetSessionId, receivedAt: Date.now() });
                     }
-                    return { pendingFileChanges: existing };
+                    const nextSessionState = {
+                        ...sessionState,
+                        pendingFileChanges: existing,
+                        updatedAt: Date.now(),
+                    };
+                    newSessionStates.set(targetSessionId, nextSessionState);
+
+                    return {
+                        sessionStates: newSessionStates,
+                        pendingFileChanges: targetSessionId === state.currentSessionId ? existing : state.pendingFileChanges,
+                    };
                 });
                 break;
             }
             case 'subagent_run': {
                 const run = content as SubagentRunUpdate;
-                const state = get();
-                const currentSessionId = state.currentSessionId;
-                
-                // Strict session filtering: ignore updates for other sessions
-                if (sessionId && currentSessionId && sessionId !== currentSessionId) {
-                    return;
-                }
-                
                 set((prevState) => {
-                    const subagentRuns = [...prevState.subagentRuns];
+                    const newSessionStates = new Map(prevState.sessionStates);
+                    const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+                    const subagentRuns = [...sessionState.subagentRuns];
                     const idx = subagentRuns.findIndex((r) => r.id === run.id);
                     if (idx >= 0) {
                         subagentRuns[idx] = { ...subagentRuns[idx], ...run };
                     } else {
                         subagentRuns.push(run);
                     }
-                    
-                    if (currentSessionId) {
-                        const newSessionStates = new Map(prevState.sessionStates);
-                        const sessionState = newSessionStates.get(currentSessionId);
-                        if (sessionState) {
-                            sessionState.subagentRuns = [...subagentRuns];
-                            sessionState.updatedAt = Date.now();
-                            newSessionStates.set(currentSessionId, sessionState);
-                        }
-                        return { 
-                            subagentRuns,
-                            sessionStates: newSessionStates
-                        };
-                    }
-                    
-                    return { subagentRuns };
+                    newSessionStates.set(targetSessionId, {
+                        ...sessionState,
+                        subagentRuns: [...subagentRuns],
+                        updatedAt: Date.now(),
+                    });
+
+                    return {
+                        subagentRuns: targetSessionId === currentSessionId ? subagentRuns : prevState.subagentRuns,
+                        sessionStates: newSessionStates,
+                    };
                 });
                 break;
             }
             case 'error': {
                 const errorUpdate = content as ErrorUpdate;
-                get().setError(errorUpdate);
-                get().setLoading(false);
+                if (targetSessionId === currentSessionId) {
+                    get().setError(errorUpdate);
+                    get().setLoading(false);
+                }
                 // Set session status based on error recoverability
                 if (!errorUpdate.recoverable) {
-                    get().setSessionStatus('error');
+                    get().setSessionStatus('error', targetSessionId);
                 }
                 break;
             }
@@ -942,7 +1411,7 @@ export const useStore = create<AppStore>((set, get) => ({
                     status: 'awaiting_confirmation',
                     confirmationType: request.type as ToolCall['confirmationType'],
                     confirmationData: request.details,
-                });
+                }, targetSessionId);
                 break;
             }
         }
@@ -970,12 +1439,16 @@ export const useStore = create<AppStore>((set, get) => ({
         pendingFileChanges: [],
     }),
 
-    exitHistoryMode: () => set({
-        viewMode: 'live',
-        currentSessionId: null, // Returning to live mode usually starts fresh or needs session restore (not implemented yet)
-        messages: [],
-        pendingFileChanges: [],
-    }),
+    exitHistoryMode: () => {
+        // Cleanup any pending buffers before exiting history mode
+        cleanupAllTextBuffers();
+        set({
+            viewMode: 'live',
+            currentSessionId: null, // Returning to live mode usually starts fresh or needs session restore (not implemented yet)
+            messages: [],
+            pendingFileChanges: [],
+        });
+    },
 
     setAgents: (agents) => set({ agents }),
 
@@ -998,16 +1471,7 @@ export const useStore = create<AppStore>((set, get) => ({
         const state = useStore.getState();
         let sessionState = state.sessionStates.get(sessionId);
         if (!sessionState) {
-            sessionState = {
-                id: sessionId,
-                messages: [],
-                tasks: [],
-                subagentRuns: [],
-                sessionStatus: 'idle',
-                lastActivityTime: Date.now(),
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-            };
+            sessionState = createSessionState(sessionId);
             set((prevState: AppState) => {
                 const newSessionStates = new Map(prevState.sessionStates);
                 newSessionStates.set(sessionId, sessionState!);
@@ -1024,15 +1488,16 @@ export const useStore = create<AppStore>((set, get) => ({
         
         set((prevState: AppState) => {
             const newSessionStates = new Map(prevState.sessionStates);
-            const currentSessionState = newSessionStates.get(currentSessionId);
-            if (currentSessionState !== undefined) {
-                newSessionStates.set(currentSessionId, { ...currentSessionState, ...updates });
-            }
+            const currentSessionState = newSessionStates.get(currentSessionId) ?? createSessionState(currentSessionId);
+            newSessionStates.set(currentSessionId, { ...currentSessionState, ...updates });
             return { sessionStates: newSessionStates };
         });
     },
 
-    reset: () => set(initialState),
+    reset: () => {
+        cleanupAllTextBuffers();
+        set(initialState);
+    },
 }));
 
 // Subscribe to state changes and persist selected fields

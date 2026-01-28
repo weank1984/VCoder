@@ -61,13 +61,27 @@ export class ACPClient extends EventEmitter {
         this.setupMessageHandler();
     }
 
+    private cleanupReadline(): void {
+        if (!this.readlineInterface) return;
+        const rl = this.readlineInterface;
+        this.readlineInterface = null;
+
+        try {
+            rl.removeAllListeners();
+            rl.close();
+        } catch (error) {
+            console.error('[ACPClient] Error during readline cleanup:', error);
+        }
+
+        const input = (rl as unknown as { input?: Readable }).input;
+        if (input) {
+            input.removeAllListeners('data');
+        }
+    }
+
     updateTransport(stdout: Readable, stdin: Writable) {
         // 1. Clean up old readline interface if exists
-        if (this.readlineInterface) {
-            this.readlineInterface.close();
-            this.readlineInterface.removeAllListeners();
-            this.readlineInterface = null;
-        }
+        this.cleanupReadline();
         
         // 2. Update stdio streams
         this.stdio = { stdout, stdin };
@@ -461,11 +475,7 @@ export class ACPClient extends EventEmitter {
 
     async shutdown(): Promise<void> {
         // Clean up readline interface
-        if (this.readlineInterface) {
-            this.readlineInterface.close();
-            this.readlineInterface.removeAllListeners();
-            this.readlineInterface = null;
-        }
+        this.cleanupReadline();
         
         // Clear pending requests
         const pendingRequests = Array.from(this.pendingRequests.values());
@@ -491,16 +501,7 @@ export class ACPClient extends EventEmitter {
      */
     destroy(): void {
         // 同步清理，避免异步问题
-        try {
-            // Clean up readline interface
-            if (this.readlineInterface) {
-                this.readlineInterface.close();
-                this.readlineInterface.removeAllListeners();
-                this.readlineInterface = null;
-            }
-        } catch (error) {
-            console.error('[ACPClient] Error during readline cleanup:', error);
-        }
+        this.cleanupReadline();
         
         // Clear pending requests synchronously
         const pendingRequests = Array.from(this.pendingRequests.values());

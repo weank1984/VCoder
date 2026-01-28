@@ -7,7 +7,10 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { EventEmitter } from 'events';
 import { ACPClient } from '../acp/client';
-import { UpdateNotificationParams, McpServerConfig, AgentProfile } from '@vcoder/shared';
+import { UpdateNotificationParams, McpServerConfig, AgentProfile, PermissionRule } from '@vcoder/shared';
+import { SessionStore } from '../services/sessionStore';
+import { AuditLogger } from '../services/auditLogger';
+import { BuiltinMcpServer } from '../services/builtinMcpServer';
 
 export class ChatViewProvider extends EventEmitter implements vscode.WebviewViewProvider {
     private webviewView?: vscode.WebviewView;
@@ -29,7 +32,10 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
 
     constructor(
         private context: vscode.ExtensionContext,
-        private acpClient: ACPClient
+        private acpClient: ACPClient,
+        private sessionStore?: SessionStore,
+        private auditLogger?: AuditLogger,
+        private builtinMcpServer?: BuiltinMcpServer
     ) {
         super();
         this.distRoot = vscode.Uri.joinPath(this.context.extensionUri, 'webview', 'dist');
@@ -96,14 +102,23 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
         webviewView.webview.onDidReceiveMessage(async (message) => {
             switch (message.type) {
                 case 'send':
-                    if (!this.acpClient.getCurrentSession()) {
-                        const mcpServers = this.getMcpServerConfig();
-                        const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-                        const session = await this.acpClient.newSession(undefined, { cwd, mcpServers });
-                        this.postMessage({ type: 'currentSession', data: { sessionId: session.id } }, true);
-                        this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() }, true);
+                    {
+                        let session = this.acpClient.getCurrentSession();
+                        if (!session) {
+                            const mcpServers = this.getMcpServerConfig();
+                            const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                            session = await this.acpClient.newSession(undefined, { cwd, mcpServers });
+                            this.postMessage({ type: 'currentSession', data: { sessionId: session.id } }, true);
+                            this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() }, true);
+                            if (this.sessionStore) {
+                                await this.sessionStore.saveCurrentSessionId(session.id);
+                            }
+                        }
+                        if (session && this.auditLogger) {
+                            void this.auditLogger.logUserPrompt(session.id, message.content);
+                        }
+                        await this.acpClient.prompt(message.content, message.attachments);
                     }
-                    await this.acpClient.prompt(message.content, message.attachments);
                     break;
                 case 'newSession':
                     {
@@ -112,6 +127,9 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         const session = await this.acpClient.newSession(message.title, { cwd, mcpServers });
                         this.postMessage({ type: 'currentSession', data: { sessionId: session.id } });
                         this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() });
+                        if (this.sessionStore) {
+                            await this.sessionStore.saveCurrentSessionId(session.id);
+                        }
                         break;
                     }
                 case 'listSessions':
@@ -123,6 +141,9 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                 case 'switchSession':
                     await this.acpClient.switchSession(message.sessionId);
                     this.postMessage({ type: 'currentSession', data: { sessionId: message.sessionId } }, true);
+                    if (this.sessionStore) {
+                        await this.sessionStore.saveCurrentSessionId(message.sessionId);
+                    }
                     break;
                 case 'deleteSession':
                     await this.acpClient.deleteSession(message.sessionId);
@@ -277,17 +298,56 @@ this.postMessage({ type: 'currentSession', data: { sessionId: session.id } }, tr
                     break;
                 case 'getPermissionRules':
                     {
-                        this.postMessage({ type: 'permissionRules', data: [] });
+                        const rules = this.sessionStore ? await this.sessionStore.getPermissionRules() : [];
+                        this.postMessage({ type: 'permissionRules', data: rules });
+                    }
+                    break;
+                case 'addPermissionRule':
+                    {
+                        if (this.sessionStore && message.rule) {
+                            await this.sessionStore.addPermissionRule(message.rule as PermissionRule);
+                        }
+                        const rules = this.sessionStore ? await this.sessionStore.getPermissionRules() : [];
+                        this.postMessage({ type: 'permissionRules', data: rules });
+                    }
+                    break;
+                case 'updatePermissionRule':
+                    {
+                        if (this.sessionStore && message.ruleId) {
+                            const rules = await this.sessionStore.getPermissionRules();
+                            const existing = rules.find((rule) => rule.id === message.ruleId);
+                            const updates = (message.updates || {}) as Partial<PermissionRule>;
+                            const now = new Date().toISOString();
+                            const nextRule: PermissionRule = {
+                                id: message.ruleId,
+                                action: updates.action ?? existing?.action ?? 'allow',
+                                createdAt: existing?.createdAt ?? now,
+                                updatedAt: now,
+                                toolName: updates.toolName ?? existing?.toolName,
+                                pattern: updates.pattern ?? existing?.pattern,
+                                description: updates.description ?? existing?.description,
+                                expiresAt: updates.expiresAt ?? existing?.expiresAt,
+                            };
+                            await this.sessionStore.addPermissionRule(nextRule);
+                        }
+                        const rules = this.sessionStore ? await this.sessionStore.getPermissionRules() : [];
+                        this.postMessage({ type: 'permissionRules', data: rules });
                     }
                     break;
                 case 'deletePermissionRule':
                     {
-                        console.log('[VCoder] Delete permission rule:', message.ruleId);
+                        if (this.sessionStore && message.ruleId) {
+                            await this.sessionStore.deletePermissionRule(message.ruleId);
+                        }
+                        const rules = this.sessionStore ? await this.sessionStore.getPermissionRules() : [];
+                        this.postMessage({ type: 'permissionRules', data: rules });
                     }
                     break;
                 case 'clearPermissionRules':
                     {
-                        console.log('[VCoder] Clear all permission rules');
+                        if (this.sessionStore) {
+                            await this.sessionStore.clearPermissionRules();
+                        }
                         this.postMessage({ type: 'permissionRules', data: [] });
                     }
                     break;
@@ -568,6 +628,19 @@ this.postMessage({ type: 'currentSession', data: { sessionId: session.id } }, tr
     private getMcpServerConfig(): McpServerConfig[] {
         const config = vscode.workspace.getConfiguration('vcoder');
         const servers = config.get<McpServerConfig[]>('mcpServers', []);
+
+        if (this.builtinMcpServer) {
+            try {
+                const builtinConfig = this.builtinMcpServer.getServerConfig();
+                const exists = servers.some((server) => server.url && builtinConfig.url && server.url === builtinConfig.url);
+                if (!exists) {
+                    return [builtinConfig, ...servers];
+                }
+            } catch (err) {
+                console.warn('[VCoder] Builtin MCP server not ready:', err);
+            }
+        }
+
         return servers;
     }
 }

@@ -210,12 +210,18 @@ function App() {
           {
             // Flush any pending text updates before marking complete
             const state = useStore.getState();
-            flushTextBuffer(state);
-            
-            setLoading(false);
-            const lastMsg = state.messages[state.messages.length - 1];
+            const sessionId = message.data?.sessionId as string | undefined;
+            const targetSessionId = sessionId ?? state.currentSessionId ?? undefined;
+            flushTextBuffer(state, targetSessionId);
+
+            if (targetSessionId === state.currentSessionId) {
+              setLoading(false);
+            }
+
+            const sessionState = targetSessionId ? state.sessionStates.get(targetSessionId) : null;
+            const lastMsg = sessionState?.messages[sessionState.messages.length - 1] ?? state.messages[state.messages.length - 1];
             if (lastMsg) {
-              state.updateMessage(lastMsg.id, { isComplete: true });
+              state.updateMessage(lastMsg.id, { isComplete: true }, targetSessionId);
             }
           }
           break;

@@ -10,6 +10,7 @@ import { StepProgressList } from './StepProgress';
 import { MarkdownContent } from './MarkdownContent';
 import { CopyIcon, CheckIcon } from './Icon';
 import { useI18n } from '../i18n/I18nProvider';
+import { useToast } from '../utils/Toast';
 import './ChatBubble.scss';
 import './ComposerSurface.scss';
 
@@ -118,10 +119,12 @@ function renderContentBlock(
 
 export function ChatBubble({ message }: ChatBubbleProps) {
     const { t } = useI18n();
+    const { showError, showSuccess } = useToast();
     const isUser = message.role === 'user';
     const baseBubbleClass = `vc-bubble ${isUser ? 'vc-bubble--user' : 'vc-bubble--assistant'}`;
-    
+
     const [copied, setCopied] = useState(false);
+    const [isCopying, setIsCopying] = useState(false);
     
     // Build tool call lookup map for efficient access
     const toolCallMap = useMemo(() => {
@@ -157,14 +160,44 @@ export function ChatBubble({ message }: ChatBubbleProps) {
     const showBottomCursor = !isUser && message.isComplete === false;
 
     const handleCopy = useCallback(async () => {
+        if (isCopying) return;
+
+        setIsCopying(true);
         try {
             await navigator.clipboard.writeText(message.content);
             setCopied(true);
+            showSuccess(t('Agent.MessageCopied'));
             setTimeout(() => setCopied(false), 2000);
         } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : String(err);
             console.error('Failed to copy message:', err);
+            showError(t('Agent.CopyFailed', { error: errorMessage }));
+
+            // Fallback: try to use the legacy execCommand API
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = message.content;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                const success = document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                if (success) {
+                    setCopied(true);
+                    showSuccess(t('Agent.MessageCopied'));
+                    setTimeout(() => setCopied(false), 2000);
+                } else {
+                    showError(t('Agent.CopyFailedFallback'));
+                }
+            } catch (fallbackErr) {
+                showError(t('Agent.CopyFailedFallback'));
+            }
+        } finally {
+            setIsCopying(false);
         }
-    }, [message.content]);
+    }, [message.content, isCopying, showSuccess, showError, t]);
 
     return (
         <div className={bubbleClass} data-role={message.role}>

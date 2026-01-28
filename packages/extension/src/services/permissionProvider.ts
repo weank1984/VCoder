@@ -3,8 +3,10 @@
  * Handles session/request_permission from agent
  */
 
-import { RequestPermissionParams, RequestPermissionResult } from '@vcoder/shared';
+import { RequestPermissionParams, RequestPermissionResult, type PermissionRule } from '@vcoder/shared';
 import { ChatViewProvider } from '../providers/chatViewProvider';
+import { SessionStore } from './sessionStore';
+import { AuditLogger } from './auditLogger';
 
 export class PermissionProvider {
     private pendingRequests: Map<string, {
@@ -12,8 +14,18 @@ export class PermissionProvider {
         reject: (error: Error) => void;
         data?: RequestPermissionParams; // Store request data for trust always rules
     }> = new Map();
+    private permissionResponseBound = false;
 
-    constructor(private chatProvider: ChatViewProvider) {
+    constructor(
+        private chatProvider: ChatViewProvider,
+        private sessionStore?: SessionStore,
+        private auditLogger?: AuditLogger
+    ) {
+    }
+
+    private ensurePermissionResponseHandler(): void {
+        if (this.permissionResponseBound) return;
+        this.permissionResponseBound = true;
         // Listen for permission responses from webview
         this.chatProvider.on('permissionResponse', (data: {
             requestId: string;
@@ -30,6 +42,17 @@ export class PermissionProvider {
      */
     async handlePermissionRequest(params: RequestPermissionParams): Promise<RequestPermissionResult> {
         console.log('[PermissionProvider] Permission request:', params);
+
+        this.ensurePermissionResponseHandler();
+
+        const matchedRule = this.sessionStore ? await this.findMatchingRule(params) : null;
+        if (matchedRule) {
+            const outcome = matchedRule.action;
+            if (this.auditLogger) {
+                void this.auditLogger.logPermission(params.sessionId, params.toolName, outcome, true);
+            }
+            return { outcome };
+        }
 
         // Generate unique request ID
         const requestId = `perm_${Date.now()}_${Math.random().toString(36).substring(7)}`;
@@ -85,6 +108,15 @@ export class PermissionProvider {
         if (data.trustAlways && data.outcome === 'allow' && pending.data) {
             result.updatedRules = this.createTrustAlwaysRule(pending.data, data.outcome);
             console.log('[PermissionProvider] Created trust always rule for:', pending.data.toolName);
+            if (this.sessionStore) {
+                for (const rule of result.updatedRules) {
+                    void this.sessionStore.addPermissionRule(rule);
+                }
+            }
+        }
+
+        if (pending.data && this.auditLogger) {
+            void this.auditLogger.logPermission(pending.data.sessionId, pending.data.toolName, data.outcome, data.trustAlways);
         }
 
         pending.resolve(result);
@@ -94,19 +126,9 @@ export class PermissionProvider {
      * Create a trust always rule for the given permission request
      */
     private createTrustAlwaysRule(
-        params: RequestPermissionParams, 
+        params: RequestPermissionParams,
         outcome: 'allow' | 'deny'
-    ): Array<{
-        id: string;
-        toolName?: string;
-        pattern?: string;
-        action: 'allow' | 'deny';
-        createdAt: string;
-        updatedAt: string;
-        expiresAt?: string;
-        description?: string;
-        sessionId?: string;
-    }> {
+    ): PermissionRule[] {
         const toolPattern = this.generateToolPattern(params.toolName, params.toolInput as Record<string, unknown>);
         const now = Date.now();
         const nowString = new Date(now).toISOString();
@@ -118,9 +140,58 @@ export class PermissionProvider {
             action: outcome,
             createdAt: nowString,
             updatedAt: nowString,
-            sessionId: params.sessionId,
             description: `Always ${outcome} ${params.toolName} operations`,
         }];
+    }
+
+    private async findMatchingRule(params: RequestPermissionParams): Promise<PermissionRule | null> {
+        if (!this.sessionStore) return null;
+        const rules = await this.sessionStore.getPermissionRules();
+        if (!rules.length) return null;
+
+        const now = Date.now();
+        for (const rule of rules) {
+            if (rule.expiresAt) {
+                const expiresAt = Date.parse(rule.expiresAt);
+                if (!Number.isNaN(expiresAt) && expiresAt <= now) {
+                    continue;
+                }
+            }
+
+            if (rule.toolName && rule.toolName !== params.toolName) {
+                continue;
+            }
+
+            if (rule.pattern) {
+                try {
+                    const regex = new RegExp(rule.pattern);
+                    const candidates: string[] = [params.toolName];
+                    if (params.toolInput && typeof params.toolInput === 'object') {
+                        for (const value of Object.values(params.toolInput)) {
+                            if (typeof value === 'string' && value.length > 0) {
+                                candidates.push(value);
+                            }
+                        }
+                        const serialized = JSON.stringify(params.toolInput);
+                        if (serialized) {
+                            candidates.push(serialized);
+                        }
+                    }
+
+                    const matches = candidates.some((candidate) => regex.test(candidate));
+                    if (!matches) {
+                        continue;
+                    }
+                } catch (err) {
+                    console.warn('[PermissionProvider] Invalid rule pattern:', rule.pattern, err);
+                    continue;
+                }
+            }
+
+            return rule;
+        }
+
+        return null;
     }
 
     /**
