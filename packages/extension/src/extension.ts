@@ -14,6 +14,7 @@ import { DiffManager } from './services/diffManager';
 import { VCoderFileDecorationProvider } from './providers/fileDecorationProvider';
 import { ACPMethods, type UpdateNotificationParams, type RequestPermissionParams } from '@vcoder/shared';
 import { PermissionProvider } from './services/permissionProvider';
+import { AgentRegistry } from './services/agentRegistry';
 
 // Declare output channel at top level
 const outputChannel = vscode.window.createOutputChannel('VCoder', 'VCoder');
@@ -27,6 +28,7 @@ let chatViewProvider: ChatViewProvider | undefined;
 let statusBarItem: vscode.StatusBarItem;
 let capabilityOrchestrator: CapabilityOrchestrator | null = null;
 let permissionProvider: PermissionProvider | undefined;
+let agentRegistry: AgentRegistry | undefined;
 
 /**
  * Extension activation entry point
@@ -71,8 +73,13 @@ export async function activate(context: vscode.ExtensionContext) {
         // Initialize ACP client and start server
         await serverManager.start();
 
+        // Initialize Agent Registry (manages built-in + external agents)
+        agentRegistry = new AgentRegistry(context, serverManager);
+        await agentRegistry.loadProfiles();
+        context.subscriptions.push({ dispose: async () => await agentRegistry?.dispose() });
+
         if (serverManager.getStatus() === 'running') {
-            const stdio = serverManager.getStdio();
+            const stdio = agentRegistry.getActiveStdio();
             acpClient = new ACPClient({
                 stdin: stdio.stdin,
                 stdout: stdio.stdout
@@ -135,7 +142,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const sessionStore = capabilityOrchestrator?.getSessionStore();
         const auditLogger = capabilityOrchestrator?.getAuditLogger();
         const builtinMcpServer = capabilityOrchestrator?.getBuiltinMcpServer();
-        chatViewProvider = new ChatViewProvider(context, acpClient, sessionStore, auditLogger, builtinMcpServer);
+        chatViewProvider = new ChatViewProvider(context, acpClient, sessionStore, auditLogger, builtinMcpServer, agentRegistry);
         context.subscriptions.push(
             vscode.window.registerWebviewViewProvider('vcoder.chatView', chatViewProvider, {
                 webviewOptions: { retainContextWhenHidden: true },
@@ -192,6 +199,19 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.registerFileDecorationProvider(fileDecorator)
         );
         
+        // Reload agent profiles when configuration changes
+        context.subscriptions.push(
+            vscode.workspace.onDidChangeConfiguration(async (e) => {
+                if (e.affectsConfiguration('vcoder.agentProfiles') && agentRegistry) {
+                    await agentRegistry.loadProfiles();
+                    chatViewProvider?.postMessage({
+                        type: 'agents',
+                        data: agentRegistry.getAgentStatuses(),
+                    }, true);
+                }
+            }),
+        );
+
         console.log('[VCoder] Extension initialized successfully');
         
     } catch (err) {
@@ -210,6 +230,7 @@ export async function deactivate() {
         await capabilityOrchestrator.shutdown();
     }
     
+    await agentRegistry?.dispose();
     await serverManager?.stop();
     await fileSystemProvider?.dispose();
     await terminalProvider?.dispose();

@@ -79,6 +79,23 @@ vi.mock('../../packages/extension/src/services/permissionProvider', () => ({
     },
 }));
 
+vi.mock('../../packages/extension/src/services/agentRegistry', () => ({
+    AgentRegistry: class {
+        async loadProfiles() {}
+        getActiveStdio() {
+            return { stdin: {}, stdout: {} };
+        }
+        getAgentStatuses() {
+            return [];
+        }
+        getActiveAgentId() {
+            return '__builtin__';
+        }
+        on() {}
+        async dispose() {}
+    },
+}));
+
 const createContext = () => ({
     subscriptions: [],
 });

@@ -12,6 +12,7 @@ import { SessionStore } from '../services/sessionStore';
 import { AuditLogger } from '../services/auditLogger';
 import { BuiltinMcpServer } from '../services/builtinMcpServer';
 import { MessageQueue, getMessagePriority } from '../utils/messageQueue';
+import { AgentRegistry } from '../services/agentRegistry';
 
 export class ChatViewProvider extends EventEmitter implements vscode.WebviewViewProvider {
     private webviewView?: vscode.WebviewView;
@@ -26,7 +27,8 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
         private acpClient: ACPClient,
         private sessionStore?: SessionStore,
         private auditLogger?: AuditLogger,
-        private builtinMcpServer?: BuiltinMcpServer
+        private builtinMcpServer?: BuiltinMcpServer,
+        private agentRegistry?: AgentRegistry,
     ) {
         super();
         this.distRoot = vscode.Uri.joinPath(this.context.extensionUri, 'webview', 'dist');
@@ -71,6 +73,16 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
         this.acpClient.on('session/complete', (params: unknown) => {
             this.postMessage({ type: 'complete', data: params }, true);
         });
+
+        // Forward agent status changes to webview
+        if (this.agentRegistry) {
+            this.agentRegistry.on('agentStatusChange', () => {
+                this.postMessage({
+                    type: 'agents',
+                    data: this.agentRegistry!.getAgentStatuses(),
+                }, true);
+            });
+        }
     }
 
     async resolveWebviewView(
@@ -274,22 +286,46 @@ this.postMessage({ type: 'currentSession', data: { sessionId: session.id } }, tr
                     break;
                 case 'refreshAgents':
                     {
-                        // Get agent profiles from configuration
-                        const agents = this.getAgentProfiles();
+                        const agents = this.agentRegistry
+                            ? this.agentRegistry.getAgentStatuses()
+                            : this.getAgentProfiles();
                         this.postMessage({ type: 'agents', data: agents }, true);
-                        // Send current agent (for now, we'll send the first one if available)
-                        const currentAgentId = agents.length > 0 ? agents[0].profile.id : null;
+                        const currentAgentId = this.agentRegistry
+                            ? this.agentRegistry.getActiveAgentId()
+                            : (agents.length > 0 ? agents[0].profile.id : null);
                         this.postMessage({ type: 'currentAgent', data: { agentId: currentAgentId } }, true);
                     }
                     break;
                 case 'selectAgent':
                     {
-                        // For now, just acknowledge the selection
-                        // In a full implementation, this would switch to a different AgentProcessManager
-                        console.log('[VCoder] Agent selected:', message.agentId);
-                        this.postMessage({ type: 'currentAgent', data: { agentId: message.agentId } }, true);
-                        // Show info message
-                        vscode.window.showInformationMessage(`已选择 Agent: ${message.agentId}`);
+                        if (!this.agentRegistry) {
+                            console.log('[VCoder] Agent selected (no registry):', message.agentId);
+                            this.postMessage({ type: 'currentAgent', data: { agentId: message.agentId } }, true);
+                            break;
+                        }
+                        try {
+                            const stdio = await this.agentRegistry.switchAgent(message.agentId);
+                            this.acpClient.updateTransport(stdio.stdout, stdio.stdin);
+                            // Re-initialize with new agent process
+                            await this.acpClient.initialize({
+                                protocolVersion: 1,
+                                clientInfo: { name: 'vcoder-vscode', version: '0.2.0' },
+                                clientCapabilities: { terminal: true, fs: { readTextFile: true, writeTextFile: true } },
+                                capabilities: { streaming: true, diffPreview: true, thought: true, toolCallList: true, taskList: true, multiSession: true },
+                                workspaceFolders: vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath) || [],
+                            });
+                            // Create new session on the new agent
+                            const mcpServers = this.getMcpServerConfig();
+                            const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                            const session = await this.acpClient.newSession(undefined, { cwd, mcpServers });
+                            this.postMessage({ type: 'currentAgent', data: { agentId: message.agentId } }, true);
+                            this.postMessage({ type: 'currentSession', data: { sessionId: session.id } }, true);
+                            this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() }, true);
+                            this.postMessage({ type: 'agents', data: this.agentRegistry.getAgentStatuses() }, true);
+                        } catch (err) {
+                            console.error('[VCoder] Agent switch failed:', err);
+                            vscode.window.showErrorMessage(`Agent 切换失败: ${err instanceof Error ? err.message : String(err)}`);
+                        }
                     }
                     break;
                 case 'openSettings':

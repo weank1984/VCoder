@@ -34,6 +34,9 @@ export const workspace: MockApi = {
   })),
   workspaceFolders: [],
   rootPath: '/test/workspace',
+  onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
+  findFiles: vi.fn(async () => []),
+  fs: { stat: vi.fn() },
 };
 
 export const commands: MockApi = {

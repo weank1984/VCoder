@@ -86,13 +86,25 @@ export class ACPClient extends EventEmitter {
     }
 
     updateTransport(stdout: Readable, stdin: Writable) {
-        // 1. Clean up old readline interface if exists
+        // 1. Clean up old readline interface
         this.cleanupReadline();
-        
-        // 2. Update stdio streams
+
+        // 2. Reject all pending requests (old process won't respond)
+        for (const [, requests] of this.pendingRequests) {
+            for (const [, pending] of requests) {
+                if (pending.timeout) clearTimeout(pending.timeout);
+                pending.reject(new Error('Transport switched'));
+            }
+        }
+        this.pendingRequests.clear();
+
+        // 3. Reset state for new process
+        this.requestId = 0;
+        this.currentSession = null;
+        this.desiredSettings = {};
+
+        // 4. Update stdio streams and set up handler
         this.stdio = { stdout, stdin };
-        
-        // 3. Set up new message handler for new stdout
         this.setupMessageHandler();
     }
 
@@ -552,6 +564,9 @@ export class ACPClient extends EventEmitter {
             sessionId: this.currentSession.id,
             ...this.desiredSettings,
         } satisfies SettingsChangeParams);
+
+        // Clear after successful sync to prevent redundant re-sends on subsequent sessions
+        this.desiredSettings = {};
     }
 
     async shutdown(): Promise<void> {
