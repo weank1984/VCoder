@@ -18,6 +18,7 @@ import { MessageSkeleton } from './components/Skeleton';
 import { StickyUserPrompt } from './components/StickyUserPrompt';
 import { useToast } from './utils/Toast';
 import { postMessage } from './utils/vscode';
+import { performanceMonitor } from './utils/messageQueue';
 import type { ExtensionMessage } from './types';
 import './styles/index.scss';
 import './App.scss';
@@ -148,14 +149,19 @@ function App() {
     scheduleRecomputeActiveUserMessage();
   }, [scheduleRecomputeActiveUserMessage, smartScrollHandler, useVirtual, virtualScrollHandler]);
 
-  // Reset virtual list state when session changes
+  // Reset virtual list state and UI when session changes
   useEffect(() => {
     resetVirtualList();
-    // Also reset smart scroll to top
+    // Reset smart scroll to top
     if (containerRef.current) {
       containerRef.current.scrollTop = 0;
     }
-  }, [currentSessionId, resetVirtualList]);
+    if (virtualContainerRef.current) {
+      virtualContainerRef.current.scrollTop = 0;
+    }
+    // Reset active user message when switching sessions
+    setActiveUserMessageId(null);
+  }, [currentSessionId, resetVirtualList, containerRef, virtualContainerRef]);
 
   useEffect(() => {
     return () => {
@@ -185,16 +191,28 @@ function App() {
     const handleMessage = (event: MessageEvent<ExtensionMessage>) => {
       const message = event.data;
 
-      // Handle batch messages
+      // Handle batch messages with performance tracking
       if (message.type === 'batch') {
+        const startTime = performance.now();
+        const batchSize = message.messages.length;
+
         // Process all messages in the batch
         for (const msg of message.messages) {
           handleSingleMessage(msg);
         }
+
+        // Record batch processing metrics
+        const processingTime = performance.now() - startTime;
+        performanceMonitor.recordBatch(batchSize, processingTime);
+
         return;
       }
 
+      // Single message - record as batch of 1
+      const startTime = performance.now();
       handleSingleMessage(message);
+      const processingTime = performance.now() - startTime;
+      performanceMonitor.recordBatch(1, processingTime);
     };
 
     const handleSingleMessage = (message: ExtensionMessage) => {

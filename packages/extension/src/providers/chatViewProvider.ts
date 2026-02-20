@@ -11,24 +11,15 @@ import { UpdateNotificationParams, McpServerConfig, AgentProfile, PermissionRule
 import { SessionStore } from '../services/sessionStore';
 import { AuditLogger } from '../services/auditLogger';
 import { BuiltinMcpServer } from '../services/builtinMcpServer';
+import { MessageQueue, getMessagePriority } from '../utils/messageQueue';
 
 export class ChatViewProvider extends EventEmitter implements vscode.WebviewViewProvider {
     private webviewView?: vscode.WebviewView;
     private readonly distRoot: vscode.Uri;
     private readonly debugThinking = process.env.VCODER_DEBUG_THINKING === '1';
-    
-    // Message batching for performance
-    private messageQueue: unknown[] = [];
-    private flushTimer: NodeJS.Timeout | null = null;
-    private readonly BATCH_DELAY = 16; // ~60fps
-    private readonly MAX_BATCH_SIZE = 10;
-    
-    private batchMetrics = {
-        totalMessages: 0,
-        batchesSent: 0,
-        immediateMessages: 0,
-        averageBatchSize: 0
-    };
+
+    // Message queue for batched communication
+    private messageQueue: MessageQueue;
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -39,6 +30,14 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
     ) {
         super();
         this.distRoot = vscode.Uri.joinPath(this.context.extensionUri, 'webview', 'dist');
+
+        // Initialize message queue with optimized batching
+        this.messageQueue = new MessageQueue({
+            maxBatchSize: 50,
+            minFlushInterval: 16, // ~60fps
+            maxQueueSize: 200,
+            onSend: (messages) => this.sendBatchToWebview(messages),
+        });
 
         // Listen to ACP updates and forward to Webview
         this.acpClient.on('session/update', (params: UpdateNotificationParams) => {
@@ -140,7 +139,10 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                     }
                 case 'switchSession':
                     await this.acpClient.switchSession(message.sessionId);
+                    // Send currentSession message first to trigger UI state cleanup
                     this.postMessage({ type: 'currentSession', data: { sessionId: message.sessionId } }, true);
+                    // Refresh session list to ensure UI is up to date
+                    this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() }, true);
                     if (this.sessionStore) {
                         await this.sessionStore.saveCurrentSessionId(message.sessionId);
                     }
@@ -448,78 +450,59 @@ this.postMessage({ type: 'currentSession', data: { sessionId: session.id } }, tr
     /**
      * Send message to webview with batching optimization.
      * Messages are queued and sent in batches to reduce IPC overhead.
+     *
+     * @param message - Message to send
+     * @param immediate - If true, bypasses queue and sends immediately
      */
     public postMessage(message: unknown, immediate = false): void {
         if (!this.webviewView) {
             return;
         }
 
-        this.batchMetrics.totalMessages++;
-
         // For critical messages, send immediately
         if (immediate) {
-            this.batchMetrics.immediateMessages++;
-            this.flushMessageQueue();
-            this.webviewView.webview.postMessage(message);
+            this.messageQueue.sendImmediate(message);
             return;
         }
 
-        // Add to queue
-        this.messageQueue.push(message);
-
-        // Force flush if queue is too large
-        if (this.messageQueue.length >= this.MAX_BATCH_SIZE) {
-            this.flushMessageQueue();
-            return;
-        }
-
-        // Schedule batch flush
-        if (this.flushTimer) {
-            return; // Already scheduled
-        }
-
-        this.flushTimer = setTimeout(() => {
-            this.flushMessageQueue();
-        }, this.BATCH_DELAY);
+        // Determine priority and enqueue
+        const priority = getMessagePriority(message);
+        this.messageQueue.enqueue(message, priority);
     }
 
     /**
-     * Flush all queued messages to webview.
+     * Send batch of messages to webview
+     * Called by MessageQueue when flushing
      */
-    private flushMessageQueue(): void {
-        if (this.flushTimer) {
-            clearTimeout(this.flushTimer);
-            this.flushTimer = null;
-        }
-
-        if (this.messageQueue.length === 0) {
+    private sendBatchToWebview(messages: unknown[]): void {
+        if (!this.webviewView) {
             return;
         }
 
-        const batchSize = this.messageQueue.length;
-        
-        // Send all messages at once
-        if (batchSize === 1) {
+        if (messages.length === 1) {
             // Single message - send directly
-            this.webviewView?.webview.postMessage(this.messageQueue[0]);
+            this.webviewView.webview.postMessage(messages[0]);
         } else {
             // Multiple messages - send as batch
-            this.batchMetrics.batchesSent++;
-            this.batchMetrics.averageBatchSize = 
-                (this.batchMetrics.averageBatchSize * (this.batchMetrics.batchesSent - 1) + batchSize) / this.batchMetrics.batchesSent;
-            
-            this.webviewView?.webview.postMessage({
+            this.webviewView.webview.postMessage({
                 type: 'batch',
-                messages: this.messageQueue,
+                messages,
             });
         }
-
-        // Clear queue
-        this.messageQueue = [];
     }
 
+    /**
+     * Get batch performance metrics
+     */
     public getBatchMetrics() {
-        return { ...this.batchMetrics };
+        return this.messageQueue.getMetrics();
+    }
+
+    /**
+     * Flush any pending messages immediately
+     */
+    public flush(): void {
+        this.messageQueue.flush();
     }
 
     private getHtmlContent(webview: vscode.Webview): string {

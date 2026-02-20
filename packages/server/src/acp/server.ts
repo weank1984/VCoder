@@ -40,6 +40,14 @@ import {
     HistoryDeleteResult,
     ConfirmToolParams,
     McpServerConfig,
+    LspGoToDefinitionParams,
+    LspGoToDefinitionResult,
+    LspFindReferencesParams,
+    LspFindReferencesResult,
+    LspHoverParams,
+    LspHoverResult,
+    LspDiagnosticsParams,
+    LspDiagnosticsResult,
 } from '@vcoder/shared';
 import { listHistorySessions, loadHistorySession, deleteHistorySession } from '../history/transcriptStore';
 import { ClaudeCodeWrapper } from '../claude/wrapper';
@@ -48,6 +56,11 @@ export class ACPServer {
     private sessions: Map<string, Session> = new Map();
     private currentSessionId: string | null = null;
     private mcpConfigPath: string | null = null;
+    private requestId = 0;
+    private pendingRequests: Map<number | string, {
+        resolve: (value: unknown) => void;
+        reject: (error: Error) => void;
+    }> = new Map();
 
     constructor(
         private stdin: Readable,
@@ -77,7 +90,16 @@ export class ACPServer {
         rl.on('line', async (line) => {
             console.error('[ACPServer] Received:', line.slice(0, 200));
             try {
-                const request = JSON.parse(line) as JsonRpcRequest;
+                const message = JSON.parse(line);
+
+                // Check if this is a response to our request
+                if ('id' in message && message.id !== null && !('method' in message)) {
+                    this.handleClientResponse(message as JsonRpcResponse);
+                    return;
+                }
+
+                // Otherwise, it's a request from the client
+                const request = message as JsonRpcRequest;
                 console.error('[ACPServer] Handling method:', request.method);
                 const response = await this.handleRequest(request);
                 this.sendResponse(response);
@@ -85,6 +107,23 @@ export class ACPServer {
                 console.error('[ACPServer] Error parsing message:', err);
             }
         });
+    }
+
+    /**
+     * Handle response from client to our request
+     */
+    private handleClientResponse(response: JsonRpcResponse): void {
+        const pending = this.pendingRequests.get(response.id!);
+        if (pending) {
+            this.pendingRequests.delete(response.id!);
+            if (response.error) {
+                pending.reject(new Error(response.error.message));
+            } else {
+                pending.resolve(response.result);
+            }
+        } else {
+            console.warn('[ACPServer] Received response for unknown request:', response.id);
+        }
     }
 
     async shutdown(): Promise<void> {
@@ -171,6 +210,19 @@ export class ACPServer {
                     break;
                 case ACPMethods.TOOL_CONFIRM:
                     result = await this.handleToolConfirm(params as ConfirmToolParams);
+                    break;
+                // LSP operations
+                case ACPMethods.LSP_GO_TO_DEFINITION:
+                    result = await this.handleLspGoToDefinition(params as LspGoToDefinitionParams);
+                    break;
+                case ACPMethods.LSP_FIND_REFERENCES:
+                    result = await this.handleLspFindReferences(params as LspFindReferencesParams);
+                    break;
+                case ACPMethods.LSP_HOVER:
+                    result = await this.handleLspHover(params as LspHoverParams);
+                    break;
+                case ACPMethods.LSP_GET_DIAGNOSTICS:
+                    result = await this.handleLspGetDiagnostics(params as LspDiagnosticsParams);
                     break;
                 default:
                     return {
@@ -458,6 +510,26 @@ export class ACPServer {
         await this.claudeCode.stopPersistentSession(params.sessionId);
     }
 
+    // =========================================================================
+    // LSP Handlers (Forward to Extension via Bidirectional RPC)
+    // =========================================================================
+
+    private async handleLspGoToDefinition(params: LspGoToDefinitionParams): Promise<LspGoToDefinitionResult> {
+        return this.sendRequestToClient<LspGoToDefinitionResult>(ACPMethods.LSP_GO_TO_DEFINITION, params);
+    }
+
+    private async handleLspFindReferences(params: LspFindReferencesParams): Promise<LspFindReferencesResult> {
+        return this.sendRequestToClient<LspFindReferencesResult>(ACPMethods.LSP_FIND_REFERENCES, params);
+    }
+
+    private async handleLspHover(params: LspHoverParams): Promise<LspHoverResult> {
+        return this.sendRequestToClient<LspHoverResult>(ACPMethods.LSP_HOVER, params);
+    }
+
+    private async handleLspGetDiagnostics(params: LspDiagnosticsParams): Promise<LspDiagnosticsResult> {
+        return this.sendRequestToClient<LspDiagnosticsResult>(ACPMethods.LSP_GET_DIAGNOSTICS, params);
+    }
+
 
     // Communication helpers
 
@@ -476,5 +548,34 @@ export class ACPServer {
         const notifStr = JSON.stringify(notification);
         console.error('[ACPServer] Sending notification:', method, notifStr.slice(0, 150));
         this.stdout.write(notifStr + '\n');
+    }
+
+    /**
+     * Send request to client (bidirectional RPC)
+     */
+    private async sendRequestToClient<T>(method: string, params?: unknown): Promise<T> {
+        const id = ++this.requestId;
+        const request: JsonRpcRequest = {
+            jsonrpc: '2.0',
+            id,
+            method,
+            params,
+        };
+
+        return new Promise<T>((resolve, reject) => {
+            this.pendingRequests.set(id, { resolve: resolve as (value: unknown) => void, reject });
+
+            const reqStr = JSON.stringify(request);
+            console.error('[ACPServer] Sending request to client:', method, reqStr.slice(0, 200));
+            this.stdout.write(reqStr + '\n');
+
+            // Set timeout for request
+            setTimeout(() => {
+                if (this.pendingRequests.has(id)) {
+                    this.pendingRequests.delete(id);
+                    reject(new Error(`Request timeout: ${method}`));
+                }
+            }, 30000); // 30 second timeout
+        });
     }
 }

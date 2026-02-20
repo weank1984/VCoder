@@ -43,18 +43,24 @@ const isSession = (value: unknown): value is Session =>
 
 export class ACPClient extends EventEmitter {
     private requestId = 0;
-    private pendingRequests: Map<number | string, {
+    // Session-isolated pending requests: Map<sessionId, Map<requestId, Promise>>
+    // Note: requests without sessionId use 'global' key for backward compatibility
+    private pendingRequests: Map<string, Map<number | string, {
         resolve: (value: unknown) => void;
         reject: (error: Error) => void;
-    }> = new Map();
-    
+        timeout?: NodeJS.Timeout;
+    }>> = new Map();
+
     // Handler for agent->client requests
     private requestHandlers: Map<string, (params: unknown) => Promise<unknown>> = new Map();
-    
+
     private currentSession: Session | null = null;
     private desiredSettings: Pick<SettingsChangeParams, 'model' | 'planMode' | 'permissionMode' | 'maxThinkingTokens'> = {};
     private writeCallback: ((line: string) => void) | null = null;
     private readlineInterface: ReturnType<typeof createInterface> | null = null;
+
+    // Request timeout in milliseconds (default: 30 seconds)
+    private readonly REQUEST_TIMEOUT = 30000;
 
     constructor(private stdio: { stdin: Writable; stdout: Readable }) {
         super();
@@ -126,14 +132,32 @@ export class ACPClient extends EventEmitter {
     }
 
     private handleResponse(response: JsonRpcResponse): void {
-        const pending = this.pendingRequests.get(response.id!);
-        if (pending) {
-            this.pendingRequests.delete(response.id!);
-            if (response.error) {
-                pending.reject(new Error(response.error.message));
-            } else {
-                pending.resolve(response.result);
+        // Find the pending request across all sessions
+        let found = false;
+        for (const [sessionKey, sessionRequests] of this.pendingRequests.entries()) {
+            const pending = sessionRequests.get(response.id!);
+            if (pending) {
+                sessionRequests.delete(response.id!);
+                // Clean up empty session map
+                if (sessionRequests.size === 0) {
+                    this.pendingRequests.delete(sessionKey);
+                }
+                // Clear timeout if exists
+                if (pending.timeout) {
+                    clearTimeout(pending.timeout);
+                }
+                // Resolve or reject the promise
+                if (response.error) {
+                    pending.reject(new Error(response.error.message));
+                } else {
+                    pending.resolve(response.result);
+                }
+                found = true;
+                break;
             }
+        }
+        if (!found) {
+            console.warn('[ACPClient] Received response for unknown request:', response.id);
         }
     }
 
@@ -221,7 +245,7 @@ export class ACPClient extends EventEmitter {
         }
     }
 
-    private async sendRequest<T>(method: string, params?: unknown): Promise<T> {
+    private async sendRequest<T>(method: string, params?: unknown, sessionId?: string): Promise<T> {
         if (typeof method !== 'string' || method.trim().length === 0) {
             throw new Error(`Invalid JSON-RPC method: ${String(method)}`);
         }
@@ -234,7 +258,32 @@ export class ACPClient extends EventEmitter {
         };
 
         return new Promise((resolve, reject) => {
-            this.pendingRequests.set(id, { resolve: resolve as (v: unknown) => void, reject });
+            // Use sessionId if provided, otherwise use 'global' for session management requests
+            const sessionKey = sessionId || this.currentSession?.id || 'global';
+
+            // Get or create session-specific pending requests map
+            let sessionRequests = this.pendingRequests.get(sessionKey);
+            if (!sessionRequests) {
+                sessionRequests = new Map();
+                this.pendingRequests.set(sessionKey, sessionRequests);
+            }
+
+            // Set up timeout to prevent hanging requests
+            const timeout = setTimeout(() => {
+                sessionRequests!.delete(id);
+                if (sessionRequests!.size === 0) {
+                    this.pendingRequests.delete(sessionKey);
+                }
+                reject(new Error(`Request timeout after ${this.REQUEST_TIMEOUT}ms: ${method}`));
+            }, this.REQUEST_TIMEOUT);
+
+            // Store the pending request with timeout handle
+            sessionRequests.set(id, {
+                resolve: resolve as (v: unknown) => void,
+                reject,
+                timeout
+            });
+
             const requestStr = JSON.stringify(request);
             console.log('[ACPClient] Sending:', requestStr.slice(0, 200));
             this.write(requestStr);
@@ -334,6 +383,23 @@ export class ACPClient extends EventEmitter {
     }
 
     async switchSession(sessionId: string): Promise<void> {
+        // Clean up pending requests for the previous session
+        const oldSessionId = this.currentSession?.id;
+        if (oldSessionId) {
+            const oldRequests = this.pendingRequests.get(oldSessionId);
+            if (oldRequests) {
+                // Reject all pending requests with a clear error message
+                for (const [requestId, pending] of oldRequests.entries()) {
+                    if (pending.timeout) {
+                        clearTimeout(pending.timeout);
+                    }
+                    pending.reject(new Error(`Session switched from ${oldSessionId} to ${sessionId}`));
+                }
+                this.pendingRequests.delete(oldSessionId);
+                console.log(`[ACPClient] Cleaned up ${oldRequests.size} pending requests for session ${oldSessionId}`);
+            }
+        }
+
         await this.sendRequest(ACPMethods.SESSION_SWITCH, { sessionId });
         // Server doesn't return the full session object; keep minimal info for routing future prompts.
         this.currentSession = {
@@ -345,6 +411,20 @@ export class ACPClient extends EventEmitter {
     }
 
     async deleteSession(sessionId: string): Promise<void> {
+        // Clean up pending requests for this session
+        const sessionRequests = this.pendingRequests.get(sessionId);
+        if (sessionRequests) {
+            // Reject all pending requests with a clear error message
+            for (const [requestId, pending] of sessionRequests.entries()) {
+                if (pending.timeout) {
+                    clearTimeout(pending.timeout);
+                }
+                pending.reject(new Error(`Session ${sessionId} deleted`));
+            }
+            this.pendingRequests.delete(sessionId);
+            console.log(`[ACPClient] Cleaned up ${sessionRequests.size} pending requests for deleted session ${sessionId}`);
+        }
+
         await this.sendRequest(ACPMethods.SESSION_DELETE, { sessionId });
         if (this.currentSession?.id === sessionId) {
             this.currentSession = null;
@@ -359,11 +439,13 @@ export class ACPClient extends EventEmitter {
         } else if (hadSession) {
             await this.syncDesiredSettings();
         }
+        // Capture sessionId before sending to avoid race conditions if session changes
+        const sessionId = this.currentSession!.id;
         await this.sendRequest(ACPMethods.SESSION_PROMPT, {
-            sessionId: this.currentSession!.id,
+            sessionId,
             content,
             attachments,
-        });
+        }, sessionId);
     }
 
     async changeSettings(settings: { model?: ModelId; planMode?: boolean; permissionMode?: PermissionMode; maxThinkingTokens?: number }): Promise<void> {
@@ -476,54 +558,62 @@ export class ACPClient extends EventEmitter {
     async shutdown(): Promise<void> {
         // Clean up readline interface
         this.cleanupReadline();
-        
-        // Clear pending requests
-        const pendingRequests = Array.from(this.pendingRequests.values());
-        pendingRequests.forEach(pending => {
-            pending.reject(new Error('ACPClient shutdown'));
-        });
+
+        // Clear all session-isolated pending requests
+        for (const [sessionKey, sessionRequests] of this.pendingRequests.entries()) {
+            for (const [requestId, pending] of sessionRequests.entries()) {
+                if (pending.timeout) {
+                    clearTimeout(pending.timeout);
+                }
+                pending.reject(new Error('ACPClient shutdown'));
+            }
+        }
         this.pendingRequests.clear();
-        
+
         // Clear handlers
         this.requestHandlers.clear();
-        
+
         // Remove all listeners
         this.removeAllListeners();
-        
+
         // Clear session state
         this.currentSession = null;
         this.desiredSettings = {};
         this.writeCallback = null;
     }
-    
+
     /**
      * Destroy method for complete cleanup
      */
     destroy(): void {
         // 同步清理，避免异步问题
         this.cleanupReadline();
-        
-        // Clear pending requests synchronously
-        const pendingRequests = Array.from(this.pendingRequests.values());
-        pendingRequests.forEach(pending => {
-            try {
-                pending.reject(new Error('ACPClient destroyed'));
-            } catch (error) {
-                console.error('[ACPClient] Error rejecting pending request:', error);
+
+        // Clear all session-isolated pending requests synchronously
+        for (const [sessionKey, sessionRequests] of this.pendingRequests.entries()) {
+            for (const [requestId, pending] of sessionRequests.entries()) {
+                try {
+                    if (pending.timeout) {
+                        clearTimeout(pending.timeout);
+                    }
+                    pending.reject(new Error('ACPClient destroyed'));
+                } catch (error) {
+                    console.error('[ACPClient] Error rejecting pending request:', error);
+                }
             }
-        });
+        }
         this.pendingRequests.clear();
-        
+
         // Clear handlers
         this.requestHandlers.clear();
-        
+
         // Remove all event listeners
         try {
             this.removeAllListeners();
         } catch (error) {
             console.error('[ACPClient] Error removing listeners:', error);
         }
-        
+
         // Clear state
         this.currentSession = null;
         this.desiredSettings = {};

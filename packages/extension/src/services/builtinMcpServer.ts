@@ -1,12 +1,19 @@
 /**
  * Built-in MCP Server
  * Provides VSCode-specific tools via MCP protocol over HTTP/SSE
- * 
+ *
  * Implements a lightweight HTTP server with SSE support for:
  * - workspace/* tools (search, list files, open file)
  * - git/* tools (status, diff, log, branch)
  * - editor/* tools (get selection, get active file, insert/replace text)
  * - lsp/* tools (definition, references, hover, completions)
+ *
+ * Security Features:
+ * - Authentication token required for all requests
+ * - Strict CORS policy (localhost only)
+ * - Path traversal protection
+ * - Rate limiting per client
+ * - Read-only operations only (no write/delete)
  */
 
 import * as vscode from 'vscode';
@@ -15,6 +22,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { URL } from 'url';
 import { McpServerConfig } from '@vcoder/shared';
+import * as crypto from 'crypto';
 
 interface McpTool {
     name: string;
@@ -47,12 +55,18 @@ export class BuiltinMcpServer {
     private port: number | null = null;
     private sseClients: Map<string, SSEClient> = new Map();
     private pingInterval: NodeJS.Timeout | null = null;
-    
+
+    // Security
+    private authToken: string | null = null;
+
     // Rate limiting
     private requestCounts: Map<string, number[]> = new Map();
     private readonly RATE_LIMIT = 100; // requests per minute
-    
-    constructor(private context: vscode.ExtensionContext) {}
+
+    constructor(private context: vscode.ExtensionContext) {
+        // Generate a secure authentication token
+        this.authToken = crypto.randomBytes(32).toString('hex');
+    }
 
     /**
      * Start the built-in MCP server on a random available port.
@@ -115,7 +129,7 @@ export class BuiltinMcpServer {
      * Get server configuration for agent injection.
      */
     getServerConfig(): McpServerConfig {
-        if (!this.port) {
+        if (!this.port || !this.authToken) {
             throw new Error('Server not started');
         }
 
@@ -123,6 +137,10 @@ export class BuiltinMcpServer {
             type: 'http',
             url: `http://127.0.0.1:${this.port}/mcp`,
             name: 'VSCode Built-in Tools',
+            // Include auth token in headers for secure communication
+            headers: {
+                'Authorization': `Bearer ${this.authToken}`,
+            },
         };
     }
 
@@ -133,10 +151,16 @@ export class BuiltinMcpServer {
         req: http.IncomingMessage,
         res: http.ServerResponse
     ): Promise<void> {
-        // Enable CORS for localhost
-        res.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1');
+        // Strict CORS: Only allow localhost
+        const origin = req.headers.origin;
+        const allowedOrigins = ['http://127.0.0.1', 'http://localhost'];
+        const isAllowedOrigin = origin && allowedOrigins.some(allowed => origin.startsWith(allowed));
+
+        if (isAllowedOrigin) {
+            res.setHeader('Access-Control-Allow-Origin', origin);
+        }
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
         if (req.method === 'OPTIONS') {
             res.writeHead(204);
@@ -147,6 +171,26 @@ export class BuiltinMcpServer {
         const url = new URL(req.url || '/', `http://${req.headers.host}`);
 
         try {
+            // Verify localhost connection
+            const remoteAddr = req.socket.remoteAddress || '';
+            if (!remoteAddr.includes('127.0.0.1') && !remoteAddr.includes('::1') && !remoteAddr.includes('::ffff:127.0.0.1')) {
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Access denied: Only localhost connections allowed' }));
+                return;
+            }
+
+            // Authentication check (except for health endpoint)
+            if (url.pathname !== '/mcp/health') {
+                const authHeader = req.headers.authorization;
+                const expectedAuth = `Bearer ${this.authToken}`;
+
+                if (!authHeader || authHeader !== expectedAuth) {
+                    res.writeHead(401, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Unauthorized: Invalid or missing authentication token' }));
+                    return;
+                }
+            }
+
             // Rate limiting check
             const clientId = req.socket.remoteAddress || 'unknown';
             if (!this.checkRateLimit(clientId)) {
@@ -283,13 +327,14 @@ export class BuiltinMcpServer {
 
     /**
      * Get list of available tools.
+     * Note: All tools are read-only and scoped to workspace. No write/delete operations are exposed.
      */
     private getTools(): McpTool[] {
         return [
             // Workspace tools
             {
                 name: 'workspace/searchText',
-                description: 'Search for text in workspace files using pattern matching',
+                description: 'Search for text in workspace files using pattern matching (read-only)',
                 inputSchema: {
                     type: 'object',
                     properties: {
@@ -299,22 +344,24 @@ export class BuiltinMcpServer {
                     },
                     required: ['pattern'],
                 },
+                // Read-only operation, safe to allow
                 requiresPermission: false,
             },
             {
                 name: 'workspace/listFiles',
-                description: 'List files in workspace matching a pattern',
+                description: 'List files in workspace matching a pattern (read-only)',
                 inputSchema: {
                     type: 'object',
                     properties: {
                         pattern: { type: 'string', description: 'Glob pattern (default: **/*)'  },
                     },
                 },
+                // Read-only operation, safe to allow
                 requiresPermission: false,
             },
             {
                 name: 'workspace/openFile',
-                description: 'Open a file in editor at specific line',
+                description: 'Open a file in editor at specific line (workspace-scoped)',
                 inputSchema: {
                     type: 'object',
                     properties: {
@@ -323,44 +370,49 @@ export class BuiltinMcpServer {
                     },
                     required: ['path'],
                 },
-                requiresPermission: false,
+                // Opens file in editor, requires explicit user consent
+                requiresPermission: true,
             },
             // Git tools
             {
                 name: 'git/status',
-                description: 'Get git status of workspace',
+                description: 'Get git status of workspace (read-only)',
                 inputSchema: {
                     type: 'object',
                     properties: {},
                 },
+                // Read-only operation, safe to allow
                 requiresPermission: false,
             },
             {
                 name: 'git/branch',
-                description: 'Get current git branch',
+                description: 'Get current git branch (read-only)',
                 inputSchema: {
                     type: 'object',
                     properties: {},
                 },
+                // Read-only operation, safe to allow
                 requiresPermission: false,
             },
             // Editor tools
             {
                 name: 'editor/getSelection',
-                description: 'Get current editor selection',
+                description: 'Get current editor selection (read-only)',
                 inputSchema: {
                     type: 'object',
                     properties: {},
                 },
+                // Read-only operation, safe to allow
                 requiresPermission: false,
             },
             {
                 name: 'editor/getActiveFile',
-                description: 'Get currently active file path',
+                description: 'Get currently active file path (read-only)',
                 inputSchema: {
                     type: 'object',
                     properties: {},
                 },
+                // Read-only operation, safe to allow
                 requiresPermission: false,
             },
         ];
@@ -425,42 +477,69 @@ export class BuiltinMcpServer {
     private async workspaceSearchText(args: Record<string, unknown>): Promise<unknown> {
         const pattern = args.pattern as string;
         const filePattern = (args.filePattern as string) || '**/*';
-        const maxResults = (args.maxResults as number) || 100;
+        const maxResults = Math.min((args.maxResults as number) || 100, 1000); // Cap at 1000
 
-        const files = await vscode.workspace.findFiles(filePattern, '**/node_modules/**', maxResults * 2);
-        const results: Array<{ file: string; line: number; content: string }> = [];
-
-        const regex = new RegExp(pattern, 'i');
-
-        for (const file of files) {
-            if (results.length >= maxResults) break;
-
-            try {
-                const content = await fs.readFile(file.fsPath, 'utf-8');
-                const lines = content.split('\n');
-
-                for (let i = 0; i < lines.length; i++) {
-                    if (results.length >= maxResults) break;
-
-                    if (regex.test(lines[i])) {
-                        results.push({
-                            file: vscode.workspace.asRelativePath(file),
-                            line: i + 1,
-                            content: lines[i].trim(),
-                        });
-                    }
-                }
-            } catch {
-                // Skip files that can't be read
-            }
+        // Validate pattern to prevent ReDoS attacks
+        if (!pattern || pattern.length === 0) {
+            throw new Error('Search pattern cannot be empty');
+        }
+        if (pattern.length > 1000) {
+            throw new Error('Search pattern too long (max 1000 characters)');
         }
 
-        return { results };
+        // Validate file pattern to prevent abuse
+        if (filePattern.includes('..')) {
+            throw new Error('File pattern cannot contain ".." (path traversal)');
+        }
+
+        try {
+            // Test regex compilation to catch malicious patterns early
+            const regex = new RegExp(pattern, 'i');
+
+            const files = await vscode.workspace.findFiles(filePattern, '**/node_modules/**', maxResults * 2);
+            const results: Array<{ file: string; line: number; content: string }> = [];
+
+            for (const file of files) {
+                if (results.length >= maxResults) break;
+
+                try {
+                    const content = await fs.readFile(file.fsPath, 'utf-8');
+                    const lines = content.split('\n');
+
+                    for (let i = 0; i < lines.length; i++) {
+                        if (results.length >= maxResults) break;
+
+                        if (regex.test(lines[i])) {
+                            results.push({
+                                file: vscode.workspace.asRelativePath(file),
+                                line: i + 1,
+                                content: lines[i].trim(),
+                            });
+                        }
+                    }
+                } catch {
+                    // Skip files that can't be read
+                }
+            }
+
+            return { results };
+        } catch (error) {
+            throw new Error(`Invalid search pattern: ${error instanceof Error ? error.message : String(error)}`);
+        }
     }
 
     private async workspaceListFiles(args: Record<string, unknown>): Promise<unknown> {
         const pattern = (args.pattern as string) || '**/*';
-        const files = await vscode.workspace.findFiles(pattern, '**/node_modules/**');
+
+        // Validate pattern to prevent abuse
+        if (pattern.includes('..')) {
+            throw new Error('File pattern cannot contain ".." (path traversal)');
+        }
+        if (pattern.length > 500) {
+            throw new Error('File pattern too long (max 500 characters)');
+        }
+
+        const files = await vscode.workspace.findFiles(pattern, '**/node_modules/**', 10000);
 
         return {
             files: files.map(f => vscode.workspace.asRelativePath(f)),
@@ -476,17 +555,22 @@ export class BuiltinMcpServer {
             throw new Error('No workspace folder open');
         }
 
-        const absolutePath = path.isAbsolute(filePath)
-            ? filePath
-            : path.join(workspaceRoot.uri.fsPath, filePath);
+        // Normalize and resolve path to prevent path traversal attacks
+        const workspacePath = path.resolve(workspaceRoot.uri.fsPath);
+        const requestedPath = path.isAbsolute(filePath)
+            ? path.resolve(filePath)
+            : path.resolve(workspacePath, filePath);
 
         // Security check: ensure file path is within workspace
-        const workspacePath = workspaceRoot.uri.fsPath;
-        if (!absolutePath.startsWith(workspacePath + path.sep) && absolutePath !== workspacePath) {
-            throw new Error(`Access denied: ${absolutePath} is outside workspace ${workspacePath}`);
+        // Use path.relative to check if the path escapes the workspace
+        const relativePath = path.relative(workspacePath, requestedPath);
+        const isWithinWorkspace = !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+
+        if (!isWithinWorkspace) {
+            throw new Error(`Access denied: Path ${filePath} is outside workspace. Attempted path traversal detected.`);
         }
 
-        const uri = vscode.Uri.file(absolutePath);
+        const uri = vscode.Uri.file(requestedPath);
         const document = await vscode.workspace.openTextDocument(uri);
         const editor = await vscode.window.showTextDocument(document);
 

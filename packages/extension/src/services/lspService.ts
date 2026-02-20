@@ -96,22 +96,37 @@ export class LspService {
         try {
             const uri = vscode.Uri.file(params.filePath);
             const position = new vscode.Position(params.line - 1, params.character);
-            
+
             // Use VS Code's built-in hover provider
-            const hover = await vscode.commands.executeCommand<vscode.Hover>(
+            const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
                 'vscode.executeHoverProvider',
                 uri,
                 position
             );
 
-            if (hover && hover.contents.length > 0) {
-                const content = Array.isArray(hover.contents) 
-                    ? hover.contents.join('\n') 
-                    : typeof hover.contents === 'string' 
-                        ? hover.contents 
-                        : String(hover.contents);
+            if (hovers && hovers.length > 0) {
+                // Combine all hover contents
+                const contents: string[] = [];
 
-                return { content };
+                for (const hover of hovers) {
+                    if (hover.contents && hover.contents.length > 0) {
+                        for (const content of hover.contents) {
+                            if (typeof content === 'string') {
+                                contents.push(content);
+                            } else if (content instanceof vscode.MarkdownString) {
+                                contents.push(content.value);
+                            } else if ('value' in content) {
+                                contents.push(String(content.value));
+                            } else {
+                                contents.push(String(content));
+                            }
+                        }
+                    }
+                }
+
+                if (contents.length > 0) {
+                    return { content: contents.join('\n\n') };
+                }
             }
 
             return {};

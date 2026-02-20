@@ -18,6 +18,7 @@ build/
 *.swo
 *~
 .DS_Store
+.analysis
 
 # Logs
 logs

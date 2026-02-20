@@ -88,16 +88,24 @@ const ACTION_MAP: Record<string, ActionInfo> = {
     
     // ========== Web/Browser Operations ==========
     'WebSearch': { actionKey: 'StepProgress.Searched', type: 'browser' },
+    'WebFetch': { actionKey: 'StepProgress.Fetched', type: 'browser' },
     'browser_subagent': { actionKey: 'StepProgress.Browsed', type: 'browser' },
     'read_url_content': { actionKey: 'StepProgress.Fetched', type: 'browser' },
     'read_browser_page': { actionKey: 'StepProgress.Browsed', type: 'browser' },
     
     // ========== Sub-agent/Task Operations ==========
     'Task': { actionKey: 'StepProgress.Delegated', type: 'task' },
+    'TaskCreate': { actionKey: 'StepProgress.Created', type: 'task' },
+    'TaskGet': { actionKey: 'StepProgress.Checked', type: 'task' },
+    'TaskList': { actionKey: 'StepProgress.Checked', type: 'task' },
+    'TaskOutput': { actionKey: 'StepProgress.Fetched', type: 'task' },
+    'TaskUpdate': { actionKey: 'StepProgress.Edited', type: 'task' },
+    'TaskStop': { actionKey: 'StepProgress.Stopped', type: 'task' },
     'task_boundary': { actionKey: 'StepProgress.Planned', type: 'task' },
     
     // ========== Planning/TODO Operations ==========
     'TodoWrite': { actionKey: 'StepProgress.Planned', type: 'plan' },
+    'EnterPlanMode': { actionKey: 'StepProgress.Planned', type: 'plan' },
     'ExitPlanMode': { actionKey: 'StepProgress.Planned', type: 'plan' },
     
     // ========== Extension Tools ==========
@@ -105,6 +113,10 @@ const ACTION_MAP: Record<string, ActionInfo> = {
     'SlashCommand': { actionKey: 'StepProgress.Invoked', type: 'other' },
     
     // ========== Other Tools ==========
+    'AskUserQuestion': { actionKey: 'StepProgress.Invoked', type: 'other' },
+    'LSP': { actionKey: 'StepProgress.Analyzed', type: 'search' },
+    'ToolSearch': { actionKey: 'StepProgress.Searched', type: 'search' },
+    'MCPSearch': { actionKey: 'StepProgress.Searched', type: 'mcp' },
     'notify_user': { actionKey: 'StepProgress.Notified', type: 'other' },
     'generate_image': { actionKey: 'StepProgress.Generated', type: 'other' },
 };
@@ -221,8 +233,11 @@ export function extractTargetInfo(toolCall: ToolCall): TargetInfo {
             const endLineRaw = obj.EndLine ?? obj.endLine ?? obj.end_line;
             const startLine = typeof startLineRaw === 'number' ? startLineRaw : Number(startLineRaw);
             const endLine = typeof endLineRaw === 'number' ? endLineRaw : Number(endLineRaw);
+            const pagesRaw = obj.pages ?? obj.Pages;
+            const pages = typeof pagesRaw === 'string' || typeof pagesRaw === 'number' ? String(pagesRaw) : undefined;
+            const nameWithPages = pages ? `${extractFileName(path)} [pages ${pages}]` : extractFileName(path);
             return {
-                name: extractFileName(path),
+                name: nameWithPages,
                 fullPath: path,
                 lineRange: Number.isFinite(startLine) && Number.isFinite(endLine) && startLine > 0 && endLine > 0 ? [startLine, endLine] : undefined,
             };
@@ -333,8 +348,16 @@ export function extractTargetInfo(toolCall: ToolCall): TargetInfo {
     }
     
     // WebSearch - extract query
-    if (name === 'WebSearch') {
-        const query = (obj.query ?? obj.Query ?? obj.search) as string | undefined;
+    if (name === 'WebSearch' || name === 'MCPSearch' || name === 'ToolSearch') {
+        const query = (obj.query ??
+            obj.Query ??
+            obj.search ??
+            obj.pattern ??
+            obj.tool ??
+            obj.tool_name ??
+            obj.toolName ??
+            obj.text ??
+            obj.prompt) as string | undefined;
         if (query) {
             return {
                 name: truncateText(query, 40),
@@ -344,7 +367,7 @@ export function extractTargetInfo(toolCall: ToolCall): TargetInfo {
     }
     
     // Browser operations
-    if (name === 'read_url_content' || name === 'read_browser_page') {
+    if (name === 'read_url_content' || name === 'read_browser_page' || name === 'WebFetch') {
         const url = (obj.Url ?? obj.url ?? obj.URL) as string | undefined;
         if (url) {
             return {
@@ -360,13 +383,101 @@ export function extractTargetInfo(toolCall: ToolCall): TargetInfo {
         const prompt = (obj.prompt ?? obj.Prompt) as string | undefined;
         const subagentType = (
             obj.subagent_type ?? obj.subagentType ?? 
-            obj.SubagentType ?? obj.subagent_name ?? obj.subagentName
+            obj.SubagentType ?? obj.subagent_name ?? obj.subagentName ?? obj.agent_type ?? obj.agentType ?? obj.agent_name ?? obj.agentName
         ) as string | undefined;
         
         return {
             name: desc ? truncateText(desc, 50) : (subagentType ?? 'Task'),
             fullPath: desc ?? prompt,
             subagentType,
+        };
+    }
+
+    if (name === 'TaskCreate') {
+        const title = (obj.title ?? obj.name ?? obj.description) as string | undefined;
+        const taskId = (obj.task_id ?? obj.taskId ?? obj.id ?? obj.task) as string | number | undefined;
+        return {
+            name: title ? truncateText(title, 50) : (taskId ? `Task ${taskId}` : 'Task create'),
+            fullPath: title ?? (taskId ? String(taskId) : undefined),
+        };
+    }
+
+    if (name === 'TaskGet') {
+        const taskId = (obj.task_id ?? obj.taskId ?? obj.id ?? obj.task) as string | number | undefined;
+        return {
+            name: taskId ? `Task ${taskId}` : 'Task details',
+            fullPath: taskId ? String(taskId) : undefined,
+        };
+    }
+
+    if (name === 'TaskList') {
+        return {
+            name: 'Task list',
+        };
+    }
+
+    if (name === 'TaskUpdate') {
+        const taskId = (obj.task_id ?? obj.taskId ?? obj.id ?? obj.task) as string | number | undefined;
+        const title = (obj.title ?? obj.name ?? obj.description) as string | undefined;
+        const status = (obj.status ?? obj.state) as string | undefined;
+        const label = title
+            ? truncateText(title, 50)
+            : taskId
+              ? `Task ${taskId}${status ? ` (${status})` : ''}`
+              : status
+                ? `Task (${status})`
+                : 'Task update';
+        return {
+            name: label,
+            fullPath: title ?? (taskId ? String(taskId) : status),
+        };
+    }
+
+    if (name === 'TaskOutput') {
+        const taskId = (obj.task_id ?? obj.taskId ?? obj.id ?? obj.task ?? obj.commandId ?? obj.pid) as string | number | undefined;
+        return {
+            name: taskId ? `Task ${taskId}` : 'Task output',
+            fullPath: taskId ? String(taskId) : undefined,
+        };
+    }
+
+    if (name === 'TaskStop') {
+        const taskId = (obj.task_id ?? obj.taskId ?? obj.id ?? obj.task) as string | number | undefined;
+        const description = (obj.description ?? obj.title ?? obj.name) as string | undefined;
+        const command = (obj.command ?? obj.cmd) as string | undefined;
+        const label = description
+            ? truncateText(description, 50)
+            : command
+              ? truncateCommand(command)
+              : taskId
+                ? `Task ${taskId}`
+                : 'Task stop';
+        return {
+            name: label,
+            fullPath: description ?? command ?? (taskId ? String(taskId) : undefined),
+        };
+    }
+
+    if (name === 'AskUserQuestion') {
+        const question = (obj.question ?? obj.prompt ?? obj.text) as string | undefined;
+        return {
+            name: question ? truncateText(question, 50) : 'Question',
+            fullPath: question,
+        };
+    }
+
+    if (name === 'LSP') {
+        const method = (obj.method ?? obj.action ?? obj.operation) as string | undefined;
+        const symbol = (obj.symbol ?? obj.query ?? obj.name ?? obj.identifier) as string | undefined;
+        const filePath = (obj.filePath ?? obj.file_path ?? obj.path ?? obj.uri) as string | undefined;
+        const line = (obj.line ?? obj.Line ?? obj.startLine) as number | undefined;
+        const target = filePath ? `${extractFileName(filePath)}${typeof line === 'number' ? `:${line}` : ''}` : undefined;
+        const label = symbol
+            ? `${method ? `${method}: ` : ''}${truncateText(symbol, 40)}`
+            : method ?? target ?? 'LSP';
+        return {
+            name: label,
+            fullPath: filePath ?? symbol ?? method,
         };
     }
     
@@ -389,10 +500,11 @@ export function extractTargetInfo(toolCall: ToolCall): TargetInfo {
     }
     
     // ExitPlanMode - extract plan summary
-    if (name === 'ExitPlanMode') {
+    if (name === 'ExitPlanMode' || name === 'EnterPlanMode') {
         const plan = obj.plan as string | undefined;
+        const label = name === 'EnterPlanMode' ? 'Enter plan mode' : 'Exit plan mode';
         return {
-            name: plan ? truncateText(plan, 50) : 'Exit plan mode',
+            name: plan ? truncateText(plan, 50) : label,
             fullPath: plan,
         };
     }

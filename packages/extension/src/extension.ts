@@ -70,14 +70,14 @@ export async function activate(context: vscode.ExtensionContext) {
     try {
         // Initialize ACP client and start server
         await serverManager.start();
-        
+
         if (serverManager.getStatus() === 'running') {
             const stdio = serverManager.getStdio();
-            acpClient = new ACPClient({ 
-                stdin: stdio.stdin, 
-                stdout: stdio.stdout 
+            acpClient = new ACPClient({
+                stdin: stdio.stdin,
+                stdout: stdio.stdout
             });
-            
+
             // Initialize ACP client
             await acpClient.initialize({
                 protocolVersion: 1,
@@ -102,7 +102,24 @@ export async function activate(context: vscode.ExtensionContext) {
                 },
                 workspaceFolders: vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath) || [],
             });
-            
+
+            // Register LSP request handlers
+            const lspService = capabilityOrchestrator?.getLspService();
+            if (lspService) {
+                acpClient.registerRequestHandler(ACPMethods.LSP_GO_TO_DEFINITION, async (params) => {
+                    return lspService.goToDefinition(params as any);
+                });
+                acpClient.registerRequestHandler(ACPMethods.LSP_FIND_REFERENCES, async (params) => {
+                    return lspService.findReferences(params as any);
+                });
+                acpClient.registerRequestHandler(ACPMethods.LSP_HOVER, async (params) => {
+                    return lspService.hover(params as any);
+                });
+                acpClient.registerRequestHandler(ACPMethods.LSP_GET_DIAGNOSTICS, async (params) => {
+                    return lspService.getDiagnostics(params as any);
+                });
+            }
+
             // Set up notification handling
             acpClient.on('session/update', (params: UpdateNotificationParams) => {
                 // Notifications will be handled by ChatViewProvider

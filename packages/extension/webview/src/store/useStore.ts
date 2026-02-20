@@ -1009,7 +1009,10 @@ export const useStore = create<AppStore>((set, get) => ({
                 sessionCompleteReason: sessionState?.sessionCompleteReason,
                 sessionCompleteMessage: sessionState?.sessionCompleteMessage,
                 pendingFileChanges: currentSessionData.pendingFileChanges,
+                // Clear error state when switching sessions to avoid showing stale errors
                 error: null,
+                // Clear loading state when switching sessions
+                isLoading: false,
             };
         });
     },
@@ -1333,20 +1336,25 @@ export const useStore = create<AppStore>((set, get) => ({
                 set((state) => {
                     const newSessionStates = new Map(state.sessionStates);
                     const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+                    // Filter out the existing change for this path
                     const existing = sessionState.pendingFileChanges.filter((c) => c.path !== change.path);
+                    // Only add the change if it's proposed (proposed: true)
+                    // If proposed: false, the change is removed (accepted/rejected)
                     if (change.proposed) {
                         existing.push({ ...change, sessionId: targetSessionId, receivedAt: Date.now() });
                     }
                     const nextSessionState = {
                         ...sessionState,
-                        pendingFileChanges: existing,
+                        // Create new array reference to ensure React detects the change
+                        pendingFileChanges: [...existing],
                         updatedAt: Date.now(),
                     };
                     newSessionStates.set(targetSessionId, nextSessionState);
 
                     return {
                         sessionStates: newSessionStates,
-                        pendingFileChanges: targetSessionId === state.currentSessionId ? existing : state.pendingFileChanges,
+                        // Sync to legacy field for current session
+                        pendingFileChanges: targetSessionId === state.currentSessionId ? [...existing] : state.pendingFileChanges,
                     };
                 });
                 break;

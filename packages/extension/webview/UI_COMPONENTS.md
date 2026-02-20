@@ -12,9 +12,8 @@
 
 完整文档请查看：
 
-- **[设计系统](../../docs/UI_DESIGN_SYSTEM.md)** - 设计 Token、组件规范、命名规范
-- **[实施指南](../../docs/UI_UNIFICATION_GUIDE.md)** - 详细的重构步骤和最佳实践
-- **[总结报告](../../docs/UI_UNIFICATION_SUMMARY.md)** - 当前状态评估和实施计划
+- **[V0.3 技术方案](../../docs/V0.3/TECH-SOLUTION.md)** - UI 规范基线与实施步骤
+- **[V0.3 PRD](../../docs/V0.3/PRD.md)** - 产品目标、范围和验收标准
 
 ## 🚀 快速开始
 
@@ -445,9 +444,8 @@ import { Button } from '@/components';
 
 ## 📖 更多资源
 
-- [完整设计系统文档](../../docs/UI_DESIGN_SYSTEM.md)
-- [实施指南](../../docs/UI_UNIFICATION_GUIDE.md)
-- [总结报告](../../docs/UI_UNIFICATION_SUMMARY.md)
+- [V0.3 技术方案](../../docs/V0.3/TECH-SOLUTION.md)
+- [V0.3 PRD](../../docs/V0.3/PRD.md)
 - [Mixins 源码](./src/styles/_mixins.scss)
 - [Button 组件示例](./src/components/Button/)
 
@@ -465,7 +463,7 @@ import { Button } from '@/components';
 
 遇到问题？
 
-1. 查看文档：`docs/UI_DESIGN_SYSTEM.md`
+1. 查看文档：`docs/V0.3/TECH-SOLUTION.md`
 2. 参考示例：`src/components/Button/`
 3. 运行审查：`bash scripts/audit-styles.sh`
 4. 团队讨论：在 PR 中提问

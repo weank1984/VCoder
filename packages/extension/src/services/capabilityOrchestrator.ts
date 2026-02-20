@@ -15,16 +15,42 @@ import type { ExtensionContext } from 'vscode';
 import { SessionStore } from './sessionStore';
 import { AuditLogger } from './auditLogger';
 import { BuiltinMcpServer } from './builtinMcpServer';
+import { LspService } from './lspService';
 
 /**
  * Capability interface for components that can be orchestrated
  */
 export interface Capability {
     name: string;
+    /** Dependencies that must be initialized before this capability */
     dependencies?: string[];
+    /** Capabilities that conflict with this one */
+    conflicts?: string[];
+    /** Initialize the capability */
     initialize(): Promise<void>;
+    /** Shutdown the capability gracefully */
     shutdown(): Promise<void>;
+    /** Get current status */
     getStatus(): 'idle' | 'initializing' | 'ready' | 'error';
+    /** Optional: Get last error if status is 'error' */
+    getLastError?(): Error | null;
+    /** Optional: Health check */
+    healthCheck?(): Promise<boolean>;
+    /** Optional: Get capability metadata */
+    getMetadata?(): CapabilityMetadata;
+}
+
+/**
+ * Metadata about a capability
+ */
+export interface CapabilityMetadata {
+    displayName: string;
+    description: string;
+    version?: string;
+    /** Whether this capability is required for core functionality */
+    required?: boolean;
+    /** Client capabilities required for this capability to function */
+    requiredClientCapabilities?: string[];
 }
 
 /**
@@ -48,6 +74,10 @@ export interface BuiltinMcpServerCapability extends Capability {
     getStatus(): 'idle' | 'initializing' | 'ready' | 'error';
 }
 
+export interface LspServiceCapability extends Capability {
+    name: 'lspService';
+}
+
 /**
  * Orchestrator status
  */
@@ -66,6 +96,7 @@ export class CapabilityOrchestrator extends EventEmitter {
         sessionStore?: SessionStore;
         auditLogger?: AuditLogger;
         builtinMcpServer?: BuiltinMcpServer;
+        lspService?: LspService;
     } = {};
 
     constructor(context: ExtensionContext) {
@@ -77,7 +108,57 @@ export class CapabilityOrchestrator extends EventEmitter {
      * Register a capability with the orchestrator
      */
     registerCapability(capability: Capability): void {
+        // Check for conflicts with already registered capabilities
+        const conflicts = this.detectConflicts(capability);
+        if (conflicts.length > 0) {
+            throw new Error(
+                `Cannot register capability '${capability.name}': conflicts with ${conflicts.join(', ')}`
+            );
+        }
+
         this.capabilities.set(capability.name, capability);
+        console.log(`[CapabilityOrchestrator] Registered capability: ${capability.name}`);
+    }
+
+    /**
+     * Detect conflicts between a capability and already registered capabilities
+     */
+    private detectConflicts(capability: Capability): string[] {
+        const conflicts: string[] = [];
+
+        for (const [name, existing] of this.capabilities) {
+            // Check if new capability conflicts with existing
+            if (capability.conflicts?.includes(name)) {
+                conflicts.push(name);
+            }
+            // Check if existing conflicts with new capability
+            if (existing.conflicts?.includes(capability.name)) {
+                conflicts.push(name);
+            }
+        }
+
+        return conflicts;
+    }
+
+    /**
+     * Validate all capability dependencies are met
+     */
+    private validateDependencies(): string[] {
+        const errors: string[] = [];
+
+        for (const [name, capability] of this.capabilities) {
+            if (capability.dependencies) {
+                for (const dep of capability.dependencies) {
+                    if (!this.capabilities.has(dep)) {
+                        errors.push(
+                            `Capability '${name}' depends on '${dep}' which is not registered`
+                        );
+                    }
+                }
+            }
+        }
+
+        return errors;
     }
 
     /**
@@ -200,6 +281,10 @@ export class CapabilityOrchestrator extends EventEmitter {
         return this.instances.builtinMcpServer;
     }
 
+    getLspService(): LspService | undefined {
+        return this.instances.lspService;
+    }
+
     /**
      * Store instances for type-safe access (used by factory function)
      */
@@ -207,6 +292,7 @@ export class CapabilityOrchestrator extends EventEmitter {
         sessionStore?: SessionStore;
         auditLogger?: AuditLogger;
         builtinMcpServer?: BuiltinMcpServer;
+        lspService?: LspService;
     }): void {
         this.instances = instances;
     }
@@ -273,6 +359,7 @@ export async function createCapabilityOrchestrator(context: ExtensionContext): P
     const sessionStore = new SessionStore(context, context.workspaceState, context.globalState);
     const auditLogger = new AuditLogger(context);
     const builtinMcpServer = new BuiltinMcpServer(context);
+    const lspService = new LspService(context);
 
     // Register capabilities with their dependencies
     const sessionStoreCap: SessionStoreCapability = {
@@ -337,15 +424,30 @@ export async function createCapabilityOrchestrator(context: ExtensionContext): P
         }
     };
 
+    const lspServiceCap: LspServiceCapability = {
+        name: 'lspService',
+        dependencies: [],
+        initialize: async () => {
+            // LspService doesn't need explicit initialization
+            console.log('[CapabilityOrchestrator] LspService ready');
+        },
+        shutdown: async () => {
+            // No cleanup needed for LspService
+        },
+        getStatus: () => 'ready'
+    };
+
     orchestrator.registerCapability(sessionStoreCap);
     orchestrator.registerCapability(auditLoggerCap);
     orchestrator.registerCapability(builtinMcpServerCap);
+    orchestrator.registerCapability(lspServiceCap);
 
     // Store the instances for type-safe access
     orchestrator.setInstances({
         sessionStore,
         auditLogger,
-        builtinMcpServer
+        builtinMcpServer,
+        lspService
     });
 
     // Initialize all capabilities

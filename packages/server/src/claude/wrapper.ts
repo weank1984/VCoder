@@ -973,7 +973,15 @@ export class ClaudeCodeWrapper extends EventEmitter {
                     ? toolInput.subagent_name
                     : typeof toolInput.subagentName === 'string'
                       ? toolInput.subagentName
-                      : undefined;
+                      : typeof toolInput.agent_type === 'string'
+                        ? toolInput.agent_type
+                        : typeof toolInput.agentType === 'string'
+                          ? toolInput.agentType
+                          : typeof toolInput.agent_name === 'string'
+                            ? toolInput.agent_name
+                            : typeof toolInput.agentName === 'string'
+                              ? toolInput.agentName
+                              : undefined;
 
         return { title: description || prompt || 'Task', subagentType };
     }
@@ -1365,41 +1373,37 @@ export class ClaudeCodeWrapper extends EventEmitter {
         this.emit('update', sessionId, update, 'tool_use');
     }
 
-    async acceptFileChange(_sessionId: string, _path: string): Promise<void> {
-        // Since we are stateless, we can't write to stdin of a closed process.
-        // We need to send a NEW command to accept the change if the CLI supports it via args?
-        // Or does accepting a change require an active session?
-        // Claude CLI usually auto-applies changes unless permissions require confirmation.
-        // If we need to explicitly accept, is there a command `claude approve`?
-        // No obvious command in help.
-        // However, if we are in Permission Mode not "bypass", it might prompt.
-        // But with -p mode, how does it prompt?
-        // "Note: The workspace trust dialog is skipped when Claude is run with the -p mode."
-        // Maybe -p mode inherently auto-accepts or fails?
-        // If we need to send "accept", we assume the previous process is dead.
-        // So we can't.
-        
-        // This suggests -p mode might assume auto-approved or configured via --permission-mode.
-        // We should set permission mode to 'delegate' or 'dontAsk'?
-        // "permission-mode ... dontAsk".
-        // If the user wants to review diffs in VSCode, they are reviewing BEFORE the change is applied?
-        // The `protocol` says "FileChangeUpdate" with "proposed: true".
-        // If the CLI outputs the change, we show diff.
-        // If user clicks "Accept", we want to apply it.
-        // If the CLI is gone, WE (the extension) should apply the change using fs.write?
-        // YES. If the CLI assumes it's done, it delivered the content.
-        // The `FileChangeUpdate` contains `content`.
-        // So `DiffManager` handles writing to disk!
-        // `DiffManager` calls `view.acceptFileChange`, which calls `acpClient.acceptFileChange`.
-        // `Server` calls `wrapper.acceptFileChange`.
-        
-        // So `wrapper.acceptFileChange` might not need to talk to Claude CLI if we have the content.
-        // But `DiffManager` logic relies on `acceptFileChange`.
-        // If `proposed: true`, DiffManager expects `accept` to trigger the write.
+    async acceptFileChange(sessionId: string, path: string): Promise<void> {
+        // Send a file_change update with proposed: false to clear the pending change from UI
+        // The actual file write is handled by the tool execution (Write/Edit tool)
+        // This just signals to the UI that the change has been accepted and should be removed from pending list
+        const clearUpdate: FileChangeUpdate = {
+            path,
+            type: 'modified',
+            proposed: false,
+            sessionId,
+        };
+        this.emit('update', sessionId, {
+            type: 'file_change',
+            content: clearUpdate,
+            sessionId,
+        }, 'file_change');
     }
 
-    async rejectFileChange(_sessionId: string, _path: string): Promise<void> {
-        // No-op for stateless mode if we just don't apply the edit.
+    async rejectFileChange(sessionId: string, path: string): Promise<void> {
+        // Send a file_change update with proposed: false to clear the pending change from UI
+        // No file write occurs when rejecting
+        const clearUpdate: FileChangeUpdate = {
+            path,
+            type: 'modified',
+            proposed: false,
+            sessionId,
+        };
+        this.emit('update', sessionId, {
+            type: 'file_change',
+            content: clearUpdate,
+            sessionId,
+        }, 'file_change');
     }
 
     async confirmBash(sessionId: string, _commandId: string): Promise<void> {
