@@ -120,6 +120,8 @@ export interface McpServerConfig {
     env?: Record<string, string>;
     /** Server name/identifier */
     name?: string;
+    /** HTTP headers (for http/sse, e.g. auth tokens) */
+    headers?: Record<string, string>;
 }
 
 export interface NewSessionParams {
@@ -328,6 +330,8 @@ export interface FileChangeUpdate {
      */
     content?: string;
     proposed: boolean;
+    /** Session ID (used when clearing pending changes) */
+    sessionId?: string;
 }
 
 export interface McpCallUpdate {
