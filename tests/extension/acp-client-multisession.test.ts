@@ -57,6 +57,10 @@ describe('ACPClient Multi-Session Isolation', () => {
       // Send a prompt (request will be pending)
       const promptPromise = client.prompt('Hello from session 1');
 
+      // Yield to let prompt() complete its internal await syncDesiredSettings()
+      // and actually send the SESSION_PROMPT request before we switch
+      await Promise.resolve();
+
       // Switch to another session before prompt resolves
       const switchPromise = client.switchSession('session-2');
 
@@ -95,6 +99,10 @@ describe('ACPClient Multi-Session Isolation', () => {
 
       // Send a prompt that will remain pending
       const promptPromise = client.prompt('This will be interrupted');
+
+      // Yield to let prompt() complete its internal await syncDesiredSettings()
+      // and actually send the SESSION_PROMPT request before we delete
+      await Promise.resolve();
 
       // Start delete - this should cleanup the pending prompt
       const deletePromise = client.deleteSession('session-delete');
@@ -139,6 +147,7 @@ describe('ACPClient Multi-Session Isolation', () => {
 
       // Create session 2
       const session2Promise = client.newSession('Session 2');
+      // Response for session/new (id=3)
       mockStdout.push(
         JSON.stringify({
           jsonrpc: '2.0',
@@ -151,6 +160,18 @@ describe('ACPClient Multi-Session Isolation', () => {
               updatedAt: '2024-01-01T00:00:00Z',
             },
           },
+        }) + '\n'
+      );
+      // After SESSION_NEW resolves, newSession() internally calls syncDesiredSettings()
+      // in a microtask, which re-sends the model setting from changeSettings above.
+      // We must wait for that request to be sent before providing the response.
+      await new Promise(resolve => setTimeout(resolve, 10));
+      // Response for syncDesiredSettings (id=4)
+      mockStdout.push(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: 4,
+          result: null,
         }) + '\n'
       );
       await session2Promise;

@@ -151,8 +151,6 @@ export class ACPServer {
                 case ACPMethods.SESSION_NEW:
                     result = await this.handleNewSession(params as NewSessionParams);
                     break;
-                // Accept literal string to avoid runtime mismatch when @vcoder/shared dist is stale in dev.
-                case 'session/resume':
                 case ACPMethods.SESSION_RESUME:
                     result = await this.handleResumeSession(params as ResumeSessionParams);
                     break;

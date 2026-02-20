@@ -55,6 +55,7 @@ vi.mock('../../packages/extension/src/services/capabilityOrchestrator', () => ({
         getSessionStore: () => undefined,
         getAuditLogger: () => undefined,
         getBuiltinMcpServer: () => undefined,
+        getLspService: () => undefined,
     }),
 }));
 

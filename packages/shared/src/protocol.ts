@@ -877,64 +877,64 @@ export const ACPMethods = {
     INITIALIZE: 'initialize',
 
     // Session management
-    SESSION_NEW: 'session.new',
-    SESSION_RESUME: 'session.resume',
-    SESSION_UPDATE: 'session.update',
-    SESSION_COMPLETE: 'session.complete',
-    SESSION_LIST: 'session.list',
-    SESSION_SWITCH: 'session.switch',
-    SESSION_DELETE: 'session.delete',
-    SESSION_CANCEL: 'session.cancel',
-    SESSION_REQUEST_PERMISSION: 'session.requestPermission',
+    SESSION_NEW: 'session/new',
+    SESSION_RESUME: 'session/resume',
+    SESSION_UPDATE: 'session/update',
+    SESSION_COMPLETE: 'session/complete',
+    SESSION_LIST: 'session/list',
+    SESSION_SWITCH: 'session/switch',
+    SESSION_DELETE: 'session/delete',
+    SESSION_CANCEL: 'session/cancel',
+    SESSION_REQUEST_PERMISSION: 'session/requestPermission',
 
     // Interaction
-    SESSION_PROMPT: 'session.prompt',
-    SESSION_PROMPT_PERSISTENT: 'session.promptPersistent',
-    SESSION_MODE_STATUS: 'session.modeStatus',
-    SESSION_STOP_PERSISTENT: 'session.stopPersistent',
-    SETTINGS_CHANGE: 'settings.change',
+    SESSION_PROMPT: 'session/prompt',
+    SESSION_PROMPT_PERSISTENT: 'session/promptPersistent',
+    SESSION_MODE_STATUS: 'session/modeStatus',
+    SESSION_STOP_PERSISTENT: 'session/stopPersistent',
+    SETTINGS_CHANGE: 'settings/change',
 
     // File operations
-    FILE_ACCEPT: 'file.accept',
-    FILE_REJECT: 'file.reject',
+    FILE_ACCEPT: 'file/accept',
+    FILE_REJECT: 'file/reject',
 
     // Bash operations
-    BASH_CONFIRM: 'bash.confirm',
-    BASH_SKIP: 'bash.skip',
+    BASH_CONFIRM: 'bash/confirm',
+    BASH_SKIP: 'bash/skip',
 
     // Plan operations
-    PLAN_CONFIRM: 'plan.confirm',
+    PLAN_CONFIRM: 'plan/confirm',
 
     // Tool operations
-    TOOL_CONFIRM: 'tool.confirm',
+    TOOL_CONFIRM: 'tool/confirm',
 
     // History operations
-    HISTORY_LIST: 'history.list',
-    HISTORY_LOAD: 'history.load',
-    HISTORY_DELETE: 'history.delete',
+    HISTORY_LIST: 'history/list',
+    HISTORY_LOAD: 'history/load',
+    HISTORY_DELETE: 'history/delete',
 
     // Permission management
-    PERMISSION_RULES_LIST: 'permissionRules.list',
-    PERMISSION_RULE_ADD: 'permissionRule.add',
-    PERMISSION_RULE_UPDATE: 'permissionRule.update',
-    PERMISSION_RULE_DELETE: 'permissionRule.delete',
+    PERMISSION_RULES_LIST: 'permissionRules/list',
+    PERMISSION_RULE_ADD: 'permissionRule/add',
+    PERMISSION_RULE_UPDATE: 'permissionRule/update',
+    PERMISSION_RULE_DELETE: 'permissionRule/delete',
 
     // File system operations
-    FS_READ_TEXT_FILE: 'fs.readTextFile',
-    FS_WRITE_TEXT_FILE: 'fs.writeTextFile',
+    FS_READ_TEXT_FILE: 'fs/readTextFile',
+    FS_WRITE_TEXT_FILE: 'fs/writeTextFile',
 
     // Terminal operations
-    TERMINAL_CREATE: 'terminal.create',
-    TERMINAL_OUTPUT: 'terminal.output',
-    TERMINAL_WAIT_FOR_EXIT: 'terminal.waitForExit',
-    TERMINAL_KILL: 'terminal.kill',
-    TERMINAL_RELEASE: 'terminal.release',
+    TERMINAL_CREATE: 'terminal/create',
+    TERMINAL_OUTPUT: 'terminal/output',
+    TERMINAL_WAIT_FOR_EXIT: 'terminal/waitForExit',
+    TERMINAL_KILL: 'terminal/kill',
+    TERMINAL_RELEASE: 'terminal/release',
 
     // LSP operations
-    LSP_GO_TO_DEFINITION: 'lsp.goToDefinition',
-    LSP_FIND_REFERENCES: 'lsp.findReferences',
-    LSP_HOVER: 'lsp.hover',
-    LSP_GET_DIAGNOSTICS: 'lsp.getDiagnostics',
+    LSP_GO_TO_DEFINITION: 'lsp/goToDefinition',
+    LSP_FIND_REFERENCES: 'lsp/findReferences',
+    LSP_HOVER: 'lsp/hover',
+    LSP_GET_DIAGNOSTICS: 'lsp/getDiagnostics',
 } as const;
 
 export type ACPMethod = typeof ACPMethods[keyof typeof ACPMethods];

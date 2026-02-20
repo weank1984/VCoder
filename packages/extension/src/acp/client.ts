@@ -355,8 +355,7 @@ export class ACPClient extends EventEmitter {
             ...(params?.mcpServers && { mcpServers: params.mcpServers }),
         };
 
-        // Use string literal to avoid runtime mismatch when @vcoder/shared dist is stale in dev.
-        const result = await this.sendRequest<unknown>('session/resume', sessionParams);
+        const result = await this.sendRequest<unknown>(ACPMethods.SESSION_RESUME, sessionParams);
 
         let session: Session;
         if (isRecord(result) && 'session' in result && isSession(result.session)) {
