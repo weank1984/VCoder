@@ -29,7 +29,7 @@
     }
     
     &.success {
-        background: rgba(0, 128, 0, 0.1);
+        background: var(--vc-color-success-bg);
         border-color: var(--vscode-terminal-ansiGreen);
         color: var(--vscode-terminal-ansiGreen);
     }

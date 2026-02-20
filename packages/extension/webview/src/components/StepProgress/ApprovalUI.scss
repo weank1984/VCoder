@@ -57,7 +57,7 @@
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.1) 50%,
+      color-mix(in srgb, var(--vscode-foreground) 10%, transparent) 50%,
       transparent 100%
     );
     pointer-events: none;
@@ -136,7 +136,7 @@
   50% { 
     animation-timing-function: ease-out;
     opacity: 0.9;
-    box-shadow: 0 0 0 2px rgba(255, 53, 53, 0.1);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--vscode-terminal-ansiRed) 10%, transparent);
   }
 }
 

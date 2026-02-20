@@ -235,7 +235,7 @@ export function PermissionDialog({ request, onClose }: PermissionDialogProps) {
                             checked={rememberChoice}
                             onChange={(e) => setRememberChoice(e.target.checked)}
                         />
-                        <span>Remember my choice for this session</span>
+                        <span>Remember my choice</span>
                     </label>
 
                     <div className="permission-dialog__actions">

@@ -146,8 +146,8 @@ export class ErrorBoundary extends Component<Props, State> {
                         .vc-error-details {
                             margin: 0 0 20px;
                             text-align: left;
-                            background: rgba(255, 0, 0, 0.05);
-                            border: 1px solid rgba(255, 0, 0, 0.2);
+                            background: var(--vc-color-error-bg-subtle, rgba(255, 0, 0, 0.05));
+                            border: 1px solid var(--vc-color-error-border, rgba(255, 0, 0, 0.2));
                             border-radius: 6px;
                             overflow: hidden;
                         }
@@ -156,10 +156,10 @@ export class ErrorBoundary extends Component<Props, State> {
                             cursor: pointer;
                             font-weight: 500;
                             user-select: none;
-                            background: rgba(255, 0, 0, 0.1);
+                            background: var(--vc-color-error-bg, rgba(255, 0, 0, 0.1));
                         }
                         .vc-error-details summary:hover {
-                            background: rgba(255, 0, 0, 0.15);
+                            background: var(--vc-color-error-bg-hover, rgba(255, 0, 0, 0.15));
                         }
                         .vc-error-details pre {
                             padding: 12px;
@@ -172,7 +172,7 @@ export class ErrorBoundary extends Component<Props, State> {
                             word-break: break-all;
                         }
                         .vc-error-stack {
-                            border-top: 1px solid rgba(255, 0, 0, 0.2);
+                            border-top: 1px solid var(--vc-color-error-border, rgba(255, 0, 0, 0.2));
                             opacity: 0.7;
                         }
                         .vc-error-actions {

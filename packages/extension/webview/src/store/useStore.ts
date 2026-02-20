@@ -1436,15 +1436,30 @@ export const useStore = create<AppStore>((set, get) => ({
 
     setHistorySessions: (historySessions) => set({ historySessions }),
 
-    loadHistorySession: (sessionId, historyMessages) => set({
-        viewMode: 'history',
-        currentSessionId: sessionId,
+    loadHistorySession: (sessionId, historyMessages) => set((state) => {
         // History mode should mirror live rendering as closely as possible.
         // Live streaming aggregates all assistant activity (text/thought/tools) into a single assistant message until
         // completion; do the same for history by merging consecutive assistant transcript messages.
-        messages: mergeHistoryMessages(historyMessages),
-        isLoading: false,
-        pendingFileChanges: [],
+        const messages = mergeHistoryMessages(historyMessages);
+
+        // Also populate sessionStates so getCurrentSessionState() works during history viewing
+        const newSessionStates = new Map(state.sessionStates);
+        const existingState = newSessionStates.get(sessionId);
+        const now = Date.now();
+        newSessionStates.set(sessionId, {
+            ...(existingState ?? createSessionState(sessionId)),
+            messages,
+            updatedAt: now,
+        });
+
+        return {
+            viewMode: 'history',
+            currentSessionId: sessionId,
+            sessionStates: newSessionStates,
+            messages,
+            isLoading: false,
+            pendingFileChanges: [],
+        };
     }),
 
     exitHistoryMode: () => {

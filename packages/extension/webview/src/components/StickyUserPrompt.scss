@@ -41,7 +41,7 @@
 
 // 展开状态 - 使用额外的类来添加特殊样式
 .vc-sticky-expanded {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--vc-shadow-md);
 }
 
 // 折叠状态
@@ -57,13 +57,13 @@
     color: var(--vscode-input-foreground);
     cursor: pointer;
     text-align: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--vc-shadow-sm);
     position: relative;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
     &:hover {
         border-color: var(--vscode-focusBorder, var(--vscode-input-border));
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--vc-shadow-md);
     }
 }
 

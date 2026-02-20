@@ -36,7 +36,7 @@ jobs:
       - name: Package VSIX
         working-directory: packages/extension
         run: |
-          pnpm dlx @vscode/vsce package --out vcoder.vsix
+          pnpm dlx @vscode/vsce package --no-dependencies --out vcoder.vsix
 
       - name: Upload VSIX to GitHub Release
         uses: softprops/action-gh-release@v2

@@ -86,6 +86,12 @@ export const StatusBarAlignment = {
   Right: 2,
 };
 
+export const Disposable = {
+  from: (...disposables: { dispose: () => any }[]) => ({
+    dispose: () => disposables.forEach(d => d.dispose()),
+  }),
+};
+
 export const Range: MockApi = vi.fn();
 export const Position: MockApi = vi.fn();
 export const Selection: MockApi = vi.fn();

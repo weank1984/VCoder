@@ -5,7 +5,7 @@
     background: var(--vscode-dropdown-background, #3c3c3c);
     border: 1px solid var(--vscode-dropdown-border, #454545);
     border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--vc-shadow-lg);
     max-width: 400px;
     min-width: 250px;
     max-height: 300px;

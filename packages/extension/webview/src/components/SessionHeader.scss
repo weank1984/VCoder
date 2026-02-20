@@ -103,7 +103,7 @@
     background: var(--vscode-dropdown-background, var(--vc-bg));
     border: 1px solid var(--vscode-dropdown-border, var(--vc-color-border));
     border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--vc-shadow-lg);
     display: flex;
     flex-direction: column;
     animation: fadeIn 0.1s ease-out;

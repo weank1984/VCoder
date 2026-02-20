@@ -139,7 +139,12 @@ export class ACPServer {
     }
 
     private async handleRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
-        const { id, method, params } = request;
+        let { id, method, params } = request;
+
+        // FR-302: Compat layer for old `.` style method names (deprecated, remove in v0.4)
+        if (method.includes('.') && !method.includes('/')) {
+            method = method.replace(/\./g, '/');
+        }
 
         try {
             let result: unknown;

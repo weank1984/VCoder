@@ -468,18 +468,20 @@ export class ACPClient extends EventEmitter {
         });
     }
 
-    async acceptFileChange(path: string): Promise<void> {
-        if (!this.currentSession) return;
+    async acceptFileChange(path: string, sessionId?: string): Promise<void> {
+        const sid = sessionId ?? this.currentSession?.id;
+        if (!sid) return;
         await this.sendRequest(ACPMethods.FILE_ACCEPT, {
-            sessionId: this.currentSession.id,
+            sessionId: sid,
             path,
         });
     }
 
-    async rejectFileChange(path: string): Promise<void> {
-        if (!this.currentSession) return;
+    async rejectFileChange(path: string, sessionId?: string): Promise<void> {
+        const sid = sessionId ?? this.currentSession?.id;
+        if (!sid) return;
         await this.sendRequest(ACPMethods.FILE_REJECT, {
-            sessionId: this.currentSession.id,
+            sessionId: sid,
             path,
         });
     }

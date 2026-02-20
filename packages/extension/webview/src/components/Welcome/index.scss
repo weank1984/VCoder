@@ -13,10 +13,10 @@ $welcome-prefixCls: vc-chat-welcome;
     position: absolute;
     inset: -120px;
     background-image:
-      radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.05) 0, transparent 42%),
-      radial-gradient(circle at 85% 18%, rgba(255, 255, 255, 0.04) 0, transparent 44%),
-      radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.035) 0, transparent 50%),
-      radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+      radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--vscode-foreground) 5%, transparent) 0, transparent 42%),
+      radial-gradient(circle at 85% 18%, color-mix(in srgb, var(--vscode-foreground) 4%, transparent) 0, transparent 44%),
+      radial-gradient(circle at 70% 70%, color-mix(in srgb, var(--vscode-foreground) 3.5%, transparent) 0, transparent 50%),
+      radial-gradient(color-mix(in srgb, var(--vscode-foreground) 6%, transparent) 1px, transparent 1px);
     background-size: 520px 520px, 520px 520px, 520px 520px, 18px 18px;
     background-position: 0 0, 0 0, 0 0, 0 0;
     opacity: 0.55;
@@ -148,14 +148,14 @@ $welcome-prefixCls: vc-chat-welcome;
     padding: 10px 12px;
     border-radius: 10px;
     border: 1px solid var(--vc-color-border-secondary);
-    background: rgba(255, 255, 255, 0.02);
+    background: color-mix(in srgb, var(--vscode-foreground) 2%, transparent);
     box-shadow: var(--vc-box-shadow-tertiary);
     color: var(--vc-color-text);
     cursor: pointer;
     text-align: left;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.04);
+      background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
       border-color: var(--vc-color-border);
     }
   }
@@ -184,6 +184,6 @@ $welcome-prefixCls: vc-chat-welcome;
     border: 1px dashed var(--vc-color-border-secondary);
     color: var(--vc-color-text-tertiary);
     font-size: 12px;
-    background: rgba(255, 255, 255, 0.015);
+    background: color-mix(in srgb, var(--vscode-foreground) 1.5%, transparent);
   }
 }

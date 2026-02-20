@@ -29,7 +29,14 @@ export class DiffManager implements vscode.TextDocumentContentProvider {
     ) { }
 
     register(): vscode.Disposable {
-        return vscode.workspace.registerTextDocumentContentProvider('vcoder-diff', this);
+        const providerDisposable = vscode.workspace.registerTextDocumentContentProvider('vcoder-diff', this);
+        return vscode.Disposable.from(providerDisposable, { dispose: () => this.dispose() });
+    }
+
+    private dispose(): void {
+        this.onDidChangeEmitter.dispose();
+        this.pending.clear();
+        this.previewQueue = Promise.resolve();
     }
 
     async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
@@ -139,9 +146,9 @@ export class DiffManager implements vscode.TextDocumentContentProvider {
 
         if (picked === 'Accept') {
             await this.applyChange(entry);
-            await this.acpClient.acceptFileChange(change.path);
+            await this.acpClient.acceptFileChange(change.path, entry.sessionId);
         } else if (picked === 'Reject') {
-            await this.acpClient.rejectFileChange(change.path);
+            await this.acpClient.rejectFileChange(change.path, entry.sessionId);
         }
 
         this.pending.delete(key);

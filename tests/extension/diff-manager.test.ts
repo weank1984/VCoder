@@ -77,6 +77,11 @@ vi.mock('vscode', () => ({
     window: mockWindow,
     Uri: mockUri,
     EventEmitter: MockEventEmitter,
+    Disposable: {
+        from: (...disposables: { dispose: () => any }[]) => ({
+            dispose: () => disposables.forEach(d => d.dispose()),
+        }),
+    },
     commands: {
         executeCommand: vi.fn(),
     },
@@ -178,7 +183,7 @@ describe('DiffManager', () => {
             await diffManager.previewChange('test-session', change);
 
             expect(mockWindow.showInformationMessage).toHaveBeenCalled();
-            expect(mockAcpClient.acceptFileChange).toHaveBeenCalledWith('test.txt');
+            expect(mockAcpClient.acceptFileChange).toHaveBeenCalledWith('test.txt', 'test-session');
         });
 
         it('should handle rejected changes correctly', async () => {
@@ -195,7 +200,7 @@ describe('DiffManager', () => {
 
             await diffManager.previewChange('test-session', change);
 
-            expect(mockAcpClient.rejectFileChange).toHaveBeenCalledWith('test.txt');
+            expect(mockAcpClient.rejectFileChange).toHaveBeenCalledWith('test.txt', 'test-session');
         });
     });
 

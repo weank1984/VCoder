@@ -127,6 +127,35 @@ export async function activate(context: vscode.ExtensionContext) {
                 });
             }
 
+            // Initialize capability providers
+            fileSystemProvider = new FileSystemProvider(context);
+            terminalProvider = new TerminalProvider(context);
+
+            // Register FS request handlers
+            acpClient.registerRequestHandler(ACPMethods.FS_READ_TEXT_FILE, async (params) => {
+                return fileSystemProvider!.readTextFile(params as any);
+            });
+            acpClient.registerRequestHandler(ACPMethods.FS_WRITE_TEXT_FILE, async (params) => {
+                return fileSystemProvider!.writeTextFile(params as any);
+            });
+
+            // Register Terminal request handlers
+            acpClient.registerRequestHandler(ACPMethods.TERMINAL_CREATE, async (params) => {
+                return terminalProvider!.createTerminal(params as any);
+            });
+            acpClient.registerRequestHandler(ACPMethods.TERMINAL_OUTPUT, async (params) => {
+                return terminalProvider!.getTerminalOutput(params as any);
+            });
+            acpClient.registerRequestHandler(ACPMethods.TERMINAL_WAIT_FOR_EXIT, async (params) => {
+                return terminalProvider!.waitForExit(params as any);
+            });
+            acpClient.registerRequestHandler(ACPMethods.TERMINAL_KILL, async (params) => {
+                return terminalProvider!.killTerminal(params as any);
+            });
+            acpClient.registerRequestHandler(ACPMethods.TERMINAL_RELEASE, async (params) => {
+                return terminalProvider!.releaseTerminal(params as any);
+            });
+
             // Set up notification handling
             acpClient.on('session/update', (params: UpdateNotificationParams) => {
                 // Notifications will be handled by ChatViewProvider

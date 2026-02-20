@@ -3,7 +3,7 @@
   border-radius: 12px;
   border: 1px solid var(--vc-color-border);
   background: var(--vc-bg-secondary);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--vc-shadow-md);
   overflow: hidden;
 }
 
