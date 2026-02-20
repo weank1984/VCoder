@@ -4,13 +4,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: calc(var(--vc-padding) / 1.5) var(--vc-padding) calc(var(--vc-padding) * 5 / 6);
-    margin-top: 2px;
-    
+    padding: var(--vc-space-2) var(--vc-space-3) var(--vc-space-2);
+    margin-top: var(--vc-space-1);
+
     .toolbar-left, .toolbar-right {
         display: flex;
         align-items: center;
-        gap: calc(var(--vc-padding) / 2);
+        gap: var(--vc-space-1);
     }
 }
 
@@ -18,10 +18,10 @@
 .composer-unified-dropdown {
     display: flex;
     align-items: center;
-    gap: calc(var(--vc-padding) / 2);
-    font-size: 12px;
-    height: 26px;
-    padding: 0 calc(var(--vc-padding) / 1.5);
+    gap: var(--vc-space-1);
+    font-size: var(--vc-font-size-sm);
+    height: var(--vc-input-height-sm);
+    padding: 0 var(--vc-space-2);
     border-radius: var(--vc-radius-sm);
     background: var(--vscode-button-secondaryBackground);
     color: var(--vscode-button-secondaryForeground);
@@ -29,29 +29,29 @@
     position: relative;
     user-select: none;
     transition: background var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
-    
+
     &:hover {
         background: var(--vscode-button-secondaryHoverBackground);
     }
-    
+
     .dropdown-content {
         display: flex;
         align-items: center;
-        gap: calc(var(--vc-padding) / 2);
+        gap: var(--vc-space-1);
     }
-    
+
     .codicon-infinity {
-        font-size: 14px;
+        font-size: var(--vc-font-size-md);
     }
 
     .dropdown-label {
-        font-weight: 500;
+        font-weight: var(--vc-font-weight-medium);
         max-width: 140px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-    
+
     .codicon-chevron-down {
         opacity: 0.7;
         display: flex;
@@ -67,17 +67,17 @@
 
 /* Agent Selector Popover */
 .agent-selector-popover {
-    padding: calc(var(--vc-padding) / 3);
+    padding: var(--vc-space-1);
     background: var(--vscode-dropdown-background);
     border: 1px solid var(--vscode-dropdown-border);
-    border-radius: calc(var(--vc-padding) / 1.5);
+    border-radius: var(--vc-radius-md);
     box-shadow: var(--vc-box-shadow);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     color: var(--vscode-foreground);
     position: absolute;
-    bottom: calc(100% + calc(var(--vc-padding) / 1.5));
+    bottom: calc(100% + var(--vc-space-2));
     left: 0;
     z-index: 1000;
     animation: fadeIn var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
@@ -86,20 +86,20 @@
     .agent-list-item {
         display: flex;
         align-items: center;
-        gap: calc(var(--vc-padding) / 1.5);
-        padding: calc(var(--vc-padding) / 1.5);
+        gap: var(--vc-space-2);
+        padding: var(--vc-space-2);
         cursor: pointer;
         border-radius: var(--vc-radius-sm);
-        font-size: 12px;
+        font-size: var(--vc-font-size-sm);
         transition: background var(--vc-motion-duration-mid) var(--vc-motion-ease-out);
-        
+
         &:hover {
-            background: var(--vscode-list-hoverBackground);
+            background: var(--vc-color-hover-bg);
         }
-        
+
         &.selected {
-            background: var(--vscode-list-activeSelectionBackground);
-            color: var(--vscode-list-activeSelectionForeground);
+            background: var(--vc-color-selected-bg);
+            color: var(--vc-color-selected-fg);
         }
 
         .agent-icon {
@@ -112,17 +112,17 @@
 
         .agent-label {
             flex: 1;
-            font-weight: 500;
+            font-weight: var(--vc-font-weight-medium);
         }
 
         .agent-shortcut {
-            font-size: 10px;
+            font-size: var(--vc-font-size-xs);
             opacity: 0.6;
             background: var(--vscode-keybindingLabel-background);
             border: 1px solid var(--vscode-keybindingLabel-border);
             color: var(--vscode-keybindingLabel-foreground);
-            padding: 1px calc(var(--vc-padding) / 3);
-            border-radius: 3px;
+            padding: var(--vc-space-1) var(--vc-space-1);
+            border-radius: var(--vc-radius-xs);
         }
     }
 }
@@ -141,20 +141,20 @@
 .toolbar-apply-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--vc-space-2);
 }
 
 /* Action Buttons */
 .vc-action-btn {
     border: none;
-    font-size: 13px;
-    font-weight: 500;
-    padding: 6px 14px;
-    border-radius: 6px;
+    font-size: var(--vc-font-size-md);
+    font-weight: var(--vc-font-weight-medium);
+    padding: var(--vc-space-1) var(--vc-space-3);
+    border-radius: var(--vc-radius-md);
     cursor: pointer;
-    transition: background 0.12s ease;
+    transition: background var(--vc-transition-fast);
     white-space: nowrap;
-    height: 28px;
+    height: var(--vc-input-height-sm);
     display: inline-flex;
     align-items: center;
     justify-content: center;

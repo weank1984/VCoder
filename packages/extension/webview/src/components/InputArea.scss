@@ -39,8 +39,8 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--vc-spacing-component-md);
-    margin: calc(var(--vc-space-1) + var(--vc-space-2)) calc(var(--vc-spacing-component-md) * 7 / 6) 0;
-    padding: var(--vc-space-2) calc(var(--vc-space-2) + var(--vc-space-1));
+    margin: var(--vc-space-2) var(--vc-space-3) 0;
+    padding: var(--vc-space-2) var(--vc-space-3);
     border: 1px solid var(--vc-color-border);
     border-radius: var(--vc-radius-sm);
     background: var(--vc-color-bg-tertiary);
@@ -67,15 +67,15 @@
 .attachments-preview {
     display: flex;
     flex-wrap: wrap;
-    gap: calc(var(--vc-spacing-component-md) / 1.5);
-    padding: calc(var(--vc-spacing-component-md) * 5 / 6) calc(var(--vc-spacing-component-md) * 7 / 6) calc(var(--vc-space-1));
+    gap: var(--vc-space-2);
+    padding: var(--vc-space-2) var(--vc-space-3) var(--vc-space-1);
 }
 
 .attachment-chip {
     display: inline-flex;
     align-items: center;
-    gap: calc(var(--vc-spacing-component-md) / 2);
-    padding: calc(var(--vc-space-1)) calc(var(--vc-spacing-component-md) / 1.5);
+    gap: var(--vc-space-1);
+    padding: var(--vc-space-1) var(--vc-space-2);
     font-size: var(--vc-font-size-xs);
     font-weight: var(--vc-font-weight-medium);
     background: var(--vc-color-bg-tertiary);
@@ -129,7 +129,7 @@
 
 .input-field {
     width: 100%;
-    padding: calc(var(--vc-spacing-component-md) * 5 / 6) calc(var(--vc-spacing-component-md) * 7 / 6);
+    padding: var(--vc-space-3) var(--vc-space-3);
     border: none !important;
     outline: none !important;
     background: transparent;
@@ -164,14 +164,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: calc(var(--vc-spacing-component-md) / 1.5) var(--vc-spacing-component-md) calc(var(--vc-spacing-component-md) * 5 / 6);
+    padding: var(--vc-space-2) var(--vc-space-3) var(--vc-space-2);
     margin-top: var(--vc-space-1);
 
     .toolbar-left,
     .toolbar-right {
         display: flex;
         align-items: center;
-        gap: calc(var(--vc-spacing-component-md) / 2);
+        gap: var(--vc-space-1);
     }
 }
 
@@ -182,9 +182,9 @@
 .composer-unified-dropdown {
     display: flex;
     align-items: center;
-    gap: calc(var(--vc-spacing-component-md) / 2);
+    gap: var(--vc-space-1);
     height: var(--vc-input-height-sm);
-    padding: 0 calc(var(--vc-spacing-component-md) / 1.5);
+    padding: 0 var(--vc-space-2);
     border-radius: var(--vc-radius-sm);
     background: var(--vc-color-secondary);
     color: var(--vscode-button-secondaryForeground);
@@ -204,7 +204,7 @@
     .dropdown-content {
         display: flex;
         align-items: center;
-        gap: calc(var(--vc-spacing-component-md) / 2);
+        gap: var(--vc-space-1);
     }
 
     .codicon-infinity {
@@ -242,7 +242,7 @@
     background: transparent;
     color: var(--vc-color-text-primary);
     border: 1px solid transparent;
-    padding: 0 calc(var(--vc-spacing-component-md) / 2);
+    padding: 0 var(--vc-space-1);
 
     &:hover:not(.is-disabled) {
         background: var(--vc-color-hover-bg);
@@ -271,17 +271,17 @@
    ========================================================================== */
 
 .popover-container {
-    padding: calc(var(--vc-space-1));
+    padding: var(--vc-space-1);
     background: var(--vscode-dropdown-background);
     border: 1px solid var(--vscode-dropdown-border);
-    border-radius: calc(var(--vc-spacing-component-md) / 1.5);
+    border-radius: var(--vc-radius-md);
     box-shadow: var(--vc-box-shadow);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     color: var(--vc-color-text-primary);
     position: absolute;
-    bottom: calc(100% + calc(var(--vc-spacing-component-md) / 1.5));
+    bottom: calc(100% + var(--vc-space-2));
     left: 0;
     z-index: var(--vc-z-index-popover);
     animation: fadeIn var(--vc-transition-mid) var(--vc-motion-ease-out);
@@ -309,8 +309,8 @@
     .agent-list-item {
         display: flex;
         align-items: center;
-        gap: calc(var(--vc-spacing-component-md) / 1.5);
-        padding: calc(var(--vc-spacing-component-md) / 1.5);
+        gap: var(--vc-space-2);
+        padding: var(--vc-space-2);
         cursor: pointer;
         border-radius: var(--vc-radius-sm);
         font-size: var(--vc-font-size-sm);
@@ -360,16 +360,16 @@
     padding: 0;
 
     .model-search-wrapper {
-        padding: calc(var(--vc-spacing-component-md) / 1.5);
+        padding: var(--vc-space-2);
         border-bottom: 1px solid var(--vscode-settings-dropdownBorder);
 
         input {
             width: 100%;
-            padding: calc(var(--vc-space-1)) calc(var(--vc-spacing-component-md) / 1.5);
+            padding: var(--vc-space-1) var(--vc-space-2);
             background: var(--vc-color-bg-input);
             color: var(--vscode-input-foreground);
             border: 1px solid var(--vc-input-border-color);
-            border-radius: calc(var(--vc-radius-sm) - var(--vc-space-1));
+            border-radius: var(--vc-radius-xs);
             outline: none;
             font-size: var(--vc-font-size-sm);
             transition: border-color var(--vc-transition-fast);
@@ -401,7 +401,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: calc(var(--vc-spacing-component-md) / 1.5) var(--vc-spacing-component-md);
+        padding: var(--vc-space-2) var(--vc-space-3);
         cursor: pointer;
         font-size: var(--vc-font-size-sm);
         transition: background var(--vc-transition-fast);
@@ -425,7 +425,7 @@
     .model-item-left {
         display: flex;
         align-items: center;
-        gap: calc(var(--vc-spacing-component-md) / 1.5);
+        gap: var(--vc-space-2);
     }
 
     .brain-icon {
@@ -478,7 +478,7 @@
     }
 
     .model-footer {
-        padding: calc(var(--vc-spacing-component-md) / 1.5) var(--vc-spacing-component-md);
+        padding: var(--vc-space-2) var(--vc-space-3);
         cursor: pointer;
         color: var(--vc-color-link);
         font-size: var(--vc-font-size-xs);

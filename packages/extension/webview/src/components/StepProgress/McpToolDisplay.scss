@@ -3,36 +3,36 @@
  */
 
 .mcp-tool-display {
-    margin: 8px 0;
-    border-radius: 4px;
-    border: 1px solid var(--vscode-panel-border);
-    background: var(--vscode-editor-background);
+    margin: var(--vc-space-2) 0;
+    border-radius: var(--vc-radius-sm);
+    border: 1px solid var(--vc-color-border);
+    background: var(--vc-color-bg-base);
     overflow: hidden;
-    transition: all 0.2s ease;
-    
+    transition: all var(--vc-transition-fast);
+
     // State-based styling
     &.running,
     &.pending {
-        border-left: 3px solid var(--vscode-terminal-ansiCyan);
-        
+        border-left: 3px solid var(--vc-color-info-text);
+
         .mcp-header {
-            background: color-mix(in srgb, var(--vscode-terminal-ansiCyan) 8%, transparent);
+            background: var(--vc-color-info-bg-subtle);
         }
     }
-    
+
     &.completed {
-        border-left: 3px solid var(--vscode-terminal-ansiGreen);
-        
+        border-left: 3px solid var(--vc-color-success-text);
+
         .mcp-header {
-            background: color-mix(in srgb, var(--vscode-terminal-ansiGreen) 5%, transparent);
+            background: var(--vc-color-success-bg-subtle);
         }
     }
-    
+
     &.failed {
-        border-left: 3px solid var(--vscode-terminal-ansiRed);
-        
+        border-left: 3px solid var(--vc-color-error-text);
+
         .mcp-header {
-            background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 5%, transparent);
+            background: var(--vc-color-error-bg-subtle);
         }
     }
 }
@@ -40,17 +40,17 @@
 .mcp-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: var(--vc-space-3);
+    padding: var(--vc-space-3) var(--vc-space-3);
     cursor: pointer;
     user-select: none;
-    background: var(--vscode-editor-background);
-    transition: background 0.2s ease;
-    
+    background: var(--vc-color-bg-base);
+    transition: background var(--vc-transition-fast);
+
     &:hover {
-        background: var(--vscode-list-hoverBackground);
+        background: var(--vc-color-hover-bg);
     }
-    
+
     .mcp-icon {
         display: flex;
         align-items: center;
@@ -58,13 +58,13 @@
         width: 22px;
         height: 22px;
         flex-shrink: 0;
-        color: var(--vscode-terminal-ansiCyan);
-        
+        color: var(--vc-color-info-text);
+
         svg {
             width: 18px;
             height: 18px;
         }
-        
+
         .running &,
         .pending & {
             animation: pulse 2s ease-in-out infinite;
@@ -83,34 +83,34 @@
 .mcp-tool-name {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    
+    gap: var(--vc-space-2);
+    font-size: var(--vc-font-size-md);
+
     .mcp-server-badge {
         display: inline-flex;
         align-items: center;
-        padding: 2px 8px;
-        background: color-mix(in srgb, var(--vscode-terminal-ansiCyan) 20%, transparent);
-        color: var(--vscode-terminal-ansiCyan);
-        border-radius: 3px;
-        font-family: var(--vscode-editor-font-family);
-        font-size: 11px;
-        font-weight: 600;
+        padding: var(--vc-space-1) var(--vc-space-2);
+        background: var(--vc-color-info-bg-subtle);
+        color: var(--vc-color-info-text);
+        border-radius: var(--vc-radius-sm);
+        font-family: var(--vc-font-family-code);
+        font-size: var(--vc-font-size-xs);
+        font-weight: var(--vc-font-weight-semibold);
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-    
+
     .mcp-tool {
-        color: var(--vscode-foreground);
-        font-weight: 500;
-        font-family: var(--vscode-editor-font-family);
+        color: var(--vc-color-text-primary);
+        font-weight: var(--vc-font-weight-medium);
+        font-family: var(--vc-font-family-code);
     }
 }
 
 .mcp-summary {
-    font-size: 12px;
-    color: var(--vscode-descriptionForeground);
-    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vc-font-size-sm);
+    color: var(--vc-color-text-secondary);
+    font-family: var(--vc-font-family-code);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -129,23 +129,23 @@
         justify-content: center;
         width: 20px;
         height: 20px;
-        
+
         svg {
             width: 16px;
             height: 16px;
         }
-        
+
         &.completed {
-            color: var(--vscode-terminal-ansiGreen);
+            color: var(--vc-color-success-text);
         }
-        
+
         &.failed {
-            color: var(--vscode-terminal-ansiRed);
+            color: var(--vc-color-error-text);
         }
-        
+
         &.running,
         &.pending {
-            color: var(--vscode-terminal-ansiCyan);
+            color: var(--vc-color-info-text);
         }
     }
     
@@ -168,28 +168,28 @@
     display: flex;
     flex-direction: column;
     gap: 1px;
-    border-top: 1px solid var(--vscode-panel-border);
-    background: var(--vscode-panel-border);
+    border-top: 1px solid var(--vc-color-border);
+    background: var(--vc-color-border);
 }
 
 .mcp-section {
-    background: var(--vscode-editor-background);
-    
+    background: var(--vc-color-bg-base);
+
     &.mcp-input {
         .mcp-section-header {
-            color: var(--vscode-terminal-ansiBlue);
+            color: var(--vc-color-info-text);
         }
     }
-    
+
     &.mcp-result {
         .mcp-section-header {
-            color: var(--vscode-terminal-ansiGreen);
+            color: var(--vc-color-success-text);
         }
     }
-    
+
     &.mcp-error {
         .mcp-section-header {
-            color: var(--vscode-terminal-ansiRed);
+            color: var(--vc-color-error-text);
         }
     }
 }
@@ -197,22 +197,22 @@
 .mcp-section-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    background: color-mix(in srgb, var(--vscode-textCodeBlock-background) 50%, transparent);
-    font-size: 12px;
-    font-weight: 600;
-    border-bottom: 1px solid var(--vscode-panel-border);
-    
+    gap: var(--vc-space-2);
+    padding: var(--vc-space-2) var(--vc-space-3);
+    background: var(--vc-color-bg-secondary);
+    font-size: var(--vc-font-size-sm);
+    font-weight: var(--vc-font-weight-semibold);
+    border-bottom: 1px solid var(--vc-color-border);
+
     svg {
         width: 14px;
         height: 14px;
     }
-    
+
     span {
         flex: 1;
     }
-    
+
     .mcp-copy-btn {
         display: flex;
         align-items: center;
@@ -222,103 +222,84 @@
         padding: 0;
         border: none;
         background: transparent;
-        color: var(--vscode-foreground);
+        color: var(--vc-color-text-primary);
         cursor: pointer;
-        border-radius: 3px;
-        transition: all 0.2s ease;
-        
+        border-radius: var(--vc-radius-sm);
+        transition: all var(--vc-transition-fast);
+
         svg {
             width: 14px;
             height: 14px;
         }
-        
+
         &:hover {
-            background: var(--vscode-toolbar-hoverBackground);
+            background: var(--vc-color-hover-bg);
         }
     }
 }
 
 .mcp-section-content {
-    padding: 12px;
+    padding: var(--vc-space-3);
 }
 
 .mcp-summary-text {
-    font-size: 13px;
-    color: var(--vscode-foreground);
-    font-family: var(--vscode-editor-font-family);
-    line-height: 1.5;
+    font-size: var(--vc-font-size-md);
+    color: var(--vc-color-text-primary);
+    font-family: var(--vc-font-family-code);
+    line-height: var(--vc-line-height-relaxed);
     word-wrap: break-word;
 }
 
 .mcp-full-content {
     margin: 0;
-    padding: 12px;
-    font-family: var(--vscode-editor-font-family);
-    font-size: var(--vscode-editor-font-size);
-    line-height: 1.6;
-    color: var(--vscode-editor-foreground);
+    padding: var(--vc-space-3);
+    font-family: var(--vc-font-family-code);
+    font-size: var(--vc-font-size-sm);
+    line-height: var(--vc-line-height-relaxed);
+    color: var(--vc-color-text-primary);
     background: var(--vscode-textCodeBlock-background);
-    border-radius: 4px;
+    border-radius: var(--vc-radius-sm);
     overflow-x: auto;
     max-height: 400px;
     overflow-y: auto;
-    
-    // Custom scrollbar
-    &::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-    }
-    
-    &::-webkit-scrollbar-track {
-        background: var(--vscode-scrollbarSlider-background);
-    }
-    
-    &::-webkit-scrollbar-thumb {
-        background: var(--vscode-scrollbarSlider-hoverBackground);
-        border-radius: 4px;
-        
-        &:hover {
-            background: var(--vscode-scrollbarSlider-activeBackground);
-        }
-    }
 }
 
 .mcp-error-content {
     margin: 0;
-    padding: 12px;
-    font-family: var(--vscode-editor-font-family);
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--vscode-terminal-ansiRed);
-    background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 10%, transparent);
-    border-radius: 4px;
-    border-left: 3px solid var(--vscode-terminal-ansiRed);
+    padding: var(--vc-space-3);
+    font-family: var(--vc-font-family-code);
+    font-size: var(--vc-font-size-md);
+    line-height: var(--vc-line-height-relaxed);
+    color: var(--vc-color-error-text);
+    background: var(--vc-color-error-bg-subtle);
+    border-radius: var(--vc-radius-sm);
+    border-left: 3px solid var(--vc-color-error-text);
 }
 
 .mcp-toggle-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 8px;
-    padding: 6px 12px;
-    border: 1px solid var(--vscode-button-border);
+    gap: var(--vc-space-2);
+    margin-top: var(--vc-space-2);
+    padding: var(--vc-space-2) var(--vc-space-3);
+    border: 1px solid var(--vc-color-border);
     background: var(--vscode-button-secondaryBackground);
     color: var(--vscode-button-secondaryForeground);
-    font-size: 12px;
-    font-weight: 500;
-    border-radius: 3px;
+    font-size: var(--vc-font-size-sm);
+    font-weight: var(--vc-font-weight-medium);
+    border-radius: var(--vc-radius-sm);
     cursor: pointer;
-    transition: all 0.2s ease;
-    
+    transition: all var(--vc-transition-fast);
+
     svg {
         width: 14px;
         height: 14px;
     }
-    
+
     &:hover {
         background: var(--vscode-button-secondaryHoverBackground);
     }
-    
+
     &:active {
         transform: scale(0.98);
     }

@@ -347,9 +347,9 @@
       ========================================================================== */
 
     /* ----- Todo/Task Priority Colors ----- */
-    --vc-todo-priority-high: var(--vscode-colors.red, #ff5722);        // Red for urgent
-    --vc-todo-priority-medium: var(--vscode-charts-orange, #f78c6c);    // Orange for medium 
-    --vc-todo-priority-low: var(--vscode-charts.gray, #8a8a8a);         // Gray for low
+    --vc-todo-priority-high: var(--vc-color-error-text, #f48771);
+    --vc-todo-priority-medium: var(--vc-color-warning-text, #dcdcaa);
+    --vc-todo-priority-low: var(--vc-color-text-tertiary, #8a8a8a);
 
     /* ----- Status-Based Colors ----- */
     --vc-todo-status-pending: var(--vc-color-text-secondary);
@@ -390,6 +390,35 @@
     --vc-task-bg-refactor: color-mix(in srgb, var(--vscode-symbolIcon-eventForeground) 8%, transparent);
     --vc-task-bg-test: color-mix(in srgb, var(--vscode-terminal-ansiGreen) 8%, transparent);
     --vc-task-bg-unknown: var(--vc-bg-secondary);
+
+    /* ==========================================================================
+       12. MISSING ALIASES (Color & Spacing short-names)
+       Required by TodoTaskManager, StepProgress, and legacy components
+       ========================================================================== */
+
+    /* Color surface / fill aliases */
+    --vc-color-surface: var(--vc-color-bg-base);
+    --vc-color-fill-secondary: var(--vc-color-hover-bg);
+    --vc-color-fill-tertiary: var(--vc-color-bg-tertiary);
+    --vc-color-primary-light: var(--vc-color-primary-bg-hover);
+
+    /* Status color short aliases */
+    --vc-color-success: var(--vc-color-success-text);
+    --vc-color-error: var(--vc-color-error-text);
+    --vc-color-error-light: var(--vc-color-error-bg);
+    --vc-color-warning: var(--vc-color-warning-text);
+
+    /* Spacing short aliases */
+    --vc-spacing-xs: var(--vc-space-1);    /* 4px */
+    --vc-spacing-sm: var(--vc-space-2);    /* 8px */
+    --vc-spacing-md: var(--vc-space-3);    /* 12px */
+    --vc-spacing-lg: var(--vc-space-4);    /* 16px */
+    --vc-spacing-xl: var(--vc-space-6);    /* 24px */
+
+    /* Input height tokens */
+    --vc-input-height-sm: 26px;
+    --vc-input-height-md: 30px;
+    --vc-input-height-lg: 36px;
 }
 
 /* ==========================================================================

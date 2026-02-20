@@ -38,7 +38,7 @@ export const TodoTaskManager: React.FC<TodoTaskManagerProps> = ({
   const { t } = useI18n();
 
   const [isExpanded, setIsExpanded] = useState(expandByDefault);
-  const [viewMode, setViewMode] = useState<'compact' | 'comfortable'>('comfortable');
+  const [viewMode, setViewMode] = useState<'compact' | 'comfortable'>('compact');
   const [activeTab, setActiveTab] = useState<'all' | 'todos' | 'tasks'>('all');
 
   const [filter] = useState<TodoTaskFilter>({

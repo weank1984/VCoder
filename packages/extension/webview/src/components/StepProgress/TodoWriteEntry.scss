@@ -74,13 +74,13 @@
     }
 
     &.completed {
-      color: var(--vscode-gitDecoration-addedResourceForeground, var(--vc-color-primary));
-      background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, var(--vc-color-primary)) 16%, transparent);
+      color: var(--vc-color-success-text);
+      background: var(--vc-color-success-bg-subtle);
     }
 
     &.progress {
-      color: var(--vscode-terminal-ansiYellow, var(--vc-color-text));
-      background: color-mix(in srgb, var(--vscode-terminal-ansiYellow, var(--vc-color-text)) 16%, transparent);
+      color: var(--vc-color-warning-text);
+      background: var(--vc-color-warning-bg-subtle);
     }
   }
 }
@@ -166,12 +166,12 @@
     background: var(--vc-bg-secondary);
 
     &.priority-high {
-      color: var(--vscode-errorForeground, #ff5f5f);
-      background: color-mix(in srgb, var(--vscode-errorForeground, #ff5f5f) 16%, transparent);
+      color: var(--vc-color-error-text);
+      background: var(--vc-color-error-bg-subtle);
     }
     &.priority-medium {
-      color: var(--vscode-terminal-ansiYellow, #f7c948);
-      background: color-mix(in srgb, var(--vscode-terminal-ansiYellow, #f7c948) 18%, transparent);
+      color: var(--vc-color-warning-text);
+      background: var(--vc-color-warning-bg-subtle);
     }
     &.priority-low {
       color: var(--vc-color-text-secondary);

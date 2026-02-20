@@ -72,9 +72,9 @@
     }
   }
 
-  // Summary Stats
+  // Summary Stats (hidden by default to reduce visual density)
   .vc-todo-manager-summary {
-    display: flex;
+    display: none;
     gap: var(--vc-spacing-md);
     padding: var(--vc-spacing-xs) var(--vc-spacing-sm);
 
@@ -189,22 +189,21 @@
       // Priority backgrounds
       &.vc-todo-priority-high {
         background-color: var(--vc-todo-bg-high);
-        border-color: color-mix(in srgb, var(--vc-todo-priority-high) 20%, transparent);
+        border-color: var(--vc-color-error-border);
       }
 
       &.vc-todo-priority-medium {
         background-color: var(--vc-todo-bg-medium);
-        border-color: color-mix(in srgb, var(--vc-todo-priority-medium) 15%, transparent);
+        border-color: var(--vc-color-warning-border);
       }
 
       &.vc-todo-priority-low {
         background-color: var(--vc-todo-bg-low);
-        border-color: color-mix(in srgb, var(--vc-todo-priority-low) 10%, transparent);
+        border-color: transparent;
       }
 
       &:hover {
         background-color: var(--vc-color-fill-secondary);
-        transform: translateX(2px);
       }
 
       // Compact view
@@ -335,22 +334,22 @@
 
       // Status-based styling
       &.vc-task-status-running {
-        background-color: color-mix(in srgb, var(--vc-color-warning) 8%, transparent);
-        border-color: color-mix(in srgb, var(--vc-color-warning) 20%, transparent);
+        background-color: var(--vc-color-warning-bg-subtle);
+        border-color: var(--vc-color-warning-border);
       }
 
       &.vc-task-status-success {
-        background-color: color-mix(in srgb, var(--vc-color-success) 8%, transparent);
+        background-color: var(--vc-color-success-bg-subtle);
         opacity: 0.8;
       }
 
       &.vc-task-status-error {
-        background-color: color-mix(in srgb, var(--vc-color-error) 8%, transparent);
-        border-color: color-mix(in srgb, var(--vc-color-error) 20%, transparent);
+        background-color: var(--vc-color-error-bg-subtle);
+        border-color: var(--vc-color-error-border);
       }
 
       &:hover {
-        transform: translateX(2px);
+        background-color: var(--vc-color-fill-secondary);
       }
 
       // Compact view
