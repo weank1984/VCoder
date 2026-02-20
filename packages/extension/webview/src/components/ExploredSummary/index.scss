@@ -1,0 +1,97 @@
+/* ExploredSummary.scss - Claude Code style "Explored N directory, N files" */
+
+.explored-summary {
+    margin: 2px 0;
+}
+
+.explored-summary__header {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 0;
+    width: fit-content;
+    transition: opacity 0.1s;
+
+    &:hover {
+        opacity: 0.7;
+    }
+
+    &.is-loading {
+        .explored-summary__text {
+            animation: explored-pulse 1.5s ease-in-out infinite;
+        }
+    }
+}
+
+.explored-summary__chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    opacity: 0.6;
+
+    svg {
+        width: 10px;
+        height: 10px;
+        fill: currentColor;
+    }
+}
+
+.explored-summary__text {
+    font-style: italic;
+}
+
+.explored-summary__list {
+    display: flex;
+    flex-direction: column;
+    padding: 4px 0 4px 8px;
+    margin-left: 4px;
+    border-left: 2px solid var(--vscode-panel-border);
+}
+
+.explored-summary__item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 1px 4px;
+    font-size: 13px;
+    color: var(--vscode-descriptionForeground);
+    line-height: 1.5;
+
+    &:hover {
+        background: var(--vscode-list-hoverBackground);
+        border-radius: 3px;
+    }
+}
+
+.explored-summary__action {
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+}
+
+.explored-summary__target {
+    color: var(--vc-color-text-secondary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &.is-clickable {
+        cursor: pointer;
+        color: var(--vc-color-link, var(--vscode-textLink-foreground));
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+@keyframes explored-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}

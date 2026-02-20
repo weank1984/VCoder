@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import './index.scss';
 
@@ -151,15 +152,15 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
   }, [isOpen, filteredItems, focusedIndex, handleSelect]);
 
-  // 点击外部关闭
+  // 点击外部关闭（需要同时检查 trigger 和 portal 中的 popover）
   useEffect(() => {
     if (!isOpen) return;
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
+      const target = e.target as Node;
+      const isInsideTrigger = containerRef.current?.contains(target);
+      const isInsidePopover = popoverRef.current?.contains(target);
+      if (!isInsideTrigger && !isInsidePopover) {
         setIsOpen(false);
         setSearchQuery('');
         setFocusedIndex(-1);
@@ -177,33 +178,102 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
   }, [isOpen, searchable]);
 
-  // 计算弹窗位置
-  const getPopoverStyle = (): React.CSSProperties => {
-    const style: React.CSSProperties = {
-      maxHeight: `${maxHeight}px`,
+  // 计算弹窗位置（基于触发器的视口坐标，使用 fixed 定位，自动检测方向）
+  const [popoverPosition, setPopoverPosition] = useState<React.CSSProperties>({});
+  const [resolvedPlacement, setResolvedPlacement] = useState(placement);
+
+  useEffect(() => {
+    if (!isOpen || !containerRef.current) return;
+
+    const updatePosition = () => {
+      const triggerEl = containerRef.current;
+      if (!triggerEl) return;
+
+      const rect = triggerEl.getBoundingClientRect();
+      const gap = 4;
+      const vh = window.innerHeight;
+      const vw = window.innerWidth;
+
+      // 获取 popover 实际尺寸（如果已渲染）
+      const popoverEl = popoverRef.current;
+      const popoverHeight = popoverEl?.offsetHeight || maxHeight;
+      const popoverWidth = popoverEl?.offsetWidth || (minWidth || 200);
+
+      // 自动方向检测：根据视口剩余空间决定最终方向
+      let finalPlacement = placement;
+      if (placement === 'bottom' || placement === 'top') {
+        const spaceBelow = vh - rect.bottom - gap;
+        const spaceAbove = rect.top - gap;
+        if (placement === 'bottom' && spaceBelow < popoverHeight && spaceAbove > spaceBelow) {
+          finalPlacement = 'top';
+        } else if (placement === 'top' && spaceAbove < popoverHeight && spaceBelow > spaceAbove) {
+          finalPlacement = 'bottom';
+        }
+      } else {
+        const spaceRight = vw - rect.right - gap;
+        const spaceLeft = rect.left - gap;
+        if (placement === 'right' && spaceRight < popoverWidth && spaceLeft > spaceRight) {
+          finalPlacement = 'left';
+        } else if (placement === 'left' && spaceLeft < popoverWidth && spaceRight > spaceLeft) {
+          finalPlacement = 'right';
+        }
+      }
+
+      setResolvedPlacement(finalPlacement);
+
+      const style: React.CSSProperties = {
+        position: 'fixed',
+        maxHeight: `${maxHeight}px`,
+      };
+
+      if (minWidth) {
+        style.minWidth = `${minWidth}px`;
+      }
+
+      switch (finalPlacement) {
+        case 'top':
+          style.bottom = `${vh - rect.top + gap}px`;
+          style.left = `${rect.left}px`;
+          break;
+        case 'bottom':
+          style.top = `${rect.bottom + gap}px`;
+          style.left = `${rect.left}px`;
+          break;
+        case 'left':
+          style.right = `${vw - rect.left + gap}px`;
+          style.top = `${rect.top}px`;
+          break;
+        case 'right':
+          style.left = `${rect.right + gap}px`;
+          style.top = `${rect.top}px`;
+          break;
+      }
+
+      // 水平边界检测（上/下弹出时防止超出右侧）
+      if (finalPlacement === 'top' || finalPlacement === 'bottom') {
+        if (rect.left + popoverWidth > vw) {
+          style.left = undefined;
+          style.right = `${gap}px`;
+        }
+      }
+
+      // 垂直边界检测（左/右弹出时防止超出底部）
+      if (finalPlacement === 'left' || finalPlacement === 'right') {
+        if (rect.top + popoverHeight > vh) {
+          style.top = undefined;
+          style.bottom = `${gap}px`;
+        }
+      }
+
+      setPopoverPosition(style);
     };
-    
-    if (minWidth) {
-      style.minWidth = `${minWidth}px`;
-    }
 
-    switch (placement) {
-      case 'top':
-        style.bottom = 'calc(100% + 4px)';
-        break;
-      case 'bottom':
-        style.top = 'calc(100% + 4px)';
-        break;
-      case 'left':
-        style.right = 'calc(100% + 4px)';
-        break;
-      case 'right':
-        style.left = 'calc(100% + 4px)';
-        break;
-    }
+    // 首帧先计算一次，popover 渲染后再根据实际尺寸修正
+    updatePosition();
+    requestAnimationFrame(updatePosition);
 
-    return style;
-  };
+    return undefined;
+  }, [isOpen, placement, maxHeight, minWidth]);
 
   const containerClasses = [
     'vc-dropdown',
@@ -214,7 +284,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
   const popoverClasses = [
     'vc-dropdown-popover',
-    `vc-dropdown-popover--${placement}`,
+    `vc-dropdown-popover--${resolvedPlacement}`,
     popoverClassName,
   ].filter(Boolean).join(' ');
 
@@ -232,14 +302,14 @@ export const Dropdown: React.FC<DropdownProps> = ({
         {trigger}
       </div>
 
-      {/* Popover */}
-      {isOpen && (
+      {/* Popover - rendered via Portal to avoid overflow:hidden clipping */}
+      {isOpen && createPortal(
         <>
           <div className="vc-dropdown-overlay" onClick={() => setIsOpen(false)} />
-          <div 
+          <div
             ref={popoverRef}
             className={popoverClasses}
-            style={getPopoverStyle()}
+            style={popoverPosition}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
@@ -332,7 +402,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
               </div>
             )}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );

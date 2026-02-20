@@ -1,44 +1,37 @@
-/* ThoughtBlock.scss - Cursor-like thought display */
+/* ThoughtBlock.scss - Claude Code style inline "Thought for Ns" */
 
 .thought-block {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin: 4px 0;
+    margin: 2px 0;
 }
 
 .thought-header {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     color: var(--vscode-descriptionForeground);
     font-size: 13px;
     cursor: pointer;
     user-select: none;
-    padding: 3px 4px;
-    border-radius: 4px;
-    transition: background 0.1s;
+    padding: 2px 0;
     width: fit-content;
-    
+    transition: opacity 0.1s;
+
     &:hover {
-        background: var(--vscode-list-hoverBackground);
+        opacity: 0.7;
     }
 }
 
 .thought-label {
     font-weight: 400;
-    font-style: normal;
-}
-
-.thought-duration {
-    color: var(--vscode-disabledForeground);
-    font-style: normal;
-    font-size: 12px;
+    font-style: italic;
 }
 
 .thought-content {
-    padding: 8px 12px;
+    padding: 6px 12px;
     margin-left: 4px;
+    margin-top: 2px;
     border-left: 2px solid var(--vscode-panel-border);
     color: var(--vscode-descriptionForeground);
     font-size: 12px;
@@ -47,31 +40,6 @@
     white-space: pre-wrap;
     max-height: 200px;
     overflow-y: auto;
-}
-
-/* Icon rotation handling */
-.codicon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 14px;
-    height: 14px;
-    opacity: 0.6;
-    
-    svg {
-        width: 10px;
-        height: 10px;
-        fill: currentColor;
-        transition: transform 0.15s;
-    }
-}
-
-.codicon-chevron-right svg {
-    transform: rotate(0deg);
-}
-
-.codicon-chevron-down svg {
-    transform: rotate(90deg);
 }
 
 /* Thinking animation */

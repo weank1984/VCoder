@@ -8,6 +8,8 @@ import type { ChatMessage, ContentBlock, ToolCall } from '../types';
 import { ThoughtBlock } from './ThoughtBlock';
 import { StepProgressList } from './StepProgress';
 import { MarkdownContent } from './MarkdownContent';
+import { ExploredSummary } from './ExploredSummary';
+import { partitionToolCalls } from '../utils/toolCallPartitioner';
 import { CopyIcon, CheckIcon } from './Icon';
 import { useI18n } from '../i18n/I18nProvider';
 import { useToast } from '../utils/Toast';
@@ -105,11 +107,22 @@ function renderContentBlock(
                 .map(id => toolCallMap.get(id))
                 .filter((tc): tc is ToolCall => tc !== undefined);
             if (tools.length === 0) return null;
+
+            const { exploredCalls, actionCalls } = partitionToolCalls(tools);
+            const isComplete = message.isComplete !== false;
+
             return (
-                <StepProgressList 
-                    key={`tools-${index}`}
-                    toolCalls={tools} 
-                />
+                <div key={`tools-${index}`}>
+                    {exploredCalls.length > 0 && (
+                        <ExploredSummary
+                            toolCalls={exploredCalls}
+                            isComplete={isComplete}
+                        />
+                    )}
+                    {actionCalls.length > 0 && (
+                        <StepProgressList toolCalls={actionCalls} />
+                    )}
+                </div>
             );
         }
         default:

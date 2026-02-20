@@ -1,22 +1,19 @@
 /**
  * ComposerToolbar - Shared toolbar component for input areas
- * Used by both InputArea and StickyUserPrompt
+ * Simplified to match Claude Code desktop UI:
+ * Left: Agent selector + Model selector
+ * Right: Image button + (optional) Mic button + Stop button (when loading)
  */
-
 
 import type { ModelId } from '@vcoder/shared';
 import { ModelSelector } from '../ModelSelector';
 import { AgentSelector } from '../AgentSelector';
 import type { AgentInfo } from '../AgentSelector';
 import { IconButton } from '../IconButton';
-import { 
-    AtIcon, 
-    WebIcon, 
-    ImageIcon, 
-    ArrowBottomIcon, 
-    SendIcon, 
+import {
+    ImageIcon,
+    ArrowBottomIcon,
     StopIcon,
-    ManageIcon
 } from '../Icon';
 import { useI18n } from '../../i18n/I18nProvider';
 import './index.scss';
@@ -32,17 +29,11 @@ export interface ComposerToolbarProps {
     onAgentChange?: (agentId: string) => void;
     selectedModel?: ModelId;
     onSelectModel?: (model: ModelId) => void;
-    
-    // Right toolbar - Action buttons
-    showMentionButton?: boolean;
-    showWebButton?: boolean;
+
+    // Right toolbar - Action buttons (simplified)
     showImageButton?: boolean;
-    showPermissionButton?: boolean;
-    onMentionClick?: () => void;
-    onWebClick?: () => void;
     onImageClick?: () => void;
-    onPermissionClick?: () => void;
-    
+
     // Primary action configuration
     primaryAction: 'send' | 'apply';
     isLoading?: boolean;
@@ -51,7 +42,15 @@ export interface ComposerToolbarProps {
     onStop?: () => void;
     onApply?: () => void;
     onCancel?: () => void;
-    
+
+    // Legacy props (kept for StickyUserPrompt compatibility, no-op in main toolbar)
+    showMentionButton?: boolean;
+    showWebButton?: boolean;
+    showPermissionButton?: boolean;
+    onMentionClick?: () => void;
+    onWebClick?: () => void;
+    onPermissionClick?: () => void;
+
     // General
     disabled?: boolean;
 }
@@ -66,18 +65,10 @@ export function ComposerToolbar({
     selectedModel,
     onSelectModel,
     onAgentChange,
-    showMentionButton = true,
-    showWebButton = true,
     showImageButton = true,
-    showPermissionButton = true,
-    onMentionClick,
-    onWebClick,
     onImageClick,
-    onPermissionClick,
     primaryAction,
     isLoading = false,
-    isSendDisabled = false,
-    onSend,
     onStop,
     onApply,
     onCancel,
@@ -88,7 +79,6 @@ export function ComposerToolbar({
     return (
         <div className="composer-toolbar">
             <div className="toolbar-left">
-                
                 {showAgentSelector && agents.length > 0 && (
                     <AgentSelector
                         agents={agents}
@@ -96,8 +86,7 @@ export function ComposerToolbar({
                         onSelectAgent={onAgentSelect || (() => {})}
                     />
                 )}
-                
-                
+
                 {showAgentSelector && agents.length === 0 && onAgentChange && (
                     <div
                         className={`composer-unified-dropdown ${disabled ? 'is-disabled' : ''}`}
@@ -128,64 +117,28 @@ export function ComposerToolbar({
             </div>
 
             <div className="toolbar-right">
-                {/* Mention Button */}
-                {showMentionButton && (
-                    <IconButton
-                        icon={<AtIcon />}
-                        label="Mention"
-                        disabled={disabled}
-                        onClick={onMentionClick}
-                    />
-                )}
-
-                {/* Web Search Button */}
-                {showWebButton && (
-                    <IconButton
-                        icon={<WebIcon />}
-                        label="Web Search"
-                        disabled={disabled}
-                        onClick={onWebClick}
-                    />
-                )}
-
                 {/* Image/File Button */}
                 {showImageButton && (
                     <IconButton
                         icon={<ImageIcon />}
-                        label="Add Files"
+                        label={t('Common.AddFiles')}
                         disabled={disabled}
                         onClick={onImageClick}
                     />
                 )}
 
-                {showPermissionButton && (
-                    <IconButton
-                        icon={<ManageIcon />}
-                        label="Permission Rules"
-                        disabled={disabled}
-                        onClick={onPermissionClick}
-                    />
-                )}
-
                 {/* Primary Action Buttons */}
                 {primaryAction === 'send' ? (
-                    // Send mode: Show Send or Stop button
+                    // Send mode: Only show Stop when loading (Enter key sends, no visible send button)
                     isLoading ? (
                         <IconButton
                             icon={<StopIcon />}
                             label={t('Agent.Stop')}
                             onClick={onStop}
                         />
-                    ) : (
-                        <IconButton
-                            icon={<SendIcon />}
-                            label={t('Agent.Send')}
-                            disabled={isSendDisabled}
-                            onClick={onSend}
-                        />
-                    )
+                    ) : null
                 ) : (
-                    // Apply mode: Show Cancel and Apply buttons
+                    // Apply mode: Show Cancel and Apply buttons (for StickyUserPrompt)
                     <div className="toolbar-apply-actions">
                         <button
                             className="vc-action-btn vc-action-btn--secondary"

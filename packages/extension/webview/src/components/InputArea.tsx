@@ -1,5 +1,7 @@
 /**
- * Input Area Component - Redesigned based on Augment reference design
+ * Input Area Component - Claude Code desktop style
+ * Simplified: Agent + Model on left, Image on right, Enter to send
+ * EnvironmentSelector ("Local") below the input box
  */
 
 import { forwardRef, useImperativeHandle, useState, useRef, useEffect, useCallback } from 'react';
@@ -9,6 +11,7 @@ import { useStore } from '../store/useStore';
 import { FilePicker } from './FilePicker';
 import { PermissionRulesPanel } from './PermissionRulesPanel';
 import { ComposerToolbar } from './ComposerToolbar';
+import { EnvironmentSelector } from './EnvironmentSelector';
 import { CloseIcon } from './Icon';
 import { PendingChangesBar } from './PendingChangesBar';
 import { useI18n } from '../i18n/I18nProvider';
@@ -269,18 +272,6 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
         postMessage({ type: 'selectAgent', agentId });
     };
     
-    // Check if send button should be disabled
-    const isSendDisabled = !input.trim() && attachments.length === 0;
-
-    // Handle mention button click
-    const handleMentionClick = () => {
-        const newText = input + '@';
-        setInput(newText);
-        textareaRef.current?.focus();
-        setShowPicker(true);
-        setPickerQuery('');
-    };
-
     return (
         <div className="input-area">
             {/* Hidden file input for attachments */}
@@ -294,7 +285,7 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
             />
 
             <PendingChangesBar />
-            
+
             {showPicker && (
                 <FilePicker
                     files={workspaceFiles}
@@ -309,8 +300,8 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                 visible={showPermissionRules}
                 onClose={() => setShowPermissionRules(false)}
             />
-            
-            <div 
+
+            <div
                 ref={wrapperRef}
                 className={[
                     'input-wrapper',
@@ -342,7 +333,7 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                     <textarea
                         ref={textareaRef}
                         className="input-field"
-                        placeholder={viewMode === 'history' ? t('Chat.ViewingHistoryReadonly') : t('Chat.InputPlaceholder')}
+                        placeholder={viewMode === 'history' ? t('Chat.ViewingHistoryReadonly') : 'Plan, @ for context, / for commands'}
                         value={input}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
@@ -384,28 +375,24 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                     <ComposerToolbar
                         showAgentSelector
                         showModelSelector
-                        showPermissionButton={viewMode !== 'history'}
                         agents={agents}
                         currentAgentId={currentAgentId}
                         onAgentSelect={handleAgentSelect}
                         currentAgentName={currentAgent?.profile.name || 'Agent'}
-                        onPermissionClick={() => setShowPermissionRules(true)}
                         selectedModel={model}
                         onSelectModel={setModel}
-                        showMentionButton
-                        showWebButton
                         showImageButton
-                        onMentionClick={handleMentionClick}
                         onImageClick={handleAddFiles}
                         primaryAction="send"
                         isLoading={isLoading}
-                        isSendDisabled={isSendDisabled}
-                        onSend={handleSubmit}
                         onStop={() => postMessage({ type: 'cancel' })}
                         disabled={isComposerLocked}
                     />
                 </div>
             </div>
+
+            {/* Environment selector below the input box */}
+            <EnvironmentSelector disabled={isComposerLocked} />
         </div>
     );
 });

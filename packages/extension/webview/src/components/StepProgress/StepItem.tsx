@@ -87,8 +87,11 @@ function deriveCollapsedPreview(toolCall: ToolCall): string | undefined {
     // Avoid noisy previews for file contents.
     if (lower === 'read' || lower === 'read_file' || lower === 'view_file') return undefined;
 
-    // Terminal commands: show a single output line when available.
+    // Terminal commands: show "Rejected" for failed/rejected, or output line otherwise.
     if (isTerminalToolName(name)) {
+        if (toolCall.status === 'failed') {
+            return 'Rejected';
+        }
         if (typeof toolCall.result === 'string') {
             const line = firstMeaningfulLine(toolCall.result);
             return line ? truncateText(line, 96) : undefined;
@@ -231,20 +234,35 @@ export function StepItem({
 }: StepItemProps) {
     const { t } = useI18n();
     
+    // Check if this is a rejected terminal command
+    const isRejectedTerminal = useMemo(() => {
+        if (step.entries.length !== 1) return false;
+        const tc = step.entries[0].toolCall;
+        return isTerminalToolName(tc.name) && (tc.status === 'failed');
+    }, [step.entries]);
+
     // Generate rich title
     const displayTitle = useMemo(() => {
         // For single-entry steps: show "Action Target" format
         if (step.isSingleEntry && step.entries.length === 1) {
             const entry = step.entries[0];
+            const tc = entry.toolCall;
+
+            // Rejected terminal command: "Rejected command: docker info"
+            if (isTerminalToolName(tc.name) && (tc.status === 'failed')) {
+                const cmd = asString(asRecord(tc.input)?.command) ?? entry.target.name;
+                return `${t('StepProgress.RejectedCommand')}: ${truncateText(cmd, 60)}`;
+            }
+
             const actionText = t(entry.actionKey);
             return `${actionText} ${entry.target.name}`;
         }
-        
+
         // For multi-entry steps: always show aggregated summary (both collapsed and expanded)
         if (step.entries.length > 1) {
             return generateToolCallsSummary(step.entries, t);
         }
-        
+
         // Default: use step title
         return step.title;
     }, [step, t]);
@@ -331,8 +349,8 @@ export function StepItem({
                 </span>
             </div>
             
-            {/* Error banner - shown when collapsed and has error */}
-            {isCollapsed && errorInfo && (
+            {/* Error banner - shown when collapsed and has error, but not for rejected terminal commands */}
+            {isCollapsed && errorInfo && !isRejectedTerminal && (
                 <div className="step-error-banner" onClick={(e) => {
                     e.stopPropagation();
                     onToggle();

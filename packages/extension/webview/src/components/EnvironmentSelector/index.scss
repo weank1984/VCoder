@@ -1,0 +1,50 @@
+/* EnvironmentSelector.scss - "Local" environment label below input */
+
+.environment-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.1s;
+
+    &:hover:not(.is-disabled) {
+        opacity: 0.7;
+    }
+
+    &.is-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+}
+
+.environment-selector__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+
+    svg {
+        fill: currentColor;
+    }
+}
+
+.environment-selector__label {
+    font-weight: 400;
+}
+
+.environment-selector__chevron {
+    display: inline-flex;
+    align-items: center;
+    opacity: 0.5;
+
+    svg {
+        width: 10px;
+        height: 10px;
+        fill: currentColor;
+    }
+}

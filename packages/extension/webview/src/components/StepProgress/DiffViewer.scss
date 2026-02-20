@@ -380,3 +380,67 @@
         display: none;
     }
 }
+
+// ─── Compact variant ───
+.diff-viewer--compact {
+    margin: 2px 0;
+    border: none;
+    border-radius: var(--vc-radius-md);
+    background: transparent;
+
+    .diff-header {
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: var(--vc-radius-md);
+
+        &:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+    }
+
+    .diff-compact-chevron {
+        font-size: 10px;
+        color: var(--vscode-descriptionForeground);
+        flex-shrink: 0;
+        width: 12px;
+        text-align: center;
+    }
+
+    .diff-compact-filename {
+        font-family: var(--vscode-editor-font-family, monospace);
+        font-size: 13px;
+        color: var(--vscode-foreground);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
+
+    .diff-stats {
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+
+    .diff-content {
+        margin: 0 4px;
+    }
+
+    .diff-lines {
+        max-height: 120px;
+        padding: 4px 8px;
+        font-size: 11px;
+        line-height: 1.5;
+        border-radius: var(--vc-radius-sm);
+        background: var(--vscode-editor-background);
+    }
+
+    .diff-line {
+        padding: 0 4px;
+        border-left-width: 2px;
+    }
+
+    .diff-actions-header,
+    .diff-actions-footer {
+        display: none;
+    }
+}

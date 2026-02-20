@@ -4,6 +4,7 @@ import { Logo } from '../Logo';
 import { postMessage } from '../../utils/vscode';
 import { useI18n } from '../../i18n/I18nProvider';
 import { useStore } from '../../store/useStore';
+import { sanitizeSessionTitle } from '../../utils/sanitizeTitle';
 import './index.scss';
 
 const prefixClass = 'vc-chat-welcome';
@@ -92,9 +93,9 @@ export function Welcome() {
                 key={s.id}
                 className={`${prefixClass}-recents-item`}
                 onClick={() => postMessage({ type: 'loadHistory', sessionId: s.id })}
-                title={s.title || t('Common.UntitledSession')}
+                title={sanitizeSessionTitle(s.title, t('Common.UntitledSession'))}
               >
-                <span className={`${prefixClass}-recents-item-title`}>{s.title || t('Common.UntitledSession')}</span>
+                <span className={`${prefixClass}-recents-item-title`}>{sanitizeSessionTitle(s.title, t('Common.UntitledSession'))}</span>
                 <span className={`${prefixClass}-recents-item-time`}>
                   {formatUpdatedAt(s.updatedAt, language === 'zh-CN' ? 'zh-CN' : 'en-US')}
                 </span>

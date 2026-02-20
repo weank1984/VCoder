@@ -66,7 +66,12 @@ export default class I18n {
     const text = typeof raw === 'string' ? raw : key;
 
     if (args.length === 0) return text;
-    if (args.length === 1 && args[0] && typeof args[0] === 'object' && !Array.isArray(args[0])) {
+    // Single array argument → treat as positional parameters
+    if (args.length === 1 && Array.isArray(args[0])) {
+      return format(text, args[0] as unknown[]);
+    }
+    // Single object argument → treat as named parameters
+    if (args.length === 1 && args[0] && typeof args[0] === 'object') {
       return format(text, args[0] as Record<string, unknown>);
     }
     return format(text, args as unknown[]);

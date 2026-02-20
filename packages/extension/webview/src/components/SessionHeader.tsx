@@ -8,6 +8,7 @@ import type { Session } from '@vcoder/shared';
 import { postMessage } from '../utils/vscode';
 import { IconButton } from './IconButton';
 import { PlusIcon, HistoryIcon, GeneralSettingIcon, CloseIcon, ArrowBottomIcon } from './Icon';
+import { sanitizeSessionTitle } from '../utils/sanitizeTitle';
 import './SessionHeader.scss';
 
 interface SessionHeaderProps {
@@ -46,10 +47,10 @@ export function SessionHeader({
                         type="button"
                         className={`session-chip ${showList ? 'is-active' : ''}`}
                         onClick={() => setShowList(!showList)}
-                        title={current?.title || 'Untitled chat'}
+                        title={sanitizeSessionTitle(current?.title, 'Untitled chat')}
                         aria-label="Current session"
                     >
-                        <span className="session-chip-title">{current?.title || 'Untitled chat'}</span>
+                        <span className="session-chip-title">{sanitizeSessionTitle(current?.title, 'Untitled chat')}</span>
                         <span className="session-chip-caret">
                             <ArrowBottomIcon />
                         </span>
@@ -75,7 +76,7 @@ export function SessionHeader({
                                                     setShowList(false);
                                                 }}
                                             >
-                                                <span className="session-title">{session.title || 'Untitled chat'}</span>
+                                                <span className="session-title">{sanitizeSessionTitle(session.title, 'Untitled chat')}</span>
                                                 <button
                                                     className="session-delete"
                                                     onClick={(e) => handleDeleteSession(session.id, e)}

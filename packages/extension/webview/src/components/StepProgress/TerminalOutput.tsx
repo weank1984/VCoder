@@ -4,7 +4,7 @@
  */
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { TerminalIcon, StopIcon, CheckIcon, ErrorIcon, CopyIcon, ExpandIcon, CollapseIcon } from '../Icon';
+import { StopIcon, CopyIcon, ExpandIcon, CollapseIcon } from '../Icon';
 import { useI18n } from '../../i18n/I18nProvider';
 import { useThrottledValue } from '../../hooks/useThrottledUpdate';
 
@@ -39,15 +39,6 @@ function stripAnsi(text: string): string {
 }
 
 /**
- * Format execution time
- */
-function formatDuration(ms: number): string {
-    if (ms < 1000) return `${ms}ms`;
-    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-    return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
-}
-
-/**
  * Copy to clipboard helper
  */
 function copyToClipboard(text: string) {
@@ -59,7 +50,7 @@ function copyToClipboard(text: string) {
 export function TerminalOutput({
     output,
     command,
-    cwd,
+    cwd: _cwd,
     exitCode,
     signal,
     isRunning = false,
@@ -69,43 +60,9 @@ export function TerminalOutput({
 }: TerminalOutputProps) {
     const { t } = useI18n();
     const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-    const startTimeRef = useRef<number | null>(null);
-    const [durationMs, setDurationMs] = useState(0);
     const outputRef = useRef<HTMLPreElement>(null);
     const [autoScroll, setAutoScroll] = useState(true);
 
-    // Reset duration tracking when a new terminal starts
-    useEffect(() => {
-        startTimeRef.current = null;
-        const timeoutId = setTimeout(() => setDurationMs(0), 0);
-        return () => clearTimeout(timeoutId);
-    }, [terminalId, command]);
-
-    // Track duration without calling Date.now() during render
-    useEffect(() => {
-        if (startTimeRef.current === null) {
-            startTimeRef.current = Date.now();
-        }
-
-        const tick = () => {
-            if (startTimeRef.current !== null) {
-                setDurationMs(Date.now() - startTimeRef.current);
-            }
-        };
-
-        const initialTimeoutId = setTimeout(tick, 0);
-
-        if (!isRunning) {
-            return () => clearTimeout(initialTimeoutId);
-        }
-
-        const intervalId = setInterval(tick, 250);
-        return () => {
-            clearTimeout(initialTimeoutId);
-            clearInterval(intervalId);
-        };
-    }, [isRunning]);
-    
     // Throttle output updates to improve performance during high-frequency streaming
     // Use the raw output when not running, throttled when streaming
     const throttledOutput = useThrottledValue(output, isRunning ? 100 : 0);
@@ -140,43 +97,19 @@ export function TerminalOutput({
         return 'unknown';
     }, [isRunning, exitCode, signal]);
     
-    // Get state icon
-    const stateIcon = useMemo(() => {
-        switch (state) {
-            case 'running': return <TerminalIcon />;
-            case 'success': return <CheckIcon />;
-            case 'error': return <ErrorIcon />;
-            case 'killed': return <StopIcon />;
-            default: return <TerminalIcon />;
-        }
-    }, [state]);
-    
-    // Get state label
-    const stateLabel = useMemo(() => {
-        switch (state) {
-            case 'running': return t('Terminal.Running');
-            case 'success': return t('Terminal.Success');
-            case 'error': return t('Terminal.Failed');
-            case 'killed': return t('Terminal.Killed');
-            default: return '';
-        }
-    }, [state, t]);
-    
     // Handle kill
     const handleKill = () => {
         if (terminalId && onKill) {
             onKill(terminalId);
         }
     };
-    
-    const duration = durationMs;
-    
+
     return (
         <div className={`terminal-output ${state} ${isCollapsed ? 'collapsed' : ''}`}>
             {/* Terminal Title Bar */}
             <div className="terminal-title-bar">
                 <div className="terminal-title-text">
-                    {isRunning ? t('Terminal.RunningCommand') : t('Terminal.RanCommand')}: {command || 'bash'}
+                    <span className="terminal-prompt-prefix">$</span> {command || 'bash'}
                 </div>
                 <div className="terminal-title-actions">
                     {isRunning && terminalId && onKill && (
@@ -211,44 +144,9 @@ export function TerminalOutput({
                 </div>
             </div>
 
-            {/* Terminal Content */}
+            {/* Terminal Content - compact output only */}
             {!isCollapsed && (
                 <div className="terminal-content">
-                    {/* Command Display */}
-                    <div className="terminal-command-display">
-                        <div className="terminal-command-line">
-                            <span className="terminal-prompt">$</span>
-                            <span className="terminal-command-text">
-                                {command}
-                                {cwd && ` # ${cwd}`}
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Status Bar */}
-                    <div className="terminal-status-bar">
-                        <div className="terminal-status-left">
-                            <span className="terminal-status-icon">{stateIcon}</span>
-                            <span className="terminal-state">{stateLabel}</span>
-                            {exitCode !== undefined && (
-                                <span className="terminal-exit-code">
-                                    exit: {exitCode}
-                                </span>
-                            )}
-                            {signal && (
-                                <span className="terminal-signal">
-                                    signal: {signal}
-                                </span>
-                            )}
-                        </div>
-                        {!isRunning && (
-                            <span className="terminal-duration">
-                                {formatDuration(duration)}
-                            </span>
-                        )}
-                    </div>
-                    
-                    {/* Output Display */}
                     {(cleanedOutput || isRunning) && (
                         <pre
                             ref={outputRef}

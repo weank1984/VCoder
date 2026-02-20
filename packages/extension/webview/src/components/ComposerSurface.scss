@@ -3,7 +3,7 @@
 .vc-composer-surface {
     background: var(--vc-color-bg-input);
     border: 1px solid var(--vc-color-border);
-    border-radius: var(--vc-radius-lg);
+    border-radius: 16px;
     transition: all var(--vc-transition-mid) var(--vc-motion-ease-out);
     box-shadow: var(--vc-shadow-xs);
     position: relative;

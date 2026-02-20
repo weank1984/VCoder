@@ -9,6 +9,7 @@ import { SessionSkeleton } from './Skeleton';
 import { postMessage } from '../utils/vscode';
 import { useI18n } from '../i18n/I18nProvider';
 import { useStore } from '../store/useStore';
+import { sanitizeSessionTitle } from '../utils/sanitizeTitle';
 import './HistoryPanel.scss';
 
 interface HistoryPanelProps {
@@ -103,7 +104,7 @@ export function HistoryPanel({ historySessions, visible, onClose, isLoading = fa
                                 onClick={() => handleLoadHistory(session.id)}
                             >
                                 <div className="session-info">
-                                    <div className="session-title">{session.title || session.id}</div>
+                                    <div className="session-title">{sanitizeSessionTitle(session.title, session.id)}</div>
                                 </div>
                                 <div className="session-meta-right">{getRelativeTime(session.updatedAt)}</div>
                                 <button

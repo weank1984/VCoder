@@ -1,9 +1,8 @@
 .vc-pending-changes {
-  margin: 0 12px 8px;
-  border-radius: 12px;
+  margin: 4px 0;
+  border-radius: var(--vc-radius-lg);
   border: 1px solid var(--vc-color-border);
-  background: var(--vc-bg-secondary);
-  box-shadow: var(--vc-shadow-md);
+  background: var(--vscode-editor-background);
   overflow: hidden;
 }
 
@@ -12,29 +11,35 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s ease;
+
+  &:hover {
+    background: var(--vscode-list-hoverBackground);
+  }
 }
 
 .vc-pending-changes__left {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
+}
+
+.vc-pending-changes__chevron {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  width: 12px;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 .vc-pending-changes__count {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--vc-color-text);
-  white-space: nowrap;
-}
-
-.vc-pending-changes__summary {
-  font-size: 12px;
-  color: var(--vc-color-text-secondary);
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--vscode-foreground);
   white-space: nowrap;
 }
 
@@ -46,46 +51,66 @@
 }
 
 .vc-pending-changes__review {
-  padding: 5px 10px;
-  border-radius: 8px;
+  padding: 4px 12px;
+  border-radius: 6px;
   border: 1px solid var(--vc-color-border);
-  background: var(--vc-bg);
-  color: var(--vc-color-text);
+  background: transparent;
+  color: var(--vscode-foreground);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
+  transition: background 0.1s ease;
 
   &:hover {
-    background: var(--vc-control-item-bg-hover);
-  }
-}
-
-.vc-pending-changes__dismiss {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  color: var(--vc-color-text-secondary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  svg {
-    width: 12px;
-    height: 12px;
-    fill: currentColor;
-  }
-
-  &:hover {
-    background: var(--vc-control-item-bg-hover);
-    color: var(--vc-color-text);
+    background: var(--vscode-toolbar-hoverBackground);
   }
 }
 
 .vc-pending-changes__body {
-  padding: 0 10px 10px;
+  padding: 0 8px 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
+.vc-pending-changes__file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--vc-radius-md);
+  cursor: pointer;
+  transition: background 0.1s ease;
+
+  &:hover {
+    background: var(--vscode-list-hoverBackground);
+  }
+}
+
+.vc-pending-changes__filename {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 13px;
+  color: var(--vscode-foreground);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.vc-pending-changes__file-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.vc-pending-changes__additions {
+  color: var(--vscode-terminal-ansiGreen);
+}
+
+.vc-pending-changes__deletions {
+  color: var(--vscode-terminal-ansiRed);
+}

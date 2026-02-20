@@ -420,7 +420,7 @@
    ANIMATIONS
    ========================================================================== */
 
-@keyframes fadeIn {
+@keyframes fadeInDown {
     from {
         opacity: 0;
         transform: translateY(-4px);
@@ -431,8 +431,23 @@
     }
 }
 
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .vc-dropdown-popover {
-    animation: fadeIn 0.1s ease-out;
+    animation: fadeInDown 0.1s ease-out;
+
+    &--top {
+        animation-name: fadeInUp;
+    }
 }
 
 /* ==========================================================================

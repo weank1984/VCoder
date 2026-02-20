@@ -104,6 +104,13 @@
     font-family: var(--vc-font-family-code);
 }
 
+// Rejected command preview - muted italic style
+.step-item.failed .step-preview {
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+    font-family: var(--vc-font-family-base);
+}
+
 .step-expand-icon {
     opacity: 0.5;
     display: flex;

@@ -2,12 +2,12 @@
 
 .vc-bubble {
     width: 100%;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     animation: fade-in 0.2s ease-out;
 }
 
 .vc-bubble--tool-only {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 /* 
@@ -43,18 +43,18 @@
     width: 100%;
     max-width: 840px;
     margin: 0 auto;
-    padding: 0 4px; /* Slight alignment adjust */
+    padding: 0;
     background-color: transparent;
     position: relative;
-    
+
     /* Ensure content blocks stack properly */
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 }
 
 .vc-bubble--tool-only .vc-ai-message-container {
-    padding: 0 2px;
+    padding: 0;
     gap: 2px;
 }
 
@@ -101,9 +101,9 @@
     opacity: 0;
     transition: opacity 0.2s ease;
     display: flex;
-    justify-content: flex-start; /* Actions below message usually better on left or right? */
+    justify-content: flex-start;
     gap: 8px;
-    margin-top: 8px;
+    margin-top: 4px;
 }
 
 .vc-bubble:hover .vc-ai-actions {

@@ -434,6 +434,7 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
                         <DiffViewer
                             filePath={diffData.filePath}
                             diff={diffData.diff}
+                            variant={tc.status === 'awaiting_confirmation' ? 'full' : 'compact'}
                             onAccept={onConfirm ? () => onConfirm(tc, true) : undefined}
                             onReject={onConfirm ? () => onConfirm(tc, false) : undefined}
                             actionsDisabled={tc.status !== 'awaiting_confirmation'}
