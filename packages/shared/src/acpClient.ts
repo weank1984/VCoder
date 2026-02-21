@@ -3,33 +3,33 @@
  * JSON-RPC 2.0 client over stdio
  */
 
-import { Readable, Writable } from 'stream';
-import { createInterface } from 'readline';
-import { EventEmitter } from 'events';
+import { type Readable, type Writable } from 'node:stream';
+import { createInterface } from 'node:readline';
+import { EventEmitter } from 'node:events';
 import {
-    JsonRpcRequest,
-    JsonRpcResponse,
-    JsonRpcNotification,
-    JsonRpcError,
+    type JsonRpcRequest,
+    type JsonRpcResponse,
+    type JsonRpcNotification,
+    type JsonRpcError,
     ACPMethods,
-    InitializeParams,
-    InitializeResult,
-    ListSessionsResult,
-    PromptParams,
-    SettingsChangeParams,
-    UpdateNotificationParams,
-    SessionCompleteParams,
-    Session,
-    ModelId,
-    PermissionMode,
-    McpServerConfig,
-    ResumeSessionParams,
-    HistorySession,
-    HistoryChatMessage,
-    HistoryListResult,
-    HistoryLoadResult,
-    HistoryDeleteResult,
-} from '@vcoder/shared';
+    type InitializeParams,
+    type InitializeResult,
+    type ListSessionsResult,
+    type PromptParams,
+    type SettingsChangeParams,
+    type UpdateNotificationParams,
+    type SessionCompleteParams,
+    type Session,
+    type ModelId,
+    type PermissionMode,
+    type McpServerConfig,
+    type ResumeSessionParams,
+    type HistorySession,
+    type HistoryChatMessage,
+    type HistoryListResult,
+    type HistoryLoadResult,
+    type HistoryDeleteResult,
+} from './protocol';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null;
@@ -198,7 +198,7 @@ export class ACPClient extends EventEmitter {
      */
     private async handleAgentRequest(request: JsonRpcRequest): Promise<void> {
         const handler = this.requestHandlers.get(request.method);
-        
+
         if (!handler) {
             console.warn(`[ACPClient] No handler registered for agent request: ${request.method}`);
             this.sendError(request.id, {
@@ -249,7 +249,7 @@ export class ACPClient extends EventEmitter {
      */
     private write(line: string): void {
         const data = line.endsWith('\n') ? line : line + '\n';
-        
+
         if (this.writeCallback) {
             this.writeCallback(data);
         } else {
@@ -330,7 +330,7 @@ export class ACPClient extends EventEmitter {
             ...(params?.mcpServers && { mcpServers: params.mcpServers }),
         };
         const result = await this.sendRequest<unknown>(ACPMethods.SESSION_NEW, sessionParams);
-        
+
         // Handle both response formats:
         // - New format: { sessionId, models, ... }
         // - Old format: { session: { id, title, ... } }
@@ -350,7 +350,7 @@ export class ACPClient extends EventEmitter {
         } else {
             throw new Error('Invalid session/new response format');
         }
-        
+
         this.currentSession = session;
         await this.syncDesiredSettings();
         return session;
@@ -514,8 +514,8 @@ export class ACPClient extends EventEmitter {
      * This is the unified method for all tool confirmations.
      */
     async confirmTool(
-        toolCallId: string, 
-        confirmed: boolean, 
+        toolCallId: string,
+        confirmed: boolean,
         options?: { trustAlways?: boolean; editedContent?: string }
     ): Promise<void> {
         if (!this.currentSession) return;

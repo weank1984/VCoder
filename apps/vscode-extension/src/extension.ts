@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { ACPClient } from './acp/client';
+import { ACPClient } from '@vcoder/shared/acpClient';
 import { ChatViewProvider } from './providers/chatViewProvider';
 import { ServerManager } from './services/serverManager';
 import { CapabilityOrchestrator, createCapabilityOrchestrator } from './services/capabilityOrchestrator';

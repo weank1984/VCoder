@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Readable, Writable } from 'stream';
-import { ACPClient } from '../../apps/vscode-extension/src/acp/client';
+import { ACPClient } from '../../packages/shared/src/acpClient';
 import type { InitializeParams, Session, UpdateNotificationParams } from '@vcoder/shared';
 
 describe('ACPClient', () => {

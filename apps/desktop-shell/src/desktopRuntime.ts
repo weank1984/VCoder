@@ -19,7 +19,7 @@ import {
   type TerminalWaitForExitResult,
   type UpdateNotificationParams,
 } from '@vcoder/shared';
-import { AcpClient } from './acpClient.js';
+import { ACPClient } from '@vcoder/shared/acpClient';
 
 type WebviewMessage = {
   type?: string;
@@ -58,7 +58,7 @@ const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'out', '.turbo']);
 
 export class DesktopRuntime {
   private serverProcess: ChildProcess | null = null;
-  private acpClient: AcpClient | null = null;
+  private acpClient: ACPClient | null = null;
   private promptMode: 'oneshot' | 'persistent' = 'persistent';
   private terminalCounter = 0;
   private workspaceRoot: string;
@@ -111,7 +111,7 @@ export class DesktopRuntime {
       this.acpClient = null;
     });
 
-    this.acpClient = new AcpClient({
+    this.acpClient = new ACPClient({
       stdin: this.serverProcess.stdin,
       stdout: this.serverProcess.stdout,
     });
@@ -363,7 +363,7 @@ export class DesktopRuntime {
     }
   }
 
-  private requireClient(): AcpClient {
+  private requireClient(): ACPClient {
     if (!this.acpClient) {
       throw new Error('ACP client is not initialized.');
     }
@@ -673,7 +673,7 @@ export class DesktopRuntime {
     return results;
   }
 
-  private registerAcpHandlers(client: AcpClient): void {
+  private registerAcpHandlers(client: ACPClient): void {
     client.registerRequestHandler(ACPMethods.FS_READ_TEXT_FILE, async (params) =>
       this.readTextFile(params as FsReadTextFileParams),
     );

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { TextDecoder } from 'util';
 import { EventEmitter } from 'events';
-import { ACPClient } from '../acp/client';
+import { ACPClient } from '@vcoder/shared/acpClient';
 import { FileChangeUpdate } from '@vcoder/shared';
 
 type DiffSide = 'original' | 'proposed';

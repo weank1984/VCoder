@@ -27,7 +27,7 @@ vi.mock('../../apps/vscode-extension/src/services/serverManager', () => ({
     },
 }));
 
-vi.mock('../../apps/vscode-extension/src/acp/client', () => ({
+vi.mock('@vcoder/shared/acpClient', () => ({
     ACPClient: class {
         on() {}
         async initialize() {}

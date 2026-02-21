@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Readable, Writable } from 'stream';
-import { ACPClient } from '../../apps/vscode-extension/src/acp/client';
+import { ACPClient } from '../../packages/shared/src/acpClient';
 
 describe('ACPClient Multi-Session Isolation', () => {
   let mockStdin: Writable;

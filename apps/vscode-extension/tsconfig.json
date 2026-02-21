@@ -4,7 +4,10 @@
         "outDir": "./out",
         "rootDir": "./src",
         "module": "CommonJS",
-        "moduleResolution": "Node"
+        "moduleResolution": "Node",
+        "paths": {
+            "@vcoder/shared/acpClient": ["../../packages/shared/src/acpClient.ts"]
+        }
     },
     "include": [
         "src/**/*"

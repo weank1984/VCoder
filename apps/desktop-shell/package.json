@@ -11,7 +11,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@vcoder/shared": "file:../../packages/shared",
+    "@vcoder/shared": "workspace:*",
     "electron": "^40.0.0"
   },
   "devDependencies": {

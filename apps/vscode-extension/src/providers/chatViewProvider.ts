@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { EventEmitter } from 'events';
-import { ACPClient } from '../acp/client';
+import { ACPClient } from '@vcoder/shared/acpClient';
 import { UpdateNotificationParams, McpServerConfig, AgentProfile, PermissionRule, FileChangeUpdate } from '@vcoder/shared';
 import { SessionStore } from '../services/sessionStore';
 import { AuditLogger } from '../services/auditLogger';
