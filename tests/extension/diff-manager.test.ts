@@ -11,6 +11,7 @@ import type { FileChangeUpdate } from '../../packages/shared/src/protocol.js';
 const { mockWorkspace, mockWindow, mockUri, MockEventEmitter } = vi.hoisted(() => ({
     mockWorkspace: {
         registerTextDocumentContentProvider: vi.fn(() => ({ dispose: vi.fn() })),
+        onDidChangeTextDocument: vi.fn(() => ({ dispose: vi.fn() })),
         fs: {
             readFile: vi.fn(),
             writeFile: vi.fn(),

@@ -80,12 +80,22 @@ export interface AuditEvent {
     };
 }
 
+export interface IntegrityReport {
+    sessionsWithoutEnd: string[];
+    toolCallsWithoutResult: Array<{ sessionId: string; toolCallId: string }>;
+    timestampMonotonic: boolean;
+    corruptedLines: number;
+    integrityScore: number; // 0-100
+}
+
 export interface AuditLogStats {
     totalEvents: number;
     eventsByType: Record<AuditEventType, number>;
     sessionCount: number;
+    errorCount: number;
     dateRange: { start: string; end: string };
     fileSize: number;
+    integrity?: IntegrityReport;
 }
 
 export interface AuditQueryOptions {
@@ -180,15 +190,17 @@ export class AuditLogger {
         toolInput: Record<string, unknown>,
         toolResult?: unknown,
         toolError?: string,
-        durationMs?: number
+        durationMs?: number,
+        toolCallId?: string
     ): Promise<void> {
         await this.log({
             sessionId,
             eventType: 'tool_call',
             data: {
                 toolName,
+                toolCallId,
                 toolInput: this.sanitizeObject(toolInput),
-                toolResult: toolResult ? this.truncate(JSON.stringify(toolResult), 500) : undefined,
+                toolResult: toolResult ? this.truncate(JSON.stringify(toolResult), 1000) : undefined,
                 toolError,
                 durationMs,
             },
@@ -223,7 +235,9 @@ export class AuditLogger {
         filePath: string,
         operation: 'read' | 'write' | 'delete',
         fileSize?: number,
-        diffHash?: string
+        diffHash?: string,
+        toolCallId?: string,
+        decision?: 'accepted' | 'rejected'
     ): Promise<void> {
         await this.log({
             sessionId,
@@ -233,6 +247,8 @@ export class AuditLogger {
                 operation,
                 fileSize,
                 diffHash,
+                toolCallId,
+                decision,
             },
         });
     }
@@ -252,7 +268,7 @@ export class AuditLogger {
             sessionId,
             eventType: 'terminal_command',
             data: {
-                command: this.truncate(command, 200),
+                command: this.truncate(this.sanitizeCommand(command), 200),
                 commandHash: this.hashContent(command),
                 cwd: this.sanitizePath(cwd),
                 exitCode,
@@ -335,44 +351,62 @@ export class AuditLogger {
     }
 
     /**
-     * Get log statistics.
+     * Get log statistics with optional integrity check.
      */
-    async getStats(): Promise<AuditLogStats> {
+    async getStats(includeIntegrity = false): Promise<AuditLogStats> {
         try {
             const events = await this.query();
-            
+
             const eventsByType: Record<string, number> = {};
             const sessions = new Set<string>();
+            let errorCount = 0;
             let minTime = Infinity;
             let maxTime = -Infinity;
-            
+
             for (const event of events) {
                 eventsByType[event.eventType] = (eventsByType[event.eventType] || 0) + 1;
                 sessions.add(event.sessionId);
-                
+                if (event.eventType === 'error' || event.eventType === 'agent_crash') {
+                    errorCount++;
+                }
+
                 const time = new Date(event.timestamp).getTime();
                 minTime = Math.min(minTime, time);
                 maxTime = Math.max(maxTime, time);
             }
-            
-            const stats = await fs.stat(this.logFilePath);
-            
-            return {
+
+            let fileSize = 0;
+            try {
+                const stats = await fs.stat(this.logFilePath);
+                fileSize = stats.size;
+            } catch {
+                // File may not exist yet
+            }
+
+            const result: AuditLogStats = {
                 totalEvents: events.length,
                 eventsByType: eventsByType as Record<AuditEventType, number>,
                 sessionCount: sessions.size,
+                errorCount,
                 dateRange: {
                     start: minTime === Infinity ? '' : new Date(minTime).toISOString(),
                     end: maxTime === -Infinity ? '' : new Date(maxTime).toISOString(),
                 },
-                fileSize: stats.size,
+                fileSize,
             };
+
+            if (includeIntegrity) {
+                result.integrity = this.computeIntegrity(events);
+            }
+
+            return result;
         } catch (error) {
             console.error('[AuditLogger] Get stats failed:', error);
             return {
                 totalEvents: 0,
                 eventsByType: {} as Record<AuditEventType, number>,
                 sessionCount: 0,
+                errorCount: 0,
                 dateRange: { start: '', end: '' },
                 fileSize: 0,
             };
@@ -380,20 +414,162 @@ export class AuditLogger {
     }
 
     /**
+     * Compute integrity report from events.
+     */
+    private computeIntegrity(events: AuditEvent[]): IntegrityReport {
+        const sessionStarts = new Set<string>();
+        const sessionEnds = new Set<string>();
+        const toolCalls = new Map<string, { sessionId: string; toolCallId: string }>();
+        const toolResults = new Set<string>();
+        let timestampMonotonic = true;
+        let prevTime = 0;
+        let corruptedLines = 0;
+        let totalChecks = 0;
+        let passedChecks = 0;
+
+        for (const event of events) {
+            const time = new Date(event.timestamp).getTime();
+            if (time < prevTime) {
+                timestampMonotonic = false;
+            }
+            prevTime = time;
+
+            if (event.eventType === 'session_start') {
+                sessionStarts.add(event.sessionId);
+            }
+            if (event.eventType === 'session_end') {
+                sessionEnds.add(event.sessionId);
+            }
+            if (event.eventType === 'tool_call') {
+                const toolCallId = event.data.toolCallId as string | undefined;
+                if (toolCallId && !event.data.toolResult && !event.data.toolError) {
+                    toolCalls.set(`${event.sessionId}:${toolCallId}`, {
+                        sessionId: event.sessionId,
+                        toolCallId,
+                    });
+                }
+                if (toolCallId && (event.data.toolResult || event.data.toolError)) {
+                    toolResults.add(`${event.sessionId}:${toolCallId}`);
+                }
+            }
+        }
+
+        // Check session start/end pairing
+        const sessionsWithoutEnd: string[] = [];
+        for (const sid of sessionStarts) {
+            totalChecks++;
+            if (sessionEnds.has(sid)) {
+                passedChecks++;
+            } else {
+                sessionsWithoutEnd.push(sid);
+            }
+        }
+
+        // Check tool call/result pairing
+        const toolCallsWithoutResult: Array<{ sessionId: string; toolCallId: string }> = [];
+        for (const [key, info] of toolCalls) {
+            totalChecks++;
+            if (toolResults.has(key)) {
+                passedChecks++;
+            } else {
+                toolCallsWithoutResult.push(info);
+            }
+        }
+
+        // Timestamp monotonicity check
+        totalChecks++;
+        if (timestampMonotonic) {
+            passedChecks++;
+        }
+
+        const integrityScore = totalChecks > 0
+            ? Math.round((passedChecks / totalChecks) * 100)
+            : 100;
+
+        return {
+            sessionsWithoutEnd,
+            toolCallsWithoutResult,
+            timestampMonotonic,
+            corruptedLines,
+            integrityScore,
+        };
+    }
+
+    /**
+     * Log agent crash event.
+     */
+    async logAgentCrash(
+        sessionId: string,
+        exitCode: number | null,
+        stderr?: string,
+        lastOperation?: string
+    ): Promise<void> {
+        await this.log({
+            sessionId,
+            eventType: 'agent_crash',
+            data: {
+                exitCode: exitCode ?? undefined,
+                stderr: stderr ? this.truncate(stderr, 2000) : undefined,
+                lastOperation,
+            },
+        });
+    }
+
+    /**
+     * Check for unclosed sessions from previous run and record unclean shutdown.
+     * Call this on extension activation.
+     */
+    async checkUncleanShutdown(): Promise<void> {
+        try {
+            const events = await this.query();
+            const sessionStarts = new Set<string>();
+            const sessionEnds = new Set<string>();
+
+            for (const event of events) {
+                if (event.eventType === 'session_start') {
+                    sessionStarts.add(event.sessionId);
+                }
+                if (event.eventType === 'session_end') {
+                    sessionEnds.add(event.sessionId);
+                }
+            }
+
+            for (const sid of sessionStarts) {
+                if (!sessionEnds.has(sid)) {
+                    await this.log({
+                        sessionId: sid,
+                        eventType: 'session_end',
+                        data: { reason: 'unclean_shutdown' },
+                    });
+                    console.warn(`[AuditLogger] Recorded unclean shutdown for session: ${sid}`);
+                }
+            }
+        } catch (error) {
+            console.error('[AuditLogger] Failed to check unclean shutdown:', error);
+        }
+    }
+
+    /**
      * Export logs to file.
+     * Filename includes timestamp and optional sessionId for traceability.
      */
     async exportToFile(options: AuditQueryOptions = {}): Promise<void> {
         try {
             const events = await this.query(options);
-            
+
+            // Build descriptive filename
+            const ts = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
+            const sessionSuffix = options.sessionId ? `-${options.sessionId.slice(0, 8)}` : '';
+            const defaultName = `vcoder-audit-${ts}${sessionSuffix}.jsonl`;
+
             // Ask user for save location
             const uri = await vscode.window.showSaveDialog({
-                defaultUri: vscode.Uri.file(`vcoder-audit-${Date.now()}.jsonl`),
+                defaultUri: vscode.Uri.file(defaultName),
                 filters: {
                     'JSONL Files': ['jsonl'],
                     'JSON Files': ['json'],
-                    'All Files': ['*']
-                }
+                    'All Files': ['*'],
+                },
             });
 
             if (!uri) {
@@ -403,7 +579,7 @@ export class AuditLogger {
             // Write to file
             const content = events.map(e => JSON.stringify(e)).join('\n');
             await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf-8'));
-            
+
             vscode.window.showInformationMessage(
                 `Exported ${events.length} audit event(s) successfully`
             );
@@ -541,6 +717,27 @@ export class AuditLogger {
             return filePath.replace(home, '~');
         }
         return filePath;
+    }
+
+    /**
+     * Sanitize a bash command by redacting env variable values and sensitive patterns.
+     */
+    private sanitizeCommand(command: string): string {
+        let sanitized = command;
+
+        // Redact inline env variable assignments (e.g., API_KEY=abc123 command)
+        sanitized = sanitized.replace(
+            /\b([A-Z_]+(?:KEY|TOKEN|SECRET|PASSWORD|PASS|AUTH|CREDENTIAL)[A-Z_]*)=(\S+)/gi,
+            '$1=[REDACTED]'
+        );
+
+        // Redact common secret-passing patterns (e.g., --token=xxx, --password xxx)
+        sanitized = sanitized.replace(
+            /--(token|password|secret|api-key|auth|credentials?)\s*[=\s]\s*(\S+)/gi,
+            '--$1=[REDACTED]'
+        );
+
+        return sanitized;
     }
 
     /**

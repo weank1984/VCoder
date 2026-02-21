@@ -203,6 +203,22 @@
     &:last-child {
         margin-bottom: 0;
     }
+
+    &--expired {
+        opacity: 0.5;
+    }
+}
+
+.rule-expired-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 1px 6px;
+    background: var(--vscode-inputValidation-warningBackground, rgba(255, 200, 0, 0.15));
+    border: 1px solid var(--vscode-inputValidation-warningBorder, rgba(255, 200, 0, 0.3));
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--vscode-warningForeground, #cca700);
 }
 
 .rule-icon {
@@ -286,6 +302,11 @@
 .rule-expiry {
     color: var(--vscode-warningForeground);
     font-weight: 500;
+
+    &--past {
+        color: var(--vscode-errorForeground, #f14c4c);
+        text-decoration: line-through;
+    }
 }
 
 .create-rule-btn {

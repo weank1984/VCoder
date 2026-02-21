@@ -1,14 +1,13 @@
 /**
  * Permission Rules Management Panel
- * Allows users to view, filter, and delete saved permission rules
+ * Allows users to view, filter, add, edit, and delete saved permission rules.
+ * Backed by Zustand permissionRulesSlice; CRUD goes through postMessage -> ChatViewProvider -> SessionStore.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { PermissionRule } from '@vcoder/shared';
-import { postMessage } from '../utils/vscode';
+import { useStore } from '../store/useStore';
 import './PermissionRulesPanel.scss';
-
-
 
 interface PermissionRulesPanelProps {
     visible: boolean;
@@ -16,21 +15,19 @@ interface PermissionRulesPanelProps {
 }
 
 const CATEGORIES = [
-    { id: 'all', label: '全部' },
-    { id: 'file', label: '文件操作' },
-    { id: 'terminal', label: '终端命令' },
-    { id: 'mcp', label: 'MCP 工具' },
-    { id: 'other', label: '其他' },
+    { id: 'all', label: 'All' },
+    { id: 'file', label: 'File' },
+    { id: 'terminal', label: 'Terminal' },
+    { id: 'mcp', label: 'MCP' },
+    { id: 'other', label: 'Other' },
 ];
 
-/**
- * Determine category from tool name
- */
 function getToolCategory(toolName: string): string {
-    if (toolName.includes('file') || toolName.includes('write') || toolName.includes('read')) {
+    const lower = toolName.toLowerCase();
+    if (lower.includes('file') || lower.includes('write') || lower.includes('read') || lower.includes('edit')) {
         return 'file';
     }
-    if (toolName.includes('bash') || toolName.includes('terminal') || toolName.includes('shell')) {
+    if (lower.includes('bash') || lower.includes('terminal') || lower.includes('shell')) {
         return 'terminal';
     }
     if (toolName.startsWith('mcp__')) {
@@ -39,36 +36,44 @@ function getToolCategory(toolName: string): string {
     return 'other';
 }
 
+function getCategoryIcon(category: string): string {
+    switch (category) {
+        case 'file': return '\u{1F4C4}';
+        case 'terminal': return '\u{2328}\u{FE0F}';
+        case 'mcp': return '\u{1F527}';
+        default: return '\u{2699}\u{FE0F}';
+    }
+}
+
+function isExpired(rule: PermissionRule): boolean {
+    if (!rule.expiresAt) return false;
+    return new Date(rule.expiresAt).getTime() <= Date.now();
+}
+
 export function PermissionRulesPanel({ visible, onClose }: PermissionRulesPanelProps) {
-    const [rules, setRules] = useState<PermissionRule[]>([]);
+    const {
+        permissionRules,
+        loadPermissionRules,
+        addPermissionRule,
+        updatePermissionRule,
+        deletePermissionRule,
+        clearPermissionRules,
+    } = useStore();
+
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [editingRule, setEditingRule] = useState<PermissionRule | null>(null);
     const [isCreatingNew, setIsCreatingNew] = useState(false);
 
-    // Request rules when panel becomes visible
-    useState(() => {
+    // Load rules when panel becomes visible
+    useEffect(() => {
         if (visible) {
-            postMessage({ type: 'getPermissionRules' });
+            loadPermissionRules();
         }
-    });
+    }, [visible, loadPermissionRules]);
 
-    // Handle messages from extension
-    useState(() => {
-        const handleMessage = (event: MessageEvent) => {
-            const message = event.data;
-            if (message.type === 'permissionRules') {
-                setRules(message.data || []);
-            }
-        };
-
-        window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
-    });
-
-const handleDeleteRule = (ruleId: string) => {
-        postMessage({ type: 'deletePermissionRule', ruleId });
-        setRules(rules.filter((r) => r.id !== ruleId));
+    const handleDeleteRule = (ruleId: string) => {
+        deletePermissionRule(ruleId);
     };
 
     const handleEditRule = (rule: PermissionRule) => {
@@ -77,18 +82,12 @@ const handleDeleteRule = (ruleId: string) => {
     };
 
     const handleCreateNew = () => {
-        const newRule = {
-            action: 'allow' as const,
-            toolName: '',
-            pattern: '',
-            description: '',
-        };
         setEditingRule({
             id: '',
-            toolName: newRule.toolName,
-            pattern: newRule.pattern,
-            action: newRule.action,
-            description: newRule.description,
+            toolName: '',
+            pattern: '',
+            action: 'allow',
+            description: '',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         });
@@ -98,21 +97,22 @@ const handleDeleteRule = (ruleId: string) => {
     const handleSaveRule = () => {
         if (!editingRule) return;
 
-        const ruleToSave = {
-            ...editingRule,
-            updatedAt: new Date().toISOString(),
-            ...(isCreatingNew && { 
-                id: `rule_${Date.now()}`, 
-                createdAt: new Date().toISOString() 
-            })
-        };
-
         if (isCreatingNew) {
-            postMessage({ type: 'addPermissionRule', rule: ruleToSave });
-            setRules([...rules, ruleToSave]);
+            const newRule: PermissionRule = {
+                ...editingRule,
+                id: `rule_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            };
+            addPermissionRule(newRule);
         } else {
-            postMessage({ type: 'updatePermissionRule', ruleId: editingRule.id, updates: ruleToSave });
-            setRules(rules.map(r => r.id === editingRule.id ? ruleToSave : r));
+            updatePermissionRule(editingRule.id, {
+                toolName: editingRule.toolName,
+                pattern: editingRule.pattern,
+                action: editingRule.action,
+                description: editingRule.description,
+                expiresAt: editingRule.expiresAt,
+            });
         }
 
         setEditingRule(null);
@@ -125,36 +125,31 @@ const handleDeleteRule = (ruleId: string) => {
     };
 
     const handleClearAll = () => {
-        const confirmed = confirm('确定要清除所有权限规则吗？此操作不可撤销。');
+        const confirmed = confirm('Are you sure you want to clear all permission rules? This cannot be undone.');
         if (confirmed) {
-            postMessage({ type: 'clearPermissionRules' });
-            setRules([]);
+            clearPermissionRules();
         }
     };
 
-    // Filter rules
     const filteredRules = useMemo(() => {
-        return rules.filter((rule) => {
-            // Filter by category
+        return permissionRules.filter((rule) => {
             if (selectedCategory !== 'all') {
                 const category = getToolCategory(rule.toolName || '');
                 if (category !== selectedCategory) {
                     return false;
                 }
             }
-
-            // Filter by search query
             if (searchQuery) {
                 const query = searchQuery.toLowerCase();
                 return (
                     (rule.toolName?.toLowerCase().includes(query) || false) ||
-                    (rule.pattern?.toLowerCase().includes(query) || false)
+                    (rule.pattern?.toLowerCase().includes(query) || false) ||
+                    (rule.description?.toLowerCase().includes(query) || false)
                 );
             }
-
             return true;
         });
-    }, [rules, selectedCategory, searchQuery]);
+    }, [permissionRules, selectedCategory, searchQuery]);
 
     if (!visible) {
         return null;
@@ -163,11 +158,11 @@ const handleDeleteRule = (ruleId: string) => {
     return (
         <div className="permission-rules-panel">
             <div className="panel-overlay" onClick={onClose} />
-            
+
             <div className="panel-content">
                 <div className="panel-header">
-                    <h2 className="panel-title">权限规则管理</h2>
-                    <button className="panel-close" onClick={onClose} aria-label="关闭">
+                    <h2 className="panel-title">Permission Rules</h2>
+                    <button className="panel-close" onClick={onClose} aria-label="Close">
                         ×
                     </button>
                 </div>
@@ -191,17 +186,17 @@ const handleDeleteRule = (ruleId: string) => {
                         <input
                             type="text"
                             className="search-input"
-                            placeholder="搜索规则..."
+                            placeholder="Search rules..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                        {rules.length > 0 && (
+                        {permissionRules.length > 0 && (
                             <button className="clear-all-btn" onClick={handleClearAll}>
-                                清除全部
+                                Clear All
                             </button>
                         )}
                         <button className="create-rule-btn" onClick={handleCreateNew}>
-                            + 新建规则
+                            + New Rule
                         </button>
                     </div>
                 </div>
@@ -209,77 +204,83 @@ const handleDeleteRule = (ruleId: string) => {
                 <div className="rules-list">
                     {filteredRules.length === 0 ? (
                         <div className="rules-empty">
-                            {rules.length === 0 ? (
+                            {permissionRules.length === 0 ? (
                                 <>
-                                    <div className="empty-icon">🔒</div>
-                                    <p className="empty-text">暂无保存的权限规则</p>
+                                    <div className="empty-icon">{'\u{1F512}'}</div>
+                                    <p className="empty-text">No permission rules saved</p>
                                     <p className="empty-hint">
-                                        在权限审批时选择"总是允许"可创建规则
+                                        Select "Always Allow" during permission approval to create rules
                                     </p>
                                 </>
                             ) : (
                                 <>
-                                    <div className="empty-icon">🔍</div>
-                                    <p className="empty-text">未找到匹配的规则</p>
+                                    <div className="empty-icon">{'\u{1F50D}'}</div>
+                                    <p className="empty-text">No matching rules found</p>
                                 </>
                             )}
                         </div>
                     ) : (
-                        filteredRules.map((rule) => (
-                            <div key={rule.id} className="rule-item">
-                                <div className="rule-icon">
-                                    {getToolCategory(rule.toolName || '') === 'file' && '📄'}
-                                    {getToolCategory(rule.toolName || '') === 'terminal' && '⌨️'}
-                                    {getToolCategory(rule.toolName || '') === 'mcp' && '🔧'}
-                                    {getToolCategory(rule.toolName || '') === 'other' && '⚙️'}
-                                </div>
-                                <div className="rule-info">
-                                    <div className="rule-tool-name">
-                                        {rule.toolName || 'Unknown'}
-                                        <span className={`rule-action ${rule.action}`}>
-                                            {rule.action === 'allow' ? '✅' : '🚫'}
-                                        </span>
+                        filteredRules.map((rule) => {
+                            const expired = isExpired(rule);
+                            const category = getToolCategory(rule.toolName || '');
+                            return (
+                                <div key={rule.id} className={`rule-item${expired ? ' rule-item--expired' : ''}`}>
+                                    <div className="rule-icon">
+                                        {getCategoryIcon(category)}
                                     </div>
-                                    <div className="rule-pattern">{rule.pattern || 'No pattern'}</div>
-                                    {rule.description && (
-                                        <div className="rule-description">{rule.description}</div>
-                                    )}
-                                    <div className="rule-meta">
-                                        创建于 {new Date(rule.createdAt).toLocaleString('zh-CN')}
-                                        {rule.expiresAt && (
-                                            <span className="rule-expiry">
-                                                · 过期于 {new Date(rule.expiresAt).toLocaleString('zh-CN')}
+                                    <div className="rule-info">
+                                        <div className="rule-tool-name">
+                                            {rule.toolName || '* (wildcard)'}
+                                            <span className={`rule-action ${rule.action}`}>
+                                                {rule.action === 'allow' ? '\u{2705}' : '\u{1F6AB}'}
                                             </span>
+                                            {expired && (
+                                                <span className="rule-expired-badge">Expired</span>
+                                            )}
+                                        </div>
+                                        {rule.pattern && (
+                                            <div className="rule-pattern">{rule.pattern}</div>
                                         )}
+                                        {rule.description && (
+                                            <div className="rule-description">{rule.description}</div>
+                                        )}
+                                        <div className="rule-meta">
+                                            Created {new Date(rule.createdAt).toLocaleString()}
+                                            {rule.expiresAt && (
+                                                <span className={`rule-expiry${expired ? ' rule-expiry--past' : ''}`}>
+                                                    {' '}&middot; Expires {new Date(rule.expiresAt).toLocaleString()}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="rule-actions">
+                                        <button
+                                            className="rule-edit"
+                                            onClick={() => handleEditRule(rule)}
+                                            aria-label="Edit rule"
+                                            title="Edit rule"
+                                        >
+                                            {'\u{270F}\u{FE0F}'}
+                                        </button>
+                                        <button
+                                            className="rule-delete"
+                                            onClick={() => handleDeleteRule(rule.id)}
+                                            aria-label="Delete rule"
+                                            title="Delete rule"
+                                        >
+                                            {'\u{1F5D1}\u{FE0F}'}
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="rule-actions">
-                                    <button
-                                        className="rule-edit"
-                                        onClick={() => handleEditRule(rule)}
-                                        aria-label="编辑规则"
-                                        title="编辑规则"
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        className="rule-delete"
-                                        onClick={() => handleDeleteRule(rule.id)}
-                                        aria-label="删除规则"
-                                        title="删除规则"
-                                    >
-                                        🗑️
-                                    </button>
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
 
                 <div className="panel-footer">
                     <div className="footer-stats">
-                        共 {rules.length} 条规则
-                        {selectedCategory !== 'all' && ` · ${filteredRules.length} 条匹配`}
+                        {permissionRules.length} rule{permissionRules.length !== 1 ? 's' : ''} total
+                        {selectedCategory !== 'all' && ` \u00b7 ${filteredRules.length} matching`}
                     </div>
                 </div>
             </div>
@@ -289,7 +290,7 @@ const handleDeleteRule = (ruleId: string) => {
                     <div className="modal-overlay" onClick={handleCancelEdit} />
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h3>{isCreatingNew ? '新建权限规则' : '编辑权限规则'}</h3>
+                            <h3>{isCreatingNew ? 'New Permission Rule' : 'Edit Permission Rule'}</h3>
                             <button className="modal-close" onClick={handleCancelEdit}>
                                 ×
                             </button>
@@ -297,54 +298,54 @@ const handleDeleteRule = (ruleId: string) => {
 
                         <div className="modal-body">
                             <div className="form-group">
-                                <label>工具名称</label>
+                                <label>Tool Name</label>
                                 <input
                                     type="text"
                                     value={editingRule.toolName || ''}
                                     onChange={(e) => setEditingRule({ ...editingRule, toolName: e.target.value })}
-                                    placeholder="例如: bash, fs.writeFile, mcp__github"
+                                    placeholder="e.g., Bash, Read, Write, mcp__github"
                                 />
                             </div>
 
                             <div className="form-group">
-                                <label>匹配模式</label>
+                                <label>Pattern (regex)</label>
                                 <input
                                     type="text"
                                     value={editingRule.pattern || ''}
                                     onChange={(e) => setEditingRule({ ...editingRule, pattern: e.target.value })}
-                                    placeholder="例如: /home/**/*, npm install, *.txt"
+                                    placeholder="e.g., ^echo\\s+, /safe/path/.*, *.txt"
                                 />
                             </div>
 
                             <div className="form-group">
-                                <label>操作</label>
+                                <label>Action</label>
                                 <select
                                     value={editingRule.action}
                                     onChange={(e) => setEditingRule({ ...editingRule, action: e.target.value as 'allow' | 'deny' })}
                                 >
-                                    <option value="allow">允许</option>
-                                    <option value="deny">拒绝</option>
+                                    <option value="allow">Allow</option>
+                                    <option value="deny">Deny</option>
                                 </select>
                             </div>
 
                             <div className="form-group">
-                                <label>描述 (可选)</label>
+                                <label>Description (optional)</label>
                                 <textarea
                                     value={editingRule.description || ''}
                                     onChange={(e) => setEditingRule({ ...editingRule, description: e.target.value })}
-                                    placeholder="描述此规则的用途..."
+                                    placeholder="Describe what this rule does..."
                                     rows={2}
                                 />
                             </div>
 
                             <div className="form-group">
-                                <label>过期时间 (可选)</label>
+                                <label>Expires At (optional)</label>
                                 <input
                                     type="datetime-local"
                                     value={editingRule.expiresAt ? new Date(editingRule.expiresAt).toISOString().slice(0, 16) : ''}
-                                    onChange={(e) => setEditingRule({ 
-                                        ...editingRule, 
-                                        expiresAt: e.target.value ? new Date(e.target.value).toISOString() : undefined 
+                                    onChange={(e) => setEditingRule({
+                                        ...editingRule,
+                                        expiresAt: e.target.value ? new Date(e.target.value).toISOString() : undefined
                                     })}
                                 />
                             </div>
@@ -352,10 +353,10 @@ const handleDeleteRule = (ruleId: string) => {
 
                         <div className="modal-footer">
                             <button className="modal-btn modal-btn--cancel" onClick={handleCancelEdit}>
-                                取消
+                                Cancel
                             </button>
                             <button className="modal-btn modal-btn--save" onClick={handleSaveRule}>
-                                {isCreatingNew ? '创建' : '保存'}
+                                {isCreatingNew ? 'Create' : 'Save'}
                             </button>
                         </div>
                     </div>

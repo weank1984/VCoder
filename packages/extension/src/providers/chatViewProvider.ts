@@ -7,12 +7,14 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { EventEmitter } from 'events';
 import { ACPClient } from '../acp/client';
-import { UpdateNotificationParams, McpServerConfig, AgentProfile, PermissionRule } from '@vcoder/shared';
+import { UpdateNotificationParams, McpServerConfig, AgentProfile, PermissionRule, FileChangeUpdate } from '@vcoder/shared';
 import { SessionStore } from '../services/sessionStore';
 import { AuditLogger } from '../services/auditLogger';
 import { BuiltinMcpServer } from '../services/builtinMcpServer';
 import { MessageQueue, getMessagePriority } from '../utils/messageQueue';
 import { AgentRegistry } from '../services/agentRegistry';
+import { DiffManager } from '../services/diffManager';
+import { VCoderFileDecorationProvider } from './fileDecorationProvider';
 
 export class ChatViewProvider extends EventEmitter implements vscode.WebviewViewProvider {
     private webviewView?: vscode.WebviewView;
@@ -21,6 +23,10 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
 
     // Message queue for batched communication
     private messageQueue: MessageQueue;
+
+    private diffManager?: DiffManager;
+    private fileDecorator?: VCoderFileDecorationProvider;
+    private promptMode: 'oneshot' | 'persistent' = 'persistent';
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -49,6 +55,50 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                 return;
             }
 
+            // Intercept file_change events for Diff review flow
+            if (params.type === 'file_change') {
+                const change = params.content as FileChangeUpdate;
+                this.handleFileChange(params.sessionId, change);
+                // Audit log file change
+                if (this.auditLogger) {
+                    const op = change.type === 'deleted' ? 'delete' as const : 'write' as const;
+                    const size = change.content ? Buffer.byteLength(change.content, 'utf-8') : undefined;
+                    void this.auditLogger.logFileOperation(
+                        params.sessionId, change.path, op, size, undefined, undefined
+                    );
+                }
+            }
+
+            // Audit log tool_use events
+            if (params.type === 'tool_use' && this.auditLogger) {
+                const tc = params.content as { id?: string; name?: string; input?: Record<string, unknown> };
+                if (tc.name && tc.input) {
+                    void this.auditLogger.logToolCall(
+                        params.sessionId, tc.name, tc.input, undefined, undefined, undefined, tc.id
+                    );
+                }
+            }
+
+            // Audit log tool_result events
+            if (params.type === 'tool_result' && this.auditLogger) {
+                const tr = params.content as { id?: string; result?: unknown; error?: string };
+                if (tr.id) {
+                    void this.auditLogger.logToolCall(
+                        params.sessionId, `tool_result:${tr.id}`, {}, tr.result, tr.error, undefined, tr.id
+                    );
+                }
+            }
+
+            // Audit log error events
+            if (params.type === 'error' && this.auditLogger) {
+                const err = params.content as { message?: string; type?: string; recoverable?: boolean };
+                void this.auditLogger.logError(
+                    params.sessionId,
+                    err.type ?? 'agent_error',
+                    err.message ?? 'Unknown error',
+                );
+            }
+
             if (this.debugThinking) {
                 if (params.type === 'thought') {
                     const thought = params.content as { content?: string; isComplete?: boolean };
@@ -72,6 +122,20 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
 
         this.acpClient.on('session/complete', (params: unknown) => {
             this.postMessage({ type: 'complete', data: params }, true);
+            // Audit log session end
+            if (this.auditLogger) {
+                const p = params as { sessionId?: string; reason?: string; durationMs?: number; tokenUsage?: unknown } | undefined;
+                const sessionId = p?.sessionId ?? this.acpClient.getCurrentSession()?.id ?? 'unknown';
+                void this.auditLogger.log({
+                    sessionId,
+                    eventType: 'session_end',
+                    data: {
+                        reason: p?.reason,
+                        durationMs: p?.durationMs,
+                        tokenUsage: p?.tokenUsage,
+                    },
+                });
+            }
         });
 
         // Forward agent status changes to webview
@@ -124,11 +188,23 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                             if (this.sessionStore) {
                                 await this.sessionStore.saveCurrentSessionId(session.id);
                             }
+                            // Audit log session start (auto-created)
+                            if (this.auditLogger) {
+                                void this.auditLogger.log({
+                                    sessionId: session.id,
+                                    eventType: 'session_start',
+                                    data: { source: 'auto', title: session.title },
+                                });
+                            }
                         }
                         if (session && this.auditLogger) {
                             void this.auditLogger.logUserPrompt(session.id, message.content);
                         }
-                        await this.acpClient.prompt(message.content, message.attachments);
+                        if (this.promptMode === 'persistent') {
+                            await this.acpClient.promptPersistent(message.content, message.attachments);
+                        } else {
+                            await this.acpClient.prompt(message.content, message.attachments);
+                        }
                     }
                     break;
                 case 'newSession':
@@ -141,6 +217,14 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         if (this.sessionStore) {
                             await this.sessionStore.saveCurrentSessionId(session.id);
                         }
+                        // Audit log session start
+                        if (this.auditLogger) {
+                            void this.auditLogger.log({
+                                sessionId: session.id,
+                                eventType: 'session_start',
+                                data: { source: 'user', title: session.title },
+                            });
+                        }
                         break;
                     }
                 case 'listSessions':
@@ -150,24 +234,81 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         break;
                     }
                 case 'switchSession':
-                    await this.acpClient.switchSession(message.sessionId);
-                    // Send currentSession message first to trigger UI state cleanup
-                    this.postMessage({ type: 'currentSession', data: { sessionId: message.sessionId } }, true);
-                    // Refresh session list to ensure UI is up to date
-                    this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() }, true);
-                    if (this.sessionStore) {
-                        await this.sessionStore.saveCurrentSessionId(message.sessionId);
+                    {
+                        const previousSessionId = this.acpClient.getCurrentSession()?.id;
+                        await this.acpClient.switchSession(message.sessionId);
+                        // Send currentSession message first to trigger UI state cleanup
+                        this.postMessage({ type: 'currentSession', data: { sessionId: message.sessionId } }, true);
+                        // Refresh session list to ensure UI is up to date
+                        this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() }, true);
+                        if (this.sessionStore) {
+                            await this.sessionStore.saveCurrentSessionId(message.sessionId);
+                        }
+                        // Audit log session switch
+                        if (this.auditLogger) {
+                            void this.auditLogger.log({
+                                sessionId: message.sessionId,
+                                eventType: 'session_start',
+                                data: { source: 'switch', previousSessionId },
+                            });
+                        }
                     }
                     break;
                 case 'deleteSession':
                     await this.acpClient.deleteSession(message.sessionId);
+                    // Clear pending diff changes for the deleted session
+                    if (this.diffManager) {
+                        this.diffManager.clearSession(message.sessionId);
+                    }
                     this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() }, true);
+                    // Audit log session deletion
+                    if (this.auditLogger) {
+                        void this.auditLogger.log({
+                            sessionId: message.sessionId,
+                            eventType: 'session_end',
+                            data: { reason: 'deleted' },
+                        });
+                    }
                     break;
                 case 'acceptChange':
-                    await this.acpClient.acceptFileChange(message.path);
+                    {
+                        const currentSession = this.acpClient.getCurrentSession();
+                        const sid = message.sessionId ?? currentSession?.id;
+                        if (this.diffManager && sid) {
+                            await this.diffManager.acceptChange(sid, message.path);
+                        } else {
+                            await this.acpClient.acceptFileChange(message.path);
+                        }
+                    }
                     break;
                 case 'rejectChange':
-                    await this.acpClient.rejectFileChange(message.path);
+                    {
+                        const currentSession = this.acpClient.getCurrentSession();
+                        const sid = message.sessionId ?? currentSession?.id;
+                        if (this.diffManager && sid) {
+                            await this.diffManager.rejectChange(sid, message.path);
+                        } else {
+                            await this.acpClient.rejectFileChange(message.path);
+                        }
+                    }
+                    break;
+                case 'acceptAllChanges':
+                    {
+                        const currentSession = this.acpClient.getCurrentSession();
+                        const sid = message.sessionId ?? currentSession?.id;
+                        if (this.diffManager && sid) {
+                            await this.diffManager.acceptAll(sid);
+                        }
+                    }
+                    break;
+                case 'rejectAllChanges':
+                    {
+                        const currentSession = this.acpClient.getCurrentSession();
+                        const sid = message.sessionId ?? currentSession?.id;
+                        if (this.diffManager && sid) {
+                            await this.diffManager.rejectAll(sid);
+                        }
+                    }
                     break;
                 case 'setModel':
                     await this.acpClient.changeSettings({ model: message.model });
@@ -177,6 +318,15 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                     break;
                 case 'setPermissionMode':
                     await this.acpClient.changeSettings({ permissionMode: message.mode });
+                    break;
+                case 'setPromptMode':
+                    this.promptMode = message.mode === 'oneshot' ? 'oneshot' : 'persistent';
+                    break;
+                case 'getModeStatus':
+                    {
+                        const status = await this.acpClient.getModeStatus();
+                        this.postMessage({ type: 'modeStatus', data: status });
+                    }
                     break;
                 case 'setThinking':
                     await this.acpClient.changeSettings({
@@ -196,12 +346,18 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                     }
                     break;
                 case 'confirmBash':
+                    // @deprecated — Use confirmTool instead. Kept for backward compatibility.
+                    console.warn('[VCoder] confirmBash is deprecated; use confirmTool');
                     await this.acpClient.confirmBash(message.commandId);
                     break;
                 case 'skipBash':
+                    // @deprecated — Use confirmTool instead. Kept for backward compatibility.
+                    console.warn('[VCoder] skipBash is deprecated; use confirmTool');
                     await this.acpClient.skipBash(message.commandId);
                     break;
                 case 'confirmPlan':
+                    // @deprecated — Use confirmTool instead. Kept for backward compatibility.
+                    console.warn('[VCoder] confirmPlan is deprecated; use confirmTool');
                     await this.acpClient.confirmPlan();
                     break;
                 case 'confirmTool':
@@ -277,8 +433,16 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                                 cwd,
                                 mcpServers,
                             });
-this.postMessage({ type: 'currentSession', data: { sessionId: session.id } }, true);
-                        this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() }, true);
+                            this.postMessage({ type: 'currentSession', data: { sessionId: session.id } }, true);
+                            this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() }, true);
+                            // Audit log session resume
+                            if (this.auditLogger) {
+                                void this.auditLogger.log({
+                                    sessionId: session.id,
+                                    eventType: 'session_start',
+                                    data: { source: 'resume', originalSessionId: message.sessionId, title: session.title },
+                                });
+                            }
                         } catch (err) {
                             console.error('[VCoder] Failed to resume history:', err);
                         }
@@ -473,8 +637,137 @@ this.postMessage({ type: 'currentSession', data: { sessionId: session.id } }, tr
                         });
                     }
                     break;
+                case 'getAuditStats':
+                    {
+                        if (this.auditLogger) {
+                            const stats = await this.auditLogger.getStats();
+                            this.postMessage({
+                                type: 'auditStats',
+                                data: {
+                                    totalEvents: stats.totalEvents,
+                                    sessionCount: stats.sessionCount,
+                                    errorCount: stats.errorCount,
+                                    fileSize: stats.fileSize,
+                                },
+                            });
+                        }
+                    }
+                    break;
+                case 'exportAuditLog':
+                    {
+                        if (this.auditLogger) {
+                            await this.auditLogger.exportToFile();
+                        }
+                    }
+                    break;
             }
         });
+    }
+
+    /**
+     * Set the DiffManager instance for file change review flow.
+     */
+    setDiffManager(diffManager: DiffManager): void {
+        this.diffManager = diffManager;
+
+        // Listen for diff decisions to update webview
+        diffManager.on('decision', (data: { sessionId: string; filePath: string; decision: 'accepted' | 'rejected' }) => {
+            // Notify webview that a file change was decided
+            const updateContent: FileChangeUpdate = {
+                type: 'modified',
+                path: data.filePath,
+                proposed: false,
+                sessionId: data.sessionId,
+            };
+            this.postMessage({
+                type: 'update',
+                data: {
+                    sessionId: data.sessionId,
+                    type: 'file_change',
+                    content: updateContent,
+                },
+            }, true);
+
+            // Audit log the diff review decision
+            if (this.auditLogger) {
+                void this.auditLogger.logFileOperation(
+                    data.sessionId, data.filePath, 'write', undefined, undefined, undefined, data.decision
+                );
+            }
+
+            // Update file decorator
+            if (this.fileDecorator) {
+                if (data.decision === 'rejected') {
+                    this.fileDecorator.removeFile(data.filePath);
+                }
+            }
+        });
+
+        // Listen for conflict detection events
+        diffManager.on('conflict', (data: { sessionId: string; filePath: string }) => {
+            console.warn(`[VCoder] Conflict detected: ${data.filePath} modified during review`);
+            this.postMessage({
+                type: 'update',
+                data: {
+                    sessionId: data.sessionId,
+                    type: 'file_change',
+                    content: {
+                        type: 'modified',
+                        path: data.filePath,
+                        proposed: true,
+                        conflict: true,
+                        sessionId: data.sessionId,
+                    },
+                },
+            });
+        });
+
+        // Listen for review stats updates
+        diffManager.on('statsUpdate', (data: { sessionId: string; stats: { pending: number; accepted: number; rejected: number; total: number } }) => {
+            this.postMessage({
+                type: 'reviewStats',
+                data: {
+                    sessionId: data.sessionId,
+                    stats: data.stats,
+                },
+            });
+        });
+    }
+
+    /**
+     * Set the FileDecorationProvider instance.
+     */
+    setFileDecorator(fileDecorator: VCoderFileDecorationProvider): void {
+        this.fileDecorator = fileDecorator;
+    }
+
+    /**
+     * Handle file_change events from the agent.
+     * When proposed=true, triggers Diff review flow.
+     */
+    private handleFileChange(sessionId: string, change: FileChangeUpdate): void {
+        // Update file decorator
+        if (this.fileDecorator) {
+            this.fileDecorator.updateFile(change);
+        }
+
+        // If not a proposed change, nothing more to do
+        if (!change.proposed) {
+            return;
+        }
+
+        // Check permission mode - bypassPermissions skips diff review
+        const config = vscode.workspace.getConfiguration('vcoder');
+        const permissionMode = config.get<string>('permissionMode', 'default');
+        if (permissionMode === 'bypassPermissions') {
+            console.log('[VCoder] bypassPermissions mode: skipping diff review for', change.path);
+            return;
+        }
+
+        // Trigger Diff review in VSCode
+        if (this.diffManager) {
+            void this.diffManager.previewChange(sessionId, change);
+        }
     }
 
     refresh(): void {

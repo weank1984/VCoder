@@ -40,6 +40,13 @@ export interface PersistentSessionSettings {
  * PersistentSession manages a single long-lived Claude CLI process
  * using bidirectional stream-json communication.
  */
+export type PersistentSessionState = 'idle' | 'processing' | 'waiting' | 'closed';
+
+export interface TokenUsage {
+    inputTokens: number;
+    outputTokens: number;
+}
+
 export class PersistentSession extends EventEmitter {
     private process: ChildProcess | null = null;
     private claudeSessionId: string | null = null;
@@ -49,7 +56,27 @@ export class PersistentSession extends EventEmitter {
     private thinkingContent = '';
     private parser = new JsonStreamParser();
     private isRunning = false;
-    
+    private _state: PersistentSessionState = 'idle';
+    private _messageCount = 0;
+    private _totalUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
+    private _startedAt: number = 0;
+    private _lastActivityAt: number = 0;
+
+    // Crash recovery
+    private _crashCount = 0;
+    private _recovering = false;
+    private _messageBuffer: Array<{ content: string; attachments?: Attachment[] }> = [];
+    private static readonly MAX_CRASH_RETRIES = 2;
+    private static readonly CRASH_RETRY_DELAY_MS = 2000;
+
+    // Idle timeout
+    private _idleTimer: ReturnType<typeof setTimeout> | null = null;
+    private static readonly IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+
+    // Health check
+    private _healthCheckTimer: ReturnType<typeof setInterval> | null = null;
+    private static readonly HEALTH_CHECK_INTERVAL_MS = 60 * 1000; // 60 seconds
+
     constructor(
         private sessionId: string,
         private options: PersistentSessionOptions,
@@ -64,6 +91,34 @@ export class PersistentSession extends EventEmitter {
 
     get cliSessionId(): string | null {
         return this.claudeSessionId;
+    }
+
+    get state(): PersistentSessionState {
+        return this._state;
+    }
+
+    get messageCount(): number {
+        return this._messageCount;
+    }
+
+    get totalUsage(): TokenUsage {
+        return { ...this._totalUsage };
+    }
+
+    get startedAt(): number {
+        return this._startedAt;
+    }
+
+    get lastActivityAt(): number {
+        return this._lastActivityAt;
+    }
+
+    get pid(): number | undefined {
+        return this.process?.pid;
+    }
+
+    get recovering(): boolean {
+        return this._recovering;
     }
 
     /**
@@ -153,6 +208,9 @@ export class PersistentSession extends EventEmitter {
 
         // Do NOT close stdin - we need it for ongoing communication
         this.isRunning = true;
+        this._state = 'idle';
+        this._startedAt = Date.now();
+        this._lastActivityAt = Date.now();
         this.setupListeners();
 
         // Wait for init event
@@ -163,11 +221,13 @@ export class PersistentSession extends EventEmitter {
 
             const onInit = () => {
                 clearTimeout(timeout);
+                this.startHealthCheck();
+                this.resetIdleTimer();
                 resolve();
             };
 
             this.once('init', onInit);
-            
+
             this.process!.on('error', (err) => {
                 clearTimeout(timeout);
                 this.isRunning = false;
@@ -176,15 +236,31 @@ export class PersistentSession extends EventEmitter {
 
             this.process!.on('close', (code) => {
                 this.isRunning = false;
-                this.emit('close', code);
+                this._state = 'closed';
+                this.clearTimers();
+
+                // Non-zero exit is a crash; attempt recovery
+                if (code !== 0 && code !== null && code !== 143 && code !== 137) {
+                    this.handleCrash(code);
+                } else {
+                    this.emit('close', code);
+                }
             });
         });
     }
 
     /**
-     * Send a user message to the CLI
+     * Send a user message to the CLI.
+     * If the session is currently recovering from a crash, the message is buffered.
      */
     sendMessage(content: string, attachments?: Attachment[]): void {
+        // Buffer messages during recovery
+        if (this._recovering) {
+            console.error(`[PersistentSession] Session recovering, buffering message`);
+            this._messageBuffer.push({ content, attachments });
+            return;
+        }
+
         if (!this.process || !this.process.stdin) {
             throw new Error('Session not started');
         }
@@ -201,32 +277,65 @@ export class PersistentSession extends EventEmitter {
             },
         }) + '\n';
 
-        console.error(`[PersistentSession] Sending message:`, message.slice(0, 100));
+        this._messageCount++;
+        this._state = 'processing';
+        this._lastActivityAt = Date.now();
+        this.resetIdleTimer();
+        console.error(`[PersistentSession] Sending message #${this._messageCount}:`, message.slice(0, 100));
         this.process.stdin.write(message);
     }
 
     /**
-     * Stop the session
+     * Stop the session gracefully: stdin.end() -> SIGTERM after 2s -> SIGKILL after 5s.
      */
     async stop(): Promise<void> {
         if (!this.process) return;
 
+        this.clearTimers();
+        this._recovering = false;
+        this._messageBuffer.length = 0;
+
         return new Promise((resolve) => {
-            this.process!.on('close', () => {
+            const proc = this.process!;
+            let resolved = false;
+            const done = () => {
+                if (resolved) return;
+                resolved = true;
                 this.process = null;
                 this.isRunning = false;
+                this._state = 'closed';
                 resolve();
-            });
+            };
+
+            proc.on('close', done);
 
             // Try graceful shutdown first
-            this.process!.stdin?.end();
-            
-            // Force kill after timeout
-            setTimeout(() => {
+            proc.stdin?.end();
+
+            // SIGTERM after 2s
+            const termTimer = setTimeout(() => {
                 if (this.process) {
                     this.process.kill('SIGTERM');
                 }
             }, 2000);
+
+            // SIGKILL after 5s total
+            const killTimer = setTimeout(() => {
+                if (this.process) {
+                    console.error(`[PersistentSession] Force killing session ${this.sessionId}`);
+                    this.process.kill('SIGKILL');
+                }
+            }, 5000);
+
+            // Cleanup timers when done
+            const origDone = done;
+            const wrappedDone = () => {
+                clearTimeout(termTimer);
+                clearTimeout(killTimer);
+                origDone();
+            };
+            proc.removeListener('close', done);
+            proc.on('close', wrappedDone);
         });
     }
 
@@ -234,10 +343,14 @@ export class PersistentSession extends EventEmitter {
      * Force kill the session
      */
     kill(): void {
+        this.clearTimers();
+        this._recovering = false;
+        this._messageBuffer.length = 0;
         if (this.process) {
             this.process.kill('SIGKILL');
             this.process = null;
             this.isRunning = false;
+            this._state = 'closed';
         }
     }
 
@@ -268,6 +381,122 @@ export class PersistentSession extends EventEmitter {
                 this.emit('update', stderrError, 'error');
             }
         });
+    }
+
+    // =========================================================================
+    // Crash Recovery
+    // =========================================================================
+
+    private handleCrash(exitCode: number): void {
+        this._crashCount++;
+        console.error(
+            `[PersistentSession] Session ${this.sessionId} crashed (exit=${exitCode}, attempt=${this._crashCount}/${PersistentSession.MAX_CRASH_RETRIES})`
+        );
+
+        // Notify listeners about the crash
+        const errorUpdate: ErrorUpdate = {
+            code: 'AGENT_CRASHED',
+            message: `CLI process crashed with exit code ${exitCode}`,
+        };
+        this.emit('update', errorUpdate, 'error');
+
+        if (this._crashCount <= PersistentSession.MAX_CRASH_RETRIES && this.claudeSessionId) {
+            this.attemptRecovery();
+        } else {
+            console.error(`[PersistentSession] Max retries exceeded or no CLI session to resume, giving up recovery`);
+            this._messageBuffer.length = 0;
+            this.emit('recoveryFailed', this.sessionId);
+            this.emit('close', exitCode);
+        }
+    }
+
+    private attemptRecovery(): void {
+        this._recovering = true;
+        console.error(
+            `[PersistentSession] Attempting recovery in ${PersistentSession.CRASH_RETRY_DELAY_MS}ms...`
+        );
+
+        setTimeout(async () => {
+            try {
+                // Reset process state for a fresh start()
+                this.process = null;
+                this.parser = new JsonStreamParser();
+                this.thinkingContent = '';
+
+                await this.start();
+
+                // Recovery succeeded
+                this._recovering = false;
+                console.error(`[PersistentSession] Session ${this.sessionId} recovered successfully`);
+                this.emit('recovered', this.sessionId);
+
+                // Flush buffered messages
+                const buffered = [...this._messageBuffer];
+                this._messageBuffer.length = 0;
+                for (const msg of buffered) {
+                    this.sendMessage(msg.content, msg.attachments);
+                }
+            } catch (err) {
+                console.error(`[PersistentSession] Recovery attempt failed:`, err);
+                this._recovering = false;
+                this._messageBuffer.length = 0;
+                this.emit('recoveryFailed', this.sessionId);
+                this.emit('close', 1);
+            }
+        }, PersistentSession.CRASH_RETRY_DELAY_MS);
+    }
+
+    // =========================================================================
+    // Idle Timeout
+    // =========================================================================
+
+    private resetIdleTimer(): void {
+        if (this._idleTimer) {
+            clearTimeout(this._idleTimer);
+        }
+        this._idleTimer = setTimeout(() => {
+            console.error(`[PersistentSession] Session ${this.sessionId} idle for ${PersistentSession.IDLE_TIMEOUT_MS / 1000}s, stopping`);
+            this.emit('idleTimeout', this.sessionId);
+            void this.stop();
+        }, PersistentSession.IDLE_TIMEOUT_MS);
+    }
+
+    // =========================================================================
+    // Health Check
+    // =========================================================================
+
+    private startHealthCheck(): void {
+        this._healthCheckTimer = setInterval(() => {
+            if (!this.process || !this.isRunning) {
+                this.clearTimers();
+                return;
+            }
+
+            // Check if process is still alive by checking if pid exists
+            try {
+                // process.kill(0) checks process existence without sending a signal
+                process.kill(this.process.pid!, 0);
+            } catch {
+                console.error(`[PersistentSession] Health check: process ${this.process.pid} not alive, force killing`);
+                this.kill();
+                this.handleCrash(1);
+            }
+        }, PersistentSession.HEALTH_CHECK_INTERVAL_MS);
+    }
+
+    // =========================================================================
+    // Timer Management
+    // =========================================================================
+
+    private clearTimers(): void {
+        if (this._idleTimer) {
+            clearTimeout(this._idleTimer);
+            this._idleTimer = null;
+        }
+        if (this._healthCheckTimer) {
+            clearInterval(this._healthCheckTimer);
+            this._healthCheckTimer = null;
+        }
     }
 
     private handleJsonText(jsonText: string): void {
@@ -365,6 +594,21 @@ export class PersistentSession extends EventEmitter {
                     };
                     this.emit('update', update, 'error');
                 }
+
+                // Accumulate token usage from result
+                const usage = event.usage as { input_tokens?: number; output_tokens?: number } | undefined;
+                if (usage) {
+                    this._totalUsage.inputTokens += usage.input_tokens ?? 0;
+                    this._totalUsage.outputTokens += usage.output_tokens ?? 0;
+                }
+
+                // Reset crash count on successful turn completion
+                this._crashCount = 0;
+
+                // Transition to 'waiting' state - ready for next user input
+                this._state = 'waiting';
+                this._lastActivityAt = Date.now();
+                this.resetIdleTimer();
                 this.emit('complete');
                 break;
             }

@@ -26,6 +26,11 @@ vi.mock('../../packages/server/src/claude/wrapper', () => ({
     confirmBash = vi.fn().mockResolvedValue(undefined);
     skipBash = vi.fn().mockResolvedValue(undefined);
     confirmPlan = vi.fn().mockResolvedValue(undefined);
+    confirmTool = vi.fn().mockResolvedValue(undefined);
+    cancel = vi.fn().mockResolvedValue(undefined);
+    promptPersistent = vi.fn().mockResolvedValue(undefined);
+    getPersistentSessionStatus = vi.fn().mockReturnValue(null);
+    stopPersistentSession = vi.fn().mockResolvedValue(undefined);
     shutdown = vi.fn().mockResolvedValue(undefined);
     constructor(options: unknown) {
       // Mock constructor
@@ -318,6 +323,102 @@ describe('ACPServer', () => {
       });
 
       expect(response.error).toBeUndefined();
+    });
+  });
+
+  describe('Tool Confirm (tool/confirm)', () => {
+    it('should handle tool/confirm with approve', async () => {
+      const response = await (server as any).handleRequest({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tool/confirm',
+        params: {
+          sessionId: 'test-session',
+          toolCallId: 'tool-123',
+          confirmed: true,
+        },
+      });
+
+      expect(response.error).toBeUndefined();
+      expect((mockClaudeCode as any).confirmTool).toHaveBeenCalledWith(
+        'test-session',
+        'tool-123',
+        true,
+        undefined
+      );
+    });
+
+    it('should handle tool/confirm with deny', async () => {
+      const response = await (server as any).handleRequest({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'tool/confirm',
+        params: {
+          sessionId: 'test-session',
+          toolCallId: 'tool-456',
+          confirmed: false,
+        },
+      });
+
+      expect(response.error).toBeUndefined();
+      expect((mockClaudeCode as any).confirmTool).toHaveBeenCalledWith(
+        'test-session',
+        'tool-456',
+        false,
+        undefined
+      );
+    });
+
+    it('should handle tool/confirm with trustAlways option', async () => {
+      const response = await (server as any).handleRequest({
+        jsonrpc: '2.0',
+        id: 3,
+        method: 'tool/confirm',
+        params: {
+          sessionId: 'test-session',
+          toolCallId: 'tool-789',
+          confirmed: true,
+          options: { trustAlways: true },
+        },
+      });
+
+      expect(response.error).toBeUndefined();
+      expect((mockClaudeCode as any).confirmTool).toHaveBeenCalledWith(
+        'test-session',
+        'tool-789',
+        true,
+        { trustAlways: true }
+      );
+    });
+
+    it('should reject tool/confirm with missing toolCallId', async () => {
+      const response = await (server as any).handleRequest({
+        jsonrpc: '2.0',
+        id: 4,
+        method: 'tool/confirm',
+        params: {
+          sessionId: 'test-session',
+          confirmed: true,
+        },
+      });
+
+      expect(response.error).toBeDefined();
+      expect(response.error.message).toContain('toolCallId');
+    });
+
+    it('should reject tool/confirm with missing confirmed field', async () => {
+      const response = await (server as any).handleRequest({
+        jsonrpc: '2.0',
+        id: 5,
+        method: 'tool/confirm',
+        params: {
+          sessionId: 'test-session',
+          toolCallId: 'tool-999',
+        },
+      });
+
+      expect(response.error).toBeDefined();
+      expect(response.error.message).toContain('confirmed');
     });
   });
 

@@ -9,6 +9,7 @@ import {
     createUiSlice,
     createHistorySlice,
     createAgentSlice,
+    createPermissionRulesSlice,
     createUpdateSlice,
     flushTextBuffer as _flushTextBuffer,
     cleanupTextBuffer as _cleanupTextBuffer,
@@ -68,6 +69,8 @@ const initialState: AppState = {
     lastActivityTime: Date.now(),
     historySessions: [],
     viewMode: 'live',
+    permissionRules: [],
+    promptMode: 'persistent',
     agents: [],
     currentAgentId: null,
 };
@@ -89,6 +92,7 @@ export const useStore = create<AppStore>((set, get) => ({
     ...createUiSlice(set, get),
     ...createHistorySlice(set, get),
     ...createAgentSlice(set, get),
+    ...createPermissionRulesSlice(set, get),
     ...createUpdateSlice(set, get),
 }));
 

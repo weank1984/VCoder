@@ -43,6 +43,12 @@ export class VCoderFileDecorationProvider implements vscode.FileDecorationProvid
         this._onDidChangeFileDecorations.fire(uri);
     }
     
+    removeFile(filePath: string) {
+        const uri = vscode.Uri.file(filePath);
+        this.decorations.delete(uri.toString());
+        this._onDidChangeFileDecorations.fire(uri);
+    }
+
     clear() {
         this.decorations.clear();
         this._onDidChangeFileDecorations.fire(undefined);

@@ -1,6 +1,13 @@
 /**
  * Permission Provider
- * Handles session/request_permission from agent
+ * Handles session/request_permission from agent (chain A).
+ *
+ * @deprecated This provider implements the legacy permission chain A
+ * (session/requestPermission -> Extension popup -> response). The preferred path
+ * is chain B (CLI control_request -> Server confirmation_request notification ->
+ * Webview inline UI -> tool/confirm). Controlled by vcoder.legacyPermissionPopup
+ * (default false). Will be removed in V0.5.
+ * See docs/learned/permission-unified-design.md for details.
  */
 
 import { RequestPermissionParams, RequestPermissionResult, type PermissionRule } from '@vcoder/shared';

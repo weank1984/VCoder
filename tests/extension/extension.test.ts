@@ -46,6 +46,8 @@ vi.mock('../../packages/extension/src/providers/chatViewProvider', () => ({
         constructor() {}
         postMessage() {}
         on() {}
+        setDiffManager() {}
+        setFileDecorator() {}
     },
 }));
 

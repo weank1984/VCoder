@@ -97,4 +97,9 @@ export const createUiSlice: SliceCreator<UiSlice> = (set, _get) => ({
             postMessage({ type: 'setUiLanguage', uiLanguage });
         }
     },
+
+    setPromptMode: (mode) => {
+        set({ promptMode: mode });
+        postMessage({ type: 'setPromptMode', mode });
+    },
 });

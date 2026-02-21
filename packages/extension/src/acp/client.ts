@@ -527,6 +527,53 @@ export class ACPClient extends EventEmitter {
         });
     }
 
+    /**
+     * Send a prompt using persistent session mode (bidirectional streaming).
+     * Streaming events are identical to prompt() but the CLI process stays alive.
+     */
+    async promptPersistent(content: string, attachments?: PromptParams['attachments']): Promise<void> {
+        if (!this.currentSession) {
+            await this.newSession();
+        } else {
+            await this.syncDesiredSettings();
+        }
+        const sessionId = this.currentSession!.id;
+        await this.sendRequest(ACPMethods.SESSION_PROMPT_PERSISTENT, {
+            sessionId,
+            content,
+            attachments,
+        }, sessionId);
+    }
+
+    /**
+     * Query whether a session is using persistent mode and its running state.
+     */
+    async getModeStatus(): Promise<{
+        isPersistent: boolean;
+        running: boolean;
+        cliSessionId: string | null;
+        state: string;
+        messageCount: number;
+        totalUsage: { inputTokens: number; outputTokens: number };
+    }> {
+        if (!this.currentSession) {
+            return { isPersistent: false, running: false, cliSessionId: null, state: 'idle', messageCount: 0, totalUsage: { inputTokens: 0, outputTokens: 0 } };
+        }
+        return this.sendRequest(ACPMethods.SESSION_MODE_STATUS, {
+            sessionId: this.currentSession.id,
+        });
+    }
+
+    /**
+     * Stop a persistent session, returning it to one-shot mode.
+     */
+    async stopPersistent(): Promise<void> {
+        if (!this.currentSession) return;
+        await this.sendRequest(ACPMethods.SESSION_STOP_PERSISTENT, {
+            sessionId: this.currentSession.id,
+        });
+    }
+
     async cancelSession(): Promise<void> {
         if (!this.currentSession) return;
         await this.sendRequest(ACPMethods.SESSION_CANCEL, {

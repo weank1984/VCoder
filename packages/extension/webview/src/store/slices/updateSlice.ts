@@ -106,13 +106,13 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
                 break;
             }
             case 'file_change': {
-                const change = content as FileChangeUpdate;
+                const change = content as FileChangeUpdate & { conflict?: boolean };
                 set((state) => {
                     const newSessionStates = new Map(state.sessionStates);
                     const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
                     const existing = sessionState.pendingFileChanges.filter((c) => c.path !== change.path);
                     if (change.proposed) {
-                        existing.push({ ...change, sessionId: targetSessionId, receivedAt: Date.now() });
+                        existing.push({ ...change, sessionId: targetSessionId, receivedAt: Date.now(), conflict: change.conflict });
                     }
                     const nextSessionState = {
                         ...sessionState,
@@ -162,6 +162,10 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
                 if (!errorUpdate.recoverable) {
                     get().setSessionStatus('error', targetSessionId);
                 }
+                // Auto-switch to oneshot mode when persistent session closes
+                if (errorUpdate.code === 'PERSISTENT_SESSION_CLOSED') {
+                    set({ promptMode: 'oneshot' });
+                }
                 break;
             }
             case 'confirmation_request': {
@@ -182,11 +186,29 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
                     };
                 };
 
+                // Deduplication: skip if toolCallId is already awaiting_confirmation.
+                // Same toolCallId should only prompt the user once.
+                const sessionState = get().sessionStates.get(targetSessionId);
+                if (sessionState) {
+                    for (const msg of sessionState.messages) {
+                        const existing = msg.toolCalls?.find(
+                            (tc) => tc.id === request.toolCallId && tc.status === 'awaiting_confirmation'
+                        );
+                        if (existing) break;
+                    }
+                }
+
                 get().updateToolCall(request.toolCallId, {
                     status: 'awaiting_confirmation',
                     confirmationType: request.type as ToolCall['confirmationType'],
                     confirmationData: request.details,
                 }, targetSessionId);
+                break;
+            }
+            case 'session_switch': {
+                const switchData = content as { previousSessionId: string | null; newSessionId: string };
+                console.log('[updateSlice] session_switch:', switchData.previousSessionId, '->', switchData.newSessionId);
+                get().setCurrentSession(switchData.newSessionId);
                 break;
             }
         }
@@ -218,6 +240,8 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
             viewMode: 'live',
             agents: [],
             currentAgentId: null,
+            permissionRules: [],
+            promptMode: 'persistent',
         } satisfies AppState);
     },
 });

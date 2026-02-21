@@ -136,6 +136,43 @@
     svg { width: 14px; height: 14px; fill: currentColor; }
 }
 
+/* Prompt Mode Toggle */
+.prompt-mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--vc-font-size-sm);
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 14px;
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    border: none;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+
+    &:hover {
+        background: var(--vscode-button-secondaryHoverBackground);
+    }
+
+    &.is-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+}
+
+.prompt-mode-toggle__icon {
+    font-size: 12px;
+    line-height: 1;
+}
+
+.prompt-mode-toggle__label {
+    font-size: var(--vc-font-size-xs);
+    font-weight: var(--vc-font-weight-medium);
+}
+
 /* Apply Actions (for StickyUserPrompt mode) */
 .toolbar-apply-actions {
     display: flex;

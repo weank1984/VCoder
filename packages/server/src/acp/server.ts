@@ -48,6 +48,12 @@ import {
     LspHoverResult,
     LspDiagnosticsParams,
     LspDiagnosticsResult,
+    PermissionRulesListParams,
+    PermissionRulesListResult,
+    PermissionRuleAddParams,
+    PermissionRuleUpdateParams,
+    PermissionRuleDeleteParams,
+    ErrorUpdate,
 } from '@vcoder/shared';
 import { listHistorySessions, loadHistorySession, deleteHistorySession } from '../history/transcriptStore';
 import { ClaudeCodeWrapper } from '../claude/wrapper';
@@ -83,6 +89,18 @@ export class ACPServer {
                 reason: 'completed',
                 usage,
             } satisfies SessionCompleteParams);
+        });
+
+        // Push notification when persistent session disconnects unexpectedly
+        this.claudeCode.on('persistentSessionClosed', (sessionId: string, code: number) => {
+            this.sendNotification(ACPMethods.SESSION_UPDATE, {
+                sessionId,
+                type: 'error',
+                content: {
+                    code: 'PERSISTENT_SESSION_CLOSED',
+                    message: `Persistent session closed with exit code ${code}`,
+                } satisfies ErrorUpdate,
+            });
         });
     }
 
@@ -218,6 +236,19 @@ export class ACPServer {
                     break;
                 case ACPMethods.TOOL_CONFIRM:
                     result = await this.handleToolConfirm(params as ConfirmToolParams);
+                    break;
+                // Permission Rules management
+                case ACPMethods.PERMISSION_RULES_LIST:
+                    result = await this.handlePermissionRulesList(params as PermissionRulesListParams);
+                    break;
+                case ACPMethods.PERMISSION_RULE_ADD:
+                    result = await this.handlePermissionRuleAdd(params as PermissionRuleAddParams);
+                    break;
+                case ACPMethods.PERMISSION_RULE_UPDATE:
+                    result = await this.handlePermissionRuleUpdate(params as PermissionRuleUpdateParams);
+                    break;
+                case ACPMethods.PERMISSION_RULE_DELETE:
+                    result = await this.handlePermissionRuleDelete(params as PermissionRuleDeleteParams);
                     break;
                 // LSP operations
                 case ACPMethods.LSP_GO_TO_DEFINITION:
@@ -371,6 +402,8 @@ export class ACPServer {
         if (this.currentSessionId === params.sessionId) {
             this.currentSessionId = null;
         }
+        // Stop the persistent session if it exists
+        await this.claudeCode.stopPersistentSession(params.sessionId);
     }
 
     private async handlePrompt(params: PromptParams): Promise<void> {
@@ -424,19 +457,28 @@ export class ACPServer {
         await this.claudeCode.rejectFileChange(params.sessionId, params.path);
     }
 
+    /** @deprecated Use handleToolConfirm (tool/confirm) instead. Will be removed in V0.5. */
     private async handleBashConfirm(params: BashConfirmParams): Promise<void> {
         await this.claudeCode.confirmBash(params.sessionId, params.commandId);
     }
 
+    /** @deprecated Use handleToolConfirm (tool/confirm) instead. Will be removed in V0.5. */
     private async handleBashSkip(params: BashSkipParams): Promise<void> {
         await this.claudeCode.skipBash(params.sessionId, params.commandId);
     }
 
+    /** @deprecated Use handleToolConfirm (tool/confirm) instead. Will be removed in V0.5. */
     private async handlePlanConfirm(params: PlanConfirmParams): Promise<void> {
         await this.claudeCode.confirmPlan(params.sessionId);
     }
 
     private async handleToolConfirm(params: ConfirmToolParams): Promise<void> {
+        if (!params.toolCallId || typeof params.toolCallId !== 'string') {
+            throw new Error('tool/confirm requires a valid toolCallId');
+        }
+        if (typeof params.confirmed !== 'boolean') {
+            throw new Error('tool/confirm requires a boolean confirmed field');
+        }
         await this.claudeCode.confirmTool(
             params.sessionId,
             params.toolCallId,
@@ -499,24 +541,57 @@ export class ACPServer {
             });
     }
 
-    private async handleModeStatus(params: { sessionId: string }): Promise<{ isPersistent: boolean; running: boolean; cliSessionId: string | null }> {
+    private async handleModeStatus(params: { sessionId: string }): Promise<{
+        isPersistent: boolean;
+        running: boolean;
+        cliSessionId: string | null;
+        state: string;
+        messageCount: number;
+        totalUsage: { inputTokens: number; outputTokens: number };
+    }> {
         const status = this.claudeCode.getPersistentSessionStatus(params.sessionId);
         if (status) {
             return {
                 isPersistent: true,
                 running: status.running,
                 cliSessionId: status.cliSessionId,
+                state: status.state,
+                messageCount: status.messageCount,
+                totalUsage: status.totalUsage,
             };
         }
         return {
             isPersistent: false,
             running: false,
             cliSessionId: null,
+            state: 'idle',
+            messageCount: 0,
+            totalUsage: { inputTokens: 0, outputTokens: 0 },
         };
     }
 
     private async handleStopPersistent(params: { sessionId: string }): Promise<void> {
         await this.claudeCode.stopPersistentSession(params.sessionId);
+    }
+
+    // =========================================================================
+    // Permission Rules Handlers (Forward to Extension via Bidirectional RPC)
+    // =========================================================================
+
+    private async handlePermissionRulesList(params: PermissionRulesListParams): Promise<PermissionRulesListResult> {
+        return this.sendRequestToClient<PermissionRulesListResult>(ACPMethods.PERMISSION_RULES_LIST, params);
+    }
+
+    private async handlePermissionRuleAdd(params: PermissionRuleAddParams): Promise<PermissionRulesListResult> {
+        return this.sendRequestToClient<PermissionRulesListResult>(ACPMethods.PERMISSION_RULE_ADD, params);
+    }
+
+    private async handlePermissionRuleUpdate(params: PermissionRuleUpdateParams): Promise<PermissionRulesListResult> {
+        return this.sendRequestToClient<PermissionRulesListResult>(ACPMethods.PERMISSION_RULE_UPDATE, params);
+    }
+
+    private async handlePermissionRuleDelete(params: PermissionRuleDeleteParams): Promise<PermissionRulesListResult> {
+        return this.sendRequestToClient<PermissionRulesListResult>(ACPMethods.PERMISSION_RULE_DELETE, params);
     }
 
     // =========================================================================

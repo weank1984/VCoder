@@ -244,11 +244,13 @@ export interface FileRejectParams {
 // Bash Confirmation
 // =============================================================================
 
+/** @deprecated Use ConfirmToolParams (tool/confirm) instead. Will be removed in V0.5. */
 export interface BashConfirmParams {
     sessionId: string;
     commandId: string;
 }
 
+/** @deprecated Use ConfirmToolParams (tool/confirm) instead. Will be removed in V0.5. */
 export interface BashSkipParams {
     sessionId: string;
     commandId: string;
@@ -258,6 +260,7 @@ export interface BashSkipParams {
 // Plan Confirmation
 // =============================================================================
 
+/** @deprecated Use ConfirmToolParams (tool/confirm) instead. Will be removed in V0.5. */
 export interface PlanConfirmParams {
     sessionId: string;
 }
@@ -275,7 +278,9 @@ export type UpdateType =
     | 'mcp_call'
     | 'task_list'
     | 'subagent_run'
+    /** @deprecated Never emitted by Server. Use `confirmation_request` with type `bash` instead. Will be removed in V0.5. */
     | 'bash_request'
+    /** @deprecated Never emitted by Server. Use `task_list` instead. Will be removed in V0.5. */
     | 'plan_ready'
     | 'error'
     | 'confirmation_request'
@@ -374,11 +379,13 @@ export interface SubagentRunUpdate {
     error?: string;
 }
 
+/** @deprecated Never emitted by Server. Use `confirmation_request` with type `bash` instead. Will be removed in V0.5. */
 export interface BashRequestUpdate {
     id: string;
     command: string;
 }
 
+/** @deprecated Never emitted by Server. Use `task_list` instead. Will be removed in V0.5. */
 export interface PlanReadyUpdate {
     tasks: Task[];
     summary: string;
@@ -397,7 +404,8 @@ export type ErrorCode =
     | 'UNKNOWN_ERROR'
     | 'CLI_ERROR'
     | 'AUTH_REQUIRED'
-    | 'CLI_NOT_FOUND';
+    | 'CLI_NOT_FOUND'
+    | 'PERSISTENT_SESSION_CLOSED';
 
 export interface ErrorUpdate {
     code: ErrorCode;
@@ -905,11 +913,11 @@ export const ACPMethods = {
     FILE_ACCEPT: 'file/accept',
     FILE_REJECT: 'file/reject',
 
-    // Bash operations
+    // Bash operations (deprecated: use TOOL_CONFIRM instead, will be removed in V0.5)
     BASH_CONFIRM: 'bash/confirm',
     BASH_SKIP: 'bash/skip',
 
-    // Plan operations
+    // Plan operations (deprecated: use TOOL_CONFIRM instead, will be removed in V0.5)
     PLAN_CONFIRM: 'plan/confirm',
 
     // Tool operations

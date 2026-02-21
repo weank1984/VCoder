@@ -38,6 +38,14 @@
         },
         "commands": [
             {
+                "command": "vcoder.openChat",
+                "title": "VCoder: Open Chat",
+                "icon": {
+                    "light": "resources/icon.svg",
+                    "dark": "resources/icon.svg"
+                }
+            },
+            {
                 "command": "vcoder.newChat",
                 "title": "New Chat",
                 "icon": "$(add)"
@@ -95,6 +103,13 @@
             }
         ],
         "menus": {
+            "editor/title": [
+                {
+                    "command": "vcoder.openChat",
+                    "when": "editorTextFocus",
+                    "group": "navigation@1"
+                }
+            ],
             "view/title": [
                 {
                     "command": "vcoder.newChat",

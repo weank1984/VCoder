@@ -102,6 +102,31 @@ function ModeSelector({ currentMode, onSelectMode, disabled }: ModeSelectorProps
     );
 }
 
+/* ─── PromptModeToggle sub-component ─── */
+interface PromptModeToggleProps {
+    mode: 'oneshot' | 'persistent';
+    onToggle: (mode: 'oneshot' | 'persistent') => void;
+    disabled?: boolean;
+    /** Number of messages exchanged in persistent mode */
+    messageCount?: number;
+}
+
+function PromptModeToggle({ mode, onToggle, disabled, messageCount }: PromptModeToggleProps) {
+    const label = mode === 'persistent'
+        ? (messageCount && messageCount > 0 ? `Multi (${messageCount})` : 'Multi')
+        : 'Single';
+    return (
+        <button
+            className={`prompt-mode-toggle ${disabled ? 'is-disabled' : ''}`}
+            onClick={() => !disabled && onToggle(mode === 'persistent' ? 'oneshot' : 'persistent')}
+            title={mode === 'persistent' ? 'Persistent session (multi-turn)' : 'One-shot mode (new process per prompt)'}
+        >
+            <span className="prompt-mode-toggle__icon">{mode === 'persistent' ? '\u21c4' : '\u2192'}</span>
+            <span className="prompt-mode-toggle__label">{label}</span>
+        </button>
+    );
+}
+
 /* ─── ComposerToolbar ─── */
 export interface ComposerToolbarProps {
     // Left toolbar - Mode & Model selectors
@@ -111,6 +136,11 @@ export interface ComposerToolbarProps {
     onSelectMode?: (mode: PermissionMode) => void;
     selectedModel?: ModelId;
     onSelectModel?: (model: ModelId) => void;
+
+    // Prompt mode toggle
+    showPromptModeToggle?: boolean;
+    promptMode?: 'oneshot' | 'persistent';
+    onTogglePromptMode?: (mode: 'oneshot' | 'persistent') => void;
 
     // Right toolbar - Action buttons
     showImageButton?: boolean;
@@ -136,6 +166,9 @@ export function ComposerToolbar({
     onSelectMode,
     selectedModel,
     onSelectModel,
+    showPromptModeToggle = false,
+    promptMode = 'persistent',
+    onTogglePromptMode,
     showImageButton = true,
     onImageClick,
     primaryAction,
@@ -163,6 +196,15 @@ export function ComposerToolbar({
                     <ModelSelector
                         selectedModel={selectedModel}
                         onSelectModel={onSelectModel}
+                        disabled={disabled}
+                    />
+                )}
+
+                {/* Prompt Mode Toggle */}
+                {showPromptModeToggle && onTogglePromptMode && (
+                    <PromptModeToggle
+                        mode={promptMode}
+                        onToggle={onTogglePromptMode}
                         disabled={disabled}
                     />
                 )}

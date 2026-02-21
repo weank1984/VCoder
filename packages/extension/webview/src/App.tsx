@@ -14,6 +14,7 @@ import { HistoryPanel } from './components/HistoryPanel';
 import { JumpToBottom } from './components/JumpToBottom';
 import { Welcome } from './components/Welcome';
 import { PermissionDialog, type PermissionRequest } from './components/PermissionDialog';
+import { PermissionRulesPanel } from './components/PermissionRulesPanel';
 import { MessageSkeleton } from './components/Skeleton';
 import { StickyUserPrompt } from './components/StickyUserPrompt';
 import { TodoTaskManager } from './components/TodoTaskManager';
@@ -31,6 +32,7 @@ const ESTIMATED_MESSAGE_HEIGHT = 120;
 
 function App() {
   const [showHistory, setShowHistory] = useState(false);
+  const [showPermissionRules, setShowPermissionRules] = useState(false);
   const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null);
   const [activeUserMessageId, setActiveUserMessageId] = useState<string | null>(null);
   const [stickyPromptHeight, setStickyPromptHeight] = useState(0);
@@ -58,6 +60,7 @@ function App() {
     viewMode,
     setAgents,
     setCurrentAgent,
+    setPermissionRules,
   } = useStore();
 
   // Determine if virtual list should be enabled
@@ -271,11 +274,34 @@ function App() {
         case 'permissionRequest':
           setPermissionRequest(message.data);
           break;
+        case 'permissionRules':
+          setPermissionRules(message.data);
+          break;
         case 'agents':
           setAgents(message.data);
           break;
         case 'currentAgent':
           setCurrentAgent(message.data.agentId);
+          break;
+        case 'modeStatus':
+          // Sync prompt mode from backend status
+          useStore.getState().setPromptMode(message.data.isPersistent ? 'persistent' : 'oneshot');
+          break;
+        case 'reviewStats':
+          {
+            const { sessionId: statsSessionId, stats } = message.data;
+            const store = useStore.getState();
+            const newSessionStates = new Map(store.sessionStates);
+            const sessionState = newSessionStates.get(statsSessionId);
+            if (sessionState) {
+              newSessionStates.set(statsSessionId, {
+                ...sessionState,
+                reviewStats: stats,
+                updatedAt: Date.now(),
+              });
+              useStore.setState({ sessionStates: newSessionStates });
+            }
+          }
           break;
         case 'error':
           // Handle error messages from extension
@@ -310,11 +336,13 @@ function App() {
     postMessage({ type: 'setPermissionMode', mode: state.permissionMode });
     // Sync thinking mode
     const DEFAULT_MAX_THINKING_TOKENS = 16000;
-    postMessage({ 
-      type: 'setThinking', 
+    postMessage({
+      type: 'setThinking',
       enabled: state.thinkingEnabled,
       maxThinkingTokens: state.thinkingEnabled ? DEFAULT_MAX_THINKING_TOKENS : 0,
     });
+    // Sync prompt mode
+    postMessage({ type: 'setPromptMode', mode: state.promptMode });
 
     return () => window.removeEventListener('message', handleMessage);
   }, [handleUpdate, setCurrentSession, setLoading, setSessions, showError]);
@@ -529,7 +557,12 @@ function App() {
         onClose={() => setShowHistory(false)}
       />
 
-      <PermissionDialog 
+      <PermissionRulesPanel
+        visible={showPermissionRules}
+        onClose={() => setShowPermissionRules(false)}
+      />
+
+      <PermissionDialog
         request={permissionRequest}
         onClose={() => setPermissionRequest(null)}
       />

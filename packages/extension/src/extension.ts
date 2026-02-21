@@ -12,7 +12,7 @@ import { FileSystemProvider } from './services/fileSystemProvider';
 import { TerminalProvider } from './services/terminalProvider';
 import { DiffManager } from './services/diffManager';
 import { VCoderFileDecorationProvider } from './providers/fileDecorationProvider';
-import { ACPMethods, type UpdateNotificationParams, type RequestPermissionParams } from '@vcoder/shared';
+import { ACPMethods, type UpdateNotificationParams, type RequestPermissionParams, type PermissionRulesListParams, type PermissionRuleAddParams, type PermissionRuleUpdateParams, type PermissionRuleDeleteParams, type PermissionRule, type TerminalCreateParams, type TerminalWaitForExitParams } from '@vcoder/shared';
 import { PermissionProvider } from './services/permissionProvider';
 import { AgentRegistry } from './services/agentRegistry';
 
@@ -139,21 +139,60 @@ export async function activate(context: vscode.ExtensionContext) {
                 return fileSystemProvider!.writeTextFile(params as any);
             });
 
-            // Register Terminal request handlers
+            // Register Terminal request handlers (with audit logging)
+            const terminalStartTimes = new Map<string, { startMs: number; command: string; cwd: string }>();
+
             acpClient.registerRequestHandler(ACPMethods.TERMINAL_CREATE, async (params) => {
-                return terminalProvider!.createTerminal(params as any);
+                const p = params as TerminalCreateParams;
+                const result = await terminalProvider!.createTerminal(p);
+                // Record start time for duration calculation on exit
+                terminalStartTimes.set(result.terminalId, {
+                    startMs: Date.now(),
+                    command: `${p.command} ${(p.args || []).join(' ')}`.trim(),
+                    cwd: p.cwd || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '',
+                });
+                // Audit log the terminal creation
+                const sessionId = acpClient!.getCurrentSession()?.id ?? 'unknown';
+                if (auditLogger) {
+                    void auditLogger.logTerminalCommand(
+                        sessionId,
+                        `${p.command} ${(p.args || []).join(' ')}`.trim(),
+                        p.cwd || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '',
+                    );
+                }
+                return result;
             });
             acpClient.registerRequestHandler(ACPMethods.TERMINAL_OUTPUT, async (params) => {
                 return terminalProvider!.getTerminalOutput(params as any);
             });
             acpClient.registerRequestHandler(ACPMethods.TERMINAL_WAIT_FOR_EXIT, async (params) => {
-                return terminalProvider!.waitForExit(params as any);
+                const p = params as TerminalWaitForExitParams;
+                const result = await terminalProvider!.waitForExit(p);
+                // Audit log the terminal exit with duration
+                const startInfo = terminalStartTimes.get(p.terminalId);
+                if (auditLogger && startInfo) {
+                    const sessionId = acpClient!.getCurrentSession()?.id ?? 'unknown';
+                    const durationMs = Date.now() - startInfo.startMs;
+                    void auditLogger.logTerminalCommand(
+                        sessionId,
+                        startInfo.command,
+                        startInfo.cwd,
+                        result.exitCode,
+                        undefined,
+                        durationMs,
+                    );
+                    terminalStartTimes.delete(p.terminalId);
+                }
+                return result;
             });
             acpClient.registerRequestHandler(ACPMethods.TERMINAL_KILL, async (params) => {
                 return terminalProvider!.killTerminal(params as any);
             });
             acpClient.registerRequestHandler(ACPMethods.TERMINAL_RELEASE, async (params) => {
-                return terminalProvider!.releaseTerminal(params as any);
+                const p = params as any;
+                // Clean up start time tracking on release
+                terminalStartTimes.delete(p.terminalId);
+                return terminalProvider!.releaseTerminal(p);
             });
 
             // Set up notification handling
@@ -179,13 +218,80 @@ export async function activate(context: vscode.ExtensionContext) {
         );
 
         permissionProvider = new PermissionProvider(chatViewProvider, sessionStore, auditLogger);
-        acpClient.registerRequestHandler(
-            ACPMethods.SESSION_REQUEST_PERMISSION,
-            async (params) => permissionProvider!.handlePermissionRequest(params as RequestPermissionParams)
-        );
+        // Register session/requestPermission handler (chain A) only when legacy popup mode is enabled.
+        // Chain B (confirmation_request via session/update -> Webview inline UI -> tool/confirm) is the
+        // preferred path. See docs/learned/permission-unified-design.md for details.
+        const legacyPopup = vscode.workspace.getConfiguration('vcoder').get<boolean>('legacyPermissionPopup', false);
+        if (legacyPopup) {
+            acpClient.registerRequestHandler(
+                ACPMethods.SESSION_REQUEST_PERMISSION,
+                async (params) => permissionProvider!.handlePermissionRequest(params as RequestPermissionParams)
+            );
+        }
+
+        // Register permission rules RPC handlers (Server -> Client -> SessionStore)
+        if (sessionStore) {
+            acpClient.registerRequestHandler(ACPMethods.PERMISSION_RULES_LIST, async (params) => {
+                const p = params as PermissionRulesListParams;
+                let rules = await sessionStore.getPermissionRules();
+                if (p.toolName) {
+                    rules = rules.filter(r => !r.toolName || r.toolName === p.toolName);
+                }
+                return { rules };
+            });
+
+            acpClient.registerRequestHandler(ACPMethods.PERMISSION_RULE_ADD, async (params) => {
+                const p = params as PermissionRuleAddParams;
+                const now = new Date().toISOString();
+                const rule: PermissionRule = {
+                    ...p.rule,
+                    id: `rule_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                    createdAt: now,
+                    updatedAt: now,
+                };
+                await sessionStore.addPermissionRule(rule);
+                const rules = await sessionStore.getPermissionRules();
+                chatViewProvider?.postMessage({ type: 'permissionRules', data: rules });
+                return { rules };
+            });
+
+            acpClient.registerRequestHandler(ACPMethods.PERMISSION_RULE_UPDATE, async (params) => {
+                const p = params as PermissionRuleUpdateParams;
+                const rules = await sessionStore.getPermissionRules();
+                const existing = rules.find(r => r.id === p.ruleId);
+                if (!existing) {
+                    throw new Error(`Permission rule not found: ${p.ruleId}`);
+                }
+                const now = new Date().toISOString();
+                const updated: PermissionRule = {
+                    ...existing,
+                    ...p.updates,
+                    id: existing.id,
+                    createdAt: existing.createdAt,
+                    updatedAt: now,
+                };
+                await sessionStore.addPermissionRule(updated);
+                const allRules = await sessionStore.getPermissionRules();
+                chatViewProvider?.postMessage({ type: 'permissionRules', data: allRules });
+                return { rules: allRules };
+            });
+
+            acpClient.registerRequestHandler(ACPMethods.PERMISSION_RULE_DELETE, async (params) => {
+                const p = params as PermissionRuleDeleteParams;
+                await sessionStore.deletePermissionRule(p.ruleId);
+                const rules = await sessionStore.getPermissionRules();
+                chatViewProvider?.postMessage({ type: 'permissionRules', data: rules });
+                return { rules };
+            });
+        }
 
         // Commands used by view title buttons / status bar
         context.subscriptions.push(
+            vscode.commands.registerCommand('vcoder.openChat', async () => {
+                // Ensure the view container is visible, then focus the chat view.
+                await vscode.commands.executeCommand('workbench.view.extension.vcoder');
+                await vscode.commands.executeCommand('vcoder.chatView.focus');
+            }),
             vscode.commands.registerCommand('vcoder.newChat', async () => {
                 await vscode.commands.executeCommand('vcoder.chatView.focus');
                 const mcpServers = vscode.workspace.getConfiguration('vcoder').get('mcpServers', []);
@@ -193,6 +299,14 @@ export async function activate(context: vscode.ExtensionContext) {
                 const session = await acpClient!.newSession(undefined, { cwd, mcpServers });
                 chatViewProvider?.postMessage({ type: 'currentSession', data: { sessionId: session.id } }, true);
                 chatViewProvider?.postMessage({ type: 'sessions', data: await acpClient!.listSessions() }, true);
+                // Audit log session start from command
+                if (auditLogger) {
+                    void auditLogger.log({
+                        sessionId: session.id,
+                        eventType: 'session_start',
+                        data: { source: 'command', title: session.title },
+                    });
+                }
             }),
             vscode.commands.registerCommand('vcoder.showHistory', async () => {
                 await vscode.commands.executeCommand('vcoder.chatView.focus');
@@ -217,16 +331,34 @@ export async function activate(context: vscode.ExtensionContext) {
             }),
         );
         
-        // Initialize diff manager and file decoration provider
-        if (acpClient) {
-            const diffManager = new DiffManager(acpClient);
-            context.subscriptions.push(diffManager.register());
+        // Register audit log export command
+        if (auditLogger) {
+            context.subscriptions.push(
+                vscode.commands.registerCommand('vcoder.exportAuditLogs', async () => {
+                    await auditLogger!.exportToFile();
+                }),
+            );
+            // Check for unclosed sessions from previous runs
+            void auditLogger.checkUncleanShutdown();
         }
-        
+
+        // Initialize diff manager and file decoration provider
         const fileDecorator = new VCoderFileDecorationProvider();
         context.subscriptions.push(
             vscode.window.registerFileDecorationProvider(fileDecorator)
         );
+
+        if (acpClient) {
+            const diffManager = new DiffManager(acpClient);
+            context.subscriptions.push(diffManager.register());
+
+            // Wire DiffManager and FileDecorationProvider into ChatViewProvider
+            // so file_change events automatically trigger Diff review flow
+            if (chatViewProvider) {
+                chatViewProvider.setDiffManager(diffManager);
+                chatViewProvider.setFileDecorator(fileDecorator);
+            }
+        }
         
         // Reload agent profiles when configuration changes
         context.subscriptions.push(

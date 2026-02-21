@@ -84,11 +84,23 @@ export interface DeleteSessionMessage {
 export interface AcceptChangeMessage {
     type: 'acceptChange';
     path: string;
+    sessionId?: string;
 }
 
 export interface RejectChangeMessage {
     type: 'rejectChange';
     path: string;
+    sessionId?: string;
+}
+
+export interface AcceptAllChangesMessage {
+    type: 'acceptAllChanges';
+    sessionId?: string;
+}
+
+export interface RejectAllChangesMessage {
+    type: 'rejectAllChanges';
+    sessionId?: string;
 }
 
 export interface SetModelMessage {
@@ -200,6 +212,17 @@ export interface DeletePermissionRuleMessage {
     ruleId: string;
 }
 
+export interface AddPermissionRuleMessage {
+    type: 'addPermissionRule';
+    rule: PermissionRule;
+}
+
+export interface UpdatePermissionRuleMessage {
+    type: 'updatePermissionRule';
+    ruleId: string;
+    updates: Partial<PermissionRule>;
+}
+
 export interface ClearPermissionRulesMessage {
     type: 'clearPermissionRules';
 }
@@ -283,12 +306,56 @@ export interface CurrentAgentMessage {
     data: { agentId: string | null };
 }
 
-export type ExtensionMessage = 
-    | UpdateMessage 
-    | CompleteMessage 
-    | SessionsMessage 
-    | CurrentSessionMessage 
-    | WorkspaceFilesMessage 
+export interface SetPromptModeMessage {
+    type: 'setPromptMode';
+    mode: 'oneshot' | 'persistent';
+}
+
+export interface GetModeStatusMessage {
+    type: 'getModeStatus';
+}
+
+export interface ModeStatusMessage {
+    type: 'modeStatus';
+    data: {
+        isPersistent: boolean;
+        running: boolean;
+        cliSessionId: string | null;
+        state: string;
+        messageCount: number;
+        totalUsage: { inputTokens: number; outputTokens: number };
+    };
+}
+
+export interface ReviewStatsMessage {
+    type: 'reviewStats';
+    data: { sessionId: string; stats: ReviewStats };
+}
+
+export interface GetAuditStatsMessage {
+    type: 'getAuditStats';
+}
+
+export interface ExportAuditLogMessage {
+    type: 'exportAuditLog';
+}
+
+export interface AuditStatsMessage {
+    type: 'auditStats';
+    data: {
+        totalEvents: number;
+        sessionCount: number;
+        errorCount: number;
+        fileSize: number;
+    };
+}
+
+export type ExtensionMessage =
+    | UpdateMessage
+    | CompleteMessage
+    | SessionsMessage
+    | CurrentSessionMessage
+    | WorkspaceFilesMessage
     | ShowHistoryMessage
     | UiLanguageMessage
     | HistorySessionsMessage
@@ -298,6 +365,9 @@ export type ExtensionMessage =
     | AgentsMessage
     | CurrentAgentMessage
     | PermissionRulesMessage
+    | ModeStatusMessage
+    | ReviewStatsMessage
+    | AuditStatsMessage
     | BatchMessage;
 
 export type WebviewMessage =
@@ -308,6 +378,8 @@ export type WebviewMessage =
     | DeleteSessionMessage
     | AcceptChangeMessage
     | RejectChangeMessage
+    | AcceptAllChangesMessage
+    | RejectAllChangesMessage
     | SetModelMessage
     | SetPlanModeMessage
     | SetPermissionModeMessage
@@ -328,10 +400,16 @@ export type WebviewMessage =
     | RefreshAgentsMessage
     | SelectAgentMessage
     | GetPermissionRulesMessage
+    | AddPermissionRuleMessage
+    | UpdatePermissionRuleMessage
     | DeletePermissionRuleMessage
     | ClearPermissionRulesMessage
     | ConfirmToolMessage
-    | PermissionResponseMessage;
+    | PermissionResponseMessage
+    | SetPromptModeMessage
+    | GetModeStatusMessage
+    | GetAuditStatsMessage
+    | ExportAuditLogMessage;
 export interface ChatMessage {
     id: string;
     role: 'user' | 'assistant';
@@ -395,6 +473,13 @@ export interface ConfirmationData {
     riskReasons?: string[];
 }
 
+export interface ReviewStats {
+    pending: number;
+    accepted: number;
+    rejected: number;
+    total: number;
+}
+
 export type SessionStatus = 'idle' | 'active' | 'completed' | 'cancelled' | 'error' | 'timeout';
 
 // Session-specific state
@@ -403,7 +488,8 @@ export interface SessionState {
     messages: ChatMessage[];
     tasks: Task[];
     subagentRuns: SubagentRunUpdate[];
-    pendingFileChanges: Array<FileChangeUpdate & { sessionId: string; receivedAt: number }>;
+    pendingFileChanges: Array<FileChangeUpdate & { sessionId: string; receivedAt: number; conflict?: boolean }>;
+    reviewStats?: ReviewStats;
     // Session status tracking
     sessionStatus: SessionStatus;
     sessionCompleteReason?: SessionCompleteReason;
@@ -427,7 +513,7 @@ export interface AppState {
     sessionCompleteMessage?: string;
     lastActivityTime: number;
     // Global state (not session-specific)
-    pendingFileChanges: Array<FileChangeUpdate & { sessionId: string; receivedAt: number }>;
+    pendingFileChanges: Array<FileChangeUpdate & { sessionId: string; receivedAt: number; conflict?: boolean }>;
     planMode: boolean;
     permissionMode: PermissionMode;
     thinkingEnabled: boolean;
@@ -439,6 +525,10 @@ export interface AppState {
     // History
     historySessions: HistorySession[];
     viewMode: 'live' | 'history';
+    // Permission rules
+    permissionRules: PermissionRule[];
+    // Prompt mode: 'persistent' keeps CLI alive for multi-turn, 'oneshot' spawns a new process per prompt
+    promptMode: 'oneshot' | 'persistent';
     // Agent
     agents: AgentInfo[];
     currentAgentId: string | null;

@@ -1,5 +1,5 @@
 import type { AppState, ChatMessage, ContentBlock, ToolCall, UiLanguage, AgentInfo, SessionStatus, SessionState } from '../../types';
-import type { Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, FileChangeUpdate, SessionCompleteReason } from '@vcoder/shared';
+import type { Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, FileChangeUpdate, SessionCompleteReason, PermissionRule } from '@vcoder/shared';
 
 export type SetState<T extends object> = (
     partial: Partial<T> | ((state: T) => Partial<T>)
@@ -40,6 +40,7 @@ export interface UiSlice {
     setError: (error: ErrorUpdate | null) => void;
     setWorkspaceFiles: (files: string[]) => void;
     setUiLanguage: (uiLanguage: UiLanguage, source?: 'user' | 'extension') => void;
+    setPromptMode: (mode: 'oneshot' | 'persistent') => void;
 }
 
 export interface HistorySlice {
@@ -54,17 +55,26 @@ export interface AgentSlice {
     selectAgent: (agentId: string) => void;
 }
 
+export interface PermissionRulesSlice {
+    setPermissionRules: (rules: PermissionRule[]) => void;
+    loadPermissionRules: () => void;
+    addPermissionRule: (rule: PermissionRule) => void;
+    updatePermissionRule: (ruleId: string, updates: Partial<PermissionRule>) => void;
+    deletePermissionRule: (ruleId: string) => void;
+    clearPermissionRules: () => void;
+}
+
 export interface UpdateSlice {
     handleUpdate: (update: UpdateNotificationParams) => void;
     reset: () => void;
 }
 
-export type AppStore = AppState & MessagesSlice & SessionsSlice & UiSlice & HistorySlice & AgentSlice & UpdateSlice;
+export type AppStore = AppState & MessagesSlice & SessionsSlice & UiSlice & HistorySlice & AgentSlice & PermissionRulesSlice & UpdateSlice;
 
 export type SliceCreator<T> = (set: SetState<AppStore>, get: GetState<AppStore>) => T;
 
 export type {
     AppState, ChatMessage, ContentBlock, ToolCall, UiLanguage, AgentInfo, SessionStatus, SessionState,
     Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate,
-    HistorySession, HistoryChatMessage, FileChangeUpdate, SessionCompleteReason,
+    HistorySession, HistoryChatMessage, FileChangeUpdate, SessionCompleteReason, PermissionRule,
 };

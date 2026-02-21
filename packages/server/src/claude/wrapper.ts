@@ -89,6 +89,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
     
     // Persistent sessions for bidirectional streaming
     private readonly persistentSessions: Map<string, PersistentSession> = new Map();
+    private static readonly MAX_PERSISTENT_SESSIONS = 3;
 
     constructor(private options: ClaudeCodeOptions) {
         super();
@@ -1304,19 +1305,33 @@ export class ClaudeCodeWrapper extends EventEmitter {
         }, 'file_change');
     }
 
+    /**
+     * @deprecated Use confirmTool() instead. This method is a no-op since the migration
+     * to structured control_request/control_response permission flow (chain B).
+     * Will be removed in V0.5.
+     */
     async confirmBash(sessionId: string, _commandId: string): Promise<void> {
-        // Legacy API - never write raw 'y/n' into a stream-json stdin.
         void sessionId;
         void _commandId;
         console.warn('[ClaudeCode] confirmBash is deprecated; use confirmTool/tool_confirm');
     }
 
+    /**
+     * @deprecated Use confirmTool() instead. This method is a no-op since the migration
+     * to structured control_request/control_response permission flow (chain B).
+     * Will be removed in V0.5.
+     */
     async skipBash(sessionId: string, _commandId: string): Promise<void> {
         void sessionId;
         void _commandId;
         console.warn('[ClaudeCode] skipBash is deprecated; use confirmTool/tool_confirm');
     }
 
+    /**
+     * @deprecated Use confirmTool() instead. This method is a no-op since the migration
+     * to structured control_request/control_response permission flow (chain B).
+     * Will be removed in V0.5.
+     */
     async confirmPlan(sessionId: string): Promise<void> {
         void sessionId;
         console.warn('[ClaudeCode] confirmPlan is deprecated; use confirmTool/tool_confirm');
@@ -1369,6 +1384,14 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 message: 'User denied',
                 interrupt: true,
             });
+
+            // Emit a tool_result with error to notify UI the tool was rejected
+            const toolResultUpdate: ToolResultUpdate = {
+                id: toolCallId,
+                result: null,
+                error: 'User denied permission',
+            };
+            this.emit('update', sessionId, toolResultUpdate, 'tool_result');
         }
 
         this.pendingCanUseToolByToolCallKey.delete(key);
@@ -1396,23 +1419,27 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
     async shutdown(): Promise<void> {
         // Shutdown one-shot processes
-        for (const [sessionId, process] of this.processesByLocalSessionId.entries()) {
+        for (const [sessionId, proc] of this.processesByLocalSessionId.entries()) {
             try {
-                process.kill('SIGTERM');
+                proc.kill('SIGTERM');
             } catch (err) {
                 console.error('[ClaudeCode] Failed to kill process for session', sessionId, err);
             }
         }
         this.processesByLocalSessionId.clear();
-        
-        // Shutdown persistent sessions
+
+        // Shutdown persistent sessions (concurrently)
+        const stopPromises: Promise<void>[] = [];
         for (const [sessionId, session] of this.persistentSessions.entries()) {
-            try {
-                await session.stop();
-            } catch (err) {
-                console.error('[ClaudeCode] Failed to stop persistent session', sessionId, err);
-            }
+            stopPromises.push(
+                session.stop().catch((err) => {
+                    console.error('[ClaudeCode] Failed to stop persistent session', sessionId, err);
+                    // Force kill if graceful stop fails
+                    session.kill();
+                })
+            );
         }
+        await Promise.all(stopPromises);
         this.persistentSessions.clear();
 
         // Clean up all pending confirmation promises
@@ -1433,8 +1460,11 @@ export class ClaudeCodeWrapper extends EventEmitter {
      */
     async promptPersistent(sessionId: string, message: string, attachments?: Attachment[]): Promise<void> {
         let session = this.persistentSessions.get(sessionId);
-        
+
         if (!session) {
+            // Enforce multi-session limit: evict LRU if needed
+            await this.evictLruSessionsIfNeeded();
+
             // Create new persistent session
             const settings: PersistentSessionSettings = {
                 model: this.settings.model,
@@ -1447,7 +1477,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 additionalDirs: this.settings.additionalDirs,
                 maxThinkingTokens: this.settings.maxThinkingTokens,
             };
-            
+
             session = new PersistentSession(sessionId, this.options, settings);
             const resumeId = this.claudeSessionIdByLocalSessionId.get(sessionId);
             if (resumeId) {
@@ -1455,7 +1485,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
             }
             this.forwardPersistentSessionEvents(sessionId, session);
             this.persistentSessions.set(sessionId, session);
-            
+
             try {
                 await session.start();
             } catch (err) {
@@ -1463,7 +1493,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 throw err;
             }
         }
-        
+
         session.sendMessage(message, attachments);
     }
 
@@ -1477,13 +1507,60 @@ export class ClaudeCodeWrapper extends EventEmitter {
     /**
      * Get persistent session status
      */
-    getPersistentSessionStatus(sessionId: string): { running: boolean; cliSessionId: string | null } | null {
+    getPersistentSessionStatus(sessionId: string): {
+        running: boolean;
+        cliSessionId: string | null;
+        state: string;
+        messageCount: number;
+        totalUsage: { inputTokens: number; outputTokens: number };
+        pid?: number;
+        startedAt?: number;
+        lastActivityAt?: number;
+    } | null {
         const session = this.persistentSessions.get(sessionId);
         if (!session) return null;
         return {
             running: session.running,
             cliSessionId: session.cliSessionId,
+            state: session.state,
+            messageCount: session.messageCount,
+            totalUsage: session.totalUsage,
+            pid: session.pid,
+            startedAt: session.startedAt,
+            lastActivityAt: session.lastActivityAt,
         };
+    }
+
+    /**
+     * Get a list of all active persistent sessions with resource info
+     */
+    getActivePersistentSessions(): Array<{
+        sessionId: string;
+        pid?: number;
+        startedAt: number;
+        lastActivityAt: number;
+        state: string;
+        messageCount: number;
+    }> {
+        const result: Array<{
+            sessionId: string;
+            pid?: number;
+            startedAt: number;
+            lastActivityAt: number;
+            state: string;
+            messageCount: number;
+        }> = [];
+        for (const [id, session] of this.persistentSessions.entries()) {
+            result.push({
+                sessionId: id,
+                pid: session.pid,
+                startedAt: session.startedAt,
+                lastActivityAt: session.lastActivityAt,
+                state: session.state,
+                messageCount: session.messageCount,
+            });
+        }
+        return result;
     }
 
     /**
@@ -1494,6 +1571,32 @@ export class ClaudeCodeWrapper extends EventEmitter {
         if (session) {
             await session.stop();
             this.persistentSessions.delete(sessionId);
+        }
+    }
+
+    /**
+     * Evict the least-recently-used persistent sessions if over the limit.
+     */
+    private async evictLruSessionsIfNeeded(): Promise<void> {
+        while (this.persistentSessions.size >= ClaudeCodeWrapper.MAX_PERSISTENT_SESSIONS) {
+            // Find the session with the oldest lastActivityAt
+            let oldestId: string | null = null;
+            let oldestActivity = Infinity;
+
+            for (const [id, session] of this.persistentSessions.entries()) {
+                if (session.lastActivityAt < oldestActivity) {
+                    oldestActivity = session.lastActivityAt;
+                    oldestId = id;
+                }
+            }
+
+            if (oldestId) {
+                console.error(`[ClaudeCode] Evicting LRU persistent session ${oldestId} (lastActivity=${new Date(oldestActivity).toISOString()})`);
+                await this.stopPersistentSession(oldestId);
+                this.emit('persistentSessionClosed', oldestId, 0);
+            } else {
+                break;
+            }
         }
     }
 
@@ -1509,6 +1612,32 @@ export class ClaudeCodeWrapper extends EventEmitter {
         session.on('close', (code: number) => {
             console.error(`[ClaudeCode] Persistent session ${sessionId} closed with code ${code}`);
             this.persistentSessions.delete(sessionId);
+            // Notify clients that the persistent session has disconnected
+            this.emit('persistentSessionClosed', sessionId, code);
+        });
+
+        session.on('recovered', () => {
+            console.error(`[ClaudeCode] Persistent session ${sessionId} recovered`);
+            const update: TextUpdate = { text: '[Session recovered automatically after crash]\n' };
+            this.emit('update', sessionId, update, 'text');
+        });
+
+        session.on('recoveryFailed', () => {
+            console.error(`[ClaudeCode] Persistent session ${sessionId} recovery failed, falling back to one-shot`);
+            this.persistentSessions.delete(sessionId);
+            // Notify clients about recovery failure - they should fall back to one-shot
+            const errorUpdate: ErrorUpdate = {
+                code: 'PERSISTENT_SESSION_CLOSED',
+                message: 'Persistent session recovery failed. Falling back to one-shot mode.',
+            };
+            this.emit('update', sessionId, errorUpdate, 'error');
+            this.emit('persistentSessionClosed', sessionId, 1);
+        });
+
+        session.on('idleTimeout', () => {
+            console.error(`[ClaudeCode] Persistent session ${sessionId} idle timeout, stopping`);
+            this.persistentSessions.delete(sessionId);
+            this.emit('persistentSessionClosed', sessionId, 0);
         });
     }
 }
