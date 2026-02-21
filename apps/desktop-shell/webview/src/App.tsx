@@ -1,5 +1,6 @@
 /**
- * VCoder Webview App
+ * VCoder Desktop App
+ * Two-column layout: persistent sidebar + main content area
  */
 
 import { useEffect, useMemo, useCallback, useRef, useState, type CSSProperties } from 'react';
@@ -10,7 +11,6 @@ import { PlanBlock } from '@vcoder/ui/components/PlanBlock';
 import { TaskRunsBlock } from '@vcoder/ui/components/TaskRunsBlock';
 import { VirtualMessageItem } from '@vcoder/ui/components/VirtualMessageItem';
 import { InputArea, type InputAreaHandle } from '@vcoder/ui/components/InputArea';
-import { HistoryPanel } from '@vcoder/ui/components/HistoryPanel';
 import { EcosystemPanel } from '@vcoder/ui/components/EcosystemPanel';
 import { AgentTeamsPanel } from '@vcoder/ui/components/AgentTeamsPanel';
 import type { EcosystemData } from '@vcoder/ui/types';
@@ -25,7 +25,9 @@ import type { EnhancedTodoItem, TaskItem } from '@vcoder/ui/components/TodoTaskM
 import { useToast } from '@vcoder/ui/utils/Toast';
 import { postMessage } from '@vcoder/ui/bridge';
 import { performanceMonitor } from '@vcoder/ui/utils/messageQueue';
+import { loadPersistedState, savePersistedState } from '@vcoder/ui/utils/persist';
 import type { ExtensionMessage } from '@vcoder/ui/types';
+import { DesktopSidebar } from './components/DesktopSidebar';
 import '@vcoder/ui/styles/index.scss';
 import './App.scss';
 
@@ -34,7 +36,9 @@ const VIRTUAL_LIST_THRESHOLD = 50;
 const ESTIMATED_MESSAGE_HEIGHT = 120;
 
 function App() {
-  const [showHistory, setShowHistory] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return loadPersistedState().sidebarCollapsed ?? false;
+  });
   const [showPermissionRules, setShowPermissionRules] = useState(false);
   const [showEcosystem, setShowEcosystem] = useState(false);
   const [showAgentTeams, setShowAgentTeams] = useState(false);
@@ -62,7 +66,6 @@ function App() {
     setLoading,
     setHistorySessions,
     loadHistorySession,
-    historySessions,
     viewMode,
     setAgents,
     setCurrentAgent,
@@ -264,8 +267,9 @@ function App() {
           useStore.getState().setWorkspaceFiles(message.data);
           break;
         case 'showHistory':
-          setShowHistory(true);
-          postMessage({ type: 'listHistory' }); // Refresh history list when opening
+          // Expand sidebar when requested to show history
+          setSidebarCollapsed(false);
+          postMessage({ type: 'listHistory' });
           break;
         case 'showEcosystem':
           setShowEcosystem(true);
@@ -278,7 +282,6 @@ function App() {
           break;
         case 'historyMessages':
           loadHistorySession(message.sessionId, message.data);
-          setShowHistory(false);
           break;
         case 'uiLanguage':
           setUiLanguage(message.data.uiLanguage, 'extension');
@@ -336,9 +339,10 @@ function App() {
 
     window.addEventListener('message', handleMessage);
 
-    // Request initial session list and agents
+    // Request initial session list, agents, and history for sidebar
     postMessage({ type: 'listSessions' });
     postMessage({ type: 'refreshAgents' });
+    postMessage({ type: 'listHistory' });
     
     // Sync all persisted settings to backend on startup
     const state = useStore.getState();
@@ -359,6 +363,10 @@ function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, [handleUpdate, setCurrentSession, setLoading, setSessions, showError]);
 
+  // Persist sidebar collapsed state
+  useEffect(() => {
+    savePersistedState({ sidebarCollapsed });
+  }, [sidebarCollapsed]);
 
   const isEmpty = messages.length === 0;
   const isInitializing = isEmpty && isLoading;
@@ -493,82 +501,89 @@ function App() {
   const hasTodoOrTask = todoItems.length > 0 || taskItems.length > 0;
 
   return (
-    <div className="app">
-      {tasks.length > 0 && (planMode || permissionMode === 'plan') && (
-          <PlanBlock plan={tasks} sticky={true} />
-      )}
-
-      {subagentRuns.length > 0 && (planMode || permissionMode === 'plan') && (
-          <TaskRunsBlock runs={subagentRuns} sticky={true} />
-      )}
-
-      {hasTodoOrTask && (
-        <div className="sticky-todo-task-manager">
-          <TodoTaskManager
-            todos={todoItems}
-            tasks={taskItems}
-            expandByDefault={false}
-            showFilters={true}
-            sortable={true}
-          />
-        </div>
-      )}
-
-      <div className="messages-panel">
-        {enableStickyUserPrompt && (
-          <StickyUserPrompt
-            message={activeUserMessage}
-            disabled={isLoading || viewMode === 'history'}
-            onApplyToComposer={(text) => inputAreaRef.current?.setText(text, { focus: true })}
-            onHeightChange={handleStickyPromptHeightChange}
-          />
-        )}
-        <div 
-          className={`messages-container${isEmpty ? ' messages-container--empty' : ''}`} 
-          ref={useVirtual ? virtualContainerRef : containerRef}
-          onScroll={handleScroll}
-          style={messagesContainerStyle}
-        >
-          {messagesBody}
-          <div ref={endRef} />
-        </div>
-      </div>
-
-      {/* Jump to bottom button - shows when user scrolls up */}
-      <JumpToBottom visible={!autoScroll && messages.length > 0} onClick={jumpToBottom} />
-
-      {error && (
-        <div className="error-banner">
-          <span className="error-icon">⚠️</span>
-          <div className="error-content">
-            <span className="error-message">{error.message}</span>
-            {error.action && (
-              <button 
-                className="error-action-btn"
-                onClick={() => {
-                  postMessage({ 
-                    type: 'executeCommand', 
-                    command: error.action?.command 
-                  });
-                  useStore.getState().setError(null);
-                }}
-              >
-                {error.action.label}
-              </button>
-            )}
-          </div>
-          <button className="error-dismiss" onClick={() => useStore.getState().setError(null)}>
-            ×
-          </button>
-        </div>
-      )}
-
-      <HistoryPanel
-        historySessions={historySessions}
-        visible={showHistory}
-        onClose={() => setShowHistory(false)}
+    <div className="app app--desktop">
+      {/* Persistent left sidebar */}
+      <DesktopSidebar
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+        onShowEcosystem={() => setShowEcosystem(true)}
       />
 
+      {/* Main content area */}
+      <div className="app__main">
+        {tasks.length > 0 && (planMode || permissionMode === 'plan') && (
+            <PlanBlock plan={tasks} sticky={true} />
+        )}
+
+        {subagentRuns.length > 0 && (planMode || permissionMode === 'plan') && (
+            <TaskRunsBlock runs={subagentRuns} sticky={true} />
+        )}
+
+        {hasTodoOrTask && (
+          <div className="sticky-todo-task-manager">
+            <TodoTaskManager
+              todos={todoItems}
+              tasks={taskItems}
+              expandByDefault={false}
+              showFilters={true}
+              sortable={true}
+            />
+          </div>
+        )}
+
+        <div className="messages-panel">
+          {enableStickyUserPrompt && (
+            <StickyUserPrompt
+              message={activeUserMessage}
+              disabled={isLoading || viewMode === 'history'}
+              onApplyToComposer={(text) => inputAreaRef.current?.setText(text, { focus: true })}
+              onHeightChange={handleStickyPromptHeightChange}
+            />
+          )}
+          <div
+            className={`messages-container${isEmpty ? ' messages-container--empty' : ''}`}
+            ref={useVirtual ? virtualContainerRef : containerRef}
+            onScroll={handleScroll}
+            style={messagesContainerStyle}
+          >
+            {messagesBody}
+            <div ref={endRef} />
+          </div>
+        </div>
+
+        {/* Jump to bottom button - shows when user scrolls up */}
+        <JumpToBottom visible={!autoScroll && messages.length > 0} onClick={jumpToBottom} />
+
+        {error && (
+          <div className="error-banner">
+            <span className="error-icon">⚠️</span>
+            <div className="error-content">
+              <span className="error-message">{error.message}</span>
+              {error.action && (
+                <button
+                  className="error-action-btn"
+                  onClick={() => {
+                    postMessage({
+                      type: 'executeCommand',
+                      command: error.action?.command
+                    });
+                    useStore.getState().setError(null);
+                  }}
+                >
+                  {error.action.label}
+                </button>
+              )}
+            </div>
+            <button className="error-dismiss" onClick={() => useStore.getState().setError(null)}>
+              ×
+            </button>
+          </div>
+        )}
+
+        <InputArea ref={inputAreaRef} />
+      </div>
+
+      {/* Overlay panels */}
       <EcosystemPanel
         visible={showEcosystem}
         onClose={() => setShowEcosystem(false)}
@@ -590,8 +605,6 @@ function App() {
         request={permissionRequest}
         onClose={() => setPermissionRequest(null)}
       />
-
-      <InputArea ref={inputAreaRef} />
     </div>
   );
 }

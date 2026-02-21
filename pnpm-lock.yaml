@@ -40,6 +40,67 @@ importers:
         specifier: ^5.3.0
         version: 5.9.3
 
+  apps/desktop-shell/webview:
+    dependencies:
+      '@vcoder/shared':
+        specifier: workspace:*
+        version: link:../../../packages/shared
+      '@vcoder/ui':
+        specifier: workspace:*
+        version: link:../../../packages/ui
+      classnames:
+        specifier: ^2.5.1
+        version: 2.5.1
+      dompurify:
+        specifier: ^3.3.1
+        version: 3.3.1
+      markdown-it:
+        specifier: ^14.1.0
+        version: 14.1.0
+      mermaid:
+        specifier: ^11.4.0
+        version: 11.12.2
+      react:
+        specifier: ^19.2.0
+        version: 19.2.3
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.2.3(react@19.2.3)
+      shiki:
+        specifier: ^3.21.0
+        version: 3.21.0
+      zustand:
+        specifier: ^5.0.0
+        version: 5.0.9(@types/react@19.2.7)(react@19.2.3)
+    devDependencies:
+      '@types/dompurify':
+        specifier: ^3.2.0
+        version: 3.2.0
+      '@types/markdown-it':
+        specifier: ^14.1.2
+        version: 14.1.2
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.4
+      '@types/react':
+        specifier: ^19.2.5
+        version: 19.2.7
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.7)
+      '@vitejs/plugin-react':
+        specifier: ^5.1.1
+        version: 5.1.2(vite@7.3.0(@types/node@24.10.4)(sass-embedded@1.97.1)(sass@1.97.1))
+      sass-embedded:
+        specifier: ^1.97.1
+        version: 1.97.1
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^7.2.4
+        version: 7.3.0(@types/node@24.10.4)(sass-embedded@1.97.1)(sass@1.97.1)
+
   apps/vscode-extension:
     dependencies:
       '@agentclientprotocol/sdk':
@@ -70,6 +131,9 @@ importers:
       '@vcoder/shared':
         specifier: workspace:*
         version: link:../../../packages/shared
+      '@vcoder/ui':
+        specifier: workspace:*
+        version: link:../../../packages/ui
       classnames:
         specifier: ^2.5.1
         version: 2.5.1
@@ -161,6 +225,55 @@ importers:
         version: 20.19.27
       typescript:
         specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/ui:
+    dependencies:
+      '@vcoder/shared':
+        specifier: workspace:*
+        version: link:../shared
+      classnames:
+        specifier: ^2.0.0
+        version: 2.5.1
+      dompurify:
+        specifier: ^3.0.0
+        version: 3.3.1
+      markdown-it:
+        specifier: ^14.0.0
+        version: 14.1.0
+      mermaid:
+        specifier: ^11.0.0
+        version: 11.12.2
+      react:
+        specifier: ^19.0.0
+        version: 19.2.3
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.3(react@19.2.3)
+      shiki:
+        specifier: ^3.0.0
+        version: 3.21.0
+      zustand:
+        specifier: ^5.0.0
+        version: 5.0.9(@types/react@19.2.7)(react@19.2.3)
+    devDependencies:
+      '@types/dompurify':
+        specifier: ^3.2.0
+        version: 3.2.0
+      '@types/markdown-it':
+        specifier: ^14.1.2
+        version: 14.1.2
+      '@types/react':
+        specifier: ^19.2.5
+        version: 19.2.7
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.7)
+      sass-embedded:
+        specifier: ^1.97.1
+        version: 1.97.1
+      typescript:
+        specifier: ~5.9.3
         version: 5.9.3
 
 packages:

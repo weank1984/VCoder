@@ -2,4 +2,5 @@ packages:
   - "apps/vscode-extension"
   - "apps/vscode-extension/webview"
   - "apps/desktop-shell"
+  - "apps/desktop-shell/webview"
   - "packages/*"

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About VCoder</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1e1e1e;
+      color: #cccccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+    @media (prefers-color-scheme: light) {
+      body { background: #ffffff; color: #333333; }
+      .version-info { color: #666666; }
+      .divider { border-color: #e0e0e0; }
+    }
+    .container {
+      text-align: center;
+      padding: 32px;
+      max-width: 360px;
+    }
+    .app-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 16px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -1px;
+    }
+    .app-name {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .app-version {
+      font-size: 14px;
+      margin-bottom: 20px;
+      opacity: 0.7;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #3a3a3a;
+      margin: 16px 0;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 6px 12px;
+      text-align: left;
+      font-size: 12px;
+    }
+    .info-label {
+      opacity: 0.6;
+    }
+    .info-value {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      opacity: 0.8;
+    }
+    .copyright {
+      margin-top: 20px;
+      font-size: 11px;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="app-icon">V</div>
+    <div class="app-name" id="appName">VCoder Desktop</div>
+    <div class="app-version" id="appVersion">-</div>
+    <hr class="divider">
+    <div class="info-grid">
+      <span class="info-label">Electron</span>
+      <span class="info-value" id="electronVersion">-</span>
+      <span class="info-label">Node.js</span>
+      <span class="info-value" id="nodeVersion">-</span>
+      <span class="info-label">Chromium</span>
+      <span class="info-value" id="chromiumVersion">-</span>
+      <span class="info-label">Platform</span>
+      <span class="info-value" id="platform">-</span>
+    </div>
+    <p class="copyright" id="copyright"></p>
+  </div>
+  <script>
+    try {
+      const hash = decodeURIComponent(window.location.hash.slice(1));
+      const info = JSON.parse(hash);
+      document.getElementById('appName').textContent = info.appName || 'VCoder Desktop';
+      document.getElementById('appVersion').textContent = 'Version ' + (info.version || '0.0.0');
+      document.getElementById('electronVersion').textContent = info.electronVersion || '-';
+      document.getElementById('nodeVersion').textContent = info.nodeVersion || '-';
+      document.getElementById('chromiumVersion').textContent = info.chromiumVersion || '-';
+      document.getElementById('platform').textContent = info.platform || '-';
+    } catch (e) {
+      // Ignore parsing errors
+    }
+    document.getElementById('copyright').textContent =
+      '\u00A9 ' + new Date().getFullYear() + ' VCoder Team. MIT License.';
+  </script>
+</body>
+</html>

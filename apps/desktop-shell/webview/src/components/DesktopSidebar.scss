@@ -1,0 +1,332 @@
+/**
+ * Desktop Sidebar Styles
+ * Persistent left sidebar for Electron desktop app
+ */
+
+@use 'styles/mixins' as *;
+
+/* ==========================================================================
+   SIDEBAR CONTAINER
+   ========================================================================== */
+
+.desktop-sidebar {
+    width: 260px;
+    min-width: 260px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--vc-color-bg-secondary, var(--vc-bg));
+    border-right: 1px solid var(--vc-color-border);
+    transition: width 0.2s ease, min-width 0.2s ease;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    &--collapsed {
+        width: 48px;
+        min-width: 48px;
+    }
+}
+
+/* ==========================================================================
+   HEADER
+   ========================================================================== */
+
+.desktop-sidebar__header {
+    display: flex;
+    align-items: center;
+    padding: 10px 10px 6px;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.desktop-sidebar__new-chat {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: var(--vc-radius-md, 6px);
+    border: 1px solid var(--vc-color-border);
+    background: transparent;
+    color: var(--vc-color-text-primary, var(--vc-color-text));
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+    }
+
+    &:hover {
+        background: var(--vc-color-hover-bg, rgba(255, 255, 255, 0.06));
+        border-color: var(--vc-color-primary, #6366f1);
+    }
+
+    &:active {
+        transform: scale(0.98);
+    }
+}
+
+.desktop-sidebar__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--vc-color-text-secondary, var(--vc-color-text-tertiary));
+    border-radius: var(--vc-radius-sm, 4px);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    &:hover {
+        background: var(--vc-color-hover-bg, rgba(255, 255, 255, 0.06));
+        color: var(--vc-color-text-primary, var(--vc-color-text));
+    }
+}
+
+/* ==========================================================================
+   COLLAPSED ACTIONS
+   ========================================================================== */
+
+.desktop-sidebar__collapsed-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 0;
+    gap: 2px;
+}
+
+.desktop-sidebar__icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--vc-color-text-secondary, var(--vc-color-text-tertiary));
+    border-radius: var(--vc-radius-sm, 4px);
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    &:hover {
+        background: var(--vc-color-hover-bg, rgba(255, 255, 255, 0.06));
+        color: var(--vc-color-text-primary, var(--vc-color-text));
+    }
+}
+
+/* ==========================================================================
+   SEARCH
+   ========================================================================== */
+
+.desktop-sidebar__search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 2px 10px 8px;
+    padding: 0 8px;
+    height: 30px;
+    background: var(--vc-color-bg-input, var(--vc-color-bg-base));
+    border: 1px solid var(--vc-color-border);
+    border-radius: var(--vc-radius-sm, 4px);
+    transition: border-color 0.15s ease;
+
+    &:focus-within {
+        border-color: var(--vc-color-border-focus, var(--vc-color-primary, #6366f1));
+    }
+
+    > svg {
+        width: 13px;
+        height: 13px;
+        color: var(--vc-color-text-tertiary);
+        flex-shrink: 0;
+        opacity: 0.6;
+    }
+
+    input {
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+        border: none;
+        background: transparent;
+        color: var(--vc-color-text-primary, var(--vc-color-text));
+        font-size: 12px;
+        outline: none;
+
+        &::placeholder {
+            color: var(--vc-color-text-tertiary);
+            opacity: 0.7;
+        }
+    }
+}
+
+/* ==========================================================================
+   SESSIONS LIST
+   ========================================================================== */
+
+.desktop-sidebar__sessions {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 6px 12px;
+    @include scrollbar;
+}
+
+.desktop-sidebar__empty {
+    padding: 20px 12px;
+    text-align: center;
+    color: var(--vc-color-text-tertiary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* ==========================================================================
+   SESSION GROUPS
+   ========================================================================== */
+
+.desktop-sidebar__group {
+    &:not(:first-child) {
+        margin-top: 4px;
+    }
+}
+
+.desktop-sidebar__group-label {
+    padding: 10px 10px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--vc-color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    user-select: none;
+}
+
+/* ==========================================================================
+   SESSION ITEM
+   ========================================================================== */
+
+.desktop-sidebar__session-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 10px;
+    margin: 1px 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s ease, opacity 0.2s ease, transform 0.2s ease;
+    position: relative;
+
+    > svg:first-child {
+        width: 14px;
+        height: 14px;
+        color: var(--vc-color-text-tertiary);
+        flex-shrink: 0;
+        opacity: 0.5;
+    }
+
+    &:hover {
+        background: var(--vc-color-hover-bg, rgba(255, 255, 255, 0.06));
+
+        > svg:first-child {
+            opacity: 0.8;
+        }
+
+        .desktop-sidebar__delete-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    }
+
+    &.active {
+        background: var(--vc-color-selected-bg, rgba(99, 102, 241, 0.12));
+
+        > svg:first-child {
+            color: var(--vc-color-primary, #6366f1);
+            opacity: 1;
+        }
+
+        .desktop-sidebar__session-title {
+            color: var(--vc-color-text-primary, var(--vc-color-text));
+            font-weight: 500;
+        }
+
+        &:hover {
+            background: var(--vc-color-selected-bg, rgba(99, 102, 241, 0.15));
+        }
+    }
+
+    &.deleting {
+        opacity: 0;
+        transform: translateX(-20px);
+        pointer-events: none;
+    }
+}
+
+.desktop-sidebar__session-title {
+    @include text-ellipsis;
+    flex: 1;
+    font-size: 13px;
+    color: var(--vc-color-text-primary, var(--vc-color-text));
+    line-height: 1.3;
+}
+
+.desktop-sidebar__delete-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: transparent;
+    color: var(--vc-color-text-tertiary);
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
+    flex-shrink: 0;
+
+    svg {
+        width: 13px;
+        height: 13px;
+    }
+
+    &:hover {
+        background: var(--vc-color-danger-bg, rgba(239, 68, 68, 0.12));
+        color: var(--vc-color-danger-text, #ef4444);
+    }
+}
+
+/* ==========================================================================
+   RESPONSIVE / ACCESSIBILITY
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .desktop-sidebar {
+        transition: none;
+    }
+
+    .desktop-sidebar__session-item {
+        transition: none;
+
+        &.deleting {
+            display: none;
+        }
+    }
+}

@@ -74,6 +74,15 @@ export class DesktopRuntime {
   private readonly pendingFileChanges = new Map<string, Set<string>>();
   private readonly pendingChangeDetails = new Map<string, Map<string, PendingFileChangePayload>>();
 
+  // Health check & reconnection
+  private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
+  private reconnectAttempts = 0;
+  private isReconnecting = false;
+  private static readonly MAX_RECONNECT_ATTEMPTS = 5;
+  private static readonly HEALTH_CHECK_INTERVAL_MS = 30_000;
+  private static readonly HEALTH_CHECK_TIMEOUT_MS = 5_000;
+  private static readonly BACKOFF_SCHEDULE = [1000, 2000, 5000, 10_000, 30_000];
+
   constructor(private readonly options: RuntimeOptions) {
     this.workspaceRoot = path.resolve(options.workspaceRoot);
     this.permissionRulesPath = path.join(options.stateDir, 'permission-rules.json');
@@ -116,6 +125,7 @@ export class DesktopRuntime {
       this.postError('Server process exited', `Code: ${String(code)}`);
       this.serverProcess = null;
       this.acpClient = null;
+      this.attemptReconnect();
     });
 
     this.acpClient = new ACPClient({
@@ -184,9 +194,14 @@ export class DesktopRuntime {
     this.postPermissionRules();
     const uiLanguage = await this.loadUiLanguage();
     this.options.postMessage({ type: 'uiLanguage', data: { uiLanguage } });
+
+    this.startHealthCheck();
+    this.postHealthStatus('connected');
   }
 
   async shutdown(): Promise<void> {
+    this.stopHealthCheck();
+
     for (const [terminalId] of this.terminals) {
       await this.releaseTerminal({ terminalId });
     }
@@ -201,6 +216,79 @@ export class DesktopRuntime {
       this.serverProcess.kill('SIGTERM');
       this.serverProcess = null;
     }
+  }
+
+  // ─── Health Check & Auto-Reconnect ─────────────────────────
+
+  private startHealthCheck(): void {
+    this.stopHealthCheck();
+    this.healthCheckInterval = setInterval(() => {
+      void this.checkHealth();
+    }, DesktopRuntime.HEALTH_CHECK_INTERVAL_MS);
+  }
+
+  private stopHealthCheck(): void {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+  }
+
+  private async checkHealth(): Promise<void> {
+    if (!this.acpClient) {
+      this.postHealthStatus('disconnected');
+      return;
+    }
+    try {
+      await Promise.race([
+        this.acpClient.getModeStatus(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('health check timeout')), DesktopRuntime.HEALTH_CHECK_TIMEOUT_MS),
+        ),
+      ]);
+      this.reconnectAttempts = 0;
+      this.postHealthStatus('connected');
+    } catch {
+      this.postHealthStatus('unhealthy');
+    }
+  }
+
+  private attemptReconnect(): void {
+    if (this.isReconnecting || this.reconnectAttempts >= DesktopRuntime.MAX_RECONNECT_ATTEMPTS) {
+      this.postHealthStatus('disconnected');
+      return;
+    }
+    this.isReconnecting = true;
+    this.reconnectAttempts++;
+    this.postHealthStatus('reconnecting');
+
+    const delay = DesktopRuntime.BACKOFF_SCHEDULE[
+      Math.min(this.reconnectAttempts - 1, DesktopRuntime.BACKOFF_SCHEDULE.length - 1)
+    ];
+
+    setTimeout(() => {
+      void this.doReconnect();
+    }, delay);
+  }
+
+  private async doReconnect(): Promise<void> {
+    try {
+      await this.start();
+      this.isReconnecting = false;
+      this.reconnectAttempts = 0;
+      this.postHealthStatus('connected');
+      await this.postSessions();
+    } catch {
+      this.isReconnecting = false;
+      this.attemptReconnect();
+    }
+  }
+
+  private postHealthStatus(status: 'connected' | 'disconnected' | 'unhealthy' | 'reconnecting'): void {
+    this.options.postMessage({
+      type: 'healthStatus',
+      data: { status, reconnectAttempts: this.reconnectAttempts },
+    });
   }
 
   async handleWebviewMessage(message: unknown): Promise<void> {

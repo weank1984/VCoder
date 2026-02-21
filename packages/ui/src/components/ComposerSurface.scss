@@ -1,0 +1,123 @@
+/* Composer Surface - Cursor-style input box */
+
+.vc-composer-surface {
+    background: color-mix(in srgb, var(--vscode-input-background) 90%, transparent);
+    border: 1px solid var(--vc-color-border);
+    border-radius: 6px;
+    transition: box-shadow 100ms ease-in-out, border-color 100ms ease-in-out;
+    position: relative;
+    contain: unset;
+    opacity: 1;
+    pointer-events: auto;
+
+    /* Interactive states */
+    &--interactive {
+        &:hover {
+            border-color: var(--vc-color-border-secondary);
+            box-shadow: var(--vc-shadow-sm);
+        }
+    }
+
+    &--interactive:focus-within {
+        border-color: var(--vc-color-focus-ring);
+        box-shadow:
+            var(--vc-shadow-md),
+            0 0 0 2px color-mix(in srgb, var(--vc-color-focus-ring) 20%, transparent);
+    }
+
+    /* Loading/muted state */
+    &--muted {
+        opacity: 0.7;
+        border-color: var(--vc-color-border-tertiary);
+        cursor: not-allowed;
+        box-shadow: none;
+
+        &:hover {
+            border-color: var(--vc-color-border-tertiary);
+            box-shadow: none;
+        }
+    }
+
+    /* Success state */
+    &--success {
+        border-color: var(--vc-color-success-border);
+    }
+
+    /* Error state */
+    &--error {
+        border-color: var(--vc-color-error-border);
+        animation: vc-error-shake 0.3s var(--vc-motion-ease-out);
+    }
+
+    /* Warning state */
+    &--warning {
+        border-color: var(--vc-color-warning-border);
+    }
+
+    /* Content z-index */
+    > * {
+        position: relative;
+        z-index: 1;
+    }
+}
+
+/* Error shake animation */
+@keyframes vc-error-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+/* Pulse animation for loading states */
+.vc-composer-surface--loading {
+    &::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        right: 2px;
+        bottom: 2px;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            color-mix(in srgb, var(--vc-color-primary-bg-hover) 40%, transparent) 50%,
+            transparent 100%
+        );
+        border-radius: 4px;
+        animation: vc-loading-sweep 1.5s infinite;
+        pointer-events: none;
+        z-index: 2;
+    }
+}
+
+@keyframes vc-loading-sweep {
+    0% { transform: translateX(-100%); opacity: 0; }
+    50% { opacity: 1; }
+    100% { transform: translateX(100%); opacity: 0; }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .vc-composer-surface {
+        transition: none;
+
+        &--loading::after {
+            animation: none;
+            opacity: 0;
+        }
+
+        &--error {
+            animation: none;
+        }
+    }
+}
+
+@media (prefers-contrast: high) {
+    .vc-composer-surface {
+        border-width: 2px;
+
+        &--interactive:focus-within {
+            box-shadow: 0 0 0 3px var(--vc-color-focus-ring);
+        }
+    }
+}

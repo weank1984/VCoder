@@ -10,7 +10,8 @@ import '@vcoder/ui/index.scss';
 // Performance: mark UI start
 performance.mark('ui:start');
 
-// Initialize i18n before first render (best-effort, provider will keep it in sync).
+// Initialize i18n before first render.
+// Desktop shell uses system locale or user preference.
 const vscodeDisplayLanguage = (globalThis as unknown as { __vscodeLanguage?: string }).__vscodeLanguage;
 const uiLanguage = (globalThis as unknown as { __vcoderUiLanguage?: string }).__vcoderUiLanguage;
 if (uiLanguage === 'en-US' || uiLanguage === 'zh-CN' || uiLanguage === 'auto') {
@@ -33,7 +34,7 @@ root.render(
     </StrictMode>,
 );
 
-// Performance: measure TTI and send uiReady event
+// Performance: measure TTI
 requestAnimationFrame(() => {
     performance.mark('ui:rendered');
     performance.measure('ui:tti', 'ui:start', 'ui:rendered');
@@ -41,11 +42,5 @@ requestAnimationFrame(() => {
     const ttiEntry = performance.getEntriesByName('ui:tti')[0];
     const tti = ttiEntry ? ttiEntry.duration : 0;
 
-    // Send uiReady message to extension
-    const vscode = (window as unknown as { vscodeApi?: { postMessage: (msg: unknown) => void } }).vscodeApi;
-    if (vscode) {
-        vscode.postMessage({ type: 'uiReady', metrics: { tti } });
-    }
-
-    console.log(`[VCoder] UI ready, TTI: ${tti.toFixed(2)}ms`);
+    console.log(`[VCoder Desktop] UI ready, TTI: ${tti.toFixed(2)}ms`);
 });

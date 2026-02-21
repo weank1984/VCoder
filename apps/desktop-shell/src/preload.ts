@@ -76,6 +76,43 @@ function initDesktopTheme(): void {
   }
 }
 
+// Listen for manual theme mode changes from main process
+ipcRenderer.on(IPC_CHANNELS.THEME_MODE_CHANGED, (_event, mode: string) => {
+  if (mode === 'light' || mode === 'dark') {
+    applyTheme(mode);
+  }
+});
+
 initDesktopTheme();
 
 contextBridge.exposeInMainWorld('acquireVsCodeApi', () => api);
+
+// Desktop-specific APIs (optional — webview checks via typeof window.vcoderDesktop)
+contextBridge.exposeInMainWorld('vcoderDesktop', {
+  findInPage: {
+    query: (text: string) => ipcRenderer.send(IPC_CHANNELS.FIND_IN_PAGE_QUERY, text),
+    next: () => ipcRenderer.send(IPC_CHANNELS.FIND_IN_PAGE_NEXT),
+    prev: () => ipcRenderer.send(IPC_CHANNELS.FIND_IN_PAGE_PREV),
+    close: () => ipcRenderer.send(IPC_CHANNELS.FIND_IN_PAGE_CLOSE),
+    onOpen: (cb: () => void) => {
+      ipcRenderer.on(IPC_CHANNELS.FIND_IN_PAGE_OPEN, () => cb());
+    },
+    onClose: (cb: () => void) => {
+      ipcRenderer.on(IPC_CHANNELS.FIND_IN_PAGE_CLOSE, () => cb());
+    },
+    onResult: (cb: (result: { activeMatchOrdinal: number; matches: number }) => void) => {
+      ipcRenderer.on(IPC_CHANNELS.FIND_IN_PAGE_RESULT, (_e, result) => cb(result));
+    },
+  },
+  theme: {
+    getMode: () => ipcRenderer.invoke(IPC_CHANNELS.THEME_GET_MODE) as Promise<string>,
+    setMode: (mode: string) => ipcRenderer.send(IPC_CHANNELS.THEME_SET_MODE, mode),
+    onModeChanged: (cb: (mode: string) => void) => {
+      ipcRenderer.on(IPC_CHANNELS.THEME_MODE_CHANGED, (_e, mode) => cb(mode));
+    },
+  },
+  globalShortcut: {
+    get: () => ipcRenderer.invoke(IPC_CHANNELS.GLOBAL_SHORTCUT_GET) as Promise<string | null>,
+    set: (accelerator: string) => ipcRenderer.send(IPC_CHANNELS.GLOBAL_SHORTCUT_SET, accelerator),
+  },
+});

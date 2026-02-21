@@ -27,9 +27,12 @@ export default defineConfig({
         assetFileNames: 'index.[ext]',
       },
     },
-    // For VSCode Webview, we need a single bundle
+    // Single bundle for Electron webview
     cssCodeSplit: false,
   },
-  // No public path since VSCode handles resource URIs
   base: '',
+  server: {
+    port: 5174,
+    strictPort: true,
+  },
 })

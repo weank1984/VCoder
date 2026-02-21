@@ -1,0 +1,511 @@
+/**
+ * Input Area Component - Cursor-style design
+ * Compact, clean layout matching Cursor IDE composer
+ */
+
+@use '../styles/mixins' as *;
+
+/* ==========================================================================
+   INPUT AREA CONTAINER
+   ========================================================================== */
+
+.input-area {
+    position: sticky;
+    bottom: 0;
+    z-index: var(--vc-z-index-sticky);
+    width: 100%;
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    margin: 0 10px 10px;
+}
+
+.input-content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0;
+}
+
+/* ==========================================================================
+   HISTORY MODE BANNER
+   ========================================================================== */
+
+.history-mode-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--vc-spacing-component-md);
+    margin: var(--vc-space-2) var(--vc-space-3) 0;
+    padding: var(--vc-space-2) var(--vc-space-3);
+    border: 1px solid var(--vc-color-border);
+    border-radius: var(--vc-radius-sm);
+    background: var(--vc-color-bg-tertiary);
+    color: var(--vc-color-text-primary);
+    transition: all var(--vc-transition-fast);
+}
+
+.history-mode-banner__text {
+    font-size: var(--vc-font-size-sm);
+    line-height: var(--vc-line-height-tight);
+    opacity: 0.85;
+}
+
+.history-mode-banner__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--vc-space-2);
+}
+
+/* ==========================================================================
+   ATTACHMENTS PREVIEW
+   ========================================================================== */
+
+.attachments-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--vc-space-2);
+    padding: var(--vc-space-2) var(--vc-space-3) var(--vc-space-1);
+}
+
+.attachment-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--vc-space-1);
+    padding: var(--vc-space-1) var(--vc-space-2);
+    font-size: var(--vc-font-size-xs);
+    font-weight: var(--vc-font-weight-medium);
+    background: var(--vc-color-bg-tertiary);
+    color: var(--vc-color-text-primary);
+    border: 1px solid var(--vc-color-border);
+    border-radius: var(--vc-radius-sm);
+    transition: all var(--vc-transition-mid);
+
+    &:hover {
+        background: var(--vc-color-selected-bg);
+        color: var(--vc-color-selected-fg);
+    }
+}
+
+.attachment-remove {
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    padding: var(--vc-space-1);
+    opacity: 0.6;
+    border-radius: calc(var(--vc-radius-sm) - var(--vc-space-1));
+    transition: opacity var(--vc-transition-mid),
+                background var(--vc-transition-mid);
+
+    &:hover {
+        opacity: 1;
+        background: var(--vc-color-hover-bg);
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.4;
+
+        &:hover {
+            background: transparent;
+        }
+    }
+
+    svg {
+        width: 10px;
+        height: 10px;
+        fill: currentColor;
+    }
+}
+
+/* ==========================================================================
+   INPUT FIELD (TEXTAREA) - Cursor-style
+   ========================================================================== */
+
+.input-field {
+    width: 100%;
+    padding: 0;
+    border: none !important;
+    outline: none !important;
+    background: transparent;
+    color: var(--vscode-input-foreground);
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: none;
+    min-height: 20px;
+    max-height: 240px;
+    display: block;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    scrollbar-width: none;
+    box-sizing: border-box;
+    padding: 8px 12px;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    &::placeholder {
+        color: var(--vscode-input-placeholderForeground);
+        opacity: 0.5;
+    }
+
+    &:focus {
+        outline: none;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+/* ==========================================================================
+   COMPOSER TOOLBAR (Cursor-style bottom bar)
+   ========================================================================== */
+
+.composer-toolbar {
+    display: grid;
+    grid-template-columns: 4fr 1fr;
+    align-items: center;
+    height: 28px;
+    box-sizing: border-box;
+    flex: 1 1 0%;
+    width: 100%;
+    padding: 0 8px 8px;
+    margin-top: calc(1px + 0.5rem);
+
+    .toolbar-left {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        height: 20px;
+        margin-right: 6px;
+    }
+
+    .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        justify-content: flex-end;
+    }
+}
+
+/* ==========================================================================
+   UNIFIED DROPDOWNS - Cursor-style pill triggers
+   ========================================================================== */
+
+.composer-unified-dropdown {
+    display: flex;
+    gap: 2px;
+    font-size: 12px;
+    align-items: center;
+    line-height: 1.4;
+    min-width: 0;
+    max-width: 100%;
+    padding: 2px 4px 2px 8px;
+    border-radius: 24px;
+    flex-shrink: 0;
+    cursor: pointer;
+    user-select: none;
+    border: none;
+    background: transparent;
+    color: var(--vscode-foreground);
+    transition: background 100ms ease;
+
+    &:hover:not(.is-disabled) {
+        background: var(--vc-color-hover-bg);
+    }
+
+    .dropdown-content {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    .dropdown-icon {
+        font-size: 16px;
+        flex-shrink: 0;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.5;
+    }
+
+    .dropdown-label {
+        opacity: 0.8;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+        font-weight: 400;
+        height: 16px;
+        display: flex;
+        align-items: center;
+    }
+
+    .dropdown-chevron {
+        font-size: 14px;
+        flex-shrink: 0;
+        opacity: 0.5;
+        display: flex;
+        align-items: center;
+
+        svg {
+            width: 10px;
+            height: 10px;
+            fill: currentColor;
+        }
+    }
+
+    &.is-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+}
+
+/* Model selector trigger - Cursor style (transparent, no border) */
+.composer-unified-dropdown-model {
+    display: flex;
+    gap: 2px;
+    font-size: 12px;
+    align-items: center;
+    line-height: 12px;
+    min-width: 0;
+    max-width: 100%;
+    padding: 2px 6px;
+    border-radius: 23px;
+    border: none;
+    background: transparent;
+    flex-shrink: 1;
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+    color: var(--vscode-input-foreground);
+    transition: background 100ms ease;
+
+    &:hover:not(.is-disabled) {
+        background: var(--vc-color-hover-bg);
+    }
+
+    .model-label {
+        min-width: 0;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+        white-space: nowrap;
+        line-height: 12px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        overflow: hidden;
+        height: 16px;
+        flex-shrink: 1;
+        flex-grow: 1;
+
+        span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: normal;
+            max-width: 100%;
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+    }
+
+    .model-chevron {
+        font-size: 14px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+
+        svg {
+            width: 10px;
+            height: 10px;
+            fill: currentColor;
+        }
+    }
+
+    &.is-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+}
+
+/* ==========================================================================
+   DROPDOWN OVERLAY
+   ========================================================================== */
+
+.dropdown-select-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: var(--vc-z-index-dropdown);
+}
+
+/* ==========================================================================
+   POPOVER CONTAINER (SHARED)
+   ========================================================================== */
+
+.popover-container {
+    padding: var(--vc-space-1);
+    background: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-radius: 6px;
+    box-shadow: var(--vc-box-shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--vc-color-text-primary);
+    position: absolute;
+    bottom: calc(100% + var(--vc-space-2));
+    left: 0;
+    z-index: var(--vc-z-index-popover);
+    animation: fadeIn var(--vc-transition-mid) var(--vc-motion-ease-out);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(var(--vc-space-1));
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================================================
+   AGENT SELECTOR POPOVER
+   ========================================================================== */
+
+.agent-selector-popover {
+    @extend .popover-container;
+    width: 220px;
+
+    .agent-list-item {
+        display: flex;
+        align-items: center;
+        gap: var(--vc-space-2);
+        padding: var(--vc-space-2);
+        cursor: pointer;
+        border-radius: var(--vc-radius-sm);
+        font-size: var(--vc-font-size-sm);
+        transition: background var(--vc-transition-mid);
+
+        &:hover:not(.is-disabled) {
+            background: var(--vc-color-hover-bg);
+        }
+
+        &.selected {
+            background: var(--vc-color-selected-bg);
+            color: var(--vc-color-selected-fg);
+        }
+
+        .agent-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: var(--vc-space-2);
+            opacity: 0.9;
+        }
+
+        .agent-label {
+            flex: 1;
+            font-weight: var(--vc-font-weight-medium);
+        }
+
+        .agent-shortcut {
+            font-size: var(--vc-font-size-xs);
+            opacity: 0.6;
+            background: var(--vscode-keybindingLabel-background);
+            border: 1px solid var(--vscode-keybindingLabel-border);
+            color: var(--vscode-keybindingLabel-foreground);
+            padding: var(--vc-space-1) calc(var(--vc-space-1));
+            border-radius: var(--vc-radius-xs);
+        }
+    }
+}
+
+/* ==========================================================================
+   TOKEN USAGE INDICATOR
+   ========================================================================== */
+
+.token-usage-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding-top: 1px;
+    margin-left: 1px;
+
+    .token-ring {
+        position: relative;
+        width: 15px;
+        height: 15px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        svg {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+        }
+    }
+
+    .token-ring-background {
+        stroke: var(--vc-color-border);
+        fill: none;
+    }
+
+    .token-ring-progress {
+        stroke: var(--vc-color-primary);
+        fill: none;
+        stroke-linecap: round;
+        transform-origin: center;
+    }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .attachment-chip,
+    .composer-unified-dropdown,
+    .composer-unified-dropdown-model,
+    .agent-list-item,
+    .popover-container {
+        transition: none;
+    }
+}
+
+@media (prefers-contrast: high) {
+    .composer-unified-dropdown {
+        border: 1px solid currentColor;
+    }
+
+    .attachment-chip {
+        border: 2px solid currentColor;
+    }
+}
