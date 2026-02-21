@@ -246,4 +246,10 @@ export default {
     TimeoutTerminated: '超时终止',
     MaxTurnsReached: '已达最大对话轮数',
   },
+  ModeSelector: {
+    AgentDesc: '完全自主代理',
+    PlanDesc: '先规划再执行',
+    AutoEditDesc: '自动批准文件编辑',
+    YoloDesc: '跳过所有确认',
+  },
 };

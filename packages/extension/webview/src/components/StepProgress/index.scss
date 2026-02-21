@@ -1,4 +1,4 @@
-/* Step Progress - Cursor-like Minimalist Style */
+/* Step Progress - Enhanced Card Style */
 
 @use './TerminalOutput.scss';
 @use './DiffViewer.scss';
@@ -7,8 +7,11 @@
 @use './ApprovalUI.scss';
 
 .step-progress-list {
-    margin: 0;
+    margin: 4px 0;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 /* Header - Hidden by default */
@@ -16,19 +19,34 @@
     display: none;
 }
 
-/* Step Item Container */
+/* Step Item Container - card-like with left accent border */
 .step-item {
     padding: 0;
     position: relative;
-    margin-bottom: 2px;
+    border-radius: var(--vc-radius-md);
+    background: color-mix(in srgb, var(--vscode-editor-background) 60%, transparent);
+    border: 1px solid color-mix(in srgb, var(--vc-color-border) 40%, transparent);
+    overflow: hidden;
+
+    &.running {
+        border-left: 2px solid var(--vscode-terminal-ansiBlue);
+    }
+
+    &.completed {
+        border-left: 2px solid color-mix(in srgb, var(--vscode-terminal-ansiGreen) 50%, transparent);
+    }
+
+    &.failed {
+        border-left: 2px solid var(--vscode-terminal-ansiRed);
+    }
 }
 
-/* Step Header - Cursor-style minimal summary "Read file.py" */
+/* Step Header - more prominent summary */
 .step-header {
     display: flex;
     align-items: center;
-    gap: var(--vc-space-1);
-    padding: var(--vc-space-1) var(--vc-space-1);
+    gap: var(--vc-space-2);
+    padding: 6px 10px;
     cursor: pointer;
     font-size: var(--vc-font-size-md);
     color: var(--vc-color-text-secondary);
@@ -87,8 +105,8 @@
     overflow: hidden;
     text-overflow: ellipsis;
     font-family: var(--vc-font-family-base);
-    font-weight: var(--vc-font-weight-regular);
-    color: var(--vc-color-text-secondary);
+    font-weight: var(--vc-font-weight-medium);
+    color: var(--vc-color-text-primary);
 
     /* File names highlighted */
     .step-target {
@@ -130,14 +148,16 @@
 
 /* Step Entries (Inner details) */
 .step-entries {
-    padding-left: 20px;
-    padding-top: 4px;
-    padding-bottom: 4px;
+    padding-left: 16px;
+    padding-top: 2px;
+    padding-bottom: 6px;
+    border-top: 1px solid color-mix(in srgb, var(--vc-color-border) 30%, transparent);
 }
 
 .step-item.single-entry {
     .step-entries {
         padding-left: 0;
+        border-top: none;
     }
 }
 
@@ -149,8 +169,8 @@
 .entry-summary {
     display: flex;
     align-items: center;
-    gap: var(--vc-space-1);
-    padding: var(--vc-space-1) var(--vc-space-1);
+    gap: var(--vc-space-2);
+    padding: 4px 8px;
     cursor: pointer;
     color: var(--vc-color-text-secondary);
     border-radius: var(--vc-radius-sm);
@@ -209,8 +229,8 @@
 
 /* Entry Details */
 .entry-details {
-    margin-top: 6px;
-    padding: 0;
+    margin-top: 4px;
+    padding: 4px 8px 8px;
     background: transparent;
     border: none;
     overflow: visible;
@@ -219,8 +239,8 @@
 .step-entry.is-terminal,
 .step-entry.is-file-edit {
     .entry-details {
-        margin-top: 6px;
-        padding: 0;
+        margin-top: 4px;
+        padding: 0 4px 4px;
         border: none;
         background: transparent;
     }
@@ -299,7 +319,7 @@
 
 /* Status Colors */
 .step-item.failed .step-title { color: var(--vc-color-error-text); }
-.step-item.running .step-title { color: var(--vc-color-text-primary); }
+.step-item.running .step-title { color: var(--vc-color-text-primary); font-weight: var(--vc-font-weight-medium); }
 
 /* Hide step number completely */
 .step-number { display: none; }

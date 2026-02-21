@@ -6,6 +6,8 @@
 
 import { useState, useMemo } from 'react';
 import { useI18n } from '../../i18n/I18nProvider';
+import { safeStringify } from '../../utils/formatUtils';
+import { copyToClipboard } from '../../utils/clipboard';
 import {
     McpIcon,
     CheckIcon,
@@ -84,28 +86,6 @@ function generateSummary(value: unknown, maxLength: number = 100): string {
 	    }
     
     return String(value);
-}
-
-/**
- * Safe JSON stringify
- */
-function safeStringify(value: unknown): string {
-    if (value === undefined) return '';
-    if (typeof value === 'string') return value;
-    try {
-        return JSON.stringify(value, null, 2);
-    } catch {
-        return String(value);
-    }
-}
-
-/**
- * Copy to clipboard
- */
-function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text).catch(err => {
-        console.error('Failed to copy:', err);
-    });
 }
 
 export function McpToolDisplay({

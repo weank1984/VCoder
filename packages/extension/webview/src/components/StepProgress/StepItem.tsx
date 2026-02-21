@@ -8,25 +8,15 @@ import type { Step, StepEntry as StepEntryType } from '../../utils/stepAggregato
 import type { ToolCall } from '../../types';
 import { StepEntry } from './StepEntry';
 import { useI18n } from '../../i18n/I18nProvider';
-import { 
-    CheckIcon, 
-    LoadingIcon, 
+import {
+    CheckIcon,
+    LoadingIcon,
     ErrorIcon,
     ExpandIcon,
     CollapseIcon,
 } from '../Icon';
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null;
-
-const asRecord = (value: unknown): Record<string, unknown> | undefined =>
-    isRecord(value) ? value : undefined;
-
-const asString = (value: unknown): string | undefined =>
-    typeof value === 'string' ? value : undefined;
-
-const asNumber = (value: unknown): number | undefined =>
-    typeof value === 'number' ? value : undefined;
+import { asRecord, asString, asNumber } from '../../utils/typeGuards';
+import { isTerminalToolName, isFileEditToolName } from '../../utils/toolClassifiers';
 
 function truncateText(text: string, max = 80): string {
     const trimmed = text.trim();
@@ -38,35 +28,6 @@ function firstMeaningfulLine(text: string): string | undefined {
     const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
     if (lines.length === 0) return undefined;
     return lines[0];
-}
-
-function isTerminalToolName(name: string) {
-    const lower = name.toLowerCase();
-    return (
-        lower === 'bash' ||
-        lower === 'bashoutput' ||
-        lower === 'bash_output' ||
-        lower === 'run_command' ||
-        lower === 'mcp__acp__bashoutput' ||
-        lower.includes('terminal')
-    );
-}
-
-function isFileEditToolName(name: string) {
-    const lower = name.toLowerCase();
-    return (
-        lower === 'write' ||
-        lower === 'edit' ||
-        lower === 'strreplace' ||
-        lower === 'multiedit' ||
-        lower === 'write_to_file' ||
-        lower === 'replace_file_content' ||
-        lower === 'multi_replace_file_content' ||
-        lower === 'apply_patch' ||
-        lower === 'str_replace' ||
-        lower === 'mcp__acp__write' ||
-        lower === 'mcp__acp__edit'
-    );
 }
 
 function countDiffHunks(diff: string): { added: number; removed: number } {

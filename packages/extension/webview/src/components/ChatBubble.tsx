@@ -13,6 +13,7 @@ import { partitionToolCalls } from '../utils/toolCallPartitioner';
 import { CopyIcon, CheckIcon } from './Icon';
 import { useI18n } from '../i18n/I18nProvider';
 import { useToast } from '../utils/Toast';
+import { copyToClipboardAsync } from '../utils/clipboard';
 import './ChatBubble.scss';
 import './ComposerSurface.scss';
 
@@ -177,7 +178,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
 
         setIsCopying(true);
         try {
-            await navigator.clipboard.writeText(message.content);
+            await copyToClipboardAsync(message.content);
             setCopied(true);
             showSuccess(t('Agent.MessageCopied'));
             setTimeout(() => setCopied(false), 2000);
@@ -185,28 +186,6 @@ export function ChatBubble({ message }: ChatBubbleProps) {
             const errorMessage = err instanceof Error ? err.message : String(err);
             console.error('Failed to copy message:', err);
             showError(t('Agent.CopyFailed', { error: errorMessage }));
-
-            // Fallback: try to use the legacy execCommand API
-            try {
-                const textArea = document.createElement('textarea');
-                textArea.value = message.content;
-                textArea.style.position = 'fixed';
-                textArea.style.left = '-9999px';
-                document.body.appendChild(textArea);
-                textArea.select();
-                const success = document.execCommand('copy');
-                document.body.removeChild(textArea);
-
-                if (success) {
-                    setCopied(true);
-                    showSuccess(t('Agent.MessageCopied'));
-                    setTimeout(() => setCopied(false), 2000);
-                } else {
-                    showError(t('Agent.CopyFailedFallback'));
-                }
-            } catch (fallbackErr) {
-                showError(t('Agent.CopyFailedFallback'));
-            }
         } finally {
             setIsCopying(false);
         }

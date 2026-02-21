@@ -124,29 +124,12 @@ export function PermissionDialog({ request, onClose }: PermissionDialogProps) {
 
     if (!request) return null;
 
-    const getRiskIcon = () => {
-        switch (request.metadata?.riskLevel) {
-            case 'high':
-                return '🔴';
-            case 'medium':
-                return '🟡';
-            case 'low':
-            default:
-                return '🟢';
-        }
+    const RISK_DISPLAY: Record<string, { icon: string; text: string }> = {
+        high: { icon: '🔴', text: 'High Risk' },
+        medium: { icon: '🟡', text: 'Medium Risk' },
+        low: { icon: '🟢', text: 'Low Risk' },
     };
-
-    const getRiskText = () => {
-        switch (request.metadata?.riskLevel) {
-            case 'high':
-                return 'High Risk';
-            case 'medium':
-                return 'Medium Risk';
-            case 'low':
-            default:
-                return 'Low Risk';
-        }
-    };
+    const riskInfo = RISK_DISPLAY[request.metadata?.riskLevel ?? 'low'] ?? RISK_DISPLAY.low;
 
     const formatToolInput = (input: Record<string, unknown>) => {
         try {
@@ -161,7 +144,7 @@ export function PermissionDialog({ request, onClose }: PermissionDialogProps) {
             <div className="permission-dialog" onClick={(e) => e.stopPropagation()}>
                 <div className="permission-dialog__header">
                     <div className="permission-dialog__title">
-                        <span className="permission-dialog__icon">{getRiskIcon()}</span>
+                        <span className="permission-dialog__icon">{riskInfo.icon}</span>
                         <span>Permission Required</span>
                     </div>
                     <button className="permission-dialog__close" onClick={handleDeny}>
@@ -175,7 +158,7 @@ export function PermissionDialog({ request, onClose }: PermissionDialogProps) {
                             Risk Level:
                         </span>
                         <span className="permission-dialog__risk-value">
-                            {getRiskText()}
+                            {riskInfo.text}
                         </span>
                     </div>
 

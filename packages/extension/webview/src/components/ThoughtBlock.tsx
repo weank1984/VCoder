@@ -44,12 +44,13 @@ export function ThoughtBlock({ content, defaultExpanded = false, isComplete = tr
 
     const displayContent = content || (isThinking ? `${t('Agent.Thinking')}...` : '');
 
-    // Format the label: "Thought for Ns" when complete, "Thinking..." when in progress
-    const label = isThinking
-        ? t('Agent.ThinkingFor')
-        : duration !== null
-            ? t('Agent.ThoughtFor', [String(duration)])
-            : t('Agent.Thought');
+    // Format the label: "Thinking..." when in progress, "Thought for Ns" when complete
+    function getThoughtLabel(): string {
+        if (isThinking) return t('Agent.ThinkingFor');
+        if (duration !== null) return t('Agent.ThoughtFor', [String(duration)]);
+        return t('Agent.Thought');
+    }
+    const label = getThoughtLabel();
 
     return (
         <div className={`thought-block ${isExpanded ? 'is-expanded' : ''} ${isThinking ? 'is-thinking' : ''}`}>

@@ -15,7 +15,6 @@ import { useStore } from '../store/useStore';
 import { PermissionRulesPanel } from './PermissionRulesPanel';
 import { ComposerToolbar } from './ComposerToolbar';
 import { useI18n } from '../i18n/I18nProvider';
-import { postMessage } from '../utils/vscode';
 import './StickyUserPrompt.scss';
 import './ComposerSurface.scss';
 import './InputArea.scss';
@@ -45,18 +44,12 @@ export interface StickyUserPromptProps {
 
 export function StickyUserPrompt({ message, disabled, onApplyToComposer, onHeightChange }: StickyUserPromptProps) {
     const { t } = useI18n();
-    const { model, setModel, agents, currentAgentId } = useStore();
+    const { model, setModel, permissionMode, setPermissionMode } = useStore();
     const rootRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [expanded, setExpanded] = useState(false);
     const [draft, setDraft] = useState('');
     const [showPermissionRules, setShowPermissionRules] = useState(false);
-
-    const currentAgent = agents.find(a => a.profile.id === currentAgentId);
-
-    const handleAgentSelect = (agentId: string) => {
-        postMessage({ type: 'selectAgent', agentId });
-    };
 
     const hasMessage = Boolean(message && message.role === 'user' && message.content.trim().length > 0);
 
@@ -149,20 +142,14 @@ export function StickyUserPrompt({ message, disabled, onApplyToComposer, onHeigh
                                 }}
                             />
                             <ComposerToolbar
-                                showAgentSelector
+                                showModeSelector
                                 showModelSelector
-                                agents={agents}
-                                currentAgentId={currentAgentId}
-                                onAgentSelect={handleAgentSelect}
-                                currentAgentName={currentAgent?.profile.name || 'Agent'}
+                                currentMode={permissionMode}
+                                onSelectMode={setPermissionMode}
                                 selectedModel={model}
                                 onSelectModel={setModel}
-                                showMentionButton
-                                showWebButton
                                 showImageButton
-                                showPermissionButton
                                 primaryAction="apply"
-                                onPermissionClick={() => setShowPermissionRules(true)}
                                 onApply={() => {
                                     if (!disabled) onApplyToComposer(draft);
                                     setExpanded(false);

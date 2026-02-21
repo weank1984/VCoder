@@ -20,6 +20,23 @@
    MESSAGES PANEL
    ========================================================================== */
 
+/* ==========================================================================
+   STICKY TODO/TASK MANAGER
+   ========================================================================== */
+
+.sticky-todo-task-manager {
+    flex-shrink: 0;
+    z-index: 85;
+    border-bottom: 1px solid var(--vc-color-border);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+
+    .vc-todo-task-manager {
+        border: none;
+        border-radius: 0;
+        margin: 0;
+    }
+}
+
 .messages-panel {
     flex: 1;
     min-height: 0;

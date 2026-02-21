@@ -47,15 +47,15 @@
     background-color: transparent;
     position: relative;
 
-    /* Ensure content blocks stack properly */
+    /* Ensure content blocks stack properly with better spacing */
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
 }
 
 .vc-bubble--tool-only .vc-ai-message-container {
     padding: 0;
-    gap: 2px;
+    gap: 4px;
 }
 
 .vc-streaming-indicator-row {

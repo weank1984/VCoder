@@ -263,4 +263,10 @@ export default {
     TimeoutTerminated: 'Terminated due to timeout',
     MaxTurnsReached: 'Maximum conversation turns reached',
   },
+  ModeSelector: {
+    AgentDesc: 'Full autonomous agent',
+    PlanDesc: 'Plan before executing',
+    AutoEditDesc: 'Auto-approve file edits',
+    YoloDesc: 'Skip all confirmations',
+  },
 };

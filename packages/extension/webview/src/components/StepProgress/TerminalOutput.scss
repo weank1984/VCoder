@@ -6,9 +6,10 @@
 .terminal-output {
     margin: 4px 0;
     border-radius: var(--vc-radius-md);
-    border: 1px solid var(--vc-color-border);
+    border: 1px solid color-mix(in srgb, var(--vc-color-border) 60%, transparent);
     background: var(--vscode-editor-background);
     overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 // Terminal Title Bar - compact "$ command" style

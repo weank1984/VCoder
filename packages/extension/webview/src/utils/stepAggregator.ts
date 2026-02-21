@@ -5,6 +5,7 @@
 
 import type { ToolCall } from '../types';
 import { getActionInfo, extractTargetInfo, isTaskBoundary, type StepEntryType, type TargetInfo } from './actionMapper';
+import { isTerminalToolName, isFileEditToolName } from './toolClassifiers';
 
 /** Step status */
 export type StepStatus = 'running' | 'completed' | 'failed';
@@ -36,37 +37,34 @@ export interface Step {
     isSingleEntry: boolean;
 }
 
-/**
- * Map tool call status to entry status
- */
+const STATUS_MAP: Record<string, EntryStatus> = {
+    completed: 'success',
+    failed: 'error',
+    running: 'running',
+    pending: 'pending',
+};
+
 function mapStatus(tcStatus: ToolCall['status']): EntryStatus {
-    switch (tcStatus) {
-        case 'completed': return 'success';
-        case 'failed': return 'error';
-        case 'running': return 'running';
-        case 'pending': return 'pending';
-        default: return 'pending';
-    }
+    return STATUS_MAP[tcStatus] ?? 'pending';
 }
 
-/**
- * Derive step status from entries
- */
 function deriveStepStatus(entries: StepEntry[]): StepStatus {
     if (entries.some(e => e.status === 'error')) return 'failed';
     if (entries.some(e => e.status === 'pending' || e.status === 'running')) return 'running';
     return 'completed';
 }
 
-/**
- * Generate step title from task boundary or entries
- */
+function entryStatusToStepStatus(status: EntryStatus): StepStatus {
+    if (status === 'error') return 'failed';
+    if (status === 'success') return 'completed';
+    return 'running';
+}
+
 function generateStepTitle(
     taskBoundary: ToolCall | undefined,
     entries: StepEntry[],
     stepIndex: number
 ): string {
-    // If we have a task boundary, use its TaskName or TaskStatus
     if (taskBoundary?.input && typeof taskBoundary.input === 'object') {
         const input = taskBoundary.input as Record<string, unknown>;
         const taskName = input.TaskName as string | undefined;
@@ -74,58 +72,50 @@ function generateStepTitle(
         if (taskName && taskName !== '%SAME%') return taskName;
         if (taskStatus && taskStatus !== '%SAME%') return taskStatus;
     }
-    
-    // Fallback: generate from first entry action
+
     if (entries.length > 0) {
-        const firstEntry = entries[0];
-        // Use action + target as title
-        return `${firstEntry.target.name}`;
+        return entries[0].target.name;
     }
-    
+
     return `Step ${stepIndex}`;
 }
 
-/**
- * Check if a tool should always be in its own step (not grouped)
- */
+const INDEPENDENT_TOOLS = new Set(['TodoWrite', 'Task']);
+
 function shouldBeIndependentStep(toolName: string): boolean {
-    const lower = toolName.toLowerCase();
-    // Terminal/Bash commands should be independent
-    if (lower === 'bash' || lower === 'bashoutput' || lower === 'run_command' || lower.includes('terminal')) {
-        return true;
-    }
-    // File editing should be independent
-    if (lower === 'write' || lower === 'edit' || lower === 'strreplace' || lower === 'multiedit') {
-        return true;
-    }
-    // Task management should be independent
-    if (lower === 'todowrite' || lower === 'task') {
-        return true;
-    }
-    return false;
+    return isTerminalToolName(toolName) || isFileEditToolName(toolName) || INDEPENDENT_TOOLS.has(toolName);
 }
 
-/**
- * Check if two tool calls can be grouped together
- */
 function canGroupTogether(entry1: StepEntry, entry2: StepEntry): boolean {
-    // Must be same type (file, search, etc.)
     if (entry1.type !== entry2.type) return false;
-    
-    // Must have same action (both Read, both Grep, etc.)
     if (entry1.actionKey !== entry2.actionKey) return false;
-    
-    // Don't group if either should be independent
     if (shouldBeIndependentStep(entry1.toolCall.name) || shouldBeIndependentStep(entry2.toolCall.name)) {
         return false;
     }
-    
     return true;
+}
+
+function finalizeStep(step: Step, taskBoundary: ToolCall | undefined): void {
+    step.title = generateStepTitle(taskBoundary, step.entries, step.index);
+    step.status = deriveStepStatus(step.entries);
+    step.isSingleEntry = step.entries.length === 1;
+}
+
+function createEmptyStep(stepIndex: number): Step {
+    return {
+        id: `step-${stepIndex}`,
+        index: stepIndex,
+        title: '',
+        status: 'running',
+        entries: [],
+        startTime: Date.now(),
+        isSingleEntry: false,
+    };
 }
 
 /**
  * Aggregate tool calls into steps with smart grouping
- * 
+ *
  * Rules:
  * 1. task_boundary creates a new step
  * 2. Without task_boundary, consecutive similar operations are grouped
@@ -133,39 +123,26 @@ function canGroupTogether(entry1: StepEntry, entry2: StepEntry): boolean {
  */
 export function aggregateToSteps(toolCalls: ToolCall[]): Step[] {
     if (toolCalls.length === 0) return [];
-    
+
     const steps: Step[] = [];
     let currentStep: Step | null = null;
     let currentTaskBoundary: ToolCall | undefined;
     let stepIndex = 1;
-    
+
     for (const tc of toolCalls) {
         if (isTaskBoundary(tc.name)) {
-            // Finalize current step if exists
             if (currentStep && currentStep.entries.length > 0) {
-                currentStep.title = generateStepTitle(currentTaskBoundary, currentStep.entries, currentStep.index);
-                currentStep.status = deriveStepStatus(currentStep.entries);
-                currentStep.isSingleEntry = currentStep.entries.length === 1;
+                finalizeStep(currentStep, currentTaskBoundary);
                 steps.push(currentStep);
                 stepIndex++;
             }
-            
-            // Start a new step with this task boundary
+
             currentTaskBoundary = tc;
-            currentStep = {
-                id: `step-${stepIndex}`,
-                index: stepIndex,
-                title: '',
-                status: 'running',
-                entries: [],
-                startTime: Date.now(),
-                isSingleEntry: false,
-            };
+            currentStep = createEmptyStep(stepIndex);
         } else {
-            // Non-task-boundary tool call
             const actionInfo = getActionInfo(tc.name);
             const target = extractTargetInfo(tc);
-            
+
             const entry: StepEntry = {
                 id: tc.id,
                 type: actionInfo.type,
@@ -174,30 +151,25 @@ export function aggregateToSteps(toolCalls: ToolCall[]): Step[] {
                 status: mapStatus(tc.status),
                 toolCall: tc,
             };
-            
+
             if (currentStep) {
-                // Inside a task boundary - add to current step
                 currentStep.entries.push(entry);
             } else {
-                // No task boundary - try to group with previous step
                 const lastStep = steps[steps.length - 1];
-                const canGroup = lastStep && 
-                                 lastStep.entries.length > 0 && 
+                const canGroup = lastStep &&
+                                 lastStep.entries.length > 0 &&
                                  canGroupTogether(lastStep.entries[0], entry);
-                
+
                 if (canGroup) {
-                    // Add to existing step
                     lastStep.entries.push(entry);
                     lastStep.status = deriveStepStatus(lastStep.entries);
                     lastStep.isSingleEntry = false;
                 } else {
-                    // Create new step
                     const newStep: Step = {
                         id: `step-${stepIndex}`,
                         index: stepIndex,
                         title: target.name,
-                        status: mapStatus(tc.status) === 'error' ? 'failed' : 
-                                mapStatus(tc.status) === 'success' ? 'completed' : 'running',
+                        status: entryStatusToStepStatus(entry.status),
                         entries: [entry],
                         startTime: Date.now(),
                         isSingleEntry: true,
@@ -208,15 +180,12 @@ export function aggregateToSteps(toolCalls: ToolCall[]): Step[] {
             }
         }
     }
-    
-    // Finalize the last step if inside a task boundary
+
     if (currentStep && currentStep.entries.length > 0) {
-        currentStep.title = generateStepTitle(currentTaskBoundary, currentStep.entries, currentStep.index);
-        currentStep.status = deriveStepStatus(currentStep.entries);
-        currentStep.isSingleEntry = currentStep.entries.length === 1;
+        finalizeStep(currentStep, currentTaskBoundary);
         steps.push(currentStep);
     }
-    
+
     return steps;
 }
 
@@ -233,7 +202,7 @@ export function getProgressStats(steps: Step[]): {
     let completed = 0;
     let running = 0;
     let failed = 0;
-    
+
     for (const step of steps) {
         for (const entry of step.entries) {
             total++;
@@ -245,6 +214,6 @@ export function getProgressStats(steps: Step[]): {
             }
         }
     }
-    
+
     return { total, completed, running, failed };
 }

@@ -5,34 +5,14 @@
 
 import { useMemo } from 'react';
 import { formatPath } from '../../utils/pathUtils';
+import { safeStringify } from '../../utils/formatUtils';
+import { copyToClipboard } from '../../utils/clipboard';
 import { TerminalIcon, SearchIcon, CopyIcon } from '../Icon';
 import { FilePathWithDetails } from '../FilePath';
 
 interface SmartToolInputProps {
     input: unknown;
     toolName: string;
-}
-
-/**
- * Safe stringify for JSON display
- */
-function safeStringify(value: unknown, pretty = true): string {
-    if (value === undefined) return '';
-    if (typeof value === 'string') return value;
-    try {
-        return JSON.stringify(value, null, pretty ? 2 : 0);
-    } catch {
-        return String(value);
-    }
-}
-
-/**
- * Copy to clipboard helper
- */
-function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text).catch(err => {
-        console.error('Failed to copy:', err);
-    });
 }
 
 /**
@@ -110,77 +90,59 @@ function WriteToolInput({ input }: { input: Record<string, unknown> }) {
     );
 }
 
+type InputViewType = 'read' | 'command' | 'search' | 'write' | 'plain' | 'json';
+
+function resolveViewType(input: unknown, toolName: string): InputViewType {
+    if (!input || typeof input !== 'object') return 'plain';
+
+    const obj = input as Record<string, unknown>;
+
+    if ((toolName === 'Read' || toolName === 'read_file') && (obj.file_path || obj.target_file)) {
+        return 'read';
+    }
+    if ((toolName === 'Bash' || toolName === 'run_command' || toolName === 'run_terminal_cmd') && obj.command) {
+        return 'command';
+    }
+    if ((toolName === 'Grep' || toolName === 'codebase_search' || toolName === 'grep_search') && (obj.pattern || obj.query)) {
+        return 'search';
+    }
+    if ((toolName === 'Write' || toolName === 'write' || toolName === 'search_replace') && (obj.file_path || obj.target_file)) {
+        return 'write';
+    }
+
+    return 'json';
+}
+
 /**
  * Main Smart Tool Input Component
  */
 export function SmartToolInput({ input, toolName }: SmartToolInputProps) {
-    // Determine if we should use specialized rendering
-    const shouldUseSpecializedView = useMemo(() => {
-        if (!input || typeof input !== 'object') return false;
-        
-        const inputObj = input as Record<string, unknown>;
-        
-        // File read operations
-        if (toolName === 'Read' || toolName === 'read_file') {
-            return !!(inputObj.file_path || inputObj.target_file);
-        }
-        
-        // Command execution
-        if (toolName === 'Bash' || toolName === 'run_command' || toolName === 'run_terminal_cmd') {
-            return !!inputObj.command;
-        }
-        
-        // Search operations
-        if (toolName === 'Grep' || toolName === 'codebase_search' || toolName === 'grep_search') {
-            return !!(inputObj.pattern || inputObj.query);
-        }
-        
-        // File write/edit operations
-        if (toolName === 'Write' || toolName === 'write' || toolName === 'search_replace') {
-            return !!(inputObj.file_path || inputObj.target_file);
-        }
-        
-        return false;
-    }, [input, toolName]);
-    
-    // If not an object, show as plain text
-    if (!input || typeof input !== 'object') {
+    const viewType = useMemo(() => resolveViewType(input, toolName), [input, toolName]);
+
+    if (viewType === 'plain') {
         return (
             <div className="input-simple">
                 <pre>{safeStringify(input, false)}</pre>
             </div>
         );
     }
-    
+
     const inputObj = input as Record<string, unknown>;
-    
-    // Use specialized views
-    if (shouldUseSpecializedView) {
-        // File read
-        if (toolName === 'Read' || toolName === 'read_file') {
+
+    switch (viewType) {
+        case 'read':
             return <ReadToolInput input={inputObj} />;
-        }
-        
-        // Command execution
-        if (toolName === 'Bash' || toolName === 'run_command' || toolName === 'run_terminal_cmd') {
+        case 'command':
             return <CommandInput input={inputObj} />;
-        }
-        
-        // Search
-        if (toolName === 'Grep' || toolName === 'codebase_search' || toolName === 'grep_search') {
+        case 'search':
             return <SearchInput input={inputObj} />;
-        }
-        
-        // File write/edit
-        if (toolName === 'Write' || toolName === 'write' || toolName === 'search_replace') {
+        case 'write':
             return <WriteToolInput input={inputObj} />;
-        }
+        default:
+            return (
+                <div className="input-json">
+                    <pre>{safeStringify(input, true)}</pre>
+                </div>
+            );
     }
-    
-    // Fallback to JSON display
-    return (
-        <div className="input-json">
-            <pre>{safeStringify(input, true)}</pre>
-        </div>
-    );
 }

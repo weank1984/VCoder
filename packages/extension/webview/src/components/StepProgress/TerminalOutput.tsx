@@ -7,14 +7,13 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { StopIcon, CopyIcon, ExpandIcon, CollapseIcon } from '../Icon';
 import { useI18n } from '../../i18n/I18nProvider';
 import { useThrottledValue } from '../../hooks/useThrottledUpdate';
+import { copyToClipboard } from '../../utils/clipboard';
 
 interface TerminalOutputProps {
     /** Terminal output content */
     output: string;
     /** Terminal command */
     command?: string;
-    /** Working directory */
-    cwd?: string;
     /** Exit code (if completed) */
     exitCode?: number;
     /** Signal (if killed) */
@@ -38,19 +37,9 @@ function stripAnsi(text: string): string {
     return text.replace(/\x1b\[[0-9;]*m/g, '');
 }
 
-/**
- * Copy to clipboard helper
- */
-function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text).catch(err => {
-        console.error('Failed to copy:', err);
-    });
-}
-
 export function TerminalOutput({
     output,
     command,
-    cwd: _cwd,
     exitCode,
     signal,
     isRunning = false,

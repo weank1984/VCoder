@@ -57,8 +57,8 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
         currentSessionId,
         historySessions,
         exitHistoryMode,
-        agents,
-        currentAgentId,
+        permissionMode,
+        setPermissionMode,
         setModel,
         addMessage,
         setLoading,
@@ -266,12 +266,6 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
         }
     }, [input]);
 
-    const currentAgent = agents.find(a => a.profile.id === currentAgentId);
-    
-    const handleAgentSelect = (agentId: string) => {
-        postMessage({ type: 'selectAgent', agentId });
-    };
-    
     return (
         <div className="input-area">
             {/* Hidden file input for attachments */}
@@ -373,12 +367,10 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                     )}
 
                     <ComposerToolbar
-                        showAgentSelector
+                        showModeSelector
                         showModelSelector
-                        agents={agents}
-                        currentAgentId={currentAgentId}
-                        onAgentSelect={handleAgentSelect}
-                        currentAgentName={currentAgent?.profile.name || 'Agent'}
+                        currentMode={permissionMode}
+                        onSelectMode={setPermissionMode}
                         selectedModel={model}
                         onSelectModel={setModel}
                         showImageButton

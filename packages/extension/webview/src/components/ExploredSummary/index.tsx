@@ -9,6 +9,7 @@ import type { ToolCall } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
 import { postMessage } from '../../utils/vscode';
 import { CollapseIcon, ExpandIcon } from '../Icon';
+import { asRecord, asString } from '../../utils/typeGuards';
 import './index.scss';
 
 interface ExploredSummaryProps {
@@ -17,17 +18,11 @@ interface ExploredSummaryProps {
 }
 
 interface ExploredItem {
-    action: string;        // 'Read' | 'Listed' | 'Searched'
-    target: string;        // filename or pattern
-    fullPath?: string;     // full path for opening in editor
+    action: string;
+    target: string;
+    fullPath?: string;
     toolCall: ToolCall;
 }
-
-const asRecord = (v: unknown): Record<string, unknown> | undefined =>
-    typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : undefined;
-
-const asString = (v: unknown): string | undefined =>
-    typeof v === 'string' ? v : undefined;
 
 /**
  * Extract display info from a tool call

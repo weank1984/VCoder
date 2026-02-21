@@ -16,6 +16,8 @@ import { Welcome } from './components/Welcome';
 import { PermissionDialog, type PermissionRequest } from './components/PermissionDialog';
 import { MessageSkeleton } from './components/Skeleton';
 import { StickyUserPrompt } from './components/StickyUserPrompt';
+import { TodoTaskManager } from './components/TodoTaskManager';
+import type { EnhancedTodoItem, TaskItem } from './components/TodoTaskManager';
 import { useToast } from './utils/Toast';
 import { postMessage } from './utils/vscode';
 import { performanceMonitor } from './utils/messageQueue';
@@ -61,8 +63,8 @@ function App() {
   // Determine if virtual list should be enabled
   // Disable virtual list for history mode to avoid height estimation issues
   const useVirtual = viewMode === 'live' && messages.length > VIRTUAL_LIST_THRESHOLD;
-  const hideUserMessagesInList = true;
-  const enableStickyUserPrompt = true;
+  const hideUserMessagesInList = false;
+  const enableStickyUserPrompt = false;
 
   // Smart auto-scroll: only scroll when at bottom, show jump button when scrolled up
   const { containerRef, endRef, onScroll: smartScrollHandler, autoScroll, jumpToBottom } = useSmartScroll(messages, {
@@ -381,6 +383,75 @@ function App() {
     [enableStickyUserPrompt, stickyPromptHeight]
   );
 
+  // Extract TODOs from TodoWrite tool calls across all messages
+  const todoItems = useMemo(() => {
+    // Find the latest TodoWrite call across all messages
+    let latestTodoWrite: Record<string, unknown> | null = null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (!msg.toolCalls) continue;
+      for (let j = msg.toolCalls.length - 1; j >= 0; j--) {
+        const tc = msg.toolCalls[j];
+        if (tc.name === 'TodoWrite' && tc.input) {
+          latestTodoWrite = tc.input as Record<string, unknown>;
+          break;
+        }
+      }
+      if (latestTodoWrite) break;
+    }
+    if (!latestTodoWrite) return [];
+
+    const items = latestTodoWrite.tasks ?? latestTodoWrite.todos ?? latestTodoWrite.items;
+    if (!Array.isArray(items)) return [];
+
+    return items.map((task, index) => {
+      if (typeof task === 'string') {
+        return {
+          id: `todo-${index}`,
+          content: task,
+          status: 'pending' as const,
+          priority: 'medium' as const,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+      }
+      const t = task as Record<string, unknown>;
+      return {
+        id: String(t.id ?? `todo-${index}`),
+        content: String(t.content ?? t.title ?? t.description ?? ''),
+        status: (t.status as 'pending' | 'in_progress' | 'completed' | 'cancelled') ?? 'pending',
+        priority: (t.priority as 'high' | 'medium' | 'low') ?? 'medium',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+    }) as EnhancedTodoItem[];
+  }, [messages]);
+
+  // Extract TASKs from Task tool calls across all messages
+  const taskItems = useMemo(() => {
+    const items: TaskItem[] = [];
+    for (const msg of messages) {
+      if (!msg.toolCalls) continue;
+      for (const tc of msg.toolCalls) {
+        if (tc.name === 'Task') {
+          items.push({
+            id: tc.id,
+            description: String((tc.input as Record<string, unknown>)?.description ?? 'Subagent task'),
+            subagentType: (tc.input as Record<string, unknown>)?.subagent_type as string,
+            status: tc.status === 'completed' ? 'success' :
+                    tc.status === 'failed' ? 'error' :
+                    tc.status === 'running' ? 'running' : 'pending',
+            startTime: undefined,
+            endTime: undefined,
+          });
+        }
+      }
+    }
+    return items;
+  }, [messages]);
+
+  const hasTodoOrTask = todoItems.length > 0 || taskItems.length > 0;
+
   return (
     <div className="app">
       {tasks.length > 0 && (planMode || permissionMode === 'plan') && (
@@ -389,6 +460,18 @@ function App() {
 
       {subagentRuns.length > 0 && (planMode || permissionMode === 'plan') && (
           <TaskRunsBlock runs={subagentRuns} sticky={true} />
+      )}
+
+      {hasTodoOrTask && (
+        <div className="sticky-todo-task-manager">
+          <TodoTaskManager
+            todos={todoItems}
+            tasks={taskItems}
+            expandByDefault={false}
+            showFilters={true}
+            sortable={true}
+          />
+        </div>
       )}
 
       <div className="messages-panel">
