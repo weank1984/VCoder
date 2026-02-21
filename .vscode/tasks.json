@@ -2,13 +2,12 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "dev:extension",
+      "label": "dev:plugin",
       "type": "shell",
       "command": "pnpm",
       "args": [
-        "--filter",
-        "vcoder",
-        "dev"
+        "run",
+        "dev:plugin"
       ],
       "isBackground": true,
       "group": {
@@ -31,8 +30,8 @@
       "type": "shell",
       "command": "pnpm",
       "args": [
-        "--filter",
-        "@vcoder/server",
+        "-C",
+        "packages/server",
         "dev"
       ],
       "isBackground": true,
@@ -51,9 +50,10 @@
     {
       "label": "dev:webview",
       "type": "shell",
-      "command": "npm",
+      "command": "pnpm",
       "args": [
-        "run",
+        "-C",
+        "apps/vscode-extension/webview",
         "dev"
       ],
       "isBackground": true,
@@ -63,7 +63,7 @@
         "panel": "new"
       },
       "options": {
-        "cwd": "${workspaceFolder}/packages/extension/webview"
+        "cwd": "${workspaceFolder}"
       },
       "problemMatcher": [
         {
@@ -71,7 +71,7 @@
           "source": "vite",
           "fileLocation": [
             "relative",
-            "${workspaceFolder}/packages/extension/webview"
+            "${workspaceFolder}/apps/vscode-extension/webview"
           ],
           "pattern": {
             "regexp": "^(.*)\\.(\\d+),(\\d+):\\s+(.*)$",
@@ -91,9 +91,10 @@
     {
       "label": "build:webview",
       "type": "shell",
-      "command": "npm",
+      "command": "pnpm",
       "args": [
-        "run",
+        "-C",
+        "apps/vscode-extension/webview",
         "build"
       ],
       "group": "build",
@@ -102,15 +103,15 @@
         "panel": "shared"
       },
       "options": {
-        "cwd": "${workspaceFolder}/packages/extension/webview"
+        "cwd": "${workspaceFolder}"
       },
       "problemMatcher": []
     },
     {
-      "label": "prepare:extension",
+      "label": "prepare:plugin",
       "dependsOrder": "parallel",
       "dependsOn": [
-        "dev:extension",
+        "dev:plugin",
         "build:webview"
       ],
       "problemMatcher": []
@@ -119,20 +120,19 @@
       "label": "prepare:webview",
       "dependsOrder": "parallel",
       "dependsOn": [
-        "dev:extension",
+        "dev:plugin",
         "dev:webview",
         "build:webview"
       ],
       "problemMatcher": []
     },
     {
-      "label": "build:extension",
+      "label": "build:plugin",
       "type": "shell",
       "command": "pnpm",
       "args": [
-        "--filter",
-        "vcoder",
-        "build"
+        "run",
+        "build:plugin"
       ],
       "group": "build",
       "presentation": {
@@ -151,8 +151,8 @@
       "type": "shell",
       "command": "pnpm",
       "args": [
-        "--filter",
-        "@vcoder/server",
+        "-C",
+        "packages/server",
         "build"
       ],
       "group": "build",
@@ -166,12 +166,49 @@
       "problemMatcher": [
         "$tsc"
       ]
+    },
+    {
+      "label": "package:plugin",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "run",
+        "package:plugin"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "build:app",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "run",
+        "build:app"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     },
     {
       "label": "build:all",
       "type": "shell",
       "command": "pnpm",
       "args": [
+        "run",
         "build"
       ],
       "group": "build",
@@ -187,13 +224,12 @@
       ]
     },
     {
-      "label": "watch:extension",
+      "label": "watch:plugin",
       "type": "shell",
       "command": "pnpm",
       "args": [
-        "--filter",
-        "vcoder",
-        "dev"
+        "run",
+        "dev:plugin"
       ],
       "isBackground": true,
       "group": "build",
@@ -213,8 +249,8 @@
       "type": "shell",
       "command": "pnpm",
       "args": [
-        "--filter",
-        "@vcoder/server",
+        "-C",
+        "packages/server",
         "dev"
       ],
       "isBackground": true,

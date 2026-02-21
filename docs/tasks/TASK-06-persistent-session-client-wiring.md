@@ -18,7 +18,7 @@
 当前状态：
 - Server 端已实现 `session/promptPersistent`、`session/modeStatus`、`session/stopPersistent`
 - `PersistentSession` 类可维持长连接 CLI 进程
-- 但 Client 端（`packages/extension/src/acp/client.ts`）和 Webview 仍以 `session/prompt` 为主要发送路径
+- 但 Client 端（`apps/vscode-extension/src/acp/client.ts`）和 Webview 仍以 `session/prompt` 为主要发送路径
 - 用户无法在 UI 中选择持久模式
 
 ## 3. 具体工作内容
@@ -83,8 +83,8 @@
 
 ## 7. 关键文件
 
-- `packages/extension/src/acp/client.ts` — 新增持久会话方法
-- `packages/extension/src/providers/chatViewProvider.ts` — 发送路径路由
+- `apps/vscode-extension/src/acp/client.ts` — 新增持久会话方法
+- `apps/vscode-extension/src/providers/chatViewProvider.ts` — 发送路径路由
 - Webview React 组件 — 模式切换 UI
 - Webview Store — 会话模式状态
 - `packages/server/src/acp/server.ts` — 确认 promptPersistent 分发逻辑

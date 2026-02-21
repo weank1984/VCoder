@@ -101,6 +101,6 @@
 
 - `packages/shared/src/protocol.ts` — permissionRules 类型定义
 - `packages/server/src/acp/server.ts` — 新增方法处理
-- `packages/extension/src/acp/client.ts` — 注册请求处理器
-- `packages/extension/src/services/sessionStore.ts` — 规则 CRUD 实现
-- `packages/extension/src/services/permissionProvider.ts` — 规则匹配逻辑
+- `apps/vscode-extension/src/acp/client.ts` — 注册请求处理器
+- `apps/vscode-extension/src/services/sessionStore.ts` — 规则 CRUD 实现
+- `apps/vscode-extension/src/services/permissionProvider.ts` — 规则匹配逻辑

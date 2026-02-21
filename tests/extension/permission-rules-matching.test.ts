@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { PermissionProvider } from '../../packages/extension/src/services/permissionProvider.js';
+import { PermissionProvider } from '../../apps/vscode-extension/src/services/permissionProvider.js';
 import type { RequestPermissionParams, PermissionRule } from '../../packages/shared/src/protocol.js';
 
 // Mock SessionStore

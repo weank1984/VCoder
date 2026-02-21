@@ -87,4 +87,4 @@
 - `packages/server/src/claude/persistentSession.ts` — 恢复/清理/健康检查核心
 - `packages/server/src/claude/wrapper.ts` — 多会话管理
 - `packages/server/src/acp/server.ts` — session/delete 与资源释放
-- `packages/extension/src/extension.ts` — deactivate 清理
+- `apps/vscode-extension/src/extension.ts` — deactivate 清理

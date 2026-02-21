@@ -10,7 +10,7 @@ const serverManagerState = {
     startError: null as Error | null,
 };
 
-vi.mock('../../packages/extension/src/services/serverManager', () => ({
+vi.mock('../../apps/vscode-extension/src/services/serverManager', () => ({
     ServerManager: class {
         async start() {
             if (serverManagerState.startError) {
@@ -27,7 +27,7 @@ vi.mock('../../packages/extension/src/services/serverManager', () => ({
     },
 }));
 
-vi.mock('../../packages/extension/src/acp/client', () => ({
+vi.mock('../../apps/vscode-extension/src/acp/client', () => ({
     ACPClient: class {
         on() {}
         async initialize() {}
@@ -41,7 +41,7 @@ vi.mock('../../packages/extension/src/acp/client', () => ({
     },
 }));
 
-vi.mock('../../packages/extension/src/providers/chatViewProvider', () => ({
+vi.mock('../../apps/vscode-extension/src/providers/chatViewProvider', () => ({
     ChatViewProvider: class {
         constructor() {}
         postMessage() {}
@@ -51,7 +51,7 @@ vi.mock('../../packages/extension/src/providers/chatViewProvider', () => ({
     },
 }));
 
-vi.mock('../../packages/extension/src/services/capabilityOrchestrator', () => ({
+vi.mock('../../apps/vscode-extension/src/services/capabilityOrchestrator', () => ({
     createCapabilityOrchestrator: async () => ({
         shutdown: async () => {},
         getSessionStore: () => undefined,
@@ -61,7 +61,7 @@ vi.mock('../../packages/extension/src/services/capabilityOrchestrator', () => ({
     }),
 }));
 
-vi.mock('../../packages/extension/src/services/diffManager', () => ({
+vi.mock('../../apps/vscode-extension/src/services/diffManager', () => ({
     DiffManager: class {
         register() {
             return { dispose: () => {} };
@@ -69,11 +69,11 @@ vi.mock('../../packages/extension/src/services/diffManager', () => ({
     },
 }));
 
-vi.mock('../../packages/extension/src/providers/fileDecorationProvider', () => ({
+vi.mock('../../apps/vscode-extension/src/providers/fileDecorationProvider', () => ({
     VCoderFileDecorationProvider: class {},
 }));
 
-vi.mock('../../packages/extension/src/services/permissionProvider', () => ({
+vi.mock('../../apps/vscode-extension/src/services/permissionProvider', () => ({
     PermissionProvider: class {
         async handlePermissionRequest() {
             return { outcome: 'allow' };
@@ -81,7 +81,7 @@ vi.mock('../../packages/extension/src/services/permissionProvider', () => ({
     },
 }));
 
-vi.mock('../../packages/extension/src/services/agentRegistry', () => ({
+vi.mock('../../apps/vscode-extension/src/services/agentRegistry', () => ({
     AgentRegistry: class {
         async loadProfiles() {}
         getActiveStdio() {
@@ -102,7 +102,7 @@ const createContext = () => ({
     subscriptions: [],
 });
 
-const importExtension = async () => import('../../packages/extension/src/extension.js');
+const importExtension = async () => import('../../apps/vscode-extension/src/extension.js');
 const getVscode = async () => import('vscode');
 
 describe('Extension Core', () => {

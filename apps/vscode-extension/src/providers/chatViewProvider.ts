@@ -897,8 +897,8 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
   <h3>VCoder webview build output not found</h3>
   <p>Expected files:</p>
   <ul>
-    <li><code>packages/extension/webview/dist/index.js</code></li>
-    <li><code>packages/extension/webview/dist/index.css</code></li>
+    <li><code>apps/vscode-extension/webview/dist/index.js</code></li>
+    <li><code>apps/vscode-extension/webview/dist/index.css</code></li>
   </ul>
   <p>Rebuild the webview, then reload the Extension Host window.</p>
 </body>

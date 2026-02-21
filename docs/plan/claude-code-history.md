@@ -125,7 +125,7 @@ VCoder 当前的 ACP Session（`packages/shared/src/protocol.ts` 的 `Session`�
 - HistoryPanel 继续使用 `Session[]` 渲染列表；
 - 点击历史会话时：先清空当前消息，再调用 `history/load` 回放该会话的 `ChatMessage[]`。
 
-当前 Webview state 结构（`packages/extension/webview/src/store/useStore.ts`）为单一 `messages: ChatMessage[]`，若要“多会话快速切换”：
+当前 Webview state 结构（`apps/vscode-extension/webview/src/store/useStore.ts`）为单一 `messages: ChatMessage[]`，若要“多会话快速切换”：
 
 - 简单实现：每次切换历史会话就 `messages = []` 然后 load；
 - 完整实现：将 store 改为 `messagesBySessionId`，但改动面更大。
@@ -157,8 +157,8 @@ Claude Code 的 `~/.claude/projects` 下目录通常由“工作区路径”派�
 
 1) **确认扩展使用的是最新 server 产物**
 
-- VSIX/Production 会运行扩展内置的 `packages/extension/server/index.js`；如果只改了 `packages/server/src` 但没重新打包 server，UI 仍会是旧逻辑。
-- 修复方式：运行 `pnpm -C packages/extension package:server`，然后在 VSCode 执行 `VCoder: Restart Server` 或 `Developer: Reload Window`。
+- VSIX/Production 会运行扩展内置的 `apps/vscode-extension/server/index.js`；如果只改了 `packages/server/src` 但没重新打包 server，UI 仍会是旧逻辑。
+- 修复方式：运行 `pnpm -C apps/vscode-extension package:server`，然后在 VSCode 执行 `VCoder: Restart Server` 或 `Developer: Reload Window`。
 
 2) **不要把日志写到 stdout**
 

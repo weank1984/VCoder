@@ -13,7 +13,13 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "turbo run lint",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "build:plugin": "pnpm -C apps/vscode-extension build",
+    "dev:plugin": "pnpm -C apps/vscode-extension dev",
+    "package:plugin": "cd apps/vscode-extension && pnpm package:server && pnpm dlx @vscode/vsce package --no-dependencies --out vcoder.vsix",
+    "build:app": "pnpm -C packages/shared build && pnpm -C packages/server build && pnpm -C apps/vscode-extension/webview build && pnpm -C apps/desktop-shell build",
+    "dev:app": "pnpm -C apps/desktop-shell dev",
+    "start:app": "pnpm -C apps/desktop-shell start"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.17",

@@ -322,10 +322,10 @@ Claude Code CLI — 接收 control_response
 | `packages/server/src/claude/wrapper.ts` | **增强** | 在 `handleControlRequest` 中增加 PermissionRule 匹配（自动放行/拒绝），减少不必要弹窗 |
 | `packages/server/src/claude/wrapper.ts` | **增强** | `confirmTool` 的 deny 路径需要增加 reject-recovery 事件通知，告知 UI 工具已被拒绝 |
 | `packages/server/src/acp/server.ts` | **清理** | 标记 `handleBashConfirm`, `handleBashSkip`, `handlePlanConfirm` 为 deprecated |
-| `packages/extension/src/services/permissionProvider.ts` | **废弃** | Phase 1: 添加 @deprecated；Phase 2: 降级为 passthrough；Phase 3: 移除 |
-| `packages/extension/src/extension.ts` | **修改** | Phase 2: 移除 `session/requestPermission` handler 注册 |
-| `packages/extension/src/providers/chatViewProvider.ts` | **修改** | 移除 `confirmBash`, `skipBash`, `confirmPlan` 处理；保留 `confirmTool` |
-| `packages/extension/src/acp/client.ts` | **清理** | 标记 `confirmBash()`, `skipBash()`, `confirmPlan()` 为 deprecated |
+| `apps/vscode-extension/src/services/permissionProvider.ts` | **废弃** | Phase 1: 添加 @deprecated；Phase 2: 降级为 passthrough；Phase 3: 移除 |
+| `apps/vscode-extension/src/extension.ts` | **修改** | Phase 2: 移除 `session/requestPermission` handler 注册 |
+| `apps/vscode-extension/src/providers/chatViewProvider.ts` | **修改** | 移除 `confirmBash`, `skipBash`, `confirmPlan` 处理；保留 `confirmTool` |
+| `apps/vscode-extension/src/acp/client.ts` | **清理** | 标记 `confirmBash()`, `skipBash()`, `confirmPlan()` 为 deprecated |
 | `packages/shared/src/protocol.ts` | **修改** | Phase 3: 移除 `BashConfirmParams`, `BashSkipParams`, `PlanConfirmParams`；移除 legacy ACPMethods |
 
 ### 5.2 涉及的接口

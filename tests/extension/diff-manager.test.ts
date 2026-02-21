@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { DiffManager } from '../../packages/extension/src/services/diffManager.js';
-import { ACPClient } from '../../packages/extension/src/acp/client.js';
+import { DiffManager } from '../../apps/vscode-extension/src/services/diffManager.js';
+import { ACPClient } from '../../apps/vscode-extension/src/acp/client.js';
 import type { FileChangeUpdate } from '../../packages/shared/src/protocol.js';
 
 const { mockWorkspace, mockWindow, mockUri, MockEventEmitter } = vi.hoisted(() => ({

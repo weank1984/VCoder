@@ -74,8 +74,8 @@
 
 ## 6. 关键文件
 
-- `packages/extension/src/extension.ts` — 移除 requestPermission 注册
-- `packages/extension/src/services/permissionProvider.ts` — 重构
-- `packages/extension/src/providers/chatViewProvider.ts` — Webview 消息分发
+- `apps/vscode-extension/src/extension.ts` — 移除 requestPermission 注册
+- `apps/vscode-extension/src/services/permissionProvider.ts` — 重构
+- `apps/vscode-extension/src/providers/chatViewProvider.ts` — Webview 消息分发
 - Webview React 组件（审批卡片）
-- `packages/extension/src/services/sessionStore.ts` — Trust Always 规则存储
+- `apps/vscode-extension/src/services/sessionStore.ts` — Trust Always 规则存储

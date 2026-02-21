@@ -145,8 +145,23 @@ AI 建议代码修改时会显示 Diff 预览：
 # 安装依赖
 pnpm install
 
-# 构建
+# 构建全部（monorepo）
 pnpm build
+
+# 构建 VSCode 插件
+pnpm build:plugin
+
+# 打包 VSCode 插件（生成 vcoder.vsix）
+pnpm package:plugin
+
+# 构建桌面 App（自动构建 shared/server/webview 依赖）
+pnpm build:app
+
+# 启动桌面 App
+pnpm start:app
+
+# 桌面 App 开发模式
+pnpm dev:app
 
 # 开发模式
 pnpm dev
@@ -161,6 +176,18 @@ pnpm lint
 pnpm clean
 ```
 
+## 🖥️ 桌面应用（POC）
+
+新增了独立桌面壳（不影响现有 VSCode 插件）：
+
+```bash
+# 推荐（统一命名）
+pnpm build:app
+pnpm start:app
+```
+
+桌面壳里点击设置按钮会触发工作区目录选择（用于切换 `workspaceRoot`）。
+
 ## 🔄 CI/CD
 
 见 `docs/CI-CD.md`。
@@ -169,14 +196,16 @@ pnpm clean
 
 ```
 vcoder/
+├── apps/
+│   ├── vscode-extension/ # VSCode 插件（含 WebView）
+│   │   ├── src/          # Extension 源码
+│   │   └── webview/      # WebView 前端
+│   └── desktop-shell/    # 桌面壳 POC
 ├── packages/
-│   ├── extension/       # VSCode 插件
-│   │   ├── src/         # 源码
-│   │   └── webview/     # WebView 界面
-│   ├── server/          # Agent Server
-│   └── shared/          # 共享类型
+│   ├── server/           # Agent Server
+│   └── shared/           # 共享类型与协议
 ├── docs/                # 文档
-├── resources/           # 资源文件
+├── tests/               # 跨包测试
 └── README.md
 ```
 

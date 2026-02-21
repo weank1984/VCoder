@@ -56,5 +56,5 @@ useEffect(() => {
 
 ## 修改文件
 
-- `packages/extension/webview/src/hooks/useVirtualList.ts`
-- `packages/extension/webview/src/App.tsx`
+- `apps/vscode-extension/webview/src/hooks/useVirtualList.ts`
+- `apps/vscode-extension/webview/src/App.tsx`

@@ -42,15 +42,15 @@ When switching sessions, the UI may display stale context information from the p
 
 ## Files Modified
 
-### `/packages/extension/webview/src/store/useStore.ts`
+### `/apps/vscode-extension/webview/src/store/useStore.ts`
 - Line 976-1017: Added `error: null` and `isLoading: false` to state cleanup in `setCurrentSession`
 - Ensures error state and loading state are cleared when switching sessions
 
-### `/packages/extension/src/providers/chatViewProvider.ts`
+### `/apps/vscode-extension/src/providers/chatViewProvider.ts`
 - Line 141-148: Added session list refresh after switching sessions
 - Ensures UI has the latest session information after switch
 
-### `/packages/extension/webview/src/App.tsx`
+### `/apps/vscode-extension/webview/src/App.tsx`
 - Line 152-162: Enhanced session change effect to:
   - Reset both regular and virtual container scroll positions
   - Clear active user message reference

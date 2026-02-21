@@ -39,14 +39,14 @@
   - 不触发 `handleSubmit()`
 
 实现位置：
-- `packages/extension/webview/src/components/InputArea.tsx`
+- `apps/vscode-extension/webview/src/components/InputArea.tsx`
 
 ### 2) FilePicker：全局 keydown 在 IME composition 时不拦截
 
 FilePicker 通过 `window.addEventListener('keydown', ...)` 做键盘导航/确认选择。为避免与输入法候选交互冲突，在 handler 入口增加 IME composition 判断，组合输入期间直接 return。
 
 实现位置：
-- `packages/extension/webview/src/components/FilePicker.tsx`
+- `apps/vscode-extension/webview/src/components/FilePicker.tsx`
 
 ## 验证方式
 
@@ -59,6 +59,6 @@ FilePicker 通过 `window.addEventListener('keydown', ...)` 做键盘导航/确�
 
 ## 相关文件
 
-- `packages/extension/webview/src/components/InputArea.tsx`
-- `packages/extension/webview/src/components/FilePicker.tsx`
+- `apps/vscode-extension/webview/src/components/InputArea.tsx`
+- `apps/vscode-extension/webview/src/components/FilePicker.tsx`
 

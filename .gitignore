@@ -50,9 +50,9 @@ Thumbs.db
 .DS_Store
 
 # Webview
-packages/extension/webview/.next/
-packages/extension/webview/node_modules/
-packages/extension/webview/out/
+apps/vscode-extension/webview/.next/
+apps/vscode-extension/webview/node_modules/
+apps/vscode-extension/webview/out/
 
 # Secrets
 *.pem
@@ -61,7 +61,7 @@ secrets/
 
 # Local plugin/runtime artifacts
 .vcoder/
-packages/extension/server/
+apps/vscode-extension/server/
 
 # Local scratch files
 .claude/

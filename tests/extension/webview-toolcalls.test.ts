@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { useStore } from '../../packages/extension/webview/src/store/useStore';
+import { useStore } from '../../apps/vscode-extension/webview/src/store/useStore';
 
 describe('webview store tool calls', () => {
   beforeEach(() => {

@@ -18,7 +18,7 @@
 当前存在两条并行的权限审批链路：
 
 1. **链路 A（Extension 端）**：`session/requestPermission` — Extension 直接拦截并弹出 VSCode 弹窗处理。
-   - 位置：`packages/extension/src/extension.ts` + `packages/extension/src/services/permissionProvider.ts`
+   - 位置：`apps/vscode-extension/src/extension.ts` + `apps/vscode-extension/src/services/permissionProvider.ts`
 2. **链路 B（Server 端）**：`confirmation_request` → `tool/confirm` — Server 解析 CLI 的 confirmation_request 事件，转发给 Client。
    - 位置：`packages/server/src/claude/wrapper.ts` + `packages/server/src/acp/server.ts`
 
@@ -81,5 +81,5 @@
 - `packages/shared/src/protocol.ts` — 协议定义
 - `packages/server/src/claude/wrapper.ts` — CLI 事件解析与 confirmation 处理
 - `packages/server/src/acp/server.ts` — ACP Server 方法分发
-- `packages/extension/src/services/permissionProvider.ts` — Extension 端权限处理
-- `packages/extension/src/extension.ts` — Extension 入口与 requestPermission 注册
+- `apps/vscode-extension/src/services/permissionProvider.ts` — Extension 端权限处理
+- `apps/vscode-extension/src/extension.ts` — Extension 入口与 requestPermission 注册

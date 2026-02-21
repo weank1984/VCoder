@@ -5,7 +5,7 @@
 
 set -e
 
-WEBVIEW_SRC="packages/extension/webview/src"
+WEBVIEW_SRC="apps/vscode-extension/webview/src"
 REPORT_FILE="style-audit-report.txt"
 
 echo "🔍 VCoder 样式审查报告" > "$REPORT_FILE"

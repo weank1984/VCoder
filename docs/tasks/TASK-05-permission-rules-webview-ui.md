@@ -109,5 +109,5 @@
 
 - Webview React 组件目录 — 新增 PermissionRulesPanel 组件
 - Webview Store — 新增 permissionRulesSlice
-- `packages/extension/src/providers/chatViewProvider.ts` — 消息转发
+- `apps/vscode-extension/src/providers/chatViewProvider.ts` — 消息转发
 - `packages/shared/src/protocol.ts` — RPC 类型引用

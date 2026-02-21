@@ -172,11 +172,11 @@ const session = query({
 
 ### 3.1 目录建议
 结合当前仓库（monorepo），建议落位：
-- `packages/extension/src/extension.ts`：activate/deactivate、注册命令与 view
-- `packages/extension/src/acp/*`：ACP 连接与生命周期（建议替换/升级现有自定义 ACPClient，实现双向 request/response）
-- `packages/extension/src/services/serverManager.ts`：可复用为 AgentProcessManager（从“启动自研 server”演进为“启动 ACP agent / 或代理进程”）
-- `packages/extension/src/services/diffManager.ts`：可复用为写入审阅组件（落地 `writeTextFile` 或代理工具的 diff 审阅）
-- `packages/extension/src/providers/*`：Webview provider、装饰器等
+- `apps/vscode-extension/src/extension.ts`：activate/deactivate、注册命令与 view
+- `apps/vscode-extension/src/acp/*`：ACP 连接与生命周期（建议替换/升级现有自定义 ACPClient，实现双向 request/response）
+- `apps/vscode-extension/src/services/serverManager.ts`：可复用为 AgentProcessManager（从“启动自研 server”演进为“启动 ACP agent / 或代理进程”）
+- `apps/vscode-extension/src/services/diffManager.ts`：可复用为写入审阅组件（落地 `writeTextFile` 或代理工具的 diff 审阅）
+- `apps/vscode-extension/src/providers/*`：Webview provider、装饰器等
 - `packages/server/*`：可选保留为兼容层/代理层（例如：统一管理多 agent、做日志/审计聚合；或逐步淡出）
 
 ### 3.2 会话状态模型

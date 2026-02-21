@@ -163,7 +163,7 @@ VCoder 的长期目标是：开发一套统一 UI，在 VSCode 内稳定集成 C
 
 ## 14. 代码对照后的任务分层（Baseline vs Expansion）
 
-本节基于当前仓库代码（`packages/server`、`packages/extension`、`packages/shared`）与本 PRD 对照，作为后续执行的优先级基线。
+本节基于当前仓库代码（`packages/server`、`apps/vscode-extension`、`packages/shared`）与本 PRD 对照，作为后续执行的优先级基线。
 
 ### 14.1 对照结论
 
@@ -177,12 +177,12 @@ VCoder 的长期目标是：开发一套统一 UI，在 VSCode 内稳定集成 C
 
 | 优先级 | 任务 | 当前代码状态 | 验收标准（DoD） |
 |---|---|---|---|
-| P0 | 统一权限链路为单一路径 | 既有 `session/requestPermission`（`packages/extension/src/extension.ts`）也有 `confirmation_request + tool/confirm`（`packages/server/src/claude/wrapper.ts`、`packages/server/src/acp/server.ts`） | 所有工具审批只走一条结构化链路；拒绝后可恢复；无重复弹窗 |
-| P0 | 打通权限规则协议闭环 | 协议定义了 `permissionRules/*`（`packages/shared/src/protocol.ts`），但 Server 未实现对应方法分发（`packages/server/src/acp/server.ts`），当前主要在 Extension 本地存储（`packages/extension/src/services/sessionStore.ts`） | Webview/Extension/Server 三端统一走 ACP RPC；规则增删改查可回归测试 |
-| P0 | 持久会话模式端到端接线 | Server/Wrapper 已有 `promptPersistent/modeStatus/stopPersistent`，但 Client/Webview 发送路径仍以 `session/prompt` 为主（`packages/extension/src/acp/client.ts`、`packages/extension/src/providers/chatViewProvider.ts`） | UI 可切换一次性/持久模式；多轮延续稳定；可查询模式状态并可停止 |
-| P1 | Diff 审阅闭环接线 | Server 已发 `file_change`，但 `DiffManager.previewChange()` 与文件装饰器未进入主流程（`packages/extension/src/services/diffManager.ts`、`packages/extension/src/providers/fileDecorationProvider.ts`） | 写文件默认进入 Diff 审阅；Accept/Reject 后状态一致；大文件降级策略可用 |
+| P0 | 统一权限链路为单一路径 | 既有 `session/requestPermission`（`apps/vscode-extension/src/extension.ts`）也有 `confirmation_request + tool/confirm`（`packages/server/src/claude/wrapper.ts`、`packages/server/src/acp/server.ts`） | 所有工具审批只走一条结构化链路；拒绝后可恢复；无重复弹窗 |
+| P0 | 打通权限规则协议闭环 | 协议定义了 `permissionRules/*`（`packages/shared/src/protocol.ts`），但 Server 未实现对应方法分发（`packages/server/src/acp/server.ts`），当前主要在 Extension 本地存储（`apps/vscode-extension/src/services/sessionStore.ts`） | Webview/Extension/Server 三端统一走 ACP RPC；规则增删改查可回归测试 |
+| P0 | 持久会话模式端到端接线 | Server/Wrapper 已有 `promptPersistent/modeStatus/stopPersistent`，但 Client/Webview 发送路径仍以 `session/prompt` 为主（`apps/vscode-extension/src/acp/client.ts`、`apps/vscode-extension/src/providers/chatViewProvider.ts`） | UI 可切换一次性/持久模式；多轮延续稳定；可查询模式状态并可停止 |
+| P1 | Diff 审阅闭环接线 | Server 已发 `file_change`，但 `DiffManager.previewChange()` 与文件装饰器未进入主流程（`apps/vscode-extension/src/services/diffManager.ts`、`apps/vscode-extension/src/providers/fileDecorationProvider.ts`） | 写文件默认进入 Diff 审阅；Accept/Reject 后状态一致；大文件降级策略可用 |
 | P1 | 协议事件类型收敛 | Server 发送 `session_switch`（`packages/server/src/acp/server.ts`），但 `UpdateType` 未声明该类型（`packages/shared/src/protocol.ts`） | 协议定义与实现一致；不存在未声明事件类型 |
-| P1 | 审计日志闭环 | `AuditLogger` 能力较完整，但实际调用集中在用户输入与权限决策（`packages/extension/src/services/auditLogger.ts`、`packages/extension/src/providers/chatViewProvider.ts`） | 工具调用、文件变更、错误、会话生命周期均有结构化审计记录 |
+| P1 | 审计日志闭环 | `AuditLogger` 能力较完整，但实际调用集中在用户输入与权限决策（`apps/vscode-extension/src/services/auditLogger.ts`、`apps/vscode-extension/src/providers/chatViewProvider.ts`） | 工具调用、文件变更、错误、会话生命周期均有结构化审计记录 |
 
 ### 14.3 拓展任务（P2+）
 

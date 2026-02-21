@@ -97,8 +97,8 @@
 
 ## 7. 关键文件
 
-- `packages/extension/src/services/diffManager.ts` — Diff 预览核心
-- `packages/extension/src/providers/fileDecorationProvider.ts` — 文件标记
-- `packages/extension/src/providers/chatViewProvider.ts` — session/update 处理
-- `packages/extension/src/acp/client.ts` — acceptFileChange/rejectFileChange
+- `apps/vscode-extension/src/services/diffManager.ts` — Diff 预览核心
+- `apps/vscode-extension/src/providers/fileDecorationProvider.ts` — 文件标记
+- `apps/vscode-extension/src/providers/chatViewProvider.ts` — session/update 处理
+- `apps/vscode-extension/src/acp/client.ts` — acceptFileChange/rejectFileChange
 - Webview React 组件 — 文件变更卡片

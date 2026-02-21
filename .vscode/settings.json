@@ -45,10 +45,10 @@
     "typescriptreact"
   ],
   "eslint.workingDirectories": [
-    { "directory": "packages/extension", "changeProcessCWD": true },
+    { "directory": "apps/vscode-extension", "changeProcessCWD": true },
     { "directory": "packages/server", "changeProcessCWD": true },
     { "directory": "packages/shared", "changeProcessCWD": true },
-    { "directory": "packages/extension/webview", "changeProcessCWD": true }
+    { "directory": "apps/vscode-extension/webview", "changeProcessCWD": true }
   ],
 
   // Vitest 配置

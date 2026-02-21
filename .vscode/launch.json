@@ -6,16 +6,16 @@
       "type": "extensionHost",
       "request": "launch",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/packages/extension",
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/vscode-extension",
         "--disable-extensions"
       ],
       "outFiles": [
-        "${workspaceFolder}/packages/extension/out/**/*.js"
+        "${workspaceFolder}/apps/vscode-extension/out/**/*.js"
       ],
-      "preLaunchTask": "prepare:extension",
+      "preLaunchTask": "prepare:plugin",
       "resolveSourceMapLocations": [
-        "${workspaceFolder}/packages/extension/out/**/*.js",
-        "${workspaceFolder}/packages/extension/out/**/*.js.map"
+        "${workspaceFolder}/apps/vscode-extension/out/**/*.js",
+        "${workspaceFolder}/apps/vscode-extension/out/**/*.js.map"
       ]
     },
     {
@@ -23,15 +23,15 @@
       "type": "extensionHost",
       "request": "launch",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/packages/extension"
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/vscode-extension"
       ],
       "outFiles": [
-        "${workspaceFolder}/packages/extension/out/**/*.js"
+        "${workspaceFolder}/apps/vscode-extension/out/**/*.js"
       ],
-      "preLaunchTask": "prepare:extension",
+      "preLaunchTask": "prepare:plugin",
       "resolveSourceMapLocations": [
-        "${workspaceFolder}/packages/extension/out/**/*.js",
-        "${workspaceFolder}/packages/extension/out/**/*.js.map"
+        "${workspaceFolder}/apps/vscode-extension/out/**/*.js",
+        "${workspaceFolder}/apps/vscode-extension/out/**/*.js.map"
       ]
     },
     {
@@ -39,18 +39,18 @@
       "type": "extensionHost",
       "request": "launch",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/packages/extension",
-        "${workspaceFolder}/packages/extension/test-fixtures",
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/vscode-extension",
+        "${workspaceFolder}/apps/vscode-extension/test-fixtures",
         "--disable-extensions"
       ],
       "outFiles": [
-        "${workspaceFolder}/packages/extension/out/**/*.js",
-        "${workspaceFolder}/packages/extension/webview/dist/**/*.js"
+        "${workspaceFolder}/apps/vscode-extension/out/**/*.js",
+        "${workspaceFolder}/apps/vscode-extension/webview/dist/**/*.js"
       ],
       "preLaunchTask": "prepare:webview",
       "resolveSourceMapLocations": [
-        "${workspaceFolder}/packages/extension/out/**/*.js",
-        "${workspaceFolder}/packages/extension/webview/dist/**/*.js"
+        "${workspaceFolder}/apps/vscode-extension/out/**/*.js",
+        "${workspaceFolder}/apps/vscode-extension/webview/dist/**/*.js"
       ],
       "env": {
         "VSCODE_FORCE_USE_TURBO": "1"
@@ -61,17 +61,17 @@
       "type": "extensionHost",
       "request": "launch",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/packages/extension",
-        "${workspaceFolder}/packages/extension/test-fixtures"
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/vscode-extension",
+        "${workspaceFolder}/apps/vscode-extension/test-fixtures"
       ],
       "outFiles": [
-        "${workspaceFolder}/packages/extension/out/**/*.js",
-        "${workspaceFolder}/packages/extension/webview/dist/**/*.js"
+        "${workspaceFolder}/apps/vscode-extension/out/**/*.js",
+        "${workspaceFolder}/apps/vscode-extension/webview/dist/**/*.js"
       ],
       "preLaunchTask": "prepare:webview",
       "resolveSourceMapLocations": [
-        "${workspaceFolder}/packages/extension/out/**/*.js",
-        "${workspaceFolder}/packages/extension/webview/dist/**/*.js"
+        "${workspaceFolder}/apps/vscode-extension/out/**/*.js",
+        "${workspaceFolder}/apps/vscode-extension/webview/dist/**/*.js"
       ],
       "env": {
         "VSCODE_FORCE_USE_TURBO": "1"
@@ -157,7 +157,7 @@
       "type": "chrome",
       "request": "launch",
       "url": "http://localhost:5173",
-      "webRoot": "${workspaceFolder}/packages/extension/webview",
+      "webRoot": "${workspaceFolder}/apps/vscode-extension/webview",
       "sourceMaps": true,
       "sourceMapPathOverrides": {
         "webpack:///*": "${webRoot}/*"

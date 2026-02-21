@@ -9,13 +9,13 @@ export default defineConfig([
     '**/out/**',
     '**/.turbo/**',
     '**/*.d.ts',
-    'packages/extension/webview/dist/**',
+    'apps/vscode-extension/webview/dist/**',
   ]),
   {
     files: [
       'packages/shared/src/**/*.{ts,tsx}',
       'packages/server/src/**/*.{ts,tsx}',
-      'packages/extension/src/**/*.{ts,tsx}',
+      'apps/vscode-extension/src/**/*.{ts,tsx}',
       'tests/**/*.{ts,tsx}',
     ],
     extends: [js.configs.recommended, tseslint.configs.recommended],

@@ -101,7 +101,7 @@
 
 ## 7. 关键文件
 
-- `packages/extension/src/services/auditLogger.ts` — 审计日志核心（已实现，本任务为集成）
-- `packages/extension/src/providers/chatViewProvider.ts` — tool_use/tool_result/file_change 事件处理
-- `packages/extension/src/services/diffManager.ts` — Accept/Reject 决策点
-- `packages/extension/src/acp/client.ts` — terminal 事件处理
+- `apps/vscode-extension/src/services/auditLogger.ts` — 审计日志核心（已实现，本任务为集成）
+- `apps/vscode-extension/src/providers/chatViewProvider.ts` — tool_use/tool_result/file_change 事件处理
+- `apps/vscode-extension/src/services/diffManager.ts` — Accept/Reject 决策点
+- `apps/vscode-extension/src/acp/client.ts` — terminal 事件处理

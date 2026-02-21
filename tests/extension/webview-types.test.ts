@@ -8,7 +8,7 @@ import type {
   ShowHistoryMessage,
   SendMessage,
   WorkspaceFilesMessage,
-} from '../../packages/extension/webview/src/types';
+} from '../../apps/vscode-extension/webview/src/types';
 
 describe('Webview types', () => {
   describe('ShowHistoryMessage', () => {

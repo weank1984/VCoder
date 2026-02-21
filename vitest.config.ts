@@ -10,8 +10,15 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      include: ['packages/*/src/**/*.ts'],
+      include: [
+        'packages/*/src/**/*.ts',
+        'apps/vscode-extension/src/**/*.ts',
+        'apps/vscode-extension/webview/src/**/*.{ts,tsx}',
+      ],
       exclude: [
+        'apps/vscode-extension/**/node_modules/**',
+        'apps/vscode-extension/**/dist/**',
+        'apps/vscode-extension/**/out/**',
         'packages/*/node_modules/**',
         'packages/*/dist/**',
         'packages/*/out/**',

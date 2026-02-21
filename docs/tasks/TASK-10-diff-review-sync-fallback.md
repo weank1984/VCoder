@@ -100,8 +100,8 @@
 
 ## 6. 关键文件
 
-- `packages/extension/src/services/diffManager.ts` — 核心逻辑扩展
-- `packages/extension/src/providers/fileDecorationProvider.ts` — 状态标记
-- `packages/extension/src/providers/chatViewProvider.ts` — 状态同步
+- `apps/vscode-extension/src/services/diffManager.ts` — 核心逻辑扩展
+- `apps/vscode-extension/src/providers/fileDecorationProvider.ts` — 状态标记
+- `apps/vscode-extension/src/providers/chatViewProvider.ts` — 状态同步
 - Webview React 组件 — 文件变更卡片、审阅摘要
 - Webview Store — pendingFileChanges slice

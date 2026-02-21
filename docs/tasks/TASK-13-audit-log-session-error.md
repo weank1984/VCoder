@@ -124,8 +124,8 @@
 
 ## 7. 关键文件
 
-- `packages/extension/src/services/auditLogger.ts` — 审计日志核心
-- `packages/extension/src/providers/chatViewProvider.ts` — 会话事件处理
-- `packages/extension/src/acp/client.ts` — session/complete、RPC 错误处理
+- `apps/vscode-extension/src/services/auditLogger.ts` — 审计日志核心
+- `apps/vscode-extension/src/providers/chatViewProvider.ts` — 会话事件处理
+- `apps/vscode-extension/src/acp/client.ts` — session/complete、RPC 错误处理
 - `packages/server/src/claude/wrapper.ts` — CLI 进程退出事件
 - Webview React 组件 — 审计日志 UI 入口

@@ -229,10 +229,10 @@ const displayTitle = useMemo(() => {
 ## 技术细节
 
 ### 相关文件
-- `packages/extension/webview/src/components/StepProgress/StepItem.tsx` - 主要实现
-- `packages/extension/webview/src/components/StepProgress/index.scss` - 样式
-- `packages/extension/webview/src/i18n/locales/zh-CN.ts` - 中文翻译
-- `packages/extension/webview/src/i18n/locales/en-US.ts` - 英文翻译
+- `apps/vscode-extension/webview/src/components/StepProgress/StepItem.tsx` - 主要实现
+- `apps/vscode-extension/webview/src/components/StepProgress/index.scss` - 样式
+- `apps/vscode-extension/webview/src/i18n/locales/zh-CN.ts` - 中文翻译
+- `apps/vscode-extension/webview/src/i18n/locales/en-US.ts` - 英文翻译
 
 ### 性能考虑
 - 使用 `useMemo` 缓存汇总计算结果

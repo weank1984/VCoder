@@ -247,7 +247,7 @@
     "scripts": {
         "vscode:prepublish": "npm run build && npm run package:server",
         "build": "tsc && pnpm -C webview build",
-        "package:server": "pnpm -C ../server build && mkdir -p server && cp -r ../server/dist/* server/",
+        "package:server": "pnpm -C ../../packages/server build && mkdir -p server && cp -r ../../packages/server/dist/* server/",
         "dev": "tsc --watch",
         "clean": "rm -rf out",
         "lint": "eslint src"

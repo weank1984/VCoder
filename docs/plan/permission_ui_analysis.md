@@ -166,7 +166,7 @@ if (result.permission_denials?.length > 0) {
 
 - `packages/server/src/claude/wrapper.ts` - CLI 封装层
 - `packages/server/src/claude/persistentSession.ts` - 持久会话
-- `packages/extension/webview/src/components/StepProgress/StepEntry.tsx` - 权限 UI 组件
+- `apps/vscode-extension/webview/src/components/StepProgress/StepEntry.tsx` - 权限 UI 组件
 - `packages/server/src/claude/repro_*.js` - 复现脚本
 
 ## 参考资料

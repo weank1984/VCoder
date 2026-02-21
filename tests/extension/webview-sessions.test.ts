@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useStore } from '../../packages/extension/webview/src/store/useStore';
+import { useStore } from '../../apps/vscode-extension/webview/src/store/useStore';
 
 describe('webview store sessions', () => {
   beforeEach(() => {

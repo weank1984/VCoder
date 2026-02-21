@@ -17,7 +17,7 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@vcoder/shared": ["../../shared/src/index.ts"]
+      "@vcoder/shared": ["../../../packages/shared/src/index.ts"]
     },
 
     /* Linting */

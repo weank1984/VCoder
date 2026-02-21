@@ -8,14 +8,14 @@
 - **用途**: 调试 VSCode 扩展主进程
 - **启动方式**: F5 或点击 "Run and Debug"
 - **说明**: 启动一个新的 VSCode Extension Host 窗口，加载扩展进行调试
-- **断点**: 可在 `packages/extension/src/**/*.ts` 中设置断点
+- **断点**: 可在 `apps/vscode-extension/src/**/*.ts` 中设置断点
 - **特性**: ✅ 自动禁用所有其他扩展，避免干扰；如需启用其它扩展用 "Run Extension (With Extensions)"
 
 ### 2. Run Webview (运行 Webview)
 - **用途**: 调试扩展的前端界面
 - **启动方式**: 从调试面板选择 "Run Webview"
 - **说明**: 同时启动扩展和 webview 开发服务器
-- **断点**: 可在 `packages/extension/webview/src/**/*.tsx` 中设置断点
+- **断点**: 可在 `apps/vscode-extension/webview/src/**/*.tsx` 中设置断点
 - **特性**: ✅ 自动禁用所有其他扩展，避免干扰；如需启用其它扩展用 "Run Webview (With Extensions)"
 
 ### 3. Debug Server (调试服务器)
@@ -40,7 +40,7 @@
 ## 🔧 常用调试场景
 
 ### 场景 1: 开发扩展功能
-1. 设置断点在 `packages/extension/src/extension.ts`
+1. 设置断点在 `apps/vscode-extension/src/extension.ts`
 2. 选择 "Run Extension" 配置
 3. 按 F5 启动调试
 4. 在新打开的 VSCode 窗口中触发扩展功能
@@ -67,7 +67,7 @@
 ### 开发任务（后台运行）
 所有开发任务都已配置 `isBackground: true` 和自定义 problemMatcher：
 
-- **dev:extension**: 监听模式编译扩展代码
+- **dev:plugin**: 监听模式编译扩展代码
   - 自动检测 TypeScript 错误
   - 监听文件变化自动重建
   - 后台运行，不会阻塞其他操作
@@ -83,8 +83,10 @@
   - 后台运行，不会阻塞其他操作
 
 ### 构建任务（一次性运行）
-- `build:extension`: 构建扩展代码
+- `build:plugin`: 构建扩展代码
+- `package:plugin`: 打包扩展（生成 VSIX）
 - `build:server`: 构建服务器代码
+- `build:app`: 构建桌面应用（含依赖模块）
 - `build:all`: 构建所有包
 
 ### 测试任务
@@ -136,7 +138,7 @@
 
 ### 扩展无法加载
 - 确保已运行 `pnpm build` 构建代码
-- 检查 `packages/extension/out/` 目录是否存在
+- 检查 `apps/vscode-extension/out/` 目录是否存在
 - 查看输出面板的错误信息
 
 ### 服务器无法启动

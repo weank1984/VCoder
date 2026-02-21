@@ -14,7 +14,7 @@
     ],
     "references": [
         {
-            "path": "../shared"
+            "path": "../../packages/shared"
         }
     ]
 }

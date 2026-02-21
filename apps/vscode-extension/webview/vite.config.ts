@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@vcoder/shared': resolve(__dirname, '../../shared/src/index.ts'),
+      '@vcoder/shared': resolve(__dirname, '../../../packages/shared/src/index.ts'),
     },
   },
   build: {

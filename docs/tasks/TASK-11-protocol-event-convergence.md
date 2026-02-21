@@ -97,5 +97,5 @@
 - `packages/server/src/acp/server.ts` — 事件发送点
 - `packages/server/src/claude/wrapper.ts` — 事件发送点
 - `packages/server/src/claude/persistentSession.ts` — 事件发送点
-- `packages/extension/src/acp/client.ts` — 事件接收处理
-- `packages/extension/src/providers/chatViewProvider.ts` — Webview 事件分发
+- `apps/vscode-extension/src/acp/client.ts` — 事件接收处理
+- `apps/vscode-extension/src/providers/chatViewProvider.ts` — Webview 事件分发

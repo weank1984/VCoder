@@ -67,7 +67,7 @@ Webview Store 之前只把 `tool_use/tool_result` 写入 `message.toolCalls`，�
 
 ### 2) Webview Store：补齐工具更新写入逻辑（体验修复）
 
-在 `packages/extension/webview/src/store/useStore.ts`：
+在 `apps/vscode-extension/webview/src/store/useStore.ts`：
 - 将 `mcp_call`、`bash_request` 映射为 `toolCalls`
 - `tool_result` 更新时，会在所有消息中按 `toolCall.id` 回填（不再只更新最后一条）
 
@@ -79,8 +79,8 @@ Webview Store 之前只把 `tool_use/tool_result` 写入 `message.toolCalls`，�
 ## 相关文件
 
 - `packages/server/src/claude/wrapper.ts`
-- `packages/extension/webview/src/store/useStore.ts`
-- `packages/extension/webview/src/types.ts`
+- `apps/vscode-extension/webview/src/store/useStore.ts`
+- `apps/vscode-extension/webview/src/types.ts`
 - `tests/server/claude-wrapper-format.test.ts`
 - `tests/extension/webview-toolcalls.test.ts`
 

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { SessionState } from '../../packages/extension/webview/src/types.js';
+import type { SessionState } from '../../apps/vscode-extension/webview/src/types.js';
 import type { Task, SubagentRunUpdate, FileChangeUpdate } from '../../packages/shared/src/protocol.js';
 
 describe('Session State Operations', () => {
