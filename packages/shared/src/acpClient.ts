@@ -585,8 +585,8 @@ export class ACPClient extends EventEmitter {
         return this.currentSession;
     }
 
-    async listHistory(workspacePath: string): Promise<HistorySession[]> {
-        const result = await this.sendRequest<HistoryListResult>(ACPMethods.HISTORY_LIST, { workspacePath });
+    async listHistory(workspacePath: string, search?: { query?: string; toolName?: string; filePath?: string; dateFrom?: string; dateTo?: string }): Promise<HistorySession[]> {
+        const result = await this.sendRequest<HistoryListResult>(ACPMethods.HISTORY_LIST, { workspacePath, ...search });
         return result.sessions;
     }
 

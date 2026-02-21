@@ -73,6 +73,7 @@ const initialState: AppState = {
     promptMode: 'persistent',
     agents: [],
     currentAgentId: null,
+    experimentalAgentTeams: false,
 };
 
 const restoredState: AppState = {
@@ -83,6 +84,7 @@ const restoredState: AppState = {
     thinkingEnabled: isBoolean(persisted.thinkingEnabled) ? persisted.thinkingEnabled : initialState.thinkingEnabled,
     currentSessionId: persisted.currentSessionId ?? initialState.currentSessionId,
     uiLanguage: getInitialUiLanguage(),
+    experimentalAgentTeams: isBoolean(persisted.experimentalAgentTeams) ? persisted.experimentalAgentTeams : false,
 };
 
 export const useStore = create<AppStore>((set, get) => ({
@@ -103,6 +105,7 @@ let prevPersistedFields = {
     thinkingEnabled: restoredState.thinkingEnabled,
     currentSessionId: restoredState.currentSessionId,
     uiLanguage: restoredState.uiLanguage,
+    experimentalAgentTeams: restoredState.experimentalAgentTeams,
 };
 
 useStore.subscribe(() => {
@@ -113,7 +116,8 @@ useStore.subscribe(() => {
         state.permissionMode !== prevPersistedFields.permissionMode ||
         state.thinkingEnabled !== prevPersistedFields.thinkingEnabled ||
         state.currentSessionId !== prevPersistedFields.currentSessionId ||
-        state.uiLanguage !== prevPersistedFields.uiLanguage
+        state.uiLanguage !== prevPersistedFields.uiLanguage ||
+        state.experimentalAgentTeams !== prevPersistedFields.experimentalAgentTeams
     ) {
         prevPersistedFields = {
             model: state.model,
@@ -122,6 +126,7 @@ useStore.subscribe(() => {
             thinkingEnabled: state.thinkingEnabled,
             currentSessionId: state.currentSessionId,
             uiLanguage: state.uiLanguage,
+            experimentalAgentTeams: state.experimentalAgentTeams,
         };
         savePersistedState(prevPersistedFields);
     }

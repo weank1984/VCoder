@@ -46,6 +46,10 @@ export interface ShowHistoryMessage {
     type: 'showHistory';
 }
 
+export interface ShowEcosystemMessage {
+    type: 'showEcosystem';
+}
+
 export interface UiLanguageMessage {
     type: 'uiLanguage';
     data: { uiLanguage: UiLanguage };
@@ -158,6 +162,65 @@ export interface WorkspaceFilesMessage {
 
 export interface ListHistoryMessage {
     type: 'listHistory';
+    query?: string;
+    toolName?: string;
+}
+
+// ── CLI Ecosystem ───────────────────────────────────────────────────────────
+export interface EcosystemMcpServer {
+    id: string;
+    type: 'stdio' | 'http' | 'sse';
+    name?: string;
+    command?: string;
+    url?: string;
+    args?: string[];
+    readonly?: boolean;
+}
+
+export interface EcosystemSkill {
+    name: string;
+    description?: string;
+    source: 'global' | 'workspace';
+    path: string;
+}
+
+export interface EcosystemHook {
+    event: string;
+    command: string;
+    matcher?: string;
+}
+
+export interface EcosystemPlugin {
+    name: string;
+    version?: string;
+    path: string;
+    source: 'global' | 'workspace';
+}
+
+export interface EcosystemData {
+    mcp: EcosystemMcpServer[];
+    skills: EcosystemSkill[];
+    hooks: EcosystemHook[];
+    plugins: EcosystemPlugin[];
+}
+
+export interface GetEcosystemDataMessage {
+    type: 'getEcosystemData';
+}
+
+export interface EcosystemDataMessage {
+    type: 'ecosystemData';
+    data: EcosystemData;
+}
+
+export interface AddMcpServerMessage {
+    type: 'addMcpServer';
+    server: { name: string; type: 'stdio' | 'http' | 'sse'; command?: string; url?: string; args?: string[] };
+}
+
+export interface RemoveMcpServerMessage {
+    type: 'removeMcpServer';
+    id: string;
 }
 
 export interface LoadHistoryMessage {
@@ -368,7 +431,9 @@ export type ExtensionMessage =
     | ModeStatusMessage
     | ReviewStatsMessage
     | AuditStatsMessage
-    | BatchMessage;
+    | BatchMessage
+    | ShowEcosystemMessage
+    | EcosystemDataMessage;
 
 export type WebviewMessage =
     | SendMessage
@@ -409,7 +474,10 @@ export type WebviewMessage =
     | SetPromptModeMessage
     | GetModeStatusMessage
     | GetAuditStatsMessage
-    | ExportAuditLogMessage;
+    | ExportAuditLogMessage
+    | GetEcosystemDataMessage
+    | AddMcpServerMessage
+    | RemoveMcpServerMessage;
 export interface ChatMessage {
     id: string;
     role: 'user' | 'assistant';
@@ -532,4 +600,6 @@ export interface AppState {
     // Agent
     agents: AgentInfo[];
     currentAgentId: string | null;
+    // Experimental features
+    experimentalAgentTeams: boolean;
 }

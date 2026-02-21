@@ -492,7 +492,11 @@ export class ACPServer {
     }
 
     private async handleListHistory(params: HistoryListParams): Promise<HistoryListResult> {
-        const sessions = await listHistorySessions(params.workspacePath);
+        const { workspacePath, query, toolName, filePath, dateFrom, dateTo } = params;
+        const search = (query || toolName || filePath || dateFrom || dateTo)
+            ? { query, toolName, filePath, dateFrom, dateTo }
+            : undefined;
+        const sessions = await listHistorySessions(workspacePath, search);
         return { sessions };
     }
 

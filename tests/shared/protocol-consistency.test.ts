@@ -15,8 +15,6 @@ import type {
     McpCallUpdate,
     TaskListUpdate,
     SubagentRunUpdate,
-    BashRequestUpdate,
-    PlanReadyUpdate,
     ErrorUpdate,
     ConfirmationRequestUpdate,
     SessionSwitchUpdate,
@@ -36,17 +34,9 @@ const ALL_UPDATE_TYPES: UpdateType[] = [
     'mcp_call',
     'task_list',
     'subagent_run',
-    'bash_request',
-    'plan_ready',
     'error',
     'confirmation_request',
     'session_switch',
-];
-
-/** Types that are deprecated and no longer emitted by the Server. */
-const DEPRECATED_TYPES: UpdateType[] = [
-    'bash_request',
-    'plan_ready',
 ];
 
 /** Types actively emitted by the Server (wrapper.ts / server.ts / persistentSession.ts). */
@@ -74,7 +64,6 @@ const WEBVIEW_HANDLED_TYPES: UpdateType[] = [
     'mcp_call',
     'task_list',
     'subagent_run',
-    'bash_request',
     'error',
     'confirmation_request',
     'session_switch',
@@ -85,7 +74,7 @@ describe('Protocol Consistency', () => {
         // This test ensures the canonical list stays in sync with the type union.
         // If a new UpdateType variant is added, TypeScript won't error on the union itself,
         // but this list must be updated to keep the mapping accurate.
-        expect(ALL_UPDATE_TYPES.length).toBe(13);
+        expect(ALL_UPDATE_TYPES.length).toBe(11);
         expect(new Set(ALL_UPDATE_TYPES).size).toBe(ALL_UPDATE_TYPES.length);
     });
 
@@ -101,16 +90,9 @@ describe('Protocol Consistency', () => {
         }
     });
 
-    it('every non-deprecated server-emitted type should be handled by webview', () => {
-        const activeServerTypes = SERVER_EMITTED_TYPES.filter(t => !DEPRECATED_TYPES.includes(t));
-        for (const type of activeServerTypes) {
+    it('every server-emitted type should be handled by webview', () => {
+        for (const type of SERVER_EMITTED_TYPES) {
             expect(WEBVIEW_HANDLED_TYPES).toContain(type);
-        }
-    });
-
-    it('deprecated types should not be in server-emitted list', () => {
-        for (const type of DEPRECATED_TYPES) {
-            expect(SERVER_EMITTED_TYPES).not.toContain(type);
         }
     });
 
@@ -193,21 +175,5 @@ describe('Protocol Consistency', () => {
         expect(sessionSwitch.type).toBe('session_switch');
     });
 
-    it('deprecated types should still compile for backward compatibility', () => {
-        // bash_request
-        const bashRequest: UpdateNotificationParams = {
-            sessionId: 's1',
-            type: 'bash_request',
-            content: { id: 'b1', command: 'echo hi' } satisfies BashRequestUpdate,
-        };
-        expect(bashRequest.type).toBe('bash_request');
-
-        // plan_ready
-        const planReady: UpdateNotificationParams = {
-            sessionId: 's1',
-            type: 'plan_ready',
-            content: { tasks: [], summary: 'plan' } satisfies PlanReadyUpdate,
-        };
-        expect(planReady.type).toBe('plan_ready');
-    });
 });
+

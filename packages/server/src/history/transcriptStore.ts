@@ -213,11 +213,80 @@ async function listSessionIdsFromHistoryIndex(workspacePath: string): Promise<st
         .map(([sessionId]) => sessionId);
 }
 
+export interface HistorySearchParams {
+    query?: string;
+    toolName?: string;
+    filePath?: string;
+    dateFrom?: string;
+    dateTo?: string;
+}
+
+function applyMetadataFilters(sessions: HistorySession[], params: HistorySearchParams): HistorySession[] {
+    let filtered = sessions;
+    if (params.query) {
+        const q = params.query.toLowerCase();
+        filtered = filtered.filter(s => s.title.toLowerCase().includes(q));
+    }
+    if (params.dateFrom) {
+        const from = new Date(params.dateFrom).getTime();
+        filtered = filtered.filter(s => new Date(s.updatedAt).getTime() >= from);
+    }
+    if (params.dateTo) {
+        const to = new Date(params.dateTo).getTime();
+        filtered = filtered.filter(s => new Date(s.updatedAt).getTime() <= to);
+    }
+    return filtered;
+}
+
+/**
+ * Quick-scan a JSONL file to check if it contains a specific toolName or filePath.
+ * Reads the file line by line but stops as soon as a match is found.
+ */
+async function sessionMatchesContentFilter(filePath: string, toolName?: string, searchFilePath?: string): Promise<boolean> {
+    if (!toolName && !searchFilePath) return true;
+
+    const fileStream = fs.createReadStream(filePath);
+    const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
+
+    let matched = false;
+    try {
+        for await (const line of rl) {
+            if (!line.trim()) continue;
+            try {
+                const event = JSON.parse(line);
+                if (event.isSidechain === true) continue;
+                const blocks = event?.message?.content;
+                if (!Array.isArray(blocks)) continue;
+                for (const block of blocks) {
+                    if (toolName && block.type === 'tool_use' && typeof block.name === 'string') {
+                        if (block.name.toLowerCase().includes(toolName.toLowerCase())) {
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if (searchFilePath && block.type === 'tool_use' && block.input && typeof block.input === 'object') {
+                        const inputStr = JSON.stringify(block.input).toLowerCase();
+                        if (inputStr.includes(searchFilePath.toLowerCase())) {
+                            matched = true;
+                            break;
+                        }
+                    }
+                }
+            } catch { /* skip malformed lines */ }
+            if (matched) break;
+        }
+    } finally {
+        rl.close();
+        fileStream.destroy();
+    }
+    return matched;
+}
+
 /**
  * List all history sessions for a given workspace path.
  * Returns sessions sorted by updatedAt (most recent first).
  */
-export async function listHistorySessions(workspacePath: string): Promise<HistorySession[]> {
+export async function listHistorySessions(workspacePath: string, search?: HistorySearchParams): Promise<HistorySession[]> {
     if (!workspacePath) {
         const sessions: HistorySession[] = [];
         for (const projectDir of listProjectDirs()) {
@@ -232,7 +301,13 @@ export async function listHistorySessions(workspacePath: string): Promise<Histor
                     const filePath = path.join(projectDir, file);
                     try {
                         const metadata = await extractSessionMetadata(filePath, sessionId, projectKey);
-                        if (metadata) sessions.push(metadata);
+                        if (metadata) {
+                            if (search?.toolName || search?.filePath) {
+                                const matches = await sessionMatchesContentFilter(filePath, search.toolName, search.filePath);
+                                if (!matches) continue;
+                            }
+                            sessions.push(metadata);
+                        }
                     } catch (err) {
                         console.error(`[TranscriptStore] Error reading ${filePath}:`, err);
                     }
@@ -243,7 +318,7 @@ export async function listHistorySessions(workspacePath: string): Promise<Histor
         }
 
         sessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-        return sessions;
+        return search ? applyMetadataFilters(sessions, search) : sessions;
     }
 
     const resolved = resolveProjectDir(workspacePath);
@@ -267,6 +342,10 @@ export async function listHistorySessions(workspacePath: string): Promise<Histor
             try {
                 const metadata = await extractSessionMetadata(filePath, sessionId, projectKey);
                 if (metadata) {
+                    if (search?.toolName || search?.filePath) {
+                        const matches = await sessionMatchesContentFilter(filePath, search.toolName, search.filePath);
+                        if (!matches) continue;
+                    }
                     sessions.push(metadata);
                 }
             } catch (err) {
@@ -277,7 +356,7 @@ export async function listHistorySessions(workspacePath: string): Promise<Histor
         // Sort by updatedAt descending (most recent first)
         sessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
-        return sessions;
+        return search ? applyMetadataFilters(sessions, search) : sessions;
     }
 
     console.error(
@@ -296,7 +375,13 @@ export async function listHistorySessions(workspacePath: string): Promise<Histor
 
         try {
             const metadata = await extractSessionMetadata(located.filePath, sessionId, located.projectKey);
-            if (metadata) sessions.push(metadata);
+            if (metadata) {
+                if (search?.toolName || search?.filePath) {
+                    const matches = await sessionMatchesContentFilter(located.filePath, search.toolName, search.filePath);
+                    if (!matches) continue;
+                }
+                sessions.push(metadata);
+            }
         } catch (err) {
             console.error(`[TranscriptStore] Error reading ${located.filePath}:`, err);
         }
@@ -305,7 +390,7 @@ export async function listHistorySessions(workspacePath: string): Promise<Histor
     // Sort by updatedAt descending (most recent first)
     sessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
-    return sessions;
+    return search ? applyMetadataFilters(sessions, search) : sessions;
 }
 
 function getEventRole(event: any): 'user' | 'assistant' | null {

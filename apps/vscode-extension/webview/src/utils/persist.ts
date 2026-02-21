@@ -16,6 +16,7 @@ export type PersistedState = {
     currentSessionId?: string | null;
     uiLanguage?: string;
     inputDraft?: string;
+    experimentalAgentTeams?: boolean;
 };
 
 const PERSIST_KEY = 'vcoder-ui-state';

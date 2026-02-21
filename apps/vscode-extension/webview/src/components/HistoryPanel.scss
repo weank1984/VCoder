@@ -119,6 +119,51 @@
   }
 }
 
+.history-search-area {
+  display: flex;
+  gap: 6px;
+  padding: 6px 12px 8px;
+  border-bottom: 1px solid var(--vc-color-border);
+}
+
+.history-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, var(--vc-color-border));
+  border-radius: var(--vc-radius-sm);
+  outline: none;
+
+  &::placeholder {
+    color: var(--vscode-input-placeholderForeground);
+  }
+
+  &:focus {
+    border-color: var(--vscode-focusBorder);
+  }
+}
+
+.history-tool-filter {
+  height: 28px;
+  padding: 0 4px;
+  font-size: 12px;
+  background: var(--vscode-dropdown-background, var(--vc-bg-secondary));
+  color: var(--vc-color-text);
+  border: 1px solid var(--vc-color-border);
+  border-radius: var(--vc-radius-sm);
+  cursor: pointer;
+  outline: none;
+  max-width: 90px;
+
+  &:focus {
+    border-color: var(--vscode-focusBorder);
+  }
+}
+
 .history-sessions-list {
   flex: 1;
   overflow-y: auto;

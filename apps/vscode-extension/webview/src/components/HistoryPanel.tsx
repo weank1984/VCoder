@@ -2,7 +2,7 @@
  * History Panel Component - Slide-out sidebar for session management
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { HistorySession } from '@vcoder/shared';
 import { CloseIcon, TrashIcon } from './Icon';
 import { SessionSkeleton } from './Skeleton';
@@ -11,6 +11,8 @@ import { useI18n } from '../i18n/I18nProvider';
 import { useStore } from '../store/useStore';
 import { sanitizeSessionTitle } from '../utils/sanitizeTitle';
 import './HistoryPanel.scss';
+
+const TOOL_OPTIONS = ['Bash', 'Write', 'Edit', 'Read', 'WebFetch', 'WebSearch'];
 
 interface HistoryPanelProps {
     historySessions: HistorySession[];
@@ -22,7 +24,33 @@ interface HistoryPanelProps {
 export function HistoryPanel({ historySessions, visible, onClose, isLoading = false }: HistoryPanelProps) {
     const { t, language } = useI18n();
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [toolFilter, setToolFilter] = useState('');
     const { viewMode, currentSessionId, exitHistoryMode } = useStore();
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Trigger a new listHistory call when search/filter changes (debounced)
+    useEffect(() => {
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        debounceTimer.current = setTimeout(() => {
+            postMessage({
+                type: 'listHistory',
+                query: searchQuery || undefined,
+                toolName: toolFilter || undefined,
+            });
+        }, 300);
+        return () => {
+            if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        };
+    }, [searchQuery, toolFilter]);
+
+    // Reset search when panel is closed
+    useEffect(() => {
+        if (!visible) {
+            setSearchQuery('');
+            setToolFilter('');
+        }
+    }, [visible]);
 
     const handleNewSession = () => {
         postMessage({ type: 'newSession' });
@@ -53,17 +81,17 @@ export function HistoryPanel({ historySessions, visible, onClose, isLoading = fa
         if (diffInSeconds < 60) {
             return t('Common.JustNow');
         }
-        
+
         const diffInMinutes = Math.floor(diffInSeconds / 60);
         if (diffInMinutes < 60) {
             return t('Common.MinutesAgo', diffInMinutes);
         }
-        
+
         const diffInHours = Math.floor(diffInMinutes / 60);
         if (diffInHours < 24) {
             return t('Common.HoursAgo', diffInHours);
         }
-        
+
         const diffInDays = Math.floor(diffInHours / 24);
         if (diffInDays < 7) {
             return t('Common.DaysAgo', diffInDays);
@@ -73,9 +101,12 @@ export function HistoryPanel({ historySessions, visible, onClose, isLoading = fa
              const weeks = Math.floor(diffInDays / 7);
              return t('Common.WeeksAgo', weeks);
         }
-        
+
         return date.toLocaleDateString(language === 'zh-CN' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric' });
     };
+
+    const hasActiveFilter = searchQuery || toolFilter;
+    const emptyMessage = hasActiveFilter ? t('Common.NoSearchResults') : t('Common.NoHistory');
 
     return (
         <div className={`history-panel ${visible ? 'history-panel--visible' : ''}`}>
@@ -90,12 +121,32 @@ export function HistoryPanel({ historySessions, visible, onClose, isLoading = fa
                     </button>
                 </div>
 
+                <div className="history-search-area">
+                    <input
+                        className="history-search-input"
+                        type="text"
+                        placeholder={t('Common.SearchHistoryPlaceholder')}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <select
+                        className="history-tool-filter"
+                        value={toolFilter}
+                        onChange={(e) => setToolFilter(e.target.value)}
+                        aria-label={t('Common.AllTools')}
+                    >
+                        <option value="">{t('Common.AllTools')}</option>
+                        {TOOL_OPTIONS.map((tool) => (
+                            <option key={tool} value={tool}>{tool}</option>
+                        ))}
+                    </select>
+                </div>
+
                 <div className="history-sessions-list">
-                    <div className="history-section-title">{t('Common.OtherHistory')}</div>
                     {isLoading ? (
                         <SessionSkeleton count={3} />
                     ) : historySessions.length === 0 ? (
-                        <div className="history-empty">{t('Common.NoHistory')}</div>
+                        <div className="history-empty">{emptyMessage}</div>
                     ) : (
                         historySessions.map((session) => (
                             <div
@@ -118,7 +169,7 @@ export function HistoryPanel({ historySessions, visible, onClose, isLoading = fa
                         ))
                     )}
                 </div>
-                
+
                 <div className="history-footer">
                     <button className="history-new-btn" onClick={handleNewSession}>
                         {t('Common.CreateSession')}

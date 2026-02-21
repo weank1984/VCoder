@@ -1,14 +1,14 @@
 /**
- * VSCode API Hook
+ * Host Bridge
+ *
+ * Abstracts communication between the shared Webview and its host environment.
+ * The host provides an `acquireVsCodeApi()` compatible object regardless of
+ * whether the Webview is running inside VSCode or the Desktop Shell (Electron).
+ * See `packages/shared/src/hostBridge.ts` for the canonical interface definition.
  */
+import type { HostBridgeApi } from '@vcoder/shared';
 
-type VSCodeApiLike = {
-    postMessage(message: unknown): void;
-    getState(): unknown;
-    setState(state: unknown): void;
-};
-
-const vscode: VSCodeApiLike =
+const vscode: HostBridgeApi =
     typeof acquireVsCodeApi === 'function'
         ? acquireVsCodeApi()
         : {

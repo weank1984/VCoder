@@ -1,6 +1,9 @@
 import { spawn, type ChildProcess, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
+import { DesktopAuditLogger } from './auditLogger.js';
 import { dialog, shell } from 'electron';
 import {
   ACPMethods,
@@ -63,7 +66,9 @@ export class DesktopRuntime {
   private terminalCounter = 0;
   private workspaceRoot: string;
   private readonly permissionRulesPath: string;
+  private readonly uiLanguagePath: string;
   private readonly previewDir: string;
+  private readonly auditLogger: DesktopAuditLogger;
   private readonly terminals = new Map<string, TerminalHandle>();
   private readonly permissionRules = new Map<string, PermissionRule>();
   private readonly pendingFileChanges = new Map<string, Set<string>>();
@@ -72,7 +77,9 @@ export class DesktopRuntime {
   constructor(private readonly options: RuntimeOptions) {
     this.workspaceRoot = path.resolve(options.workspaceRoot);
     this.permissionRulesPath = path.join(options.stateDir, 'permission-rules.json');
+    this.uiLanguagePath = path.join(options.stateDir, 'ui-language.json');
     this.previewDir = path.join(options.stateDir, 'pending-previews');
+    this.auditLogger = new DesktopAuditLogger(options.stateDir);
   }
 
   getWorkspaceRoot(): string {
@@ -119,6 +126,25 @@ export class DesktopRuntime {
     this.registerAcpHandlers(this.acpClient);
     this.acpClient.on('session/update', (params: UpdateNotificationParams) => {
       this.trackPendingFileChanges(params);
+      // Audit: tool_use
+      if (params.type === 'tool_use') {
+        const tc = params.content as { id?: string; name?: string; input?: Record<string, unknown> };
+        if (tc.name) {
+          this.auditLogger.logToolCall(params.sessionId, tc.name, tc.input ?? {}, tc.id);
+        }
+      }
+      // Audit: file_change (proposed)
+      if (params.type === 'file_change') {
+        const fc = params.content as { path?: string; type?: string; proposed?: boolean };
+        if (fc.path && fc.proposed) {
+          this.auditLogger.logFileOperation(params.sessionId, fc.path, 'write');
+        }
+      }
+      // Audit: error
+      if (params.type === 'error') {
+        const err = params.content as { message?: string; type?: string };
+        this.auditLogger.logError(params.sessionId, err.type ?? 'agent_error', err.message ?? 'unknown');
+      }
       this.options.postMessage({
         type: 'update',
         data: params,
@@ -156,6 +182,8 @@ export class DesktopRuntime {
     });
 
     this.postPermissionRules();
+    const uiLanguage = await this.loadUiLanguage();
+    this.options.postMessage({ type: 'uiLanguage', data: { uiLanguage } });
   }
 
   async shutdown(): Promise<void> {
@@ -203,10 +231,12 @@ export class DesktopRuntime {
             await this.requireClient().switchSession(payload.sessionId);
             this.options.postMessage({ type: 'currentSession', data: { sessionId: payload.sessionId } });
             await this.postSessions();
+            this.auditLogger.logSessionStart(payload.sessionId, 'switch');
           }
           return;
         case 'deleteSession':
           if (typeof payload.sessionId === 'string') {
+            this.auditLogger.logSessionEnd(payload.sessionId, 'deleted');
             await this.requireClient().deleteSession(payload.sessionId);
             this.pendingFileChanges.delete(payload.sessionId);
             this.pendingChangeDetails.delete(payload.sessionId);
@@ -257,6 +287,7 @@ export class DesktopRuntime {
             const sessionId = typeof payload.sessionId === 'string' ? payload.sessionId : undefined;
             await this.requireClient().acceptFileChange(payload.path, sessionId);
             this.removePendingFileChange(sessionId, payload.path);
+            this.auditLogger.logFileOperation(sessionId ?? 'unknown', payload.path, 'accept', 'accepted');
           }
           return;
         case 'rejectChange':
@@ -264,6 +295,7 @@ export class DesktopRuntime {
             const sessionId = typeof payload.sessionId === 'string' ? payload.sessionId : undefined;
             await this.requireClient().rejectFileChange(payload.path, sessionId);
             this.removePendingFileChange(sessionId, payload.path);
+            this.auditLogger.logFileOperation(sessionId ?? 'unknown', payload.path, 'reject', 'rejected');
           }
           return;
         case 'acceptAllChanges':
@@ -297,12 +329,16 @@ export class DesktopRuntime {
         case 'selectAgent':
           this.postAgentStatus();
           return;
-        case 'listHistory':
+        case 'listHistory': {
+          const lhQuery = typeof payload.query === 'string' ? payload.query : undefined;
+          const lhToolName = typeof payload.toolName === 'string' ? payload.toolName : undefined;
+          const lhSearch = (lhQuery || lhToolName) ? { query: lhQuery, toolName: lhToolName } : undefined;
           this.options.postMessage({
             type: 'historySessions',
-            data: await this.requireClient().listHistory(this.workspaceRoot),
+            data: await this.requireClient().listHistory(this.workspaceRoot, lhSearch),
           });
           return;
+        }
         case 'loadHistory':
           if (typeof payload.sessionId === 'string') {
             this.options.postMessage({
@@ -329,6 +365,7 @@ export class DesktopRuntime {
             });
             this.options.postMessage({ type: 'currentSession', data: { sessionId: session.id } });
             await this.postSessions();
+            this.auditLogger.logSessionStart(session.id, 'resume', session.title);
           }
           return;
         case 'getPermissionRules':
@@ -355,6 +392,35 @@ export class DesktopRuntime {
           await this.savePermissionRules();
           this.postPermissionRules();
           return;
+        case 'setUiLanguage': {
+          const uiLanguage = typeof payload.uiLanguage === 'string' ? payload.uiLanguage : 'auto';
+          await this.saveUiLanguage(uiLanguage);
+          this.options.postMessage({ type: 'uiLanguage', data: { uiLanguage } });
+          return;
+        }
+        case 'showEcosystem':
+          this.options.postMessage({ type: 'showEcosystem' });
+          this.options.postMessage({ type: 'ecosystemData', data: await this.gatherEcosystemData() });
+          return;
+        case 'getEcosystemData':
+          this.options.postMessage({ type: 'ecosystemData', data: await this.gatherEcosystemData() });
+          return;
+        case 'addMcpServer': {
+          const newServer = payload.server as { name?: string; type: string; command?: string; url?: string; args?: string[] };
+          if (newServer && typeof newServer.type === 'string') {
+            await this.addMcpServerToConfig(newServer as Record<string, unknown>);
+            this.options.postMessage({ type: 'ecosystemData', data: await this.gatherEcosystemData() });
+          }
+          return;
+        }
+        case 'removeMcpServer': {
+          const removeId = typeof payload.id === 'string' ? payload.id : '';
+          if (removeId) {
+            await this.removeMcpServerFromConfig(removeId);
+            this.options.postMessage({ type: 'ecosystemData', data: await this.gatherEcosystemData() });
+          }
+          return;
+        }
         default:
           return;
       }
@@ -377,10 +443,12 @@ export class DesktopRuntime {
       currentSession = await client.newSession(undefined, { cwd: this.workspaceRoot });
       this.options.postMessage({ type: 'currentSession', data: { sessionId: currentSession.id } });
       await this.postSessions();
+      this.auditLogger.logSessionStart(currentSession.id, 'auto', currentSession.title);
     }
 
     const content = typeof payload.content === 'string' ? payload.content : '';
     const attachments = Array.isArray(payload.attachments) ? payload.attachments : undefined;
+    this.auditLogger.logUserPrompt(currentSession.id, content);
 
     if (this.promptMode === 'persistent') {
       await client.promptPersistent(content, attachments as never);
@@ -393,6 +461,7 @@ export class DesktopRuntime {
     const session = await this.requireClient().newSession(title, { cwd: this.workspaceRoot });
     this.options.postMessage({ type: 'currentSession', data: { sessionId: session.id } });
     await this.postSessions();
+    this.auditLogger.logSessionStart(session.id, 'user', session.title);
   }
 
   private async selectWorkspaceFromUi(): Promise<void> {
@@ -480,6 +549,123 @@ export class DesktopRuntime {
   private async savePermissionRules(): Promise<void> {
     const serialized = JSON.stringify(Array.from(this.permissionRules.values()), null, 2);
     await fs.writeFile(this.permissionRulesPath, serialized, 'utf-8');
+  }
+
+  private async saveUiLanguage(uiLanguage: string): Promise<void> {
+    await fs.writeFile(this.uiLanguagePath, JSON.stringify({ uiLanguage }), 'utf-8');
+  }
+
+  async loadUiLanguage(): Promise<string> {
+    try {
+      const raw = await fs.readFile(this.uiLanguagePath, 'utf-8');
+      const parsed = JSON.parse(raw) as { uiLanguage?: string };
+      return typeof parsed.uiLanguage === 'string' ? parsed.uiLanguage : 'auto';
+    } catch {
+      return 'auto';
+    }
+  }
+
+  private get mcpServersPath(): string {
+    return path.join(this.options.stateDir, 'mcp-servers.json');
+  }
+
+  private readMcpServers(): Record<string, unknown>[] {
+    try {
+      const raw = fsSync.readFileSync(this.mcpServersPath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private async addMcpServerToConfig(server: Record<string, unknown>): Promise<void> {
+    const servers = this.readMcpServers();
+    servers.push(server);
+    await fs.writeFile(this.mcpServersPath, JSON.stringify(servers, null, 2), 'utf-8');
+  }
+
+  private async removeMcpServerFromConfig(id: string): Promise<void> {
+    const servers = this.readMcpServers();
+    const updated = servers.filter((s, i) => `${i}:${(s.name as string) ?? ''}` !== id);
+    await fs.writeFile(this.mcpServersPath, JSON.stringify(updated, null, 2), 'utf-8');
+  }
+
+  private async gatherEcosystemData() {
+    const homeDir = os.homedir();
+    const claudeDir = path.join(homeDir, '.claude');
+
+    // MCP: read from local mcp-servers.json
+    const mcpRaw = this.readMcpServers();
+    const mcp = mcpRaw.map((s, i) => ({
+      id: `${i}:${(s.name as string) ?? ''}`,
+      type: (s.type as string) || 'stdio',
+      name: s.name as string | undefined,
+      command: s.command as string | undefined,
+      url: s.url as string | undefined,
+      args: s.args as string[] | undefined,
+      readonly: false,
+    }));
+
+    // Skills: ~/.claude/skills/ and <workspace>/.claude/skills/
+    const skills: { name: string; description?: string; source: 'global' | 'workspace'; path: string }[] = [];
+    for (const [skillsDir, source] of [
+      [path.join(claudeDir, 'skills'), 'global'],
+      [path.join(this.workspaceRoot, '.claude', 'skills'), 'workspace'],
+    ] as [string, 'global' | 'workspace'][]) {
+      try {
+        const entries = fsSync.readdirSync(skillsDir).filter(f => f.endsWith('.md'));
+        for (const entry of entries) {
+          const fullPath = path.join(skillsDir, entry);
+          const name = entry.replace(/\.md$/, '');
+          let description: string | undefined;
+          try {
+            const content = fsSync.readFileSync(fullPath, 'utf-8');
+            const match = content.match(/^#\s+(.+)|description:\s*['""]?(.+?)['""]?\s*$/mi);
+            description = match ? (match[1] || match[2])?.trim() : undefined;
+          } catch { /* ignore */ }
+          skills.push({ name, description, source, path: fullPath });
+        }
+      } catch { /* dir doesn't exist */ }
+    }
+
+    // Hooks: ~/.claude/settings.json
+    const hooks: { event: string; command: string; matcher?: string }[] = [];
+    try {
+      const settingsPath = path.join(claudeDir, 'settings.json');
+      const raw = fsSync.readFileSync(settingsPath, 'utf-8');
+      const settings = JSON.parse(raw);
+      if (Array.isArray(settings.hooks)) {
+        for (const hook of settings.hooks) {
+          if (typeof hook.event === 'string' && typeof hook.command === 'string') {
+            hooks.push({ event: hook.event, command: hook.command, matcher: hook.matcher });
+          }
+        }
+      }
+    } catch { /* no settings */ }
+
+    // Plugins: ~/.claude/plugins/ and <workspace>/.claude/plugins/
+    const plugins: { name: string; version?: string; path: string; source: 'global' | 'workspace' }[] = [];
+    for (const [pluginsDir, source] of [
+      [path.join(claudeDir, 'plugins'), 'global'],
+      [path.join(this.workspaceRoot, '.claude', 'plugins'), 'workspace'],
+    ] as [string, 'global' | 'workspace'][]) {
+      try {
+        const entries = fsSync.readdirSync(pluginsDir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (!entry.isDirectory()) continue;
+          const fullPath = path.join(pluginsDir, entry.name);
+          let version: string | undefined;
+          try {
+            const pkg = JSON.parse(fsSync.readFileSync(path.join(fullPath, 'package.json'), 'utf-8'));
+            version = pkg.version;
+          } catch { /* no package.json */ }
+          plugins.push({ name: entry.name, version, path: fullPath, source });
+        }
+      } catch { /* dir doesn't exist */ }
+    }
+
+    return { mcp, skills, hooks, plugins };
   }
 
   private async addPermissionRule(rule: Partial<PermissionRule>): Promise<void> {
@@ -674,6 +860,8 @@ export class DesktopRuntime {
   }
 
   private registerAcpHandlers(client: ACPClient): void {
+    const terminalStartTimes = new Map<string, { startMs: number; command: string; cwd: string }>();
+
     client.registerRequestHandler(ACPMethods.FS_READ_TEXT_FILE, async (params) =>
       this.readTextFile(params as FsReadTextFileParams),
     );
@@ -681,15 +869,30 @@ export class DesktopRuntime {
       this.writeTextFile(params as FsWriteTextFileParams),
     );
 
-    client.registerRequestHandler(ACPMethods.TERMINAL_CREATE, async (params) =>
-      this.createTerminal(params as TerminalCreateParams),
-    );
+    client.registerRequestHandler(ACPMethods.TERMINAL_CREATE, async (params) => {
+      const p = params as TerminalCreateParams;
+      const result = await this.createTerminal(p);
+      const sessionId = client.getCurrentSession()?.id ?? 'unknown';
+      const commandStr = `${p.command} ${(p.args ?? []).join(' ')}`.trim();
+      terminalStartTimes.set(result.terminalId, { startMs: Date.now(), command: commandStr, cwd: p.cwd ?? this.workspaceRoot });
+      this.auditLogger.logTerminalCommand(sessionId, commandStr, p.cwd ?? this.workspaceRoot);
+      return result;
+    });
     client.registerRequestHandler(ACPMethods.TERMINAL_OUTPUT, async (params) =>
       this.getTerminalOutput(params as TerminalOutputParams),
     );
-    client.registerRequestHandler(ACPMethods.TERMINAL_WAIT_FOR_EXIT, async (params) =>
-      this.waitForTerminalExit(params as TerminalWaitForExitParams),
-    );
+    client.registerRequestHandler(ACPMethods.TERMINAL_WAIT_FOR_EXIT, async (params) => {
+      const p = params as TerminalWaitForExitParams;
+      const result = await this.waitForTerminalExit(p);
+      const startInfo = terminalStartTimes.get(p.terminalId);
+      if (startInfo) {
+        const sessionId = client.getCurrentSession()?.id ?? 'unknown';
+        const durationMs = Date.now() - startInfo.startMs;
+        this.auditLogger.logTerminalCommand(sessionId, startInfo.command, startInfo.cwd, result.exitCode, durationMs);
+        terminalStartTimes.delete(p.terminalId);
+      }
+      return result;
+    });
     client.registerRequestHandler(ACPMethods.TERMINAL_KILL, async (params) =>
       this.killTerminal(params as TerminalKillParams),
     );
@@ -892,6 +1095,8 @@ export class DesktopRuntime {
   }
 
   private postError(title: string, message: string): void {
+    const sessionId = this.acpClient?.getCurrentSession()?.id ?? 'unknown';
+    this.auditLogger.logError(sessionId, title, message);
     this.options.postMessage({
       type: 'error',
       data: {

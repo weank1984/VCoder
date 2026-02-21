@@ -4,3 +4,4 @@
 
 export * from './protocol';
 export * from './desktopTheme';
+export * from './hostBridge';

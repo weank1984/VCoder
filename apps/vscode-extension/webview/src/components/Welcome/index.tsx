@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { HelpIcon, HistoryIcon } from '../Icon';
+import { HelpIcon, HistoryIcon, McpIcon, ManageIcon } from '../Icon';
 import { Logo } from '../Logo';
 import { postMessage } from '../../utils/vscode';
 import { useI18n } from '../../i18n/I18nProvider';
@@ -29,7 +29,7 @@ function formatUpdatedAt(updatedAt: string | undefined, locale: string): string 
 
 export function Welcome() {
   const { t, language } = useI18n();
-  const { historySessions } = useStore();
+  const { historySessions, experimentalAgentTeams, setExperimentalAgentTeams } = useStore();
 
   useEffect(() => {
     postMessage({ type: 'listHistory' });
@@ -72,6 +72,24 @@ export function Welcome() {
       <div className={`${prefixClass}-recents`}>
         <div className={`${prefixClass}-recents-header`}>
           <div className={`${prefixClass}-recents-title`}>{t('Chat.RecentConversations')}</div>
+          <button
+            type="button"
+            className={`${prefixClass}-recents-action${experimentalAgentTeams ? ` ${prefixClass}-recents-action--active` : ''}`}
+            title={t('Common.AgentTeams')}
+            aria-label={t('Common.AgentTeams')}
+            onClick={() => setExperimentalAgentTeams(!experimentalAgentTeams)}
+          >
+            <ManageIcon />
+          </button>
+          <button
+            type="button"
+            className={`${prefixClass}-recents-action`}
+            title={t('Common.Ecosystem')}
+            aria-label={t('Common.Ecosystem')}
+            onClick={() => postMessage({ type: 'showEcosystem' })}
+          >
+            <McpIcon />
+          </button>
           <button
             type="button"
             className={`${prefixClass}-recents-action`}

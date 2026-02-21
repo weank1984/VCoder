@@ -102,4 +102,8 @@ export const createUiSlice: SliceCreator<UiSlice> = (set, _get) => ({
         set({ promptMode: mode });
         postMessage({ type: 'setPromptMode', mode });
     },
+
+    setExperimentalAgentTeams: (enabled) => {
+        set({ experimentalAgentTeams: enabled });
+    },
 });

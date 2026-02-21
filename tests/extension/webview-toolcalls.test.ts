@@ -42,21 +42,6 @@ describe('webview store tool calls', () => {
     });
   });
 
-  it('adds bash_request as a pending tool call', () => {
-    useStore.getState().handleUpdate({
-      sessionId: 's1',
-      type: 'bash_request',
-      content: { id: 'bash1', command: 'echo hello' },
-    });
-
-    const state = useStore.getState();
-    expect(state.messages[0].toolCalls?.[0]).toMatchObject({
-      id: 'bash1',
-      status: 'pending',
-    });
-    expect(state.messages[0].toolCalls?.[0].name).toContain('Bash');
-  });
-
   it('updates tool calls across earlier messages (not only the last)', () => {
     const store = useStore.getState();
 

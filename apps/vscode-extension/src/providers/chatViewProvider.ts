@@ -5,6 +5,8 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as os from 'os';
+import * as fs from 'fs';
 import { EventEmitter } from 'events';
 import { ACPClient } from '@vcoder/shared/acpClient';
 import { UpdateNotificationParams, McpServerConfig, AgentProfile, PermissionRule, FileChangeUpdate } from '@vcoder/shared';
@@ -345,21 +347,6 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         this.postMessage({ type: 'uiLanguage', data: { uiLanguage } }, true);
                     }
                     break;
-                case 'confirmBash':
-                    // @deprecated — Use confirmTool instead. Kept for backward compatibility.
-                    console.warn('[VCoder] confirmBash is deprecated; use confirmTool');
-                    await this.acpClient.confirmBash(message.commandId);
-                    break;
-                case 'skipBash':
-                    // @deprecated — Use confirmTool instead. Kept for backward compatibility.
-                    console.warn('[VCoder] skipBash is deprecated; use confirmTool');
-                    await this.acpClient.skipBash(message.commandId);
-                    break;
-                case 'confirmPlan':
-                    // @deprecated — Use confirmTool instead. Kept for backward compatibility.
-                    console.warn('[VCoder] confirmPlan is deprecated; use confirmTool');
-                    await this.acpClient.confirmPlan();
-                    break;
                 case 'confirmTool':
                     {
                         const { toolCallId, confirmed, options } = message;
@@ -400,7 +387,9 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                     {
                         const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
                         try {
-                            const sessions = await this.acpClient.listHistory(root);
+                            const { query, toolName } = message as { type: string; query?: string; toolName?: string };
+                            const search = (query || toolName) ? { query, toolName } : undefined;
+                            const sessions = await this.acpClient.listHistory(root, search);
                             this.postMessage({ type: 'historySessions', data: sessions });
                         } catch (err) {
                             console.error('[VCoder] Failed to list history:', err);
@@ -551,6 +540,37 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                             await this.sessionStore.clearPermissionRules();
                         }
                         this.postMessage({ type: 'permissionRules', data: [] });
+                    }
+                    break;
+                case 'showEcosystem':
+                case 'getEcosystemData':
+                    {
+                        if (message.type === 'showEcosystem') {
+                            this.postMessage({ type: 'showEcosystem' });
+                        }
+                        const ecosystemData = await this.gatherEcosystemData();
+                        this.postMessage({ type: 'ecosystemData', data: ecosystemData });
+                    }
+                    break;
+                case 'addMcpServer':
+                    {
+                        const config = vscode.workspace.getConfiguration('vcoder');
+                        const servers = config.get<McpServerConfig[]>('mcpServers', []);
+                        const { server } = message as { type: string; server: McpServerConfig };
+                        await config.update('mcpServers', [...servers, server], vscode.ConfigurationTarget.Global);
+                        const ecosystemData = await this.gatherEcosystemData();
+                        this.postMessage({ type: 'ecosystemData', data: ecosystemData });
+                    }
+                    break;
+                case 'removeMcpServer':
+                    {
+                        const config = vscode.workspace.getConfiguration('vcoder');
+                        const servers = config.get<McpServerConfig[]>('mcpServers', []);
+                        const { id } = message as { type: string; id: string };
+                        const updated = servers.filter((s, i) => `${i}:${s.name ?? ''}` !== id);
+                        await config.update('mcpServers', updated, vscode.ConfigurationTarget.Global);
+                        const ecosystemData = await this.gatherEcosystemData();
+                        this.postMessage({ type: 'ecosystemData', data: ecosystemData });
                     }
                     break;
                 case 'deleteHistory':
@@ -932,6 +952,89 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
             status: 'offline' as const,
             isActive: index === 0, // First agent is active by default
         }));
+    }
+
+    /**
+     * Gather all CLI ecosystem data: MCP servers, skills, hooks, plugins.
+     */
+    private async gatherEcosystemData() {
+        const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+        const homeDir = os.homedir();
+        const claudeDir = path.join(homeDir, '.claude');
+
+        // MCP servers
+        const mcpServers = this.getMcpServerConfig();
+        const mcp = mcpServers.map((s, i) => ({
+            id: `${i}:${s.name ?? ''}`,
+            type: s.type,
+            name: s.name,
+            command: s.command,
+            url: s.url,
+            args: s.args,
+            readonly: !!(this.builtinMcpServer && s.url && (() => {
+                try { return this.builtinMcpServer?.getServerConfig().url === s.url; } catch { return false; }
+            })()),
+        }));
+
+        // Skills: ~/.claude/skills/ and <workspace>/.claude/skills/
+        const skills: { name: string; description?: string; source: 'global' | 'workspace'; path: string }[] = [];
+        for (const [skillsDir, source] of [
+            [path.join(claudeDir, 'skills'), 'global'],
+            [path.join(workspacePath, '.claude', 'skills'), 'workspace'],
+        ] as [string, 'global' | 'workspace'][]) {
+            try {
+                const entries = fs.readdirSync(skillsDir).filter(f => f.endsWith('.md'));
+                for (const entry of entries) {
+                    const fullPath = path.join(skillsDir, entry);
+                    const name = entry.replace(/\.md$/, '');
+                    let description: string | undefined;
+                    try {
+                        const content = fs.readFileSync(fullPath, 'utf-8');
+                        const match = content.match(/^#\s+(.+)|description:\s*['""]?(.+?)['""]?\s*$/mi);
+                        description = match ? (match[1] || match[2])?.trim() : undefined;
+                    } catch { /* ignore */ }
+                    skills.push({ name, description, source, path: fullPath });
+                }
+            } catch { /* dir doesn't exist */ }
+        }
+
+        // Hooks: ~/.claude/settings.json
+        const hooks: { event: string; command: string; matcher?: string }[] = [];
+        try {
+            const settingsPath = path.join(claudeDir, 'settings.json');
+            const raw = fs.readFileSync(settingsPath, 'utf-8');
+            const settings = JSON.parse(raw);
+            if (Array.isArray(settings.hooks)) {
+                for (const hook of settings.hooks) {
+                    if (typeof hook.event === 'string' && typeof hook.command === 'string') {
+                        hooks.push({ event: hook.event, command: hook.command, matcher: hook.matcher });
+                    }
+                }
+            }
+        } catch { /* no settings or not parseable */ }
+
+        // Plugins: ~/.claude/plugins/ and <workspace>/.claude/plugins/
+        const plugins: { name: string; version?: string; path: string; source: 'global' | 'workspace' }[] = [];
+        for (const [pluginsDir, source] of [
+            [path.join(claudeDir, 'plugins'), 'global'],
+            [path.join(workspacePath, '.claude', 'plugins'), 'workspace'],
+        ] as [string, 'global' | 'workspace'][]) {
+            try {
+                const entries = fs.readdirSync(pluginsDir, { withFileTypes: true });
+                for (const entry of entries) {
+                    if (!entry.isDirectory()) continue;
+                    const fullPath = path.join(pluginsDir, entry.name);
+                    let version: string | undefined;
+                    try {
+                        const pkg = JSON.parse(fs.readFileSync(path.join(fullPath, 'package.json'), 'utf-8'));
+                        version = pkg.version;
+                    } catch { /* no package.json */ }
+                    plugins.push({ name: entry.name, version, path: fullPath, source });
+                }
+            } catch { /* dir doesn't exist */ }
+        }
+
+        return { mcp, skills, hooks, plugins };
     }
 
     /**

@@ -90,16 +90,6 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
                 }, targetSessionId);
                 break;
             }
-            case 'bash_request': {
-                const bash = content as { id: string; command: string };
-                get().addToolCall({
-                    id: bash.id,
-                    name: 'Bash',
-                    status: 'pending',
-                    input: { command: bash.command, CommandLine: bash.command },
-                }, targetSessionId);
-                break;
-            }
             case 'task_list': {
                 const { tasks } = content as { tasks: Task[] };
                 get().setTasks(tasks, targetSessionId);
@@ -242,6 +232,7 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
             currentAgentId: null,
             permissionRules: [],
             promptMode: 'persistent',
+            experimentalAgentTeams: false,
         } satisfies AppState);
     },
 });

@@ -11,6 +11,9 @@ import { TaskRunsBlock } from './components/TaskRunsBlock';
 import { VirtualMessageItem } from './components/VirtualMessageItem';
 import { InputArea, type InputAreaHandle } from './components/InputArea';
 import { HistoryPanel } from './components/HistoryPanel';
+import { EcosystemPanel } from './components/EcosystemPanel';
+import { AgentTeamsPanel } from './components/AgentTeamsPanel';
+import type { EcosystemData } from './types';
 import { JumpToBottom } from './components/JumpToBottom';
 import { Welcome } from './components/Welcome';
 import { PermissionDialog, type PermissionRequest } from './components/PermissionDialog';
@@ -33,6 +36,9 @@ const ESTIMATED_MESSAGE_HEIGHT = 120;
 function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [showPermissionRules, setShowPermissionRules] = useState(false);
+  const [showEcosystem, setShowEcosystem] = useState(false);
+  const [showAgentTeams, setShowAgentTeams] = useState(false);
+  const [ecosystemData, setEcosystemData] = useState<EcosystemData | null>(null);
   const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null);
   const [activeUserMessageId, setActiveUserMessageId] = useState<string | null>(null);
   const [stickyPromptHeight, setStickyPromptHeight] = useState(0);
@@ -260,6 +266,12 @@ function App() {
         case 'showHistory':
           setShowHistory(true);
           postMessage({ type: 'listHistory' }); // Refresh history list when opening
+          break;
+        case 'showEcosystem':
+          setShowEcosystem(true);
+          break;
+        case 'ecosystemData':
+          setEcosystemData(message.data);
           break;
         case 'historySessions':
           setHistorySessions(message.data);
@@ -555,6 +567,18 @@ function App() {
         historySessions={historySessions}
         visible={showHistory}
         onClose={() => setShowHistory(false)}
+      />
+
+      <EcosystemPanel
+        visible={showEcosystem}
+        onClose={() => setShowEcosystem(false)}
+        data={ecosystemData}
+        onRefresh={() => postMessage({ type: 'getEcosystemData' })}
+      />
+
+      <AgentTeamsPanel
+        visible={showAgentTeams}
+        onClose={() => setShowAgentTeams(false)}
       />
 
       <PermissionRulesPanel

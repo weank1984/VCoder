@@ -67,13 +67,6 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
     
     // Handle confirm/reject actions using the unified confirmTool method
     const handleConfirm = useCallback((tc: ToolCall, approve: boolean, options?: { trustAlways?: boolean; editedContent?: string }) => {
-        // Backward compatibility: legacy bash approvals are `bash_request` updates.
-        if (tc.name === 'Bash' && tc.status === 'pending') {
-            postMessage({ type: approve ? 'confirmBash' : 'skipBash', commandId: tc.id });
-            return;
-        }
-
-        // Unified confirm for modern confirmation flows.
         useStore.getState().confirmTool(tc.id, approve, options);
     }, []);
     

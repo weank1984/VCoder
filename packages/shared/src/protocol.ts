@@ -278,10 +278,6 @@ export type UpdateType =
     | 'mcp_call'
     | 'task_list'
     | 'subagent_run'
-    /** @deprecated Never emitted by Server. Use `confirmation_request` with type `bash` instead. Will be removed in V0.5. */
-    | 'bash_request'
-    /** @deprecated Never emitted by Server. Use `task_list` instead. Will be removed in V0.5. */
-    | 'plan_ready'
     | 'error'
     | 'confirmation_request'
     | 'session_switch';
@@ -303,8 +299,6 @@ export interface UpdateNotificationParams {
     | McpCallUpdate
     | TaskListUpdate
     | SubagentRunUpdate
-    | BashRequestUpdate
-    | PlanReadyUpdate
     | ErrorUpdate
     | ConfirmationRequestUpdate
     | SessionSwitchUpdate;
@@ -379,17 +373,6 @@ export interface SubagentRunUpdate {
     error?: string;
 }
 
-/** @deprecated Never emitted by Server. Use `confirmation_request` with type `bash` instead. Will be removed in V0.5. */
-export interface BashRequestUpdate {
-    id: string;
-    command: string;
-}
-
-/** @deprecated Never emitted by Server. Use `task_list` instead. Will be removed in V0.5. */
-export interface PlanReadyUpdate {
-    tasks: Task[];
-    summary: string;
-}
 
 export type ErrorCode =
     | 'AGENT_CRASHED'
@@ -524,6 +507,16 @@ export interface HistorySession {
 export interface HistoryListParams {
     /** Workspace path to find history for */
     workspacePath: string;
+    /** Full-text search in session title */
+    query?: string;
+    /** Filter sessions that used a specific tool name (e.g. 'Bash', 'Write') */
+    toolName?: string;
+    /** Filter sessions that touched a specific file path (substring match) */
+    filePath?: string;
+    /** Include sessions updated on or after this ISO timestamp */
+    dateFrom?: string;
+    /** Include sessions updated on or before this ISO timestamp */
+    dateTo?: string;
 }
 
 export interface HistoryListResult {

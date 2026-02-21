@@ -1,0 +1,240 @@
+/**
+ * Agent Teams Panel Styles
+ */
+
+.agent-teams-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+}
+
+.agent-teams-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.agent-teams-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  max-width: 100vw;
+  background: var(--vc-color-surface-2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.agent-teams-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--vc-color-border);
+  flex-shrink: 0;
+}
+
+.agent-teams-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vc-color-text);
+}
+
+.agent-teams-badge {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: var(--vc-color-warning, #f59e0b);
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.agent-teams-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vc-color-text-tertiary);
+  cursor: pointer;
+  border-radius: var(--vc-radius-s);
+
+  &:hover {
+    background: var(--vc-color-fill-2);
+    color: var(--vc-color-text);
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.agent-teams-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.agent-teams-enable-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 24px 0;
+}
+
+.agent-teams-icon {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.agent-teams-enable-desc {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vc-color-text);
+  margin: 0;
+}
+
+.agent-teams-desc {
+  font-size: 12px;
+  color: var(--vc-color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.agent-teams-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agent-teams-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.agent-teams-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--vc-color-text-secondary);
+}
+
+.agent-teams-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--vc-color-fill-1);
+  border-radius: var(--vc-radius-s);
+}
+
+.agent-teams-input {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 13px;
+  background: var(--vc-color-surface-1);
+  border: 1px solid var(--vc-color-border);
+  border-radius: var(--vc-radius-s);
+  color: var(--vc-color-text);
+  outline: none;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: var(--vc-color-primary);
+  }
+}
+
+.agent-teams-steps {
+  margin: 0;
+  padding: 0 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li {
+    font-size: 12px;
+    color: var(--vc-color-text-secondary);
+    line-height: 1.5;
+  }
+}
+
+.agent-teams-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--vc-color-border);
+}
+
+.agent-teams-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: var(--vc-radius-s);
+  border: none;
+  cursor: pointer;
+  transition: background var(--vc-motion-duration-fast);
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &--primary {
+    background: var(--vc-color-primary);
+    color: #fff;
+    width: 100%;
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+  }
+
+  &--ghost {
+    background: transparent;
+    color: var(--vc-color-text-secondary);
+    padding: 4px 8px;
+    font-size: 16px;
+    line-height: 1;
+
+    &:hover {
+      background: var(--vc-color-fill-2);
+      color: var(--vc-color-text);
+    }
+  }
+
+  &--danger {
+    background: var(--vc-color-error, #ef4444);
+    color: #fff;
+    width: 100%;
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+  }
+}
