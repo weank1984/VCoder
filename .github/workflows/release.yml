@@ -39,7 +39,7 @@ jobs:
           files: apps/vscode-extension/vcoder.vsix
 
       - name: Publish to VS Marketplace (optional)
-        if: ${{ secrets.VSCE_PAT != '' }}
+        if: ${{ env.VSCE_PAT != '' }}
         working-directory: apps/vscode-extension
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
@@ -47,7 +47,7 @@ jobs:
           pnpm dlx @vscode/vsce publish -p "$VSCE_PAT"
 
       - name: Publish to Open VSX (optional)
-        if: ${{ secrets.OVSX_PAT != '' }}
+        if: ${{ env.OVSX_PAT != '' }}
         working-directory: apps/vscode-extension
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
