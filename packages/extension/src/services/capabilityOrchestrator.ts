@@ -316,33 +316,32 @@ export class CapabilityOrchestrator extends EventEmitter {
         const visiting = new Set<string>();
 
         const visit = (name: string) => {
+            if (visited.has(name)) {
+                return; // Already fully processed
+            }
             if (visiting.has(name)) {
                 // Circular dependency detected
                 console.warn(`[CapabilityOrchestrator] Circular dependency detected: ${name}`);
                 return;
             }
-            
+
             visiting.add(name);
-            visited.add(name);
 
             const capability = this.capabilities.get(name);
             if (capability?.dependencies) {
                 for (const dep of capability.dependencies) {
-                    if (!visited.has(dep)) {
-                        visit(dep);
-                    }
+                    visit(dep);
                 }
             }
-            
-            order.push(name);
+
             visiting.delete(name);
+            visited.add(name);
+            order.push(name);
         };
 
         // Visit all registered capabilities
         for (const name of this.capabilities.keys()) {
-            if (!visited.has(name)) {
-                visit(name);
-            }
+            visit(name);
         }
 
         return order;

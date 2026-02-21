@@ -60,6 +60,7 @@ export class ACPServer {
     private pendingRequests: Map<number | string, {
         resolve: (value: unknown) => void;
         reject: (error: Error) => void;
+        timeout?: ReturnType<typeof setTimeout>;
     }> = new Map();
 
     constructor(
@@ -79,8 +80,9 @@ export class ACPServer {
         this.claudeCode.on('complete', (sessionId: string, usage?: SessionCompleteParams['usage']) => {
             this.sendNotification(ACPMethods.SESSION_COMPLETE, {
                 sessionId,
+                reason: 'completed',
                 usage,
-            });
+            } satisfies SessionCompleteParams);
         });
     }
 
@@ -116,6 +118,9 @@ export class ACPServer {
         const pending = this.pendingRequests.get(response.id!);
         if (pending) {
             this.pendingRequests.delete(response.id!);
+            if (pending.timeout) {
+                clearTimeout(pending.timeout);
+            }
             if (response.error) {
                 pending.reject(new Error(response.error.message));
             } else {
@@ -349,15 +354,16 @@ export class ACPServer {
         if (!this.sessions.has(params.sessionId)) {
             throw new Error(`Session not found: ${params.sessionId}`);
         }
-        
+
+        const previousSessionId = this.currentSessionId;
+        this.currentSessionId = params.sessionId;
+
         // Notify webview of session switch
         this.sendNotification(ACPMethods.SESSION_UPDATE, {
             sessionId: params.sessionId,
             type: 'session_switch',
-            content: { previousSessionId: this.currentSessionId, newSessionId: params.sessionId }
-        });
-        
-        this.currentSessionId = params.sessionId;
+            content: { previousSessionId, newSessionId: params.sessionId },
+        } satisfies UpdateNotificationParams);
     }
 
     private async handleDeleteSession(params: DeleteSessionParams): Promise<void> {
@@ -566,19 +572,22 @@ export class ACPServer {
         };
 
         return new Promise<T>((resolve, reject) => {
-            this.pendingRequests.set(id, { resolve: resolve as (value: unknown) => void, reject });
-
-            const reqStr = JSON.stringify(request);
-            console.error('[ACPServer] Sending request to client:', method, reqStr.slice(0, 200));
-            this.stdout.write(reqStr + '\n');
-
-            // Set timeout for request
-            setTimeout(() => {
+            const timeout = setTimeout(() => {
                 if (this.pendingRequests.has(id)) {
                     this.pendingRequests.delete(id);
                     reject(new Error(`Request timeout: ${method}`));
                 }
-            }, 30000); // 30 second timeout
+            }, 30000);
+
+            this.pendingRequests.set(id, {
+                resolve: resolve as (value: unknown) => void,
+                reject,
+                timeout,
+            });
+
+            const reqStr = JSON.stringify(request);
+            console.error('[ACPServer] Sending request to client:', method, reqStr.slice(0, 200));
+            this.stdout.write(reqStr + '\n');
         });
     }
 }

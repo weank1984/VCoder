@@ -400,7 +400,7 @@ export class ACPClient extends EventEmitter {
             const oldRequests = this.pendingRequests.get(oldSessionId);
             if (oldRequests) {
                 // Reject all pending requests with a clear error message
-                for (const [requestId, pending] of oldRequests.entries()) {
+                for (const [, pending] of oldRequests) {
                     if (pending.timeout) {
                         clearTimeout(pending.timeout);
                     }
@@ -426,7 +426,7 @@ export class ACPClient extends EventEmitter {
         const sessionRequests = this.pendingRequests.get(sessionId);
         if (sessionRequests) {
             // Reject all pending requests with a clear error message
-            for (const [requestId, pending] of sessionRequests.entries()) {
+            for (const [, pending] of sessionRequests) {
                 if (pending.timeout) {
                     clearTimeout(pending.timeout);
                 }
@@ -571,68 +571,42 @@ export class ACPClient extends EventEmitter {
         this.desiredSettings = {};
     }
 
-    async shutdown(): Promise<void> {
-        // Clean up readline interface
+    /**
+     * Core cleanup logic shared by shutdown() and destroy().
+     */
+    private cleanup(errorMessage: string): void {
         this.cleanupReadline();
 
-        // Clear all session-isolated pending requests
-        for (const [sessionKey, sessionRequests] of this.pendingRequests.entries()) {
-            for (const [requestId, pending] of sessionRequests.entries()) {
+        for (const [, sessionRequests] of this.pendingRequests) {
+            for (const [, pending] of sessionRequests) {
                 if (pending.timeout) {
                     clearTimeout(pending.timeout);
                 }
-                pending.reject(new Error('ACPClient shutdown'));
+                pending.reject(new Error(errorMessage));
             }
         }
         this.pendingRequests.clear();
 
-        // Clear handlers
         this.requestHandlers.clear();
-
-        // Remove all listeners
         this.removeAllListeners();
 
-        // Clear session state
         this.currentSession = null;
         this.desiredSettings = {};
         this.writeCallback = null;
     }
 
+    async shutdown(): Promise<void> {
+        this.cleanup('ACPClient shutdown');
+    }
+
     /**
-     * Destroy method for complete cleanup
+     * Destroy method for complete cleanup (swallows errors for robustness).
      */
     destroy(): void {
-        // 同步清理，避免异步问题
-        this.cleanupReadline();
-
-        // Clear all session-isolated pending requests synchronously
-        for (const [sessionKey, sessionRequests] of this.pendingRequests.entries()) {
-            for (const [requestId, pending] of sessionRequests.entries()) {
-                try {
-                    if (pending.timeout) {
-                        clearTimeout(pending.timeout);
-                    }
-                    pending.reject(new Error('ACPClient destroyed'));
-                } catch (error) {
-                    console.error('[ACPClient] Error rejecting pending request:', error);
-                }
-            }
-        }
-        this.pendingRequests.clear();
-
-        // Clear handlers
-        this.requestHandlers.clear();
-
-        // Remove all event listeners
         try {
-            this.removeAllListeners();
+            this.cleanup('ACPClient destroyed');
         } catch (error) {
-            console.error('[ACPClient] Error removing listeners:', error);
+            console.error('[ACPClient] Error during destroy:', error);
         }
-
-        // Clear state
-        this.currentSession = null;
-        this.desiredSettings = {};
-        this.writeCallback = null;
     }
 }

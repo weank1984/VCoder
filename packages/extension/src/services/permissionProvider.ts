@@ -225,27 +225,6 @@ export class PermissionProvider {
     }
 
     /**
-     * Categorize tool by type for better permission management
-     */
-    private categorizeTool(toolName: string): string {
-        const lowerName = toolName.toLowerCase();
-        
-        if (['read', 'write', 'edit', 'glob', 'grep'].includes(lowerName)) {
-            return 'file-operations';
-        }
-        
-        if (['bash', 'shell', 'execute'].includes(lowerName)) {
-            return 'commands';
-        }
-        
-        if (lowerName.startsWith('mcp__')) {
-            return 'mcp-tool';
-        }
-        
-        return 'other';
-    }
-
-    /**
      * Escape special regex characters
      */
     private escapeRegExp(string: string): string {

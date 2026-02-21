@@ -5,9 +5,7 @@
 
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
-import * as fs from 'fs';
 import * as os from 'os';
-import * as path from 'path';
 import {
     Attachment,
     ModelId,
@@ -20,7 +18,7 @@ import {
     TaskListUpdate,
     ErrorUpdate,
 } from '@vcoder/shared';
-import { generateUnifiedDiff } from '../utils/unifiedDiff';
+import { resolveClaudePath, JsonStreamParser, computeFileChangeDiff, matchStderrError } from './shared';
 
 export interface PersistentSessionOptions {
     workingDirectory: string;
@@ -49,12 +47,7 @@ export class PersistentSession extends EventEmitter {
     private taskList: TaskListUpdate | null = null;
     private subagentRunMetaById: Map<string, { title: string; subagentType?: string; parentTaskId?: string; input?: Record<string, unknown> }> = new Map();
     private thinkingContent = '';
-    private buffer = '';
-    private scanIndex = 0;
-    private jsonStart = -1;
-    private depth = 0;
-    private inString = false;
-    private escaped = false;
+    private parser = new JsonStreamParser();
     private isRunning = false;
     
     constructor(
@@ -249,25 +242,7 @@ export class PersistentSession extends EventEmitter {
     }
 
     private resolveClaudePath(): string {
-        const home = process.env.HOME || '';
-        const candidates = [
-            process.env.CLAUDE_PATH,
-            home ? path.join(home, '.local', 'bin', 'claude') : undefined,
-            '/usr/local/bin/claude',
-            '/opt/homebrew/bin/claude',
-            'claude',
-        ].filter((p): p is string => typeof p === 'string' && p.length > 0);
-
-        for (const candidate of candidates) {
-            try {
-                if (candidate === 'claude') return candidate;
-                if (fs.existsSync(candidate)) return candidate;
-            } catch {
-                // ignore
-            }
-        }
-
-        return 'claude';
+        return resolveClaudePath();
     }
 
     private setupListeners(): void {
@@ -277,8 +252,10 @@ export class PersistentSession extends EventEmitter {
 
         this.process.stdout?.setEncoding('utf8');
         this.process.stdout?.on('data', (chunk: string) => {
-            this.buffer += chunk;
-            this.processBuffer();
+            const jsonTexts = this.parser.feed(chunk);
+            for (const jsonText of jsonTexts) {
+                this.handleJsonText(jsonText);
+            }
         });
 
         this.process.stderr?.on('data', (data) => {
@@ -286,61 +263,11 @@ export class PersistentSession extends EventEmitter {
             stderrTail = (stderrTail + text).slice(-8000);
             console.error(`[PersistentSession stderr]`, text);
 
-            if (text.includes('Please run `claude login`')) {
-                this.emit('update', {
-                    code: 'AUTH_REQUIRED',
-                    message: 'Authentication required. Please set your API Key or run `claude login`.',
-                    action: { label: 'Set API Key', command: 'vcoder.setApiKey' },
-                } as ErrorUpdate, 'error');
-            }
-
-            if (text.includes('command not found')) {
-                this.emit('update', {
-                    code: 'CLI_NOT_FOUND',
-                    message: 'Claude Code CLI not found.',
-                    action: { label: 'Install', command: 'vcoder.openInstallGuide' },
-                } as ErrorUpdate, 'error');
+            const stderrError = matchStderrError(text);
+            if (stderrError) {
+                this.emit('update', stderrError, 'error');
             }
         });
-    }
-
-    private processBuffer(): void {
-        for (; this.scanIndex < this.buffer.length; this.scanIndex++) {
-            const ch = this.buffer[this.scanIndex];
-            if (this.jsonStart === -1) {
-                if (ch === '{' || ch === '[') {
-                    this.buffer = this.buffer.slice(this.scanIndex);
-                    this.scanIndex = 0;
-                    this.jsonStart = 0;
-                    this.depth = 1;
-                    this.inString = false;
-                    this.escaped = false;
-                    continue;
-                }
-                if (ch === '\n') {
-                    this.buffer = this.buffer.slice(this.scanIndex + 1);
-                    this.scanIndex = -1;
-                }
-                continue;
-            }
-            if (this.inString) {
-                if (this.escaped) this.escaped = false;
-                else if (ch === '\\') this.escaped = true;
-                else if (ch === '"') this.inString = false;
-                continue;
-            }
-            if (ch === '"') { this.inString = true; continue; }
-            if (ch === '{' || ch === '[') this.depth++;
-            else if (ch === '}' || ch === ']') {
-                this.depth--;
-                if (this.depth === 0) {
-                    this.handleJsonText(this.buffer.slice(this.jsonStart, this.scanIndex + 1));
-                    this.buffer = this.buffer.slice(this.scanIndex + 1);
-                    this.scanIndex = -1;
-                    this.jsonStart = -1;
-                }
-            }
-        }
     }
 
     private handleJsonText(jsonText: string): void {
@@ -500,20 +427,14 @@ export class PersistentSession extends EventEmitter {
                 filePath &&
                 typeof proposedContent === 'string' &&
                 Buffer.byteLength(proposedContent, 'utf8') <= 1 * 1024 * 1024;
-            
-            const { diff, didExist } = { diff: '', didExist: true };
-            
-            if (shouldComputeDiff) {
-                try {
-                    const { diff: generatedDiff } = generateUnifiedDiff({
-                        workingDirectory: this.options.workingDirectory,
-                        filePath,
-                        proposedContent,
-                    });
-                } catch (error) {
-                    console.error('[PersistentSession] Diff generation failed:', error);
-                }
-            }
+
+            const { diff, didExist } = shouldComputeDiff
+                ? computeFileChangeDiff({
+                      workingDirectory: this.options.workingDirectory,
+                      filePath,
+                      proposedContent,
+                  })
+                : { diff: '', didExist: true };
 
             const toolInputForUi =
                 shouldComputeDiff && diff

@@ -278,7 +278,13 @@ export type UpdateType =
     | 'bash_request'
     | 'plan_ready'
     | 'error'
-    | 'confirmation_request';
+    | 'confirmation_request'
+    | 'session_switch';
+
+export interface SessionSwitchUpdate {
+    previousSessionId: string | null;
+    newSessionId: string;
+}
 
 export interface UpdateNotificationParams {
     sessionId: string;
@@ -295,7 +301,8 @@ export interface UpdateNotificationParams {
     | BashRequestUpdate
     | PlanReadyUpdate
     | ErrorUpdate
-    | ConfirmationRequestUpdate;
+    | ConfirmationRequestUpdate
+    | SessionSwitchUpdate;
 }
 
 export interface ThoughtUpdate {

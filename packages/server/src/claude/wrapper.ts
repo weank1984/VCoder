@@ -5,9 +5,7 @@
 
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
-import * as fs from 'fs';
 import * as os from 'os';
-import * as path from 'path';
 import {
     Attachment,
     ModelId,
@@ -25,7 +23,7 @@ import {
     ConfirmationType,
 } from '@vcoder/shared';
 import { PersistentSession, PersistentSessionSettings } from './persistentSession';
-import { generateUnifiedDiff } from '../utils/unifiedDiff';
+import { resolveClaudePath, JsonStreamParser, computeFileChangeDiff, matchStderrError } from './shared';
 
 export interface ClaudeCodeOptions {
     workingDirectory: string;
@@ -94,6 +92,26 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
     constructor(private options: ClaudeCodeOptions) {
         super();
+    }
+
+    /**
+     * Clean up all session-related state maps for a given session.
+     */
+    private cleanupSession(sessionId: string): void {
+        this.processesByLocalSessionId.delete(sessionId);
+        this.toolNameByIdByLocalSessionId.delete(sessionId);
+        this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
+        this.receivedStreamingTextByLocalSessionId.delete(sessionId);
+        this.lastToolIdByLocalSessionId.delete(sessionId);
+        this.seenCanUseToolByLocalSessionId.delete(sessionId);
+
+        for (const [key, resolver] of this.pendingConfirmationResolvers.entries()) {
+            if (key.startsWith(`${sessionId}:`)) {
+                resolver.resolve();
+                this.pendingConfirmationResolvers.delete(key);
+                this.pendingCanUseToolByToolCallKey.delete(key);
+            }
+        }
     }
 
     /**
@@ -280,133 +298,39 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 } else {
                      reject(new Error(`Exit code ${code}`));
                 }
-                this.processesByLocalSessionId.delete(sessionId);
-                this.toolNameByIdByLocalSessionId.delete(sessionId);
-                this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
-                this.receivedStreamingTextByLocalSessionId.delete(sessionId);
-                this.lastToolIdByLocalSessionId.delete(sessionId);
-                this.seenCanUseToolByLocalSessionId.delete(sessionId);
-                
-                // Clean up any pending confirmation promises for this session
-                for (const [key, resolver] of this.pendingConfirmationResolvers.entries()) {
-                    if (key.startsWith(`${sessionId}:`)) {
-                        resolver.resolve();
-                        this.pendingConfirmationResolvers.delete(key);
-                        this.pendingCanUseToolByToolCallKey.delete(key);
-                    }
-                }
+                this.cleanupSession(sessionId);
             });
-             child.on('error', (err) => {
-                this.processesByLocalSessionId.delete(sessionId);
-                this.toolNameByIdByLocalSessionId.delete(sessionId);
-                this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
-                this.receivedStreamingTextByLocalSessionId.delete(sessionId);
-                this.lastToolIdByLocalSessionId.delete(sessionId);
-                this.seenCanUseToolByLocalSessionId.delete(sessionId);
-                
-                // Clean up any pending confirmation promises for this session
-                for (const [key, resolver] of this.pendingConfirmationResolvers.entries()) {
-                    if (key.startsWith(`${sessionId}:`)) {
-                        resolver.resolve();
-                        this.pendingConfirmationResolvers.delete(key);
-                        this.pendingCanUseToolByToolCallKey.delete(key);
-                    }
-                }
+            child.on('error', (err) => {
+                this.cleanupSession(sessionId);
                 reject(err);
             });
         });
     }
 
     private resolveClaudePath(): string {
-        const home = process.env.HOME || '';
-        const candidates = [
-            process.env.CLAUDE_PATH,
-            home ? path.join(home, '.local', 'bin', 'claude') : undefined,
-            '/usr/local/bin/claude',
-            '/opt/homebrew/bin/claude',
-            'claude',
-        ].filter((p): p is string => typeof p === 'string' && p.length > 0);
-
-        for (const candidate of candidates) {
-            try {
-                if (candidate === 'claude') return candidate;
-                if (fs.existsSync(candidate)) return candidate;
-            } catch {
-                // ignore
-            }
-        }
-
-        return 'claude';
+        return resolveClaudePath();
     }
 
     private setupProcessListeners(sessionId: string, process: ChildProcess) {
-        let buffer = '';
-        let scanIndex = 0;
-        let jsonStart = -1;
-        let depth = 0;
-        let inString = false;
-        let escaped = false;
+        const parser = new JsonStreamParser();
         let stderrTail = '';
-
-        const handleJsonText = (jsonText: string) => {
-            try {
-                const event = JSON.parse(jsonText);
-                // Log event types for debugging streaming issues
-                if (this.debugThinking) {
-                    const eventType = event.type as string;
-                    const deltaType = (event.delta as Record<string, unknown>)?.type;
-                    console.error(`[ClaudeCode][event] type=${eventType}${deltaType ? ` delta.type=${deltaType}` : ''}`);
-                }
-                this.handleClaudeCodeEvent(sessionId, event);
-            } catch (err) {
-                console.error('[ClaudeCode] JSON parse error:', err);
-            }
-        };
-
-        const processBuffer = () => {
-             // Standard JSON stream parser
-            for (; scanIndex < buffer.length; scanIndex++) {
-                const ch = buffer[scanIndex];
-                if (jsonStart === -1) {
-                    if (ch === '{' || ch === '[') {
-                        buffer = buffer.slice(scanIndex);
-                        scanIndex = 0;
-                        jsonStart = 0;
-                        depth = 1; 
-                        inString = false;
-                        escaped = false;
-                        continue;
-                    }
-                    if (ch === '\n') {
-                        buffer = buffer.slice(scanIndex + 1);
-                        scanIndex = -1;
-                    }
-                    continue;
-                }
-                if (inString) {
-                    if (escaped) escaped = false;
-                    else if (ch === '\\') escaped = true;
-                    else if (ch === '"') inString = false;
-                    continue;
-                }
-                if (ch === '"') { inString = true; continue; }
-                if (ch === '{' || ch === '[') depth++;
-                else if (ch === '}' || ch === ']') {
-                    depth--;
-                    if (depth === 0) {
-                        handleJsonText(buffer.slice(jsonStart, scanIndex + 1));
-                        buffer = buffer.slice(scanIndex + 1);
-                        scanIndex = -1;
-                        jsonStart = -1;
-                    }
-                }
-            }
-        };
 
         process.stdout?.setEncoding('utf8');
         process.stdout?.on('data', (chunk: string) => {
-            buffer += chunk;
-            processBuffer();
+            const jsonTexts = parser.feed(chunk);
+            for (const jsonText of jsonTexts) {
+                try {
+                    const event = JSON.parse(jsonText);
+                    if (this.debugThinking) {
+                        const eventType = event.type as string;
+                        const deltaType = (event.delta as Record<string, unknown>)?.type;
+                        console.error(`[ClaudeCode][event] type=${eventType}${deltaType ? ` delta.type=${deltaType}` : ''}`);
+                    }
+                    this.handleClaudeCodeEvent(sessionId, event);
+                } catch (err) {
+                    console.error('[ClaudeCode] JSON parse error:', err);
+                }
+            }
         });
 
         process.stderr?.on('data', (data) => {
@@ -445,31 +369,9 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 }
             }
 
-            if (text.includes('Please run `claude login`')) {
-                this.emit(
-                    'update',
-                    sessionId,
-                    {
-                        code: 'AUTH_REQUIRED',
-                        message: 'Authentication required. Please set your API Key or run `claude login`.',
-                        action: { label: 'Set API Key', command: 'vcoder.setApiKey' },
-                    } as ErrorUpdate,
-                    'error'
-                );
-                return;
-            }
-
-            if (text.includes('command not found')) {
-                this.emit(
-                    'update',
-                    sessionId,
-                    {
-                        code: 'CLI_NOT_FOUND',
-                        message: 'Claude Code CLI not found.',
-                        action: { label: 'Install', command: 'vcoder.openInstallGuide' },
-                    } as ErrorUpdate,
-                    'error'
-                );
+            const stderrError = matchStderrError(text);
+            if (stderrError) {
+                this.emit('update', sessionId, stderrError, 'error');
             }
         });
     }
@@ -869,16 +771,12 @@ export class ClaudeCodeWrapper extends EventEmitter {
             let diff: string | undefined;
             const proposedContent = typeof toolInput.content === 'string' ? toolInput.content : undefined;
             if (filePath && typeof proposedContent === 'string' && Buffer.byteLength(proposedContent, 'utf8') <= 1 * 1024 * 1024) {
-                try {
-                    const { diff: generatedDiff } = generateUnifiedDiff({
-                        workingDirectory: this.options.workingDirectory,
-                        filePath,
-                        proposedContent,
-                    });
-                    diff = generatedDiff;
-                } catch {
-                    diff = undefined;
-                }
+                const result = computeFileChangeDiff({
+                    workingDirectory: this.options.workingDirectory,
+                    filePath,
+                    proposedContent,
+                });
+                diff = result.diff || undefined;
             }
             return {
                 id: `confirm-${toolCallId}-${Date.now()}`,
@@ -1258,7 +1156,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 typeof proposedContent === 'string' &&
                 Buffer.byteLength(proposedContent, 'utf8') <= 1 * 1024 * 1024;
             const { diff, didExist } = shouldComputeDiff
-                ? generateUnifiedDiff({
+                ? computeFileChangeDiff({
                       workingDirectory: this.options.workingDirectory,
                       filePath,
                       proposedContent,
@@ -1492,20 +1390,8 @@ export class ClaudeCodeWrapper extends EventEmitter {
             } catch (err) {
                 console.error('[ClaudeCode] Failed to cancel process:', err);
             }
-            this.processesByLocalSessionId.delete(sessionId);
-            this.toolNameByIdByLocalSessionId.delete(sessionId);
-            this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
-            this.receivedStreamingTextByLocalSessionId.delete(sessionId);
         }
-
-        // Clean up any pending confirmation promises for this session
-        for (const [key, resolver] of this.pendingConfirmationResolvers.entries()) {
-            if (key.startsWith(`${sessionId}:`)) {
-                resolver.resolve();
-                this.pendingConfirmationResolvers.delete(key);
-                this.pendingCanUseToolByToolCallKey.delete(key);
-            }
-        }
+        this.cleanupSession(sessionId);
     }
 
     async shutdown(): Promise<void> {
