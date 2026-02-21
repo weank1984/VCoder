@@ -15,17 +15,65 @@ function formatUpdatedAt(updatedAt: string | undefined, locale: string): string 
   if (Number.isNaN(date.getTime())) return '';
   try {
     return new Intl.DateTimeFormat(locale, {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
+      month: 'short',
+      day: 'numeric',
     }).format(date);
   } catch {
     return date.toLocaleString();
   }
 }
+
+interface PromptSuggestion {
+  icon: string;
+  title: string;
+  prompt: string;
+}
+
+const PROMPT_SUGGESTIONS_EN: PromptSuggestion[] = [
+  {
+    icon: '🐛',
+    title: 'Debug my code',
+    prompt: 'Help me find and fix the bug in my code',
+  },
+  {
+    icon: '✨',
+    title: 'Write a feature',
+    prompt: 'Help me implement a new feature',
+  },
+  {
+    icon: '📝',
+    title: 'Explain this code',
+    prompt: 'Explain how this code works and what it does',
+  },
+  {
+    icon: '🔧',
+    title: 'Refactor code',
+    prompt: 'Help me refactor this code to be cleaner and more maintainable',
+  },
+];
+
+const PROMPT_SUGGESTIONS_ZH: PromptSuggestion[] = [
+  {
+    icon: '🐛',
+    title: '调试代码',
+    prompt: '帮我找到并修复代码中的 bug',
+  },
+  {
+    icon: '✨',
+    title: '开发新功能',
+    prompt: '帮我实现一个新功能',
+  },
+  {
+    icon: '📝',
+    title: '解释代码',
+    prompt: '解释这段代码的工作原理和功能',
+  },
+  {
+    icon: '🔧',
+    title: '重构代码',
+    prompt: '帮我重构这段代码，使其更简洁易维护',
+  },
+];
 
 export function Welcome() {
   const { t, language } = useI18n();
@@ -35,7 +83,6 @@ export function Welcome() {
     postMessage({ type: 'listHistory' });
   }, []);
 
-  // Only use historySessions (Claude CLI history) - same as history panel
   const sorted = [...historySessions].sort((a, b) => {
     const at = new Date(a.updatedAt).getTime();
     const bt = new Date(b.updatedAt).getTime();
@@ -45,18 +92,20 @@ export function Welcome() {
     return bt - at;
   });
 
-  // Show top 3 recent sessions
-  const items = sorted.slice(0, 3);
+  const items = sorted.slice(0, 4);
+  const suggestions = language === 'zh-CN' ? PROMPT_SUGGESTIONS_ZH : PROMPT_SUGGESTIONS_EN;
+
+  const handleSuggestionClick = (prompt: string) => {
+    window.dispatchEvent(new CustomEvent('vcoder:fillInput', { detail: { content: prompt } }));
+  };
 
   return (
     <div className={prefixClass}>
       <div className={`${prefixClass}-hero`}>
-        <Logo size={96} aria-hidden="true" />
-
+        <Logo size={64} aria-hidden="true" />
         <h1 className={`${prefixClass}-title`}>{t('Chat.WelcomeTitle')}</h1>
-
-        <p className={`${prefixClass}-note`}>
-          <span>{t('Chat.WelcomeNote')}</span>
+        <p className={`${prefixClass}-subtitle`}>
+          {t('Chat.WelcomeNote')}
           <button
             type="button"
             className={`${prefixClass}-doc-link`}
@@ -69,43 +118,59 @@ export function Welcome() {
         </p>
       </div>
 
-      <div className={`${prefixClass}-recents`}>
-        <div className={`${prefixClass}-recents-header`}>
-          <div className={`${prefixClass}-recents-title`}>{t('Chat.RecentConversations')}</div>
+      {/* Example prompt suggestions */}
+      <div className={`${prefixClass}-suggestions`}>
+        {suggestions.map((suggestion, index) => (
           <button
+            key={index}
             type="button"
-            className={`${prefixClass}-recents-action${experimentalAgentTeams ? ` ${prefixClass}-recents-action--active` : ''}`}
-            title={t('Common.AgentTeams')}
-            aria-label={t('Common.AgentTeams')}
-            onClick={() => setExperimentalAgentTeams(!experimentalAgentTeams)}
+            className={`${prefixClass}-suggestion-card`}
+            onClick={() => handleSuggestionClick(suggestion.prompt)}
           >
-            <ManageIcon />
+            <span className={`${prefixClass}-suggestion-icon`}>{suggestion.icon}</span>
+            <span className={`${prefixClass}-suggestion-title`}>{suggestion.title}</span>
           </button>
-          <button
-            type="button"
-            className={`${prefixClass}-recents-action`}
-            title={t('Common.Ecosystem')}
-            aria-label={t('Common.Ecosystem')}
-            onClick={() => postMessage({ type: 'showEcosystem' })}
-          >
-            <McpIcon />
-          </button>
-          <button
-            type="button"
-            className={`${prefixClass}-recents-action`}
-            title={t('Chat.ViewAllConversations')}
-            aria-label={t('Chat.ViewAllConversations')}
-            onClick={() => postMessage({ type: 'executeCommand', command: 'vcoder.showHistory' })}
-          >
-            <HistoryIcon />
-          </button>
-        </div>
+        ))}
+      </div>
 
-        <div className={`${prefixClass}-recents-list`}>
-          {items.length === 0 ? (
-            <div className={`${prefixClass}-recents-empty`}>{t('Chat.NoRecentConversations')}</div>
-          ) : (
-            items.map((s) => (
+      {/* Recent conversations */}
+      {items.length > 0 && (
+        <div className={`${prefixClass}-recents`}>
+          <div className={`${prefixClass}-recents-header`}>
+            <div className={`${prefixClass}-recents-title`}>{t('Chat.RecentConversations')}</div>
+            <div className={`${prefixClass}-recents-actions`}>
+              <button
+                type="button"
+                className={`${prefixClass}-recents-action${experimentalAgentTeams ? ` ${prefixClass}-recents-action--active` : ''}`}
+                title={t('Common.AgentTeams')}
+                aria-label={t('Common.AgentTeams')}
+                onClick={() => setExperimentalAgentTeams(!experimentalAgentTeams)}
+              >
+                <ManageIcon />
+              </button>
+              <button
+                type="button"
+                className={`${prefixClass}-recents-action`}
+                title={t('Common.Ecosystem')}
+                aria-label={t('Common.Ecosystem')}
+                onClick={() => postMessage({ type: 'showEcosystem' })}
+              >
+                <McpIcon />
+              </button>
+              <button
+                type="button"
+                className={`${prefixClass}-recents-action`}
+                title={t('Chat.ViewAllConversations')}
+                aria-label={t('Chat.ViewAllConversations')}
+                onClick={() => postMessage({ type: 'executeCommand', command: 'vcoder.showHistory' })}
+              >
+                <HistoryIcon />
+              </button>
+            </div>
+          </div>
+
+          <div className={`${prefixClass}-recents-list`}>
+            {items.map((s) => (
               <button
                 type="button"
                 key={s.id}
@@ -113,15 +178,16 @@ export function Welcome() {
                 onClick={() => postMessage({ type: 'loadHistory', sessionId: s.id })}
                 title={sanitizeSessionTitle(s.title, t('Common.UntitledSession'))}
               >
+                <span className={`${prefixClass}-recents-item-icon`}>💬</span>
                 <span className={`${prefixClass}-recents-item-title`}>{sanitizeSessionTitle(s.title, t('Common.UntitledSession'))}</span>
                 <span className={`${prefixClass}-recents-item-time`}>
                   {formatUpdatedAt(s.updatedAt, language === 'zh-CN' ? 'zh-CN' : 'en-US')}
                 </span>
               </button>
-            ))
-          )}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

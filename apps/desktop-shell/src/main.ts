@@ -283,6 +283,15 @@ app.whenReady().then(async () => {
     return;
   }
 
+  // Setup IPC before loading the webview to avoid missing early messages
+  ipcMain.on(IPC_CHANNELS.WEBVIEW_OUTGOING, (_event, payload) => {
+    if (runtime) {
+      void runtime.handleWebviewMessage(payload);
+    }
+  });
+  setupThemeIpc();
+  setupShortcutIpc();
+
   // Load the webview
   const webviewEntry = await resolveWebviewEntry();
   if (webviewEntry) {
@@ -295,15 +304,6 @@ app.whenReady().then(async () => {
         ),
     );
   }
-
-  // Setup IPC
-  ipcMain.on(IPC_CHANNELS.WEBVIEW_OUTGOING, (_event, payload) => {
-    if (runtime) {
-      void runtime.handleWebviewMessage(payload);
-    }
-  });
-  setupThemeIpc();
-  setupShortcutIpc();
 
   setWindowTitle();
 

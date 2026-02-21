@@ -29,7 +29,7 @@
     overflow: hidden;
 
     &.running {
-        border-left: 2px solid var(--vscode-terminal-ansiBlue);
+        border-left: 2px solid var(--vc-color-primary, #d97706);
     }
 
     &.completed {

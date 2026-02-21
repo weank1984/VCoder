@@ -1,10 +1,10 @@
-/* Composer Surface - Cursor-style input box */
+/* Composer Surface - Claude-style rounded input box */
 
 .vc-composer-surface {
-    background: color-mix(in srgb, var(--vscode-input-background) 90%, transparent);
-    border: 1px solid var(--vc-color-border);
-    border-radius: 6px;
-    transition: box-shadow 100ms ease-in-out, border-color 100ms ease-in-out;
+    background: var(--vscode-input-background, #ffffff);
+    border: 1.5px solid var(--vc-color-border);
+    border-radius: 16px;
+    transition: box-shadow 150ms ease-in-out, border-color 150ms ease-in-out;
     position: relative;
     contain: unset;
     opacity: 1;
@@ -13,21 +13,21 @@
     /* Interactive states */
     &--interactive {
         &:hover {
-            border-color: var(--vc-color-border-secondary);
-            box-shadow: var(--vc-shadow-sm);
+            border-color: color-mix(in srgb, var(--vc-color-primary) 40%, var(--vc-color-border));
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
     }
 
     &--interactive:focus-within {
-        border-color: var(--vc-color-focus-ring);
+        border-color: var(--vc-color-primary);
         box-shadow:
-            var(--vc-shadow-md),
-            0 0 0 2px color-mix(in srgb, var(--vc-color-focus-ring) 20%, transparent);
+            0 4px 16px rgba(0, 0, 0, 0.08),
+            0 0 0 3px color-mix(in srgb, var(--vc-color-primary) 12%, transparent);
     }
 
     /* Loading/muted state */
     &--muted {
-        opacity: 0.7;
+        opacity: 0.6;
         border-color: var(--vc-color-border-tertiary);
         cursor: not-allowed;
         box-shadow: none;
@@ -64,8 +64,8 @@
 /* Error shake animation */
 @keyframes vc-error-shake {
     0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-2px); }
-    75% { transform: translateX(2px); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
 }
 
 /* Pulse animation for loading states */
@@ -83,7 +83,7 @@
             color-mix(in srgb, var(--vc-color-primary-bg-hover) 40%, transparent) 50%,
             transparent 100%
         );
-        border-radius: 4px;
+        border-radius: 14px;
         animation: vc-loading-sweep 1.5s infinite;
         pointer-events: none;
         z-index: 2;

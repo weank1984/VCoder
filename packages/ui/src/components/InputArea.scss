@@ -14,13 +14,25 @@
     bottom: 0;
     z-index: var(--vc-z-index-sticky);
     width: 100%;
+    background: var(--vscode-editor-background, var(--vc-color-bg-base));
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: -20px;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background: linear-gradient(transparent, var(--vscode-editor-background, var(--vc-color-bg-base)));
+        pointer-events: none;
+    }
 }
 
 .input-wrapper {
     position: relative;
     display: flex;
     flex-direction: column;
-    margin: 0 10px 10px;
+    margin: 0 12px 12px;
 }
 
 .input-content {
@@ -130,23 +142,22 @@
 
 .input-field {
     width: 100%;
-    padding: 0;
     border: none !important;
     outline: none !important;
     background: transparent;
     color: var(--vscode-input-foreground);
     font-family: inherit;
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 1.55;
     resize: none;
-    min-height: 20px;
+    min-height: 24px;
     max-height: 240px;
     display: block;
     overflow-wrap: break-word;
     word-break: break-word;
     scrollbar-width: none;
     box-sizing: border-box;
-    padding: 8px 12px;
+    padding: 10px 14px 4px;
 
     &::-webkit-scrollbar {
         display: none;
@@ -367,10 +378,10 @@
 
 .popover-container {
     padding: var(--vc-space-1);
-    background: var(--vscode-dropdown-background);
-    border: 1px solid var(--vscode-dropdown-border);
-    border-radius: 6px;
-    box-shadow: var(--vc-box-shadow);
+    background: var(--vscode-quickInput-background, var(--vscode-editorWidget-background, #ffffff));
+    border: 1px solid var(--vscode-widget-border, rgba(0,0,0,0.12));
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.10);
     display: flex;
     flex-direction: column;
     overflow: hidden;

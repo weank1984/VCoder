@@ -24,6 +24,15 @@ export const createSessionsSlice: SliceCreator<SessionsSlice> = (set, get) => ({
                 newSessionStates.set(sessionId, sessionState);
             }
 
+            // When switching from no-session to a new empty session while there are
+            // in-flight messages (e.g. user msg + placeholder added before session was
+            // created), migrate them so they're not lost.
+            const switchingFromNoSession = !prevState.currentSessionId && sessionId;
+            if (switchingFromNoSession && sessionState && sessionState.messages.length === 0 && prevState.messages.length > 0) {
+                sessionState = { ...sessionState, messages: prevState.messages, updatedAt: Date.now() };
+                newSessionStates.set(sessionId!, sessionState);
+            }
+
             const currentSessionData = sessionState || {
                 messages: [],
                 tasks: [],
@@ -45,7 +54,7 @@ export const createSessionsSlice: SliceCreator<SessionsSlice> = (set, get) => ({
                 sessionCompleteMessage: sessionState?.sessionCompleteMessage,
                 pendingFileChanges: currentSessionData.pendingFileChanges,
                 error: null,
-                isLoading: false,
+                // Preserve isLoading — don't reset it when a session is created mid-flight
             };
         });
     },

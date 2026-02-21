@@ -76,6 +76,7 @@ export class ACPServer {
     ) {
         // Forward CLI events to ACP notifications
         this.claudeCode.on('update', (sessionId: string, update: UpdateNotificationParams['content'], type: UpdateNotificationParams['type']) => {
+            console.error(`[ACPServer] Forwarding update: sessionId=${sessionId}, type=${type}`);
             this.sendNotification(ACPMethods.SESSION_UPDATE, {
                 sessionId,
                 type,
@@ -84,6 +85,7 @@ export class ACPServer {
         });
 
         this.claudeCode.on('complete', (sessionId: string, usage?: SessionCompleteParams['usage']) => {
+            console.error(`[ACPServer] Forwarding complete: sessionId=${sessionId}`);
             this.sendNotification(ACPMethods.SESSION_COMPLETE, {
                 sessionId,
                 reason: 'completed',

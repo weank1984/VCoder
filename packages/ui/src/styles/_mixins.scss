@@ -160,10 +160,10 @@
  */
 @mixin popover($padding: 4px, $shadow: var(--vc-dropdown-shadow)) {
   padding: $padding;
-  background: var(--vscode-dropdown-background);
-  border: var(--vc-dropdown-border);
+  background: var(--vscode-quickInput-background, var(--vscode-editorWidget-background, #ffffff));
+  border: 1px solid var(--vscode-widget-border, rgba(0, 0, 0, 0.12));
   border-radius: var(--vc-radius-lg);
-  box-shadow: $shadow;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.10);
   position: absolute;
   z-index: var(--vc-z-index-popover);
   animation: fadeIn var(--vc-transition-fast);

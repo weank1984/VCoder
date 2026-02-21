@@ -211,33 +211,54 @@ export class PersistentSession extends EventEmitter {
         this._state = 'idle';
         this._startedAt = Date.now();
         this._lastActivityAt = Date.now();
+
+        // Monitor stdin for write errors
+        this.process.stdin?.on('error', (err) => {
+            console.error(`[PersistentSession] stdin error:`, err);
+        });
+
         this.setupListeners();
 
         // Wait for init event
         return new Promise((resolve, reject) => {
+            let settled = false;
+            const settle = (fn: () => void) => {
+                if (settled) return;
+                settled = true;
+                fn();
+            };
+
             const timeout = setTimeout(() => {
-                reject(new Error('Timeout waiting for session init'));
+                settle(() => reject(new Error('Timeout waiting for session init')));
             }, 30000);
 
             const onInit = () => {
                 clearTimeout(timeout);
-                this.startHealthCheck();
-                this.resetIdleTimer();
-                resolve();
+                settle(() => {
+                    this.startHealthCheck();
+                    this.resetIdleTimer();
+                    resolve();
+                });
             };
 
             this.once('init', onInit);
 
             this.process!.on('error', (err) => {
                 clearTimeout(timeout);
+                this.off('init', onInit);
                 this.isRunning = false;
-                reject(err);
+                settle(() => reject(err));
             });
 
             this.process!.on('close', (code) => {
                 this.isRunning = false;
                 this._state = 'closed';
                 this.clearTimers();
+                this.off('init', onInit);
+                clearTimeout(timeout);
+
+                // Reject the start() promise if process exited before init was received
+                settle(() => reject(new Error(`Session process exited with code ${code ?? 'null'} before initialization`)));
 
                 // Non-zero exit is a crash; attempt recovery
                 if (code !== 0 && code !== null && code !== 143 && code !== 137) {
@@ -283,6 +304,25 @@ export class PersistentSession extends EventEmitter {
         this.resetIdleTimer();
         console.error(`[PersistentSession] Sending message #${this._messageCount}:`, message.slice(0, 100));
         this.process.stdin.write(message);
+    }
+
+    /**
+     * Send a control_response back to the CLI process (e.g. for permission prompts).
+     */
+    sendControlResponse(requestId: string, response: unknown): void {
+        if (!this.process || !this.process.stdin || this.process.stdin.destroyed || this.process.stdin.writableEnded) {
+            console.error(`[PersistentSession] Cannot send control_response: stdin not available`);
+            return;
+        }
+        const payload = {
+            type: 'control_response',
+            response: {
+                subtype: 'success',
+                request_id: requestId,
+                response,
+            },
+        };
+        this.process.stdin.write(JSON.stringify(payload) + '\n');
     }
 
     /**
@@ -365,7 +405,9 @@ export class PersistentSession extends EventEmitter {
 
         this.process.stdout?.setEncoding('utf8');
         this.process.stdout?.on('data', (chunk: string) => {
+            console.error(`[PersistentSession stdout] raw chunk (${chunk.length} bytes):`, chunk.slice(0, 500));
             const jsonTexts = this.parser.feed(chunk);
+            console.error(`[PersistentSession stdout] parsed ${jsonTexts.length} JSON objects`);
             for (const jsonText of jsonTexts) {
                 this.handleJsonText(jsonText);
             }
@@ -510,7 +552,7 @@ export class PersistentSession extends EventEmitter {
 
     private handleEvent(event: Record<string, unknown>): void {
         // Capture session ID
-        const maybeSessionId = 
+        const maybeSessionId =
             (event.session_id as string) ||
             (event.sessionId as string) ||
             ((event.session as { id?: string })?.id);
@@ -520,6 +562,7 @@ export class PersistentSession extends EventEmitter {
         }
 
         const type = event.type as string;
+        console.error(`[PersistentSession] handleEvent type=${type}, state=${this._state}`);
 
         switch (type) {
             case 'stream_event': {
@@ -582,6 +625,12 @@ export class PersistentSession extends EventEmitter {
                         this.emitToolUse(toolName, toolInput, toolId);
                     }
                 }
+                break;
+            }
+
+            case 'control_request': {
+                // Forward to parent so wrapper can show permission UI and respond
+                this.emit('control_request', event);
                 break;
             }
 

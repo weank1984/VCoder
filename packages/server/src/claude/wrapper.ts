@@ -721,6 +721,14 @@ export class ClaudeCodeWrapper extends EventEmitter {
     }
 
     private sendControlResponse(sessionId: string, requestId: string, response: unknown): void {
+        // Try persistent session first
+        const persistentSession = this.persistentSessions.get(sessionId);
+        if (persistentSession) {
+            persistentSession.sendControlResponse(requestId, response);
+            return;
+        }
+
+        // Fall back to one-shot session
         const process = this.processesByLocalSessionId.get(sessionId);
         if (!process?.stdin || process.stdin.destroyed || process.stdin.writableEnded) {
             console.warn(`[ClaudeCode] sendControlResponse: no stdin for session ${sessionId}`);
@@ -1607,6 +1615,10 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
         session.on('complete', () => {
             this.emit('complete', sessionId);
+        });
+
+        session.on('control_request', (event: Record<string, unknown>) => {
+            void this.handleControlRequest(sessionId, event);
         });
 
         session.on('close', (code: number) => {

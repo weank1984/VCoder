@@ -13,6 +13,7 @@ import {
     ArrowBottomIcon,
     StopIcon,
     CheckIcon,
+    SendIcon,
 } from '../Icon';
 import { useI18n } from '../../i18n/I18nProvider';
 import './index.scss';
@@ -197,6 +198,7 @@ export function ComposerToolbar({
     onImageClick,
     primaryAction,
     isLoading = false,
+    onSend,
     onStop,
     onApply,
     onCancel,
@@ -244,6 +246,14 @@ export function ComposerToolbar({
                     />
                 )}
 
+                {primaryAction === 'send' && !isLoading && (
+                    <IconButton
+                        icon={<SendIcon />}
+                        label={t('Common.Send')}
+                        disabled={disabled}
+                        onClick={onSend}
+                    />
+                )}
                 {primaryAction === 'send' && isLoading && (
                     <IconButton
                         icon={<StopIcon />}

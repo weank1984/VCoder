@@ -27,10 +27,10 @@ a {
     }
 }
 
-// Global Scrollbar
+// Global Scrollbar - thin and modern like Claude
 ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-corner {
@@ -38,13 +38,11 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: var(--vscode-scrollbarSlider-background, rgba(121, 121, 121, 0.4));
-    border-radius: 16px;
-    border: 2px solid transparent;
-    background-clip: content-box;
+    background-color: var(--vscode-scrollbarSlider-background, rgba(121, 121, 121, 0.3));
+    border-radius: 10px;
 
     &:hover {
-        background-color: var(--vscode-scrollbarSlider-hoverBackground, rgba(100, 100, 100, 0.7));
+        background-color: var(--vscode-scrollbarSlider-hoverBackground, rgba(100, 100, 100, 0.5));
     }
 
     &:active {

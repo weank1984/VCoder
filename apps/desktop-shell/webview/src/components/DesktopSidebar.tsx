@@ -97,18 +97,12 @@ export function DesktopSidebar({
 
     return (
         <aside className={`desktop-sidebar${collapsed ? ' desktop-sidebar--collapsed' : ''}`}>
-            {/* Header: New Chat + Collapse */}
+            {/* Header: Brand + Collapse */}
             <div className="desktop-sidebar__header">
                 {!collapsed && (
-                    <button
-                        type="button"
-                        className="desktop-sidebar__new-chat"
-                        onClick={handleNewChat}
-                        title={t('Common.NewChat')}
-                    >
-                        <PlusIcon />
-                        <span>{t('Common.NewChat')}</span>
-                    </button>
+                    <div className="desktop-sidebar__brand">
+                        <span className="desktop-sidebar__brand-name">VCoder</span>
+                    </div>
                 )}
                 <button
                     type="button"
@@ -119,6 +113,21 @@ export function DesktopSidebar({
                     {collapsed ? <AloneRightIcon /> : <AloneLeftIcon />}
                 </button>
             </div>
+
+            {/* New Chat button */}
+            {!collapsed && (
+                <div className="desktop-sidebar__new-chat-row">
+                    <button
+                        type="button"
+                        className="desktop-sidebar__new-chat"
+                        onClick={handleNewChat}
+                        title={t('Common.NewChat')}
+                    >
+                        <PlusIcon />
+                        <span>{t('Common.NewChat')}</span>
+                    </button>
+                </div>
+            )}
 
             {/* Collapsed: show only icon buttons */}
             {collapsed && (
@@ -196,6 +205,21 @@ export function DesktopSidebar({
                         ))
                     )}
                 </nav>
+            )}
+
+            {/* Footer: Ecosystem / Settings button (user menu area, like Claude.ai) */}
+            {!collapsed && onShowEcosystem && (
+                <div className="desktop-sidebar__footer">
+                    <button
+                        type="button"
+                        className="desktop-sidebar__footer-btn"
+                        onClick={onShowEcosystem}
+                        title={t('Common.Ecosystem')}
+                    >
+                        <GeneralSettingIcon />
+                        <span>{t('Common.Ecosystem')}</span>
+                    </button>
+                </div>
             )}
         </aside>
     );

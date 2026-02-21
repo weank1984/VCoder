@@ -6,7 +6,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { ModelId } from '@vcoder/shared';
-import { ThinkIcon, ArrowBottomIcon, ArrowRightIcon } from './Icon';
+import { ArrowBottomIcon, ArrowRightIcon } from './Icon';
 import './ModelSelector.scss';
 
 const MODELS: { id: ModelId; name: string }[] = [
@@ -195,11 +195,11 @@ export function ModelSelector({ selectedModel, onSelectModel, disabled = false }
                                             <div className="model-picker-item-left">
                                                 <span className="model-picker-item-label">{model.name}</span>
                                             </div>
-                                            <div className="model-picker-item-right">
-                                                <span className="model-picker-brain-icon">
-                                                    <ThinkIcon />
-                                                </span>
-                                            </div>
+                                            {isSelected && (
+                                                <div className="model-picker-item-right">
+                                                    <span className="model-picker-check">✓</span>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}

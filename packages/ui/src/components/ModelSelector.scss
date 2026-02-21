@@ -16,20 +16,22 @@
 /* Model Picker Menu */
 .model-picker-menu {
     box-sizing: border-box;
-    border-radius: 6px;
-    background-color: var(--vscode-dropdown-background);
-    border: 1px solid var(--vscode-commandCenter-inactiveBorder, var(--vscode-widget-border));
+    border-radius: 8px;
+    /* quickInput is the elevated popup surface (white in light theme) */
+    background-color: var(--vscode-quickInput-background, var(--vscode-editorWidget-background, #ffffff));
+    border: 1px solid var(--vscode-widget-border, rgba(0,0,0,0.12));
     align-items: stretch;
-    font-size: 12px;
+    font-size: 13px;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 0;
+    gap: 0;
+    padding: 4px 0;
     contain: paint;
     outline: none;
     pointer-events: auto;
+    min-width: 240px;
     z-index: var(--vc-z-index-popover, 1001);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.10);
     animation: modelPickerIn 0.12s ease-out;
 }
 
@@ -43,20 +45,22 @@
     display: flex;
     gap: 4px;
     align-items: center;
-    padding: 0 6px;
+    padding: 0 10px;
     border: none;
     box-sizing: border-box;
     outline: none;
-    margin: 2px;
+    margin: 4px 4px 2px;
+    border-bottom: 1px solid var(--vscode-widget-border, rgba(0,0,0,0.1));
+    padding-bottom: 6px;
 }
 
 .model-picker-search-input {
-    font-size: 12px;
-    line-height: 15px;
+    font-size: 13px;
+    line-height: 20px;
     border-radius: 4px;
     background: transparent;
     color: var(--vscode-input-foreground);
-    padding: 3px 0;
+    padding: 0;
     flex: 1;
     min-width: 0;
     border: none;
@@ -90,8 +94,8 @@
 .model-picker-section {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 2px;
+    gap: 1px;
+    padding: 2px 0;
 }
 
 /* Divider */
@@ -104,24 +108,24 @@
 
 /* Item */
 .model-picker-item {
-    border-radius: 4px;
+    border-radius: 6px;
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 2px 6px;
+    padding: 6px 10px;
     min-width: 0;
-    min-height: 16px;
     cursor: pointer;
     color: var(--vscode-foreground);
     transition: background 80ms ease;
+    margin: 0 4px;
 
     &:hover {
         background: var(--vscode-list-hoverBackground);
     }
 
     &.is-selected {
-        background: var(--vscode-list-hoverBackground);
+        color: var(--vc-color-primary, #d97706);
     }
 }
 
@@ -134,14 +138,13 @@
 }
 
 .model-picker-item-label {
-    font-size: 12px;
-    line-height: 17px;
+    font-size: 13px;
+    line-height: 1.4;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
     display: block;
     width: 100%;
-    padding: 4px 0;
 }
 
 .model-picker-item-right {
@@ -152,18 +155,13 @@
     height: 16px;
 }
 
-/* Brain icon */
-.model-picker-brain-icon {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
+/* Checkmark for selected model */
+.model-picker-check {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--vc-color-primary, #d97706);
     flex-shrink: 0;
-    opacity: 0.6;
-
-    svg {
-        width: 10px;
-        height: 10px;
-    }
+    line-height: 1;
 }
 
 /* Chevron right (for "Add Models") */

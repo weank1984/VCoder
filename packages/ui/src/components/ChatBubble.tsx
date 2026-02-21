@@ -194,9 +194,9 @@ export function ChatBubble({ message }: ChatBubbleProps) {
     return (
         <div className={bubbleClass} data-role={message.role}>
             {isUser ? (
-                // User Message: Input-like styled container
+                // User Message: Right-aligned bubble (Claude style)
                 <div className="vc-human-message-container">
-                    <div className="vc-human-message-content vc-composer-surface">
+                    <div className="vc-human-message-content">
                         {message.content}
                     </div>
                 </div>

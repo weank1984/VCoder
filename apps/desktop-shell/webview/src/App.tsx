@@ -320,6 +320,7 @@ function App() {
           break;
         case 'error':
           // Handle error messages from extension
+          setLoading(false);
           showError(
             message.data.title || 'Error',
             message.data.message,
@@ -367,6 +368,18 @@ function App() {
   useEffect(() => {
     savePersistedState({ sidebarCollapsed });
   }, [sidebarCollapsed]);
+
+  // Handle suggestion card clicks from Welcome screen
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const content = (e as CustomEvent<{ content: string }>).detail?.content;
+      if (content) {
+        inputAreaRef.current?.setText(content, { focus: true });
+      }
+    };
+    window.addEventListener('vcoder:fillInput', handler);
+    return () => window.removeEventListener('vcoder:fillInput', handler);
+  }, []);
 
   const isEmpty = messages.length === 0;
   const isInitializing = isEmpty && isLoading;

@@ -6,7 +6,7 @@
     justify-content: space-between;
     height: 44px;
     padding: 0 10px;
-    background: var(--vc-bg);
+    background: var(--vscode-editor-background);
     border-bottom: 1px solid var(--vc-color-border);
     position: relative;
     z-index: 50;
@@ -31,13 +31,13 @@
     padding: 0 10px;
     border-radius: 999px;
     border: 1px solid var(--vc-color-border);
-    background: color-mix(in srgb, var(--vc-bg) 70%, transparent);
+    background: color-mix(in srgb, var(--vscode-foreground) 5%, transparent);
     color: var(--vc-color-text);
     cursor: pointer;
     user-select: none;
 
     &:hover {
-        background: var(--vc-control-item-bg-hover);
+        background: var(--vc-color-hover-bg);
     }
 
     &.is-active {
@@ -86,7 +86,7 @@
     }
 
     &:hover {
-        background: var(--vc-control-item-bg-hover);
+        background: var(--vc-color-hover-bg);
         color: var(--vc-color-text);
     }
 }
@@ -100,10 +100,10 @@
     width: 260px;
     max-height: 400px;
     overflow-y: auto;
-    background: var(--vscode-dropdown-background, var(--vc-bg));
-    border: 1px solid var(--vscode-dropdown-border, var(--vc-color-border));
+    background: var(--vscode-quickInput-background, var(--vscode-editorWidget-background, #ffffff));
+    border: 1px solid var(--vscode-widget-border, rgba(0,0,0,0.12));
     border-radius: 8px;
-    box-shadow: var(--vc-shadow-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.10);
     display: flex;
     flex-direction: column;
     animation: fadeIn 0.1s ease-out;
@@ -114,7 +114,7 @@
         font-size: 11px;
         font-weight: 500;
         color: var(--vscode-descriptionForeground);
-        border-bottom: 1px solid var(--vscode-dropdown-border, var(--vc-color-border));
+        border-bottom: 1px solid var(--vscode-widget-border, var(--vc-color-border));
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }

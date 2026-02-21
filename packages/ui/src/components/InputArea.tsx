@@ -329,7 +329,7 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                     <textarea
                         ref={textareaRef}
                         className="input-field"
-                        placeholder={viewMode === 'history' ? t('Chat.ViewingHistoryReadonly') : 'Plan, @ for context, / for commands'}
+                        placeholder={viewMode === 'history' ? t('Chat.ViewingHistoryReadonly') : t('Chat.InputPlaceholder')}
                         value={input}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
@@ -382,6 +382,7 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                         onImageClick={handleAddFiles}
                         primaryAction="send"
                         isLoading={isLoading}
+                        onSend={handleSubmit}
                         onStop={() => postMessage({ type: 'cancel' })}
                         disabled={isComposerLocked}
                     />

@@ -1,6 +1,5 @@
 /**
- * Desktop Sidebar Styles
- * Persistent left sidebar for Electron desktop app
+ * Desktop Sidebar Styles - Claude-style
  */
 
 @use 'styles/mixins' as *;
@@ -10,13 +9,13 @@
    ========================================================================== */
 
 .desktop-sidebar {
-    width: 260px;
-    min-width: 260px;
+    width: 240px;
+    min-width: 240px;
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: var(--vc-color-bg-secondary, var(--vc-bg));
-    border-right: 1px solid var(--vc-color-border);
+    background: var(--vscode-sideBar-background, #f2efe8);
+    border-right: 1px solid var(--vscode-sideBar-border, #ede9e0);
     transition: width 0.2s ease, min-width 0.2s ease;
     overflow: hidden;
     flex-shrink: 0;
@@ -28,47 +27,32 @@
 }
 
 /* ==========================================================================
-   HEADER
+   HEADER - Brand name + collapse button
    ========================================================================== */
 
 .desktop-sidebar__header {
     display: flex;
     align-items: center;
-    padding: 10px 10px 6px;
-    gap: 6px;
+    justify-content: space-between;
+    padding: 14px 12px 6px;
     flex-shrink: 0;
+    min-height: 44px;
 }
 
-.desktop-sidebar__new-chat {
-    flex: 1;
+.desktop-sidebar__brand {
     display: flex;
     align-items: center;
     gap: 8px;
-    height: 32px;
-    padding: 0 12px;
-    border-radius: var(--vc-radius-md, 6px);
-    border: 1px solid var(--vc-color-border);
-    background: transparent;
-    color: var(--vc-color-text-primary, var(--vc-color-text));
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s ease;
+    flex: 1;
+    min-width: 0;
+}
 
-    svg {
-        width: 14px;
-        height: 14px;
-        flex-shrink: 0;
-    }
-
-    &:hover {
-        background: var(--vc-color-hover-bg, rgba(255, 255, 255, 0.06));
-        border-color: var(--vc-color-primary, #6366f1);
-    }
-
-    &:active {
-        transform: scale(0.98);
-    }
+.desktop-sidebar__brand-name {
+    font-size: 15px;
+    font-weight: 650;
+    color: var(--vc-color-text-primary, #1f2937);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
 }
 
 .desktop-sidebar__toggle {
@@ -79,11 +63,11 @@
     height: 28px;
     border: none;
     background: transparent;
-    color: var(--vc-color-text-secondary, var(--vc-color-text-tertiary));
-    border-radius: var(--vc-radius-sm, 4px);
+    color: var(--vc-color-text-tertiary);
+    border-radius: var(--vc-radius-sm, 6px);
     cursor: pointer;
     flex-shrink: 0;
-    transition: all 0.15s ease;
+    transition: all 0.12s ease;
 
     svg {
         width: 14px;
@@ -91,8 +75,58 @@
     }
 
     &:hover {
-        background: var(--vc-color-hover-bg, rgba(255, 255, 255, 0.06));
-        color: var(--vc-color-text-primary, var(--vc-color-text));
+        background: var(--vc-color-hover-bg);
+        color: var(--vc-color-text-primary);
+    }
+}
+
+/* ==========================================================================
+   NEW CHAT BUTTON ROW
+   ========================================================================== */
+
+.desktop-sidebar__new-chat-row {
+    padding: 4px 10px 8px;
+    flex-shrink: 0;
+}
+
+.desktop-sidebar__new-chat {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid var(--vc-color-border);
+    background: var(--vscode-input-background, #ffffff);
+    color: var(--vc-color-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    font-family: inherit;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+    svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        opacity: 0.7;
+    }
+
+    &:hover {
+        background: var(--vscode-input-background, #ffffff);
+        border-color: var(--vc-color-primary);
+        color: var(--vc-color-text-primary);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+        svg {
+            opacity: 1;
+        }
+    }
+
+    &:active {
+        transform: scale(0.98);
     }
 }
 
@@ -112,14 +146,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border: none;
     background: transparent;
-    color: var(--vc-color-text-secondary, var(--vc-color-text-tertiary));
-    border-radius: var(--vc-radius-sm, 4px);
+    color: var(--vc-color-text-secondary);
+    border-radius: var(--vc-radius-sm, 6px);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.12s ease;
 
     svg {
         width: 16px;
@@ -127,8 +161,8 @@
     }
 
     &:hover {
-        background: var(--vc-color-hover-bg, rgba(255, 255, 255, 0.06));
-        color: var(--vc-color-text-primary, var(--vc-color-text));
+        background: var(--vc-color-hover-bg);
+        color: var(--vc-color-text-primary);
     }
 }
 
@@ -140,16 +174,17 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    margin: 2px 10px 8px;
-    padding: 0 8px;
+    margin: 0 10px 8px;
+    padding: 0 10px;
     height: 30px;
-    background: var(--vc-color-bg-input, var(--vc-color-bg-base));
-    border: 1px solid var(--vc-color-border);
-    border-radius: var(--vc-radius-sm, 4px);
-    transition: border-color 0.15s ease;
+    background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
+    border: 1px solid var(--vc-color-border-secondary);
+    border-radius: 8px;
+    transition: border-color 0.12s ease;
 
     &:focus-within {
-        border-color: var(--vc-color-border-focus, var(--vc-color-primary, #6366f1));
+        border-color: var(--vc-color-primary);
+        background: var(--vscode-input-background, #ffffff);
     }
 
     > svg {
@@ -157,7 +192,7 @@
         height: 13px;
         color: var(--vc-color-text-tertiary);
         flex-shrink: 0;
-        opacity: 0.6;
+        opacity: 0.5;
     }
 
     input {
@@ -166,13 +201,14 @@
         height: 100%;
         border: none;
         background: transparent;
-        color: var(--vc-color-text-primary, var(--vc-color-text));
+        color: var(--vc-color-text-primary);
         font-size: 12px;
         outline: none;
+        font-family: inherit;
 
         &::placeholder {
             color: var(--vc-color-text-tertiary);
-            opacity: 0.7;
+            opacity: 0.6;
         }
     }
 }
@@ -202,17 +238,17 @@
 
 .desktop-sidebar__group {
     &:not(:first-child) {
-        margin-top: 4px;
+        margin-top: 8px;
     }
 }
 
 .desktop-sidebar__group-label {
-    padding: 10px 10px 4px;
+    padding: 8px 10px 4px;
     font-size: 11px;
     font-weight: 600;
     color: var(--vc-color-text-tertiary);
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.5px;
     user-select: none;
 }
 
@@ -227,7 +263,7 @@
     height: 34px;
     padding: 0 10px;
     margin: 1px 0;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     transition: background 0.1s ease, opacity 0.2s ease, transform 0.2s ease;
     position: relative;
@@ -237,14 +273,14 @@
         height: 14px;
         color: var(--vc-color-text-tertiary);
         flex-shrink: 0;
-        opacity: 0.5;
+        opacity: 0.4;
     }
 
     &:hover {
-        background: var(--vc-color-hover-bg, rgba(255, 255, 255, 0.06));
+        background: color-mix(in srgb, var(--vscode-foreground) 6%, transparent);
 
         > svg:first-child {
-            opacity: 0.8;
+            opacity: 0.7;
         }
 
         .desktop-sidebar__delete-btn {
@@ -254,26 +290,26 @@
     }
 
     &.active {
-        background: var(--vc-color-selected-bg, rgba(99, 102, 241, 0.12));
+        background: var(--vscode-list-activeSelectionBackground, rgba(217, 119, 6, 0.12));
 
         > svg:first-child {
-            color: var(--vc-color-primary, #6366f1);
+            color: var(--vc-color-primary, #d97706);
             opacity: 1;
         }
 
         .desktop-sidebar__session-title {
-            color: var(--vc-color-text-primary, var(--vc-color-text));
+            color: var(--vc-color-text-primary);
             font-weight: 500;
         }
 
         &:hover {
-            background: var(--vc-color-selected-bg, rgba(99, 102, 241, 0.15));
+            background: var(--vscode-list-activeSelectionBackground, rgba(217, 119, 6, 0.15));
         }
     }
 
     &.deleting {
         opacity: 0;
-        transform: translateX(-20px);
+        transform: translateX(-16px);
         pointer-events: none;
     }
 }
@@ -282,7 +318,7 @@
     @include text-ellipsis;
     flex: 1;
     font-size: 13px;
-    color: var(--vc-color-text-primary, var(--vc-color-text));
+    color: var(--vc-color-text-primary);
     line-height: 1.3;
 }
 
@@ -295,11 +331,11 @@
     border: none;
     background: transparent;
     color: var(--vc-color-text-tertiary);
-    border-radius: 4px;
+    border-radius: 5px;
     cursor: pointer;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.15s, color 0.15s, background 0.15s;
+    transition: opacity 0.12s, color 0.12s, background 0.12s;
     flex-shrink: 0;
 
     svg {
@@ -308,8 +344,52 @@
     }
 
     &:hover {
-        background: var(--vc-color-danger-bg, rgba(239, 68, 68, 0.12));
+        background: color-mix(in srgb, var(--vc-color-danger-text, #ef4444) 10%, transparent);
         color: var(--vc-color-danger-text, #ef4444);
+    }
+}
+
+/* ==========================================================================
+   FOOTER - Settings / User Menu area (like Claude.ai bottom-left)
+   ========================================================================== */
+
+.desktop-sidebar__footer {
+    flex-shrink: 0;
+    padding: 8px 10px 12px;
+    border-top: 1px solid var(--vc-color-border-secondary);
+}
+
+.desktop-sidebar__footer-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--vc-color-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.12s ease;
+
+    svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+        opacity: 0.7;
+    }
+
+    &:hover {
+        background: var(--vc-color-hover-bg);
+        color: var(--vc-color-text-primary);
+
+        svg {
+            opacity: 1;
+        }
     }
 }
 

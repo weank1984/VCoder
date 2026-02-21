@@ -3,30 +3,31 @@
 .vc-mermaid-block {
     margin: 0.8em 0;
     padding: 16px;
-    border-radius: 8px;
-    background: var(--vcoder-surface-2);
-    border: 1px solid var(--vcoder-border);
-    
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--vscode-editor-background) 60%, transparent);
+    border: 1px solid color-mix(in srgb, var(--vc-color-border) 40%, transparent);
+    border-left: 2px solid color-mix(in srgb, var(--vc-color-primary, #d97706) 40%, transparent);
+
     // 只允许横向滚动，避免干扰页面主滚动
     overflow-x: auto;
     overflow-y: visible;
-    
+
     // 确保触摸滑动事件能正常向上传递
     touch-action: pan-y pinch-zoom;
-    
+
     // Center the diagram
     display: flex;
     justify-content: center;
     align-items: center;
-    
+
     // Hover effect
     transition: border-color 0.2s, box-shadow 0.2s;
-    
+
     &:hover {
-        border-color: color-mix(in srgb, var(--vscode-textLink-foreground) 40%, var(--vcoder-border));
-        box-shadow: 0 2px 8px color-mix(in srgb, var(--vscode-textLink-foreground) 10%, transparent);
+        border-color: color-mix(in srgb, var(--vc-color-primary, #d97706) 40%, var(--vc-color-border));
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--vc-color-primary, #d97706) 8%, transparent);
     }
-    
+
     // SVG styling
     svg {
         max-width: 100%;
@@ -34,22 +35,22 @@
         // 防止 SVG 捕获滚动事件
         pointer-events: none;
     }
-    
+
     // 但允许 SVG 内的交互元素可点击
     svg a,
     svg [cursor="pointer"] {
         pointer-events: auto;
     }
-    
+
     // Loading state
     &--loading {
         min-height: 100px;
     }
-    
+
     // Error state
     &--error {
         border-color: var(--vscode-inputValidation-errorBorder);
-        background: color-mix(in srgb, var(--vscode-inputValidation-errorBackground) 20%, var(--vcoder-surface-2));
+        background: color-mix(in srgb, var(--vscode-inputValidation-errorBackground) 20%, transparent);
     }
 }
 
@@ -65,8 +66,8 @@
 .mermaid-loading-icon {
     width: 16px;
     height: 16px;
-    border: 2px solid var(--vcoder-border);
-    border-top-color: var(--vscode-textLink-foreground);
+    border: 2px solid var(--vc-color-border);
+    border-top-color: var(--vc-color-primary, #d97706);
     border-radius: 50%;
     animation: mermaid-spin 0.8s linear infinite;
 }
@@ -91,7 +92,7 @@
 .mermaid-error-message {
     margin: 0;
     padding: 8px;
-    background: var(--vcoder-surface-3);
+    background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
     border-radius: 4px;
     font-family: var(--vc-font-family-code);
     font-size: 11px;
@@ -102,42 +103,25 @@
 
 .mermaid-error-code {
     margin-top: 8px;
-    
+
     summary {
         cursor: pointer;
         color: var(--vc-color-text-tertiary);
         font-size: 11px;
-        
+
         &:hover {
             color: var(--vc-color-text-secondary);
         }
     }
-    
+
     pre {
         margin: 8px 0 0;
         padding: 8px;
-        background: var(--vcoder-surface-3);
+        background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
         border-radius: 4px;
         font-family: var(--vc-font-family-code);
         font-size: 11px;
         overflow-x: auto;
         white-space: pre-wrap;
-    }
-}
-
-// Theme-specific adjustments
-.vscode-dark,
-.vscode-high-contrast {
-    .vc-mermaid-block {
-        // Mermaid dark theme colors are already handled by initialization
-        
-        svg {
-            // Ensure text is visible in dark mode
-            .nodeLabel,
-            .edgeLabel,
-            .label {
-                fill: var(--vscode-foreground);
-            }
-        }
     }
 }

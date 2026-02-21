@@ -7,7 +7,7 @@
     border-radius: var(--vc-radius-md);
     background: color-mix(in srgb, var(--vscode-editor-background) 40%, transparent);
     border: 1px solid color-mix(in srgb, var(--vc-color-border) 30%, transparent);
-    border-left: 2px solid color-mix(in srgb, var(--vscode-terminal-ansiYellow, #e5c07b) 40%, transparent);
+    border-left: 2px solid color-mix(in srgb, var(--vc-color-primary, #d97706) 40%, transparent);
     overflow: hidden;
 }
 
@@ -49,7 +49,7 @@
 
 /* Thinking animation */
 .thought-block.is-thinking {
-    border-left-color: var(--vscode-terminal-ansiYellow, #e5c07b);
+    border-left-color: var(--vc-color-primary, #d97706);
 
     .thought-label {
         animation: thinking-pulse 1.5s ease-in-out infinite;
