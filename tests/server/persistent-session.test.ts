@@ -388,6 +388,57 @@ describe('PersistentSession', () => {
         });
     });
 
+    describe('Spawn Args', () => {
+        it('should NOT include -p flag in spawn args', async () => {
+            const startPromise = session.start();
+            await tick();
+            const proc = getSpawnedProcess();
+            simulateInit(proc);
+            await startPromise;
+
+            const mockSpawn = spawn as unknown as ReturnType<typeof vi.fn>;
+            const spawnArgs = mockSpawn.mock.calls[mockSpawn.mock.calls.length - 1][1] as string[];
+            expect(spawnArgs).not.toContain('-p');
+        });
+
+        it('should include --input-format stream-json in spawn args', async () => {
+            const startPromise = session.start();
+            await tick();
+            const proc = getSpawnedProcess();
+            simulateInit(proc);
+            await startPromise;
+
+            const mockSpawn = spawn as unknown as ReturnType<typeof vi.fn>;
+            const spawnArgs = mockSpawn.mock.calls[mockSpawn.mock.calls.length - 1][1] as string[];
+            const idx = spawnArgs.indexOf('--input-format');
+            expect(idx).toBeGreaterThanOrEqual(0);
+            expect(spawnArgs[idx + 1]).toBe('stream-json');
+        });
+
+        it('should accept first message after init without spurious result', async () => {
+            const startPromise = session.start();
+            await tick();
+            const proc = getSpawnedProcess();
+            simulateInit(proc);
+            await startPromise;
+
+            // After init, state should be idle (no spurious result)
+            expect(session.state).toBe('idle');
+
+            // Send first message
+            session.sendMessage('Hello');
+            expect(session.state).toBe('processing');
+
+            // Simulate assistant response and result
+            simulateAssistantText(proc, 'Hi there');
+            simulateResult(proc, { input_tokens: 50, output_tokens: 25 });
+            await new Promise(resolve => setTimeout(resolve, 10));
+
+            expect(session.state).toBe('waiting');
+            expect(session.messageCount).toBe(1);
+        });
+    });
+
     describe('Stop and Kill', () => {
         it('should set state to closed on kill', async () => {
             const startPromise = session.start();

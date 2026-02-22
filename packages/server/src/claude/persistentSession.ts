@@ -60,6 +60,7 @@ export class PersistentSession extends EventEmitter {
     private activeTaskStack: string[] = [];
     private thinkingContent = '';
     private receivedStreamingThinking = false;
+    private receivedStreamingText = false;
     // Throttle thinking_delta IPC emissions (150ms interval)
     private thinkingThrottleTimer: ReturnType<typeof setTimeout> | null = null;
     private thinkingLastEmitTime = 0;
@@ -168,7 +169,6 @@ export class PersistentSession extends EventEmitter {
         }
 
         const args: string[] = [
-            '-p', '', // Empty prompt, we'll send messages via stdin
             '--output-format', 'stream-json',
             '--input-format', 'stream-json',
             '--verbose',
@@ -499,6 +499,7 @@ export class PersistentSession extends EventEmitter {
                 this.parser = new JsonStreamParser();
                 this.thinkingContent = '';
                 this.receivedStreamingThinking = false;
+                this.receivedStreamingText = false;
                 if (this.thinkingThrottleTimer) {
                     clearTimeout(this.thinkingThrottleTimer);
                     this.thinkingThrottleTimer = null;
@@ -681,6 +682,8 @@ export class PersistentSession extends EventEmitter {
                         };
                         this.emit('update', update, 'thought');
                     } else if (block.type === 'text' && typeof block.text === 'string' && block.text) {
+                        // Skip if we already sent this via content_block_delta/text_delta
+                        if (this.receivedStreamingText) continue;
                         const update: TextUpdate = {
                             text: block.text,
                         };
@@ -696,6 +699,7 @@ export class PersistentSession extends EventEmitter {
 
                 // Reset streaming flags for next turn
                 this.receivedStreamingThinking = false;
+                this.receivedStreamingText = false;
                 break;
             }
 
@@ -780,6 +784,7 @@ export class PersistentSession extends EventEmitter {
                     }
                 } else if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
                     // Streaming text content - emit incremental updates for typewriter effect
+                    this.receivedStreamingText = true;
                     const update: TextUpdate = {
                         text: delta.text,
                     };
