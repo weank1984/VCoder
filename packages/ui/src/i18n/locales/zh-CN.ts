@@ -188,6 +188,17 @@ export default {
     Created: '已创建',
     Deleted: '已删除',
     Reject: '拒绝',
+    // 新审批对话框格式
+    AllowClaude: '允许 Claude',
+    ActionRun: '运行',
+    ActionWrite: '写入',
+    ActionEdit: '编辑',
+    ActionDelete: '删除',
+    ActionExecute: '执行',
+    ActionCall: '调用',
+    Deny: '拒绝',
+    AllowOnce: '允许一次',
+    AlwaysAllowSession: '始终允许',
   },
   StepProgress: {
     Title: '执行进度',

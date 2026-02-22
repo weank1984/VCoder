@@ -15,7 +15,6 @@ export function FileApprovalContent({ toolCall, isDelete }: FileApprovalContentP
 
     const [showFullDiff, setShowFullDiff] = useState(false);
 
-    // Open file in VSCode editor
     const handleOpenInEditor = useCallback(() => {
         if (!filePath) return;
         postMessage({
@@ -24,11 +23,10 @@ export function FileApprovalContent({ toolCall, isDelete }: FileApprovalContentP
         });
     }, [filePath]);
 
-    // Toggle full diff view
     const handleToggleFullDiff = useCallback(() => {
         setShowFullDiff(prev => !prev);
     }, []);
-    
+
     if (isDelete) {
         return (
             <div className="approval-content">
@@ -38,63 +36,39 @@ export function FileApprovalContent({ toolCall, isDelete }: FileApprovalContentP
                     </svg>
                     <span>{t('Agent.FileDeleteWarning')}</span>
                 </div>
-                
-                <div className="file-info-row">
-                    <svg viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z" />
-                    </svg>
-                    <span className="file-path">{filePath}</span>
-                </div>
-                
                 <div className="file-delete-notice">
                     {t('Agent.FileDeleteIrreversible')}
                 </div>
             </div>
         );
     }
-    
-    // File write/edit
+
     const parsedDiff = parseDiff(diff);
     const stats = calculateDiffStats(parsedDiff);
-    
+    const displayLines = showFullDiff ? parsedDiff : parsedDiff.slice(0, 20);
+
     return (
         <div className="approval-content">
-            <div className="file-info-row">
-                <svg viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z" />
-                </svg>
-                <span className="file-path">{filePath}</span>
-            </div>
-            
-            {/* Quick actions */}
-            <div className="quick-actions">
-                <button
-                    onClick={handleToggleFullDiff}
-                    disabled={parsedDiff.length === 0}
-                    className={showFullDiff ? 'is-active' : ''}
-                >
-                    {showFullDiff ? t('Agent.ViewCompactDiff') : t('Agent.ViewFullDiff')}
-                </button>
-                <button onClick={handleOpenInEditor} disabled={!filePath}>
-                    {t('Agent.OpenInEditor')}
-                </button>
-            </div>
-
-            {/* Inline diff preview */}
             {parsedDiff.length > 0 && (
                 <div className={`inline-diff ${showFullDiff ? 'is-expanded' : ''}`}>
-                    {(showFullDiff ? parsedDiff : parsedDiff.slice(0, 20)).map((line, index) => (
+                    {displayLines.map((line, index) => (
                         <div key={index} className={`diff-line ${line.type}`}>
-                            {line.content}
+                            <span className="line-num">{line.lineNum}</span>
+                            <span className="line-prefix">{line.prefix}</span>
+                            <span className="line-content">{line.content}</span>
                         </div>
                     ))}
                     {!showFullDiff && parsedDiff.length > 20 && (
-                        <div className="diff-line diff-context">
-                            ... {parsedDiff.length - 20} more lines ...
+                        <div className="diff-more" onClick={handleToggleFullDiff}>
+                            ... {parsedDiff.length - 20} more lines
                         </div>
                     )}
                     <div className="diff-stats">
-                        {t('Agent.LinesAdded', stats.added)} / {t('Agent.LinesRemoved', stats.removed)}
+                        <span className="stat-added">{t('Agent.LinesAdded', stats.added)}</span>
+                        {stats.removed > 0 && <span className="stat-removed">{t('Agent.LinesRemoved', stats.removed)}</span>}
+                        <button className="diff-open-btn" onClick={handleOpenInEditor} disabled={!filePath}>
+                            {t('Agent.OpenInEditor')}
+                        </button>
                     </div>
                 </div>
             )}
@@ -105,11 +79,10 @@ export function FileApprovalContent({ toolCall, isDelete }: FileApprovalContentP
 interface DiffLine {
     type: 'diff-add' | 'diff-remove' | 'diff-context';
     content: string;
+    prefix: string;
+    lineNum: number | '';
 }
 
-/**
- * Check if line is metadata that should be hidden
- */
 function isMetaLine(line: string): boolean {
     return (
         line.startsWith('diff --git') ||
@@ -121,40 +94,62 @@ function isMetaLine(line: string): boolean {
         line.startsWith('rename to') ||
         line.startsWith('\\ No newline at end of file') ||
         line.startsWith('+++') ||
-        line.startsWith('---') ||
-        line.startsWith('@@')
+        line.startsWith('---')
     );
-}
-
-/**
- * Strip the +/- prefix from diff lines for cleaner display
- */
-function formatDiffContent(line: string, type: string): string {
-    if (type === 'diff-add' || type === 'diff-remove') {
-        return line.slice(1); // Remove + or - prefix
-    }
-    if (type === 'diff-context' && line.startsWith(' ')) {
-        return line.slice(1); // Remove leading space for context lines
-    }
-    return line;
 }
 
 function parseDiff(diff: string): DiffLine[] {
     if (!diff) return [];
-    
+
     const lines = diff.split('\n');
-    return lines
-        .filter(line => !isMetaLine(line)) // Filter out metadata lines
-        .map(line => {
-            if (line.startsWith('+')) {
-                return { type: 'diff-add' as const, content: formatDiffContent(line, 'diff-add') };
-            } else if (line.startsWith('-')) {
-                return { type: 'diff-remove' as const, content: formatDiffContent(line, 'diff-remove') };
-            } else {
-                return { type: 'diff-context' as const, content: formatDiffContent(line, 'diff-context') };
+    const result: DiffLine[] = [];
+    let newLineNum = 0;
+    let oldLineNum = 0;
+
+    for (const line of lines) {
+        // Parse @@ header for line numbers
+        if (line.startsWith('@@')) {
+            const match = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+            if (match) {
+                oldLineNum = parseInt(match[1], 10) - 1;
+                newLineNum = parseInt(match[2], 10) - 1;
             }
-        })
-        .filter(line => line.content.trim() !== '' || line.type !== 'diff-context'); // Remove empty context lines
+            continue;
+        }
+        if (isMetaLine(line)) continue;
+
+        if (line.startsWith('+')) {
+            newLineNum++;
+            result.push({
+                type: 'diff-add',
+                content: line.slice(1),
+                prefix: '+',
+                lineNum: newLineNum,
+            });
+        } else if (line.startsWith('-')) {
+            oldLineNum++;
+            result.push({
+                type: 'diff-remove',
+                content: line.slice(1),
+                prefix: '-',
+                lineNum: oldLineNum,
+            });
+        } else if (line.startsWith(' ') || line === '') {
+            oldLineNum++;
+            newLineNum++;
+            const content = line.startsWith(' ') ? line.slice(1) : line;
+            if (content.trim() !== '') {
+                result.push({
+                    type: 'diff-context',
+                    content,
+                    prefix: ' ',
+                    lineNum: newLineNum,
+                });
+            }
+        }
+    }
+
+    return result;
 }
 
 function calculateDiffStats(lines: DiffLine[]): { added: number; removed: number } {
