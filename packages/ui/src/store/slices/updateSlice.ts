@@ -152,10 +152,6 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
                 if (!errorUpdate.recoverable) {
                     get().setSessionStatus('error', targetSessionId);
                 }
-                // Auto-switch to oneshot mode when persistent session closes
-                if (errorUpdate.code === 'PERSISTENT_SESSION_CLOSED') {
-                    set({ promptMode: 'oneshot', modeStatus: null });
-                }
                 break;
             }
             case 'confirmation_request': {
@@ -245,8 +241,6 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
             agents: [],
             currentAgentId: null,
             permissionRules: [],
-            promptMode: 'persistent',
-            modeStatus: null,
             experimentalAgentTeams: false,
         } satisfies AppState);
     },

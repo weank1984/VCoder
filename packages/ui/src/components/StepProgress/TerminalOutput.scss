@@ -6,10 +6,10 @@
 .terminal-output {
     margin: 4px 0;
     border-radius: var(--vc-radius-md);
-    border: 1px solid color-mix(in srgb, var(--vc-color-border) 60%, transparent);
-    background: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-panel-border);
+    background: var(--vscode-editorWidget-background);
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 // Terminal Title Bar - compact "$ command" style
@@ -18,8 +18,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 6px 10px;
-    background: var(--vscode-editor-background);
-    border-bottom: 1px solid var(--vc-color-border);
+    background: transparent;
+    border-bottom: 1px solid var(--vscode-panel-border);
     user-select: none;
     cursor: pointer;
 
@@ -110,6 +110,7 @@
     line-height: 1.5;
     color: var(--vscode-terminal-foreground);
     background: var(--vscode-editor-background);
+    border-top: none;
     overflow-x: auto;
     overflow-y: auto;
     max-height: 200px;

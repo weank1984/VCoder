@@ -298,11 +298,6 @@ function App() {
         case 'currentAgent':
           setCurrentAgent(message.data.agentId);
           break;
-        case 'modeStatus':
-          // Sync prompt mode and full mode status from backend
-          useStore.getState().setPromptMode(message.data.isPersistent ? 'persistent' : 'oneshot');
-          useStore.getState().setModeStatus(message.data);
-          break;
         case 'reviewStats':
           {
             const { sessionId: statsSessionId, stats } = message.data;
@@ -359,9 +354,6 @@ function App() {
       enabled: state.thinkingEnabled,
       maxThinkingTokens: state.thinkingEnabled ? DEFAULT_MAX_THINKING_TOKENS : 0,
     });
-    // Sync prompt mode
-    postMessage({ type: 'setPromptMode', mode: state.promptMode });
-
     return () => window.removeEventListener('message', handleMessage);
   }, [handleUpdate, setCurrentSession, setLoading, setSessions, showError]);
 
@@ -520,7 +512,6 @@ function App() {
       <DesktopSidebar
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
-        onShowEcosystem={() => setShowEcosystem(true)}
       />
 
       {/* Main content area */}

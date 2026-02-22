@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { HelpIcon, HistoryIcon, McpIcon, ManageIcon } from '../Icon';
+import { HelpIcon } from '../Icon';
 import { Logo } from '../Logo';
 import { postMessage } from '../../bridge';
 import { useI18n } from '../../i18n/I18nProvider';
@@ -77,7 +77,7 @@ const PROMPT_SUGGESTIONS_ZH: PromptSuggestion[] = [
 
 export function Welcome() {
   const { t, language } = useI18n();
-  const { historySessions, experimentalAgentTeams, setExperimentalAgentTeams } = useStore();
+  const { historySessions } = useStore();
 
   useEffect(() => {
     postMessage({ type: 'listHistory' });
@@ -102,7 +102,7 @@ export function Welcome() {
   return (
     <div className={prefixClass}>
       <div className={`${prefixClass}-hero`}>
-        <Logo size={64} aria-hidden="true" />
+        <Logo size={32} aria-hidden="true" />
         <h1 className={`${prefixClass}-title`}>{t('Chat.WelcomeTitle')}</h1>
         <p className={`${prefixClass}-subtitle`}>
           {t('Chat.WelcomeNote')}
@@ -138,35 +138,6 @@ export function Welcome() {
         <div className={`${prefixClass}-recents`}>
           <div className={`${prefixClass}-recents-header`}>
             <div className={`${prefixClass}-recents-title`}>{t('Chat.RecentConversations')}</div>
-            <div className={`${prefixClass}-recents-actions`}>
-              <button
-                type="button"
-                className={`${prefixClass}-recents-action${experimentalAgentTeams ? ` ${prefixClass}-recents-action--active` : ''}`}
-                title={t('Common.AgentTeams')}
-                aria-label={t('Common.AgentTeams')}
-                onClick={() => setExperimentalAgentTeams(!experimentalAgentTeams)}
-              >
-                <ManageIcon />
-              </button>
-              <button
-                type="button"
-                className={`${prefixClass}-recents-action`}
-                title={t('Common.Ecosystem')}
-                aria-label={t('Common.Ecosystem')}
-                onClick={() => postMessage({ type: 'showEcosystem' })}
-              >
-                <McpIcon />
-              </button>
-              <button
-                type="button"
-                className={`${prefixClass}-recents-action`}
-                title={t('Chat.ViewAllConversations')}
-                aria-label={t('Chat.ViewAllConversations')}
-                onClick={() => postMessage({ type: 'executeCommand', command: 'vcoder.showHistory' })}
-              >
-                <HistoryIcon />
-              </button>
-            </div>
           </div>
 
           <div className={`${prefixClass}-recents-list`}>

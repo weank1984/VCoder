@@ -153,14 +153,6 @@ describe('DesktopRuntime', () => {
       expect(postMessage.mock.calls[0][0].type).toBe('error');
     });
 
-    it('should handle setPromptMode without requiring acpClient', async () => {
-      await expect(
-        runtime.handleWebviewMessage({ type: 'setPromptMode', mode: 'oneshot' }),
-      ).resolves.toBeUndefined();
-
-      // setPromptMode is local state, should not error or post anything
-      expect(postMessage).not.toHaveBeenCalled();
-    });
   });
 
   describe('resolveWorkspacePath()', () => {

@@ -290,10 +290,10 @@
     }
 
     &.active {
-        background: var(--vscode-list-activeSelectionBackground, rgba(217, 119, 6, 0.12));
+        background: var(--vscode-list-activeSelectionBackground, rgba(59, 130, 246, 0.12));
 
         > svg:first-child {
-            color: var(--vc-color-primary, #d97706);
+            color: var(--vc-color-primary, #3b82f6);
             opacity: 1;
         }
 

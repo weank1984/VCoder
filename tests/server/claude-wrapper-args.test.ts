@@ -96,6 +96,34 @@ describe('ClaudeCodeWrapper spawn args', () => {
     expect(options.env.MAX_THINKING_TOKENS).toBe('16000');
   });
 
+  it('passes user message via -p flag and does not use --input-format stream-json', async () => {
+    vi.resetModules();
+
+    const fakeChild = createFakeChildProcess();
+    const spawnMock = vi.fn(() => {
+      process.nextTick(() => fakeChild.emit('close', 0));
+      return fakeChild;
+    });
+
+    vi.doMock('child_process', () => ({ spawn: spawnMock }));
+
+    const { ClaudeCodeWrapper } = await import('../../packages/server/src/claude/wrapper');
+
+    const wrapper = new ClaudeCodeWrapper({ workingDirectory: '/tmp' });
+    await wrapper.prompt('s1', 'test message');
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    const args = spawnMock.mock.calls[0][1] as string[];
+
+    // -p must carry the actual user message
+    const pIndex = args.indexOf('-p');
+    expect(pIndex).toBeGreaterThan(-1);
+    expect(args[pIndex + 1]).toBe('test message');
+
+    // --input-format stream-json must NOT be present (it caused spurious empty turns on --resume)
+    expect(args).not.toContain('--input-format');
+  });
+
   it('uses --resume when an existing Claude session id is bound', async () => {
     vi.resetModules();
 

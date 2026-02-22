@@ -6,8 +6,7 @@ import { useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
 import type { Session } from '@vcoder/shared';
 import { postMessage } from '../bridge';
-import { IconButton } from './IconButton';
-import { PlusIcon, HistoryIcon, GeneralSettingIcon, CloseIcon, ArrowBottomIcon, McpIcon } from './Icon';
+import { PlusIcon, CloseIcon, ArrowBottomIcon } from './Icon';
 import { sanitizeSessionTitle } from '../utils/sanitizeTitle';
 import './SessionHeader.scss';
 
@@ -15,14 +14,12 @@ interface SessionHeaderProps {
     sessions: Session[];
     currentSessionId: string | null;
     onSwitchSession: (sessionId: string) => void;
-    onShowEcosystem: () => void;
 }
 
 export function SessionHeader({
     sessions,
     currentSessionId,
     onSwitchSession,
-    onShowEcosystem,
 }: SessionHeaderProps) {
 
     const [showList, setShowList] = useState(false);
@@ -102,24 +99,7 @@ export function SessionHeader({
                 </button>
             </div>
 
-            {/* Right: Settings/Utils */}
-            <div className="header-right">
-                <IconButton
-                    icon={<McpIcon />}
-                    label="CLI Ecosystem"
-                    onClick={onShowEcosystem}
-                />
-                <IconButton
-                    icon={<HistoryIcon />}
-                    label="History"
-                    onClick={() => postMessage({ type: 'executeCommand', command: 'vcoder.showHistory' })}
-                />
-                <IconButton
-                    icon={<GeneralSettingIcon />}
-                    label="Settings"
-                    onClick={() => postMessage({ type: 'executeCommand', command: 'vcoder.openSettings' })}
-                />
-            </div>
+            <div className="header-right" />
         </div>
     );
 }

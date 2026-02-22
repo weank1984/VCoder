@@ -6,7 +6,7 @@
     border-radius: 12px;
     background: color-mix(in srgb, var(--vscode-editor-background) 60%, transparent);
     border: 1px solid color-mix(in srgb, var(--vc-color-border) 40%, transparent);
-    border-left: 2px solid color-mix(in srgb, var(--vc-color-primary, #d97706) 40%, transparent);
+    border-left: 2px solid color-mix(in srgb, var(--vc-color-primary, #3b82f6) 40%, transparent);
 
     // 只允许横向滚动，避免干扰页面主滚动
     overflow-x: auto;
@@ -24,8 +24,8 @@
     transition: border-color 0.2s, box-shadow 0.2s;
 
     &:hover {
-        border-color: color-mix(in srgb, var(--vc-color-primary, #d97706) 40%, var(--vc-color-border));
-        box-shadow: 0 2px 8px color-mix(in srgb, var(--vc-color-primary, #d97706) 8%, transparent);
+        border-color: color-mix(in srgb, var(--vc-color-primary, #3b82f6) 40%, var(--vc-color-border));
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--vc-color-primary, #3b82f6) 8%, transparent);
     }
 
     // SVG styling
@@ -67,7 +67,7 @@
     width: 16px;
     height: 16px;
     border: 2px solid var(--vc-color-border);
-    border-top-color: var(--vc-color-primary, #d97706);
+    border-top-color: var(--vc-color-primary, #3b82f6);
     border-radius: 50%;
     animation: mermaid-spin 0.8s linear infinite;
 }

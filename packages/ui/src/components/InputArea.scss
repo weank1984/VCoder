@@ -146,7 +146,7 @@
     outline: none !important;
     background: transparent;
     color: var(--vscode-input-foreground);
-    font-family: inherit;
+    font-family: var(--vscode-font-family, inherit);
     font-size: 14px;
     line-height: 1.55;
     resize: none;
@@ -183,12 +183,11 @@
    ========================================================================== */
 
 .composer-toolbar {
-    display: grid;
-    grid-template-columns: 4fr 1fr;
+    display: flex;
     align-items: center;
+    justify-content: space-between;
     height: 28px;
     box-sizing: border-box;
-    flex: 1 1 0%;
     width: 100%;
     padding: 0 8px 8px;
     margin-top: calc(1px + 0.5rem);
@@ -199,14 +198,14 @@
         gap: 4px;
         min-width: 0;
         height: 20px;
-        margin-right: 6px;
+        flex: 1;
     }
 
     .toolbar-right {
         display: flex;
         align-items: center;
         gap: 4px;
-        justify-content: flex-end;
+        flex-shrink: 0;
     }
 }
 
@@ -381,7 +380,7 @@
     background: var(--vscode-quickInput-background, var(--vscode-editorWidget-background, #ffffff));
     border: 1px solid var(--vscode-widget-border, rgba(0,0,0,0.12));
     border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.10);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08);
     display: flex;
     flex-direction: column;
     overflow: hidden;

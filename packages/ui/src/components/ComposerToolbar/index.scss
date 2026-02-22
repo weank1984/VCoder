@@ -20,13 +20,13 @@
 /* Mode Selector Popover (portal, fixed position) */
 .mode-selector__popover {
     z-index: var(--vc-z-index-popover, 1001);
-    min-width: 200px;
+    min-width: 180px;
     padding: 4px;
     background: var(--vscode-quickInput-background, var(--vscode-editorWidget-background, #ffffff));
     border: 1px solid var(--vscode-widget-border, rgba(0, 0, 0, 0.12));
     border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.10);
-    animation: modePopoverIn 0.15s ease-out;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08);
+    animation: modePopoverIn 0.12s ease-out;
 }
 
 @keyframes modePopoverIn {
@@ -41,7 +41,7 @@
     padding: 6px 10px;
     cursor: pointer;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--vscode-foreground);
     transition: background 0.1s;
     margin: 0 2px;
@@ -51,7 +51,7 @@
     }
 
     &.is-selected {
-        color: var(--vc-color-primary, #d97706);
+        color: var(--vc-color-primary, #3b82f6);
     }
 }
 
@@ -62,26 +62,11 @@
     flex-shrink: 0;
 }
 
-.mode-selector__item-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-}
-
 .mode-selector__item-label {
+    flex: 1;
     font-weight: 500;
-    font-size: 12px;
-    line-height: 17px;
-}
-
-.mode-selector__item-desc {
-    font-size: 11px;
-    color: var(--vscode-descriptionForeground);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 13px;
+    line-height: 1.4;
 }
 
 .mode-selector__item-check {
@@ -90,45 +75,6 @@
     color: var(--vscode-terminal-ansiGreen);
     flex-shrink: 0;
     svg { width: 14px; height: 14px; fill: currentColor; }
-}
-
-/* ========== Prompt Mode Toggle ========== */
-.prompt-mode-toggle {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    height: 20px;
-    padding: 2px 8px;
-    border-radius: 24px;
-    background: transparent;
-    color: var(--vscode-foreground);
-    border: none;
-    cursor: pointer;
-    user-select: none;
-    transition: background 100ms ease;
-
-    &:hover {
-        background: var(--vc-color-hover-bg);
-    }
-
-    &.is-disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        pointer-events: none;
-    }
-}
-
-.prompt-mode-toggle__icon {
-    font-size: 11px;
-    line-height: 1;
-    opacity: 0.6;
-}
-
-.prompt-mode-toggle__label {
-    font-size: 12px;
-    font-weight: 400;
-    opacity: 0.8;
 }
 
 /* ========== Apply Actions ========== */

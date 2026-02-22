@@ -5,7 +5,7 @@ let highlighter: any = null;
 async function initHighlighter() {
     try {
         highlighter = await createHighlighter({
-            themes: ['github-light', 'github-dark'],
+            themes: ['one-light', 'one-dark-pro'],
             langs: ['typescript', 'javascript', 'tsx', 'jsx', 'python', 'java', 'go', 'rust', 'c', 'cpp', 'html', 'css', 'scss', 'json', 'yaml', 'bash', 'shell', 'powershell', 'sql', 'graphql', 'markdown', 'diff', 'dockerfile'] as BundledLanguage[],
         });
     } catch (error) {
@@ -32,7 +32,7 @@ async function highlightCode(code: string, language: string, theme: 'light' | 'd
         return `<pre class="shiki-pending"><code>${escapeHtml(code)}</code></pre>`;
     }
     
-    const themeName = theme === 'dark' ? 'github-dark' : 'github-light';
+    const themeName = theme === 'dark' ? 'one-dark-pro' : 'one-light';
     const normalizedLang = normalizeLanguage(language);
     
     try {

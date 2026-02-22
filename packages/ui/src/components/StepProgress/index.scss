@@ -20,25 +20,56 @@
     display: none;
 }
 
-/* Step Item Container - card-like with left accent border */
+/* Step Item Container - Cursor-style flat card */
 .step-item {
     padding: 0;
     position: relative;
-    border-radius: var(--vc-radius-md);
-    background: color-mix(in srgb, var(--vscode-editor-background) 60%, transparent);
-    border: 1px solid color-mix(in srgb, var(--vc-color-border) 40%, transparent);
+    border-radius: 12px;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--vc-color-border) 30%, transparent);
     overflow: hidden;
 
     &.running {
-        border-left: 2px solid var(--vc-color-primary, #d97706);
+        border-left: 2px solid var(--vc-color-primary, #3b82f6);
     }
 
     &.completed {
-        border-left: 2px solid color-mix(in srgb, var(--vscode-terminal-ansiGreen) 50%, transparent);
+        border-left: 2px solid color-mix(in srgb, var(--vscode-terminal-ansiGreen) 40%, transparent);
     }
 
     &.failed {
         border-left: 2px solid var(--vscode-terminal-ansiRed);
+    }
+
+    /* When approval is embedded, override left border color to match approval type */
+    &:has(.approval-container.type-file_write) {
+        border-left-color: var(--vscode-gitDecoration-modifiedResourceForeground);
+    }
+    &:has(.approval-container.type-file_delete) {
+        border-left-color: var(--vscode-gitDecoration-deletedResourceForeground);
+    }
+    &:has(.approval-container.type-bash),
+    &:has(.approval-container.type-dangerous) {
+        border-left-color: var(--vscode-terminal-ansiYellow);
+    }
+
+    /* Flatten the nested card chrome when approval-container is inside step-item */
+    .approval-container {
+        border: none;
+        border-top: 1px solid color-mix(in srgb, var(--vc-color-border) 30%, transparent);
+        border-radius: 0;
+        box-shadow: none;
+        background: transparent;
+
+        .approval-header {
+            background: transparent;
+            border-bottom-color: color-mix(in srgb, var(--vc-color-border) 30%, transparent);
+        }
+
+        .approval-actions {
+            background: transparent;
+            border-top-color: color-mix(in srgb, var(--vc-color-border) 30%, transparent);
+        }
     }
 }
 
@@ -116,6 +147,19 @@
     font-size: var(--vc-font-size-sm);
     color: var(--vc-color-text-tertiary);
     font-family: var(--vc-font-family-code);
+}
+
+/* Approval step: remove top border on the embedded approval-container
+   since there's no step-header above it */
+.step-item.is-approval {
+    .approval-container {
+        border-top: none;
+    }
+
+    .step-entries {
+        padding: 0;
+        border-top: none;
+    }
 }
 
 // Rejected command preview - muted italic style

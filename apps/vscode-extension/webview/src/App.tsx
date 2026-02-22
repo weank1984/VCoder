@@ -10,6 +10,7 @@ import { PlanBlock } from '@vcoder/ui/components/PlanBlock';
 import { TaskRunsBlock } from '@vcoder/ui/components/TaskRunsBlock';
 import { VirtualMessageItem } from '@vcoder/ui/components/VirtualMessageItem';
 import { InputArea, type InputAreaHandle } from '@vcoder/ui/components/InputArea';
+import { SessionHeader } from '@vcoder/ui/components/SessionHeader';
 import { HistoryPanel } from '@vcoder/ui/components/HistoryPanel';
 import { EcosystemPanel } from '@vcoder/ui/components/EcosystemPanel';
 import { AgentTeamsPanel } from '@vcoder/ui/components/AgentTeamsPanel';
@@ -47,6 +48,7 @@ function App() {
   const activeMessageRafRef = useRef<number | null>(null);
 
   const {
+    sessions,
     currentSessionId,
     messages,
     tasks,
@@ -295,11 +297,6 @@ function App() {
         case 'currentAgent':
           setCurrentAgent(message.data.agentId);
           break;
-        case 'modeStatus':
-          // Sync prompt mode and full mode status from backend
-          useStore.getState().setPromptMode(message.data.isPersistent ? 'persistent' : 'oneshot');
-          useStore.getState().setModeStatus(message.data);
-          break;
         case 'reviewStats':
           {
             const { sessionId: statsSessionId, stats } = message.data;
@@ -354,9 +351,6 @@ function App() {
       enabled: state.thinkingEnabled,
       maxThinkingTokens: state.thinkingEnabled ? DEFAULT_MAX_THINKING_TOKENS : 0,
     });
-    // Sync prompt mode
-    postMessage({ type: 'setPromptMode', mode: state.promptMode });
-
     return () => window.removeEventListener('message', handleMessage);
   }, [handleUpdate, setCurrentSession, setLoading, setSessions, showError]);
 
@@ -495,6 +489,12 @@ function App() {
 
   return (
     <div className="app">
+      <SessionHeader
+        sessions={sessions}
+        currentSessionId={currentSessionId}
+        onSwitchSession={(sessionId) => postMessage({ type: 'switchSession', sessionId })}
+      />
+
       {tasks.length > 0 && (planMode || permissionMode === 'plan') && (
           <PlanBlock plan={tasks} sticky={true} />
       )}

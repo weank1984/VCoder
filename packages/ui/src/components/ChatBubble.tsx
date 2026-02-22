@@ -1,6 +1,7 @@
 /**
- * Chat Bubble Component
- * Renders message content in chronological order based on contentBlocks
+ * Chat Bubble Component - Cursor-style design
+ * User messages: full-width cards with 12px radius
+ * AI messages: transparent document flow
  */
 
 import { useMemo, useState, useCallback } from 'react';
@@ -15,7 +16,6 @@ import { useI18n } from '../i18n/I18nProvider';
 import { useToast } from '../utils/Toast';
 import { copyToClipboardAsync } from '../utils/clipboard';
 import './ChatBubble.scss';
-import './ComposerSurface.scss';
 
 interface ChatBubbleProps {
     message: ChatMessage;
@@ -37,12 +37,10 @@ function stripTrailingPlaceholders(text: string): string {
 
 /**
  * Generate contentBlocks for legacy messages without them
- * Order: thought -> tools -> text (since for history, tools usually happened first)
  */
 function generateLegacyContentBlocks(message: ChatMessage): ContentBlock[] {
     const blocks: ContentBlock[] = [];
-    
-    // 1. Thought block (if exists)
+
     if (message.thought && message.thought.length > 0) {
         blocks.push({
             type: 'thought',
@@ -50,23 +48,21 @@ function generateLegacyContentBlocks(message: ChatMessage): ContentBlock[] {
             isComplete: message.thoughtIsComplete !== false,
         });
     }
-    
-    // 2. Tools block (if exists) - tools before text for legacy messages
+
     if (message.toolCalls && message.toolCalls.length > 0) {
         blocks.push({
             type: 'tools',
             toolCallIds: message.toolCalls.map(tc => tc.id),
         });
     }
-    
-    // 3. Text block (if exists)
+
     if (message.content && message.content.length > 0) {
         blocks.push({
             type: 'text',
             content: message.content,
         });
     }
-    
+
     return blocks;
 }
 
@@ -74,7 +70,7 @@ function generateLegacyContentBlocks(message: ChatMessage): ContentBlock[] {
  * Render a single content block
  */
 function renderContentBlock(
-    block: ContentBlock, 
+    block: ContentBlock,
     index: number,
     message: ChatMessage,
     toolCallMap: Map<string, ToolCall>
@@ -90,16 +86,14 @@ function renderContentBlock(
                 />
             );
         case 'text': {
-            // Backends sometimes emit placeholder text for tool-only messages.
-            // Hide it to keep the conversation flow clean.
             if (isPlaceholderText(block.content)) return null;
             const cleaned = stripTrailingPlaceholders(block.content);
             if (!cleaned.trim() || isPlaceholderText(cleaned)) return null;
             return (
-                <MarkdownContent 
+                <MarkdownContent
                     key={`text-${index}`}
                     content={cleaned}
-                    isComplete={message.isComplete} 
+                    isComplete={message.isComplete}
                 />
             );
         }
@@ -139,20 +133,17 @@ export function ChatBubble({ message }: ChatBubbleProps) {
 
     const [copied, setCopied] = useState(false);
     const [isCopying, setIsCopying] = useState(false);
-    
-    // Build tool call lookup map for efficient access
+
     const toolCallMap = useMemo(() => {
         const map = new Map<string, ToolCall>();
         message.toolCalls?.forEach(tc => map.set(tc.id, tc));
         return map;
     }, [message.toolCalls]);
-    
-    // Use contentBlocks if available, otherwise generate from legacy fields
+
     const contentBlocks = useMemo(() => {
         if (message.contentBlocks && message.contentBlocks.length > 0) {
             return message.contentBlocks;
         }
-        // Generate contentBlocks for legacy messages
         return generateLegacyContentBlocks(message);
     }, [message]);
 
@@ -194,16 +185,17 @@ export function ChatBubble({ message }: ChatBubbleProps) {
     return (
         <div className={bubbleClass} data-role={message.role}>
             {isUser ? (
-                // User Message: Right-aligned bubble (Claude style)
+                /* User Message: Full-width card (Cursor style) */
                 <div className="vc-human-message-container">
                     <div className="vc-human-message-content">
-                        {message.content}
+                        <span className="vc-human-message-text">{message.content}</span>
+                        <button className="vc-human-message-retry" title={t('Agent.Retry')}>↺</button>
                     </div>
                 </div>
             ) : (
-                // Assistant Message: Transparent, document flow
+                /* Assistant Message: Transparent, document flow */
                 <div className="vc-ai-message-container">
-                    {contentBlocks.map((block, index) => 
+                    {contentBlocks.map((block, index) =>
                         renderContentBlock(block, index, message, toolCallMap)
                     )}
 
@@ -217,12 +209,12 @@ export function ChatBubble({ message }: ChatBubbleProps) {
                             <span className="vc-typing-label">{t('Agent.Thinking')}</span>
                         </div>
                     )}
-                    
+
                     {/* Message Actions for AI */}
                     {message.content && (
                         <div className="vc-ai-actions">
-                            <button 
-                                className="action-btn" 
+                            <button
+                                className="action-btn"
                                 onClick={handleCopy}
                                 title={copied ? t('Agent.MessageCopied') : t('Agent.CopyMessage')}
                             >

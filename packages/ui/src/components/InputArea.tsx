@@ -62,8 +62,6 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
         setModel,
         addMessage,
         setLoading,
-        promptMode,
-        setPromptMode,
     } = useStore();
 
     const isComposerLocked = isLoading || viewMode === 'history';
@@ -375,9 +373,6 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                         onSelectMode={setPermissionMode}
                         selectedModel={model}
                         onSelectModel={setModel}
-                        showPromptModeToggle
-                        promptMode={promptMode}
-                        onTogglePromptMode={setPromptMode}
                         showImageButton
                         onImageClick={handleAddFiles}
                         primaryAction="send"

@@ -1,4 +1,4 @@
-/* ChatBubble.scss - Claude-style Design */
+/* ChatBubble.scss - Cursor-style Design */
 
 .vc-bubble {
     width: 100%;
@@ -10,34 +10,63 @@
 }
 
 /*
-   User Message - Right-aligned bubble (Claude style)
+   User Message - Full-width card (Cursor style)
 */
 .vc-human-message-container {
     width: 100%;
     max-width: 840px;
     margin: 0 auto;
-    display: flex;
-    justify-content: flex-end;
     padding: 0 0 4px;
 }
 
 .vc-human-message-content {
-    max-width: 75%;
-    padding: 10px 16px;
-    font-size: 13.5px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 14px;
     color: var(--vscode-input-foreground);
     white-space: pre-wrap;
     word-break: break-word;
     line-height: 1.6;
-    font-family: var(--vscode-font-family, "Inter", sans-serif);
-    background: color-mix(in srgb, var(--vscode-foreground) 7%, transparent);
-    border: 1px solid var(--vc-color-border-secondary);
-    border-radius: 18px 18px 4px 18px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    font-family: var(--vscode-font-family, inherit);
+    background: color-mix(in srgb, var(--vscode-foreground) 6%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+}
+
+.vc-human-message-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.vc-human-message-retry {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    color: var(--vscode-descriptionForeground);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 2px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    border-radius: 4px;
+
+    &:hover {
+        color: var(--vscode-foreground);
+        background: var(--vc-color-hover-bg);
+    }
+}
+
+.vc-human-message-content:hover .vc-human-message-retry {
+    opacity: 0.7;
 }
 
 /*
-   AI Message - Left-aligned, transparent (Claude style)
+   AI Message - Left-aligned, transparent (Cursor style)
 */
 .vc-ai-message-container {
     width: 100%;
@@ -56,12 +85,12 @@
     gap: 4px;
 }
 
-/* Streaming indicator */
+/* Streaming indicator - smaller, subtler */
 .vc-streaming-indicator-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    height: 20px;
+    gap: 6px;
+    height: 18px;
     color: var(--vscode-descriptionForeground);
     font-size: 12px;
     user-select: none;
@@ -71,16 +100,16 @@
 .vc-typing-indicator {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
+    gap: 2px;
     line-height: 1;
 }
 
 .vc-typing-indicator .dot {
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
     border-radius: 50%;
-    background: var(--vc-color-primary, #d97706);
-    opacity: 0.3;
+    background: var(--vc-color-primary, #3b82f6);
+    opacity: 0.25;
     animation: vc-typing-dot 1.2s ease-in-out infinite;
 }
 
@@ -93,7 +122,7 @@
 }
 
 .vc-typing-label {
-    opacity: 0.7;
+    opacity: 0.6;
     font-size: 12px;
 }
 
@@ -104,8 +133,8 @@
     display: flex;
     justify-content: flex-start;
     gap: 4px;
-    margin-top: 4px;
-    height: 28px;
+    margin-top: 2px;
+    height: 24px;
     align-items: center;
 }
 
@@ -114,8 +143,8 @@
 }
 
 .action-btn {
-    padding: 5px 7px;
-    border-radius: 7px;
+    padding: 4px 6px;
+    border-radius: 6px;
     color: var(--vscode-descriptionForeground);
     background: transparent;
     border: none;
@@ -123,7 +152,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.12s ease;
+    transition: all 0.1s ease;
 
     &:hover {
         background-color: color-mix(in srgb, var(--vscode-foreground) 7%, transparent);
@@ -144,11 +173,11 @@
 
 @keyframes vc-typing-dot {
     0%, 80%, 100% {
-        opacity: 0.3;
+        opacity: 0.25;
         transform: translateY(0);
     }
     40% {
-        opacity: 1;
-        transform: translateY(-3px);
+        opacity: 0.8;
+        transform: translateY(-2px);
     }
 }

@@ -1,5 +1,6 @@
 import type { ToolCall } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
+import { copyToClipboard } from '../../utils/clipboard';
 
 interface BashApprovalContentProps {
     toolCall: ToolCall;
@@ -9,13 +10,23 @@ export function BashApprovalContent({ toolCall }: BashApprovalContentProps) {
     const { t } = useI18n();
     const command = toolCall.confirmationData?.command || '';
     const riskReasons = toolCall.confirmationData?.riskReasons || [];
-    
+
     return (
         <div className="approval-content">
             {/* Command preview */}
             <div className="command-preview">
                 <span className="command-prompt">$</span>
-                <span>{command}</span>
+                <span className="command-text">{command}</span>
+                <button
+                    className="command-copy-btn"
+                    onClick={(e) => { e.stopPropagation(); copyToClipboard(command); }}
+                    title={t('Terminal.CopyOutput')}
+                >
+                    <svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13">
+                        <path d="M4 4l1-1h5.414L13 5.586V14l-1 1H5l-1-1V4zm9 2l-3-3H5v10h8V6z"/>
+                        <path d="M3 1L2 2v10l1 1V2h6l1-1H3z"/>
+                    </svg>
+                </button>
             </div>
             
             {/* Risk hints */}
@@ -30,7 +41,7 @@ export function BashApprovalContent({ toolCall }: BashApprovalContentProps) {
                     </div>
                     <ul className="risk-list">
                         {riskReasons.map((reason, index) => (
-                            <li key={index}>• {t(`Agent.${reason}`)}</li>
+                            <li key={index}>{t(`Agent.${reason}`)}</li>
                         ))}
                     </ul>
                 </div>

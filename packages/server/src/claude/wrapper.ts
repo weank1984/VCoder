@@ -177,13 +177,17 @@ export class ClaudeCodeWrapper extends EventEmitter {
             ? `${message}\n\nAttachments:\n${attachments.map((a) => `${a.name}: ${a.content}`).join('\n')}`
             : message;
 
-        // Use stream-json for input to allow keeping stdin open safely
+        // Pass the user message via -p flag.
+        // We do NOT use --input-format stream-json for the user message because combining
+        // -p "" with --input-format stream-json and --resume SESSION_ID causes the CLI to
+        // process the empty -p as a spurious first turn, emitting `result` (which kills
+        // the process) before it ever reads the real message from stdin.
+        // stdin is kept open exclusively for control_request/control_response exchanges
+        // (--permission-prompt-tool stdio).
         const args: string[] = [
             '-p',
-            '', // Empty prompt, we will send via stdin
+            fullMessage,
             '--output-format',
-            'stream-json',
-            '--input-format',
             'stream-json',
             '--verbose',
             '--include-partial-messages',
@@ -246,8 +250,6 @@ export class ClaudeCodeWrapper extends EventEmitter {
         if (claudeSessionId) {
             args.push('--resume', claudeSessionId);
         } else if (this.startedLocalSessions.has(sessionId)) {
-            // Note: with -p "", --continue might be less relevant if we use session resumption, 
-            // but we keep it for consistency with old behavior just in case.
             args.push('--continue');
         }
 
@@ -282,16 +284,8 @@ export class ClaudeCodeWrapper extends EventEmitter {
         });
 
         // IMPORTANT: We keep stdin open to support interactive permissions!
-        // We send the message as a JSON object.
-        const userMessage = JSON.stringify({
-            type: 'user',
-            message: {
-                role: 'user',
-                content: fullMessage,
-            },
-        }) + '\n';
-        
-        child.stdin?.write(userMessage);
+        // The user message is already passed via -p; stdin is used only for
+        // control_request/control_response exchanges (permission prompts).
 
         // Setup Listeners
         this.processesByLocalSessionId.set(sessionId, child);

@@ -125,7 +125,7 @@
     }
 
     &.is-selected {
-        color: var(--vc-color-primary, #d97706);
+        color: var(--vc-color-primary, #3b82f6);
     }
 }
 
@@ -159,7 +159,7 @@
 .model-picker-check {
     font-size: 12px;
     font-weight: 600;
-    color: var(--vc-color-primary, #d97706);
+    color: var(--vc-color-primary, #3b82f6);
     flex-shrink: 0;
     line-height: 1;
 }

@@ -70,8 +70,6 @@ const initialState: AppState = {
     historySessions: [],
     viewMode: 'live',
     permissionRules: [],
-    promptMode: 'persistent',
-    modeStatus: null,
     agents: [],
     currentAgentId: null,
     experimentalAgentTeams: false,

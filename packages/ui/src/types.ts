@@ -355,27 +355,6 @@ export interface CurrentAgentMessage {
     data: { agentId: string | null };
 }
 
-export interface SetPromptModeMessage {
-    type: 'setPromptMode';
-    mode: 'oneshot' | 'persistent';
-}
-
-export interface GetModeStatusMessage {
-    type: 'getModeStatus';
-}
-
-export interface ModeStatusMessage {
-    type: 'modeStatus';
-    data: {
-        isPersistent: boolean;
-        running: boolean;
-        cliSessionId: string | null;
-        state: string;
-        messageCount: number;
-        totalUsage: { inputTokens: number; outputTokens: number };
-    };
-}
-
 export interface ReviewStatsMessage {
     type: 'reviewStats';
     data: { sessionId: string; stats: ReviewStats };
@@ -414,7 +393,6 @@ export type ExtensionMessage =
     | AgentsMessage
     | CurrentAgentMessage
     | PermissionRulesMessage
-    | ModeStatusMessage
     | ReviewStatsMessage
     | AuditStatsMessage
     | BatchMessage
@@ -454,8 +432,6 @@ export type WebviewMessage =
     | ClearPermissionRulesMessage
     | ConfirmToolMessage
     | PermissionResponseMessage
-    | SetPromptModeMessage
-    | GetModeStatusMessage
     | GetAuditStatsMessage
     | ExportAuditLogMessage
     | GetEcosystemDataMessage
@@ -580,17 +556,6 @@ export interface AppState {
     viewMode: 'live' | 'history';
     // Permission rules
     permissionRules: PermissionRule[];
-    // Prompt mode: 'persistent' keeps CLI alive for multi-turn, 'oneshot' spawns a new process per prompt
-    promptMode: 'oneshot' | 'persistent';
-    // Mode status (persistent session runtime state)
-    modeStatus: {
-        isPersistent: boolean;
-        running: boolean;
-        cliSessionId: string | null;
-        state: string;
-        messageCount: number;
-        totalUsage: { inputTokens: number; outputTokens: number };
-    } | null;
     // Agent
     agents: AgentInfo[];
     currentAgentId: string | null;

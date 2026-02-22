@@ -28,8 +28,6 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
 
     private diffManager?: DiffManager;
     private fileDecorator?: VCoderFileDecorationProvider;
-    private promptMode: 'oneshot' | 'persistent' = 'persistent';
-
     constructor(
         private context: vscode.ExtensionContext,
         private acpClient: ACPClient,
@@ -202,11 +200,7 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         if (session && this.auditLogger) {
                             void this.auditLogger.logUserPrompt(session.id, message.content);
                         }
-                        if (this.promptMode === 'persistent') {
-                            await this.acpClient.promptPersistent(message.content, message.attachments);
-                        } else {
-                            await this.acpClient.prompt(message.content, message.attachments);
-                        }
+                        await this.acpClient.prompt(message.content, message.attachments);
                     }
                     break;
                 case 'newSession':
@@ -320,15 +314,6 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                     break;
                 case 'setPermissionMode':
                     await this.acpClient.changeSettings({ permissionMode: message.mode });
-                    break;
-                case 'setPromptMode':
-                    this.promptMode = message.mode === 'oneshot' ? 'oneshot' : 'persistent';
-                    break;
-                case 'getModeStatus':
-                    {
-                        const status = await this.acpClient.getModeStatus();
-                        this.postMessage({ type: 'modeStatus', data: status });
-                    }
                     break;
                 case 'setThinking':
                     await this.acpClient.changeSettings({

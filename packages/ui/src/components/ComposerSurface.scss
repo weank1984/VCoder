@@ -1,10 +1,10 @@
-/* Composer Surface - Claude-style rounded input box */
+/* Composer Surface - Cursor-style flat input box */
 
 .vc-composer-surface {
     background: var(--vscode-input-background, #ffffff);
-    border: 1.5px solid var(--vc-color-border);
-    border-radius: 16px;
-    transition: box-shadow 150ms ease-in-out, border-color 150ms ease-in-out;
+    border: 1px solid var(--vc-color-border);
+    border-radius: 12px;
+    transition: border-color 150ms ease-in-out;
     position: relative;
     contain: unset;
     opacity: 1;
@@ -13,16 +13,12 @@
     /* Interactive states */
     &--interactive {
         &:hover {
-            border-color: color-mix(in srgb, var(--vc-color-primary) 40%, var(--vc-color-border));
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border-color: color-mix(in srgb, var(--vscode-foreground) 25%, var(--vc-color-border));
         }
     }
 
     &--interactive:focus-within {
         border-color: var(--vc-color-primary);
-        box-shadow:
-            0 4px 16px rgba(0, 0, 0, 0.08),
-            0 0 0 3px color-mix(in srgb, var(--vc-color-primary) 12%, transparent);
     }
 
     /* Loading/muted state */
@@ -30,11 +26,9 @@
         opacity: 0.6;
         border-color: var(--vc-color-border-tertiary);
         cursor: not-allowed;
-        box-shadow: none;
 
         &:hover {
             border-color: var(--vc-color-border-tertiary);
-            box-shadow: none;
         }
     }
 
@@ -73,17 +67,17 @@
     &::after {
         content: '';
         position: absolute;
-        top: 2px;
-        left: 2px;
-        right: 2px;
-        bottom: 2px;
+        top: 1px;
+        left: 1px;
+        right: 1px;
+        bottom: 1px;
         background: linear-gradient(
             90deg,
             transparent 0%,
             color-mix(in srgb, var(--vc-color-primary-bg-hover) 40%, transparent) 50%,
             transparent 100%
         );
-        border-radius: 14px;
+        border-radius: 11px;
         animation: vc-loading-sweep 1.5s infinite;
         pointer-events: none;
         z-index: 2;
@@ -117,7 +111,8 @@
         border-width: 2px;
 
         &--interactive:focus-within {
-            box-shadow: 0 0 0 3px var(--vc-color-focus-ring);
+            outline: 2px solid var(--vc-color-focus-ring);
+            outline-offset: 1px;
         }
     }
 }

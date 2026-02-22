@@ -203,6 +203,14 @@ export function StepItem({
         return isTerminalToolName(tc.name) && (tc.status === 'failed');
     }, [step.entries]);
 
+    // Check if this is a single-entry awaiting confirmation step.
+    // In that case the approval-header already shows the file/command and risk level,
+    // so the outer step-header is redundant and should be hidden.
+    const isAwaitingConfirmation = useMemo(() => {
+        if (!step.isSingleEntry || step.entries.length !== 1) return false;
+        return step.entries[0].toolCall.status === 'awaiting_confirmation';
+    }, [step.isSingleEntry, step.entries]);
+
     // Generate rich title
     const displayTitle = useMemo(() => {
         // For single-entry steps: show "Action Target" format
@@ -287,28 +295,30 @@ export function StepItem({
     }, [step.status]);
     
     return (
-        <div className={`step-item ${step.status} ${step.isSingleEntry ? 'single-entry' : ''}`}>
-            <div className="step-header" onClick={onToggle}>
-                <div className="step-info">
-                    <div className="step-text">
-                        <span className="step-title" title={displayTitle}>{displayTitle}</span>
-                        {collapsedPreview && (
-                            <span className="step-preview" title={collapsedPreview}>
-                                {collapsedPreview}
-                            </span>
-                        )}
+        <div className={`step-item ${step.status} ${step.isSingleEntry ? 'single-entry' : ''} ${isAwaitingConfirmation ? 'is-approval' : ''}`}>
+            {!isAwaitingConfirmation && (
+                <div className="step-header" onClick={onToggle}>
+                    <div className="step-info">
+                        <div className="step-text">
+                            <span className="step-title" title={displayTitle}>{displayTitle}</span>
+                            {collapsedPreview && (
+                                <span className="step-preview" title={collapsedPreview}>
+                                    {collapsedPreview}
+                                </span>
+                            )}
+                        </div>
+                        <span
+                            className={`step-status-icon ${step.status}`}
+                            title={errorInfo?.message || undefined}
+                        >
+                            {statusIcon}
+                        </span>
                     </div>
-                    <span
-                        className={`step-status-icon ${step.status}`}
-                        title={errorInfo?.message || undefined}
-                    >
-                        {statusIcon}
+                    <span className="step-expand-icon">
+                        {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
                     </span>
                 </div>
-                <span className="step-expand-icon">
-                    {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
-                </span>
-            </div>
+            )}
 
             {/* Error banner - shown when collapsed and has error, but not for rejected terminal commands */}
             {isCollapsed && errorInfo && !isRejectedTerminal && (
@@ -322,7 +332,7 @@ export function StepItem({
                 </div>
             )}
 
-            <Collapsible isOpen={!isCollapsed}>
+            <Collapsible isOpen={isAwaitingConfirmation || !isCollapsed}>
                 <>
                     {/* Error details - shown when expanded */}
                     {errorInfo && (

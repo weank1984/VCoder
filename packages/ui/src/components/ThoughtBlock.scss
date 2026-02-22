@@ -1,29 +1,58 @@
-/* ThoughtBlock.scss - Enhanced "Thought for Ns" with better visual weight */
-@use '../styles/mixins' as *;
+/* ThoughtBlock.scss - Cursor-style inline "Thought for Ns" */
 
 .thought-block {
-    @include collapsible-card($bg-opacity: 40%, $border-opacity: 30%);
+    display: flex;
+    flex-direction: column;
+    margin: 2px 0;
 }
 
 .thought-header {
-    @include collapsible-card-header($padding: 5px 10px);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 0;
     color: var(--vscode-descriptionForeground);
+    border-radius: 4px;
+
+    &:hover {
+        background: var(--vc-color-hover-bg);
+    }
 }
 
 .thought-chevron {
-    @include collapsible-chevron;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    opacity: 0.5;
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+
+    svg {
+        width: 10px;
+        height: 10px;
+        fill: currentColor;
+    }
+
+    &.is-open {
+        transform: rotate(90deg);
+    }
 }
 
 .thought-label {
-    font-weight: 500;
+    font-weight: 400;
     font-style: italic;
-    color: var(--vc-color-text-secondary);
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.8;
 }
 
 .thought-content {
-    padding: 6px 12px;
+    padding: 4px 0 4px 18px;
     margin: 0;
-    border-top: 1px solid color-mix(in srgb, var(--vc-color-border) 30%, transparent);
     color: var(--vscode-descriptionForeground);
     font-size: 12px;
     line-height: 1.6;
@@ -31,13 +60,17 @@
     white-space: pre-wrap;
     max-height: 200px;
     overflow-y: auto;
+    opacity: 0.7;
 }
 
 /* Thinking animation */
 .thought-block.is-thinking {
-    border-left-color: var(--vc-color-primary, #d97706);
-
     .thought-label {
-        @include pulse-animation;
+        animation: vc-pulse 1.5s ease-in-out infinite;
     }
+}
+
+@keyframes vc-pulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 0.4; }
 }

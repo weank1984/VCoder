@@ -1,6 +1,6 @@
 /**
  * ComposerToolbar - Cursor-style bottom toolbar
- * Layout: grid with left selectors (Mode + Model) and right action buttons
+ * Layout: flex with left selectors (Mode + Model) and right action buttons
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -23,14 +23,13 @@ interface ModeOption {
     id: PermissionMode;
     label: string;
     icon: string;
-    description: string;
 }
 
 const MODE_OPTIONS: ModeOption[] = [
-    { id: 'default', label: 'Agent', icon: '∞', description: 'ModeSelector.AgentDesc' },
-    { id: 'plan', label: 'Plan', icon: '📋', description: 'ModeSelector.PlanDesc' },
-    { id: 'acceptEdits', label: 'Auto Edit', icon: '⚡', description: 'ModeSelector.AutoEditDesc' },
-    { id: 'bypassPermissions', label: 'YOLO', icon: '🔓', description: 'ModeSelector.YoloDesc' },
+    { id: 'default', label: 'Agent', icon: '∞' },
+    { id: 'plan', label: 'Plan', icon: '⊞' },
+    { id: 'acceptEdits', label: 'Auto Edit', icon: '⚡' },
+    { id: 'bypassPermissions', label: 'YOLO', icon: '🔓' },
 ];
 
 function getModeOption(mode: PermissionMode): ModeOption {
@@ -45,7 +44,6 @@ interface ModeSelectorProps {
 }
 
 function ModeSelector({ currentMode, onSelectMode, disabled }: ModeSelectorProps) {
-    const { t } = useI18n();
     const [isOpen, setIsOpen] = useState(false);
     const triggerRef = useRef<HTMLDivElement>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
@@ -78,7 +76,7 @@ function ModeSelector({ currentMode, onSelectMode, disabled }: ModeSelectorProps
                 position: 'fixed',
                 bottom: `${vh - rect.top + gap}px`,
                 left: `${rect.left}px`,
-                minWidth: '200px',
+                minWidth: '180px',
             });
         };
         updatePos();
@@ -92,7 +90,7 @@ function ModeSelector({ currentMode, onSelectMode, disabled }: ModeSelectorProps
             <button
                 className={`composer-unified-dropdown ${disabled ? 'is-disabled' : ''}`}
                 onClick={() => !disabled && setIsOpen(!isOpen)}
-                title={t(current.description)}
+                title={current.label}
             >
                 <div className="dropdown-content">
                     <span className="dropdown-icon">{current.icon}</span>
@@ -120,10 +118,7 @@ function ModeSelector({ currentMode, onSelectMode, disabled }: ModeSelectorProps
                                 }}
                             >
                                 <span className="mode-selector__item-icon">{opt.icon}</span>
-                                <div className="mode-selector__item-info">
-                                    <span className="mode-selector__item-label">{opt.label}</span>
-                                    <span className="mode-selector__item-desc">{t(opt.description)}</span>
-                                </div>
+                                <span className="mode-selector__item-label">{opt.label}</span>
                                 {opt.id === currentMode && (
                                     <span className="mode-selector__item-check"><CheckIcon /></span>
                                 )}
@@ -137,30 +132,6 @@ function ModeSelector({ currentMode, onSelectMode, disabled }: ModeSelectorProps
     );
 }
 
-/* ─── PromptModeToggle sub-component ─── */
-interface PromptModeToggleProps {
-    mode: 'oneshot' | 'persistent';
-    onToggle: (mode: 'oneshot' | 'persistent') => void;
-    disabled?: boolean;
-    messageCount?: number;
-}
-
-function PromptModeToggle({ mode, onToggle, disabled, messageCount }: PromptModeToggleProps) {
-    const label = mode === 'persistent'
-        ? (messageCount && messageCount > 0 ? `Multi (${messageCount})` : 'Multi')
-        : 'Single';
-    return (
-        <button
-            className={`prompt-mode-toggle ${disabled ? 'is-disabled' : ''}`}
-            onClick={() => !disabled && onToggle(mode === 'persistent' ? 'oneshot' : 'persistent')}
-            title={mode === 'persistent' ? 'Persistent session (multi-turn)' : 'One-shot mode (new process per prompt)'}
-        >
-            <span className="prompt-mode-toggle__icon">{mode === 'persistent' ? '\u21c4' : '\u2192'}</span>
-            <span className="prompt-mode-toggle__label">{label}</span>
-        </button>
-    );
-}
-
 /* ─── ComposerToolbar ─── */
 export interface ComposerToolbarProps {
     showModeSelector?: boolean;
@@ -169,9 +140,6 @@ export interface ComposerToolbarProps {
     onSelectMode?: (mode: PermissionMode) => void;
     selectedModel?: ModelId;
     onSelectModel?: (model: ModelId) => void;
-    showPromptModeToggle?: boolean;
-    promptMode?: 'oneshot' | 'persistent';
-    onTogglePromptMode?: (mode: 'oneshot' | 'persistent') => void;
     showImageButton?: boolean;
     onImageClick?: () => void;
     primaryAction: 'send' | 'apply';
@@ -191,9 +159,6 @@ export function ComposerToolbar({
     onSelectMode,
     selectedModel,
     onSelectModel,
-    showPromptModeToggle = false,
-    promptMode = 'persistent',
-    onTogglePromptMode,
     showImageButton = true,
     onImageClick,
     primaryAction,
@@ -226,13 +191,6 @@ export function ComposerToolbar({
                     />
                 )}
 
-                {showPromptModeToggle && onTogglePromptMode && (
-                    <PromptModeToggle
-                        mode={promptMode}
-                        onToggle={onTogglePromptMode}
-                        disabled={disabled}
-                    />
-                )}
             </div>
 
             {/* Right: Action buttons */}

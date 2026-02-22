@@ -62,7 +62,6 @@ const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'out', '.turbo']);
 export class DesktopRuntime {
   private serverProcess: ChildProcess | null = null;
   private acpClient: ACPClient | null = null;
-  private promptMode: 'oneshot' | 'persistent' = 'persistent';
   private terminalCounter = 0;
   private workspaceRoot: string;
   private readonly permissionRulesPath: string;
@@ -241,7 +240,7 @@ export class DesktopRuntime {
     }
     try {
       await Promise.race([
-        this.acpClient.getModeStatus(),
+        this.acpClient.listSessions(),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('health check timeout')), DesktopRuntime.HEALTH_CHECK_TIMEOUT_MS),
         ),
@@ -348,18 +347,9 @@ export class DesktopRuntime {
             await this.requireClient().changeSettings({ permissionMode: payload.mode as never });
           }
           return;
-        case 'setPromptMode':
-          this.promptMode = payload.mode === 'oneshot' ? 'oneshot' : 'persistent';
-          return;
         case 'setThinking':
           await this.requireClient().changeSettings({
             maxThinkingTokens: payload.enabled ? Number(payload.maxThinkingTokens ?? 16000) : 0,
-          });
-          return;
-        case 'getModeStatus':
-          this.options.postMessage({
-            type: 'modeStatus',
-            data: await this.requireClient().getModeStatus(),
           });
           return;
         case 'confirmTool':
@@ -542,11 +532,7 @@ export class DesktopRuntime {
     const attachments = Array.isArray(payload.attachments) ? payload.attachments : undefined;
     this.auditLogger.logUserPrompt(currentSession.id, content);
 
-    if (this.promptMode === 'persistent') {
-      await client.promptPersistent(content, attachments as never);
-    } else {
-      await client.prompt(content, attachments as never);
-    }
+    await client.prompt(content, attachments as never);
   }
 
   private async handleNewSession(title?: string): Promise<void> {

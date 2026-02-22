@@ -1,48 +1,77 @@
-/* ExploredSummary.scss - Enhanced card style for "Explored N directory, N files" */
-@use '../../styles/mixins' as *;
+/* ExploredSummary.scss - Cursor-style inline "Explored N directory, N files" */
 
 .explored-summary {
-    @include collapsible-card;
+    display: flex;
+    flex-direction: column;
+    margin: 2px 0;
 }
 
 .explored-summary__header {
-    @include collapsible-card-header;
-    color: var(--vc-color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 0;
+    color: var(--vscode-descriptionForeground);
+    border-radius: 4px;
+
+    &:hover {
+        background: var(--vc-color-hover-bg);
+    }
 
     &.is-loading {
         .explored-summary__text {
-            @include pulse-animation;
+            animation: vc-explored-pulse 1.5s ease-in-out infinite;
         }
     }
 }
 
 .explored-summary__chevron {
-    @include collapsible-chevron;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    opacity: 0.5;
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+
+    svg {
+        width: 10px;
+        height: 10px;
+        fill: currentColor;
+    }
+
+    &.is-open {
+        transform: rotate(90deg);
+    }
 }
 
 .explored-summary__text {
     font-style: italic;
-    font-weight: 500;
-    color: var(--vc-color-text-secondary);
+    font-weight: 400;
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.8;
 }
 
 .explored-summary__list {
     display: flex;
     flex-direction: column;
-    padding: 2px 8px 6px 12px;
+    padding: 2px 0 2px 18px;
     margin-left: 0;
-    border-top: 1px solid color-mix(in srgb, var(--vc-color-border) 30%, transparent);
 }
 
 .explored-summary__item {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 2px 6px;
+    padding: 1px 4px;
     font-size: 13px;
     color: var(--vscode-descriptionForeground);
     line-height: 1.5;
-    border-radius: var(--vc-radius-sm);
+    border-radius: 4px;
 
     &:hover {
         background: var(--vscode-list-hoverBackground);
@@ -50,13 +79,13 @@
 }
 
 .explored-summary__action {
-    color: var(--vscode-descriptionForeground);
+    color: var(--vscode-foreground);
     white-space: nowrap;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .explored-summary__target {
-    color: var(--vc-color-text-secondary);
+    color: var(--vscode-descriptionForeground);
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -71,4 +100,9 @@
             text-decoration: underline;
         }
     }
+}
+
+@keyframes vc-explored-pulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 0.4; }
 }

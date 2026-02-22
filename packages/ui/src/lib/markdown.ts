@@ -39,7 +39,7 @@ async function getHighlighter(): Promise<Highlighter> {
     
     if (!highlighterPromise) {
         highlighterPromise = createHighlighter({
-            themes: ['github-dark', 'github-light'],
+            themes: ['one-dark-pro', 'one-light'],
             langs: COMMON_LANGUAGES,
         });
     }
@@ -85,7 +85,7 @@ function createMarkdownIt(theme: 'dark' | 'light'): MarkdownIt {
                 return `<pre class="shiki-pending"><code>${escapeHtml(code)}</code></pre>`;
             }
             
-            const themeName = theme === 'dark' ? 'github-dark' : 'github-light';
+            const themeName = theme === 'dark' ? 'one-dark-pro' : 'one-light';
             const language = normalizeLanguage(lang);
             
             try {
@@ -147,8 +147,8 @@ function createMarkdownIt(theme: 'dark' | 'light'): MarkdownIt {
         const highlightedCode = defaultFence(tokens, idx, options, env, self);
         
         // 包装代码块
-        const langBadge = lang 
-            ? `<div class="code-language-badge"><span class="language-dot"></span><span class="language-name">${escapeHtml(lang.toUpperCase())}</span></div>`
+        const langBadge = lang
+            ? `<span class="code-language-badge">${escapeHtml(lang.toLowerCase())}</span>`
             : '';
             
         return `
