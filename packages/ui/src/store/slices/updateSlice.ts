@@ -154,7 +154,7 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
                 }
                 // Auto-switch to oneshot mode when persistent session closes
                 if (errorUpdate.code === 'PERSISTENT_SESSION_CLOSED') {
-                    set({ promptMode: 'oneshot' });
+                    set({ promptMode: 'oneshot', modeStatus: null });
                 }
                 break;
             }
@@ -177,15 +177,15 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
                 };
 
                 // Deduplication: skip if toolCallId is already awaiting_confirmation.
-                // Same toolCallId should only prompt the user once.
+                // Same toolCallId should only prompt the user once (prevents duplicate popups).
                 const sessionState = get().sessionStates.get(targetSessionId);
                 if (sessionState) {
-                    for (const msg of sessionState.messages) {
-                        const existing = msg.toolCalls?.find(
+                    const alreadyPending = sessionState.messages.some((msg) =>
+                        msg.toolCalls?.some(
                             (tc) => tc.id === request.toolCallId && tc.status === 'awaiting_confirmation'
-                        );
-                        if (existing) break;
-                    }
+                        )
+                    );
+                    if (alreadyPending) break;
                 }
 
                 get().updateToolCall(request.toolCallId, {
@@ -199,6 +199,20 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
                 const switchData = content as { previousSessionId: string | null; newSessionId: string };
                 console.log('[updateSlice] session_switch:', switchData.previousSessionId, '->', switchData.newSessionId);
                 get().setCurrentSession(switchData.newSessionId);
+                break;
+            }
+            case 'execution_summary': {
+                // Store execution summary in session state for UI rendering
+                set((prevState) => {
+                    const newSessionStates = new Map(prevState.sessionStates);
+                    const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+                    newSessionStates.set(targetSessionId, {
+                        ...sessionState,
+                        executionSummary: content as import('@vcoder/shared').ExecutionSummaryUpdate,
+                        updatedAt: Date.now(),
+                    });
+                    return { sessionStates: newSessionStates };
+                });
                 break;
             }
         }
@@ -232,6 +246,7 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
             currentAgentId: null,
             permissionRules: [],
             promptMode: 'persistent',
+            modeStatus: null,
             experimentalAgentTeams: false,
         } satisfies AppState);
     },

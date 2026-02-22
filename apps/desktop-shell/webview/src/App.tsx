@@ -299,8 +299,9 @@ function App() {
           setCurrentAgent(message.data.agentId);
           break;
         case 'modeStatus':
-          // Sync prompt mode from backend status
+          // Sync prompt mode and full mode status from backend
           useStore.getState().setPromptMode(message.data.isPersistent ? 'persistent' : 'oneshot');
+          useStore.getState().setModeStatus(message.data);
           break;
         case 'reviewStats':
           {

@@ -71,6 +71,7 @@ const initialState: AppState = {
     viewMode: 'live',
     permissionRules: [],
     promptMode: 'persistent',
+    modeStatus: null,
     agents: [],
     currentAgentId: null,
     experimentalAgentTeams: false,

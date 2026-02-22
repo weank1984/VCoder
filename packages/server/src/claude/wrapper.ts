@@ -23,7 +23,7 @@ import {
     ConfirmationType,
 } from '@vcoder/shared';
 import { PersistentSession, PersistentSessionSettings } from './persistentSession';
-import { resolveClaudePath, JsonStreamParser, computeFileChangeDiff, matchStderrError } from './shared';
+import { resolveClaudePath, JsonStreamParser, computeFileChangeDiff, matchStderrError, preflightCheck } from './shared';
 
 export interface ClaudeCodeOptions {
     workingDirectory: string;
@@ -51,7 +51,6 @@ export class ClaudeCodeWrapper extends EventEmitter {
         planMode: false,
         permissionMode: 'default',
     };
-    private pendingBashCommands: Map<string, (confirmed: boolean) => void> = new Map();
     private toolNameByIdByLocalSessionId: Map<string, Map<string, string>> = new Map();
     private taskListByLocalSessionId: Map<string, TaskListUpdate> = new Map();
     private subagentRunMetaByIdByLocalSessionId: Map<
@@ -253,6 +252,19 @@ export class ClaudeCodeWrapper extends EventEmitter {
         }
 
         this.logThinking(sessionId, `spawn include_partial=${args.includes('--include-partial-messages')} max_tokens=${this.settings.maxThinkingTokens ?? 'unset'}`);
+
+        // Pre-flight environment validation
+        const preflight = await preflightCheck();
+        if (!preflight.ok) {
+            const failed = preflight.checks.filter((c) => c.status === 'fail');
+            const msg = failed.map((c) => c.message).join('; ');
+            throw new Error(`Preflight check failed: ${msg}`);
+        }
+        for (const check of preflight.checks) {
+            if (check.status === 'warn') {
+                console.error(`[ClaudeCode] Preflight warning: ${check.name} - ${check.message}`);
+            }
+        }
 
         // Start Claude Code CLI subprocess
         const claudePath = this.resolveClaudePath();
@@ -1311,38 +1323,6 @@ export class ClaudeCodeWrapper extends EventEmitter {
             content: clearUpdate,
             sessionId,
         }, 'file_change');
-    }
-
-    /**
-     * @deprecated Use confirmTool() instead. This method is a no-op since the migration
-     * to structured control_request/control_response permission flow (chain B).
-     * Will be removed in V0.5.
-     */
-    async confirmBash(sessionId: string, _commandId: string): Promise<void> {
-        void sessionId;
-        void _commandId;
-        console.warn('[ClaudeCode] confirmBash is deprecated; use confirmTool/tool_confirm');
-    }
-
-    /**
-     * @deprecated Use confirmTool() instead. This method is a no-op since the migration
-     * to structured control_request/control_response permission flow (chain B).
-     * Will be removed in V0.5.
-     */
-    async skipBash(sessionId: string, _commandId: string): Promise<void> {
-        void sessionId;
-        void _commandId;
-        console.warn('[ClaudeCode] skipBash is deprecated; use confirmTool/tool_confirm');
-    }
-
-    /**
-     * @deprecated Use confirmTool() instead. This method is a no-op since the migration
-     * to structured control_request/control_response permission flow (chain B).
-     * Will be removed in V0.5.
-     */
-    async confirmPlan(sessionId: string): Promise<void> {
-        void sessionId;
-        console.warn('[ClaudeCode] confirmPlan is deprecated; use confirmTool/tool_confirm');
     }
 
     /**

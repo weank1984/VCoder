@@ -41,6 +41,7 @@ export interface UiSlice {
     setWorkspaceFiles: (files: string[]) => void;
     setUiLanguage: (uiLanguage: UiLanguage, source?: 'user' | 'extension') => void;
     setPromptMode: (mode: 'oneshot' | 'persistent') => void;
+    setModeStatus: (status: AppState['modeStatus']) => void;
     setExperimentalAgentTeams: (enabled: boolean) => void;
 }
 

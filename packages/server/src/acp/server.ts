@@ -26,9 +26,6 @@ import {
     SettingsChangeParams,
     FileAcceptParams,
     FileRejectParams,
-    BashConfirmParams,
-    BashSkipParams,
-    PlanConfirmParams,
     UpdateNotificationParams,
     SessionCompleteParams,
     Session,
@@ -204,15 +201,6 @@ export class ACPServer {
                     break;
                 case ACPMethods.FILE_REJECT:
                     result = await this.handleFileReject(params as FileRejectParams);
-                    break;
-                case ACPMethods.BASH_CONFIRM:
-                    result = await this.handleBashConfirm(params as BashConfirmParams);
-                    break;
-                case ACPMethods.BASH_SKIP:
-                    result = await this.handleBashSkip(params as BashSkipParams);
-                    break;
-                case ACPMethods.PLAN_CONFIRM:
-                    result = await this.handlePlanConfirm(params as PlanConfirmParams);
                     break;
                 case ACPMethods.SESSION_CANCEL:
                     result = await this.handleSessionCancel(params as CancelSessionParams);
@@ -457,21 +445,6 @@ export class ACPServer {
 
     private async handleFileReject(params: FileRejectParams): Promise<void> {
         await this.claudeCode.rejectFileChange(params.sessionId, params.path);
-    }
-
-    /** @deprecated Use handleToolConfirm (tool/confirm) instead. Will be removed in V0.5. */
-    private async handleBashConfirm(params: BashConfirmParams): Promise<void> {
-        await this.claudeCode.confirmBash(params.sessionId, params.commandId);
-    }
-
-    /** @deprecated Use handleToolConfirm (tool/confirm) instead. Will be removed in V0.5. */
-    private async handleBashSkip(params: BashSkipParams): Promise<void> {
-        await this.claudeCode.skipBash(params.sessionId, params.commandId);
-    }
-
-    /** @deprecated Use handleToolConfirm (tool/confirm) instead. Will be removed in V0.5. */
-    private async handlePlanConfirm(params: PlanConfirmParams): Promise<void> {
-        await this.claudeCode.confirmPlan(params.sessionId);
     }
 
     private async handleToolConfirm(params: ConfirmToolParams): Promise<void> {

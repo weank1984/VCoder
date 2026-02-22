@@ -241,31 +241,6 @@ export interface FileRejectParams {
 }
 
 // =============================================================================
-// Bash Confirmation
-// =============================================================================
-
-/** @deprecated Use ConfirmToolParams (tool/confirm) instead. Will be removed in V0.5. */
-export interface BashConfirmParams {
-    sessionId: string;
-    commandId: string;
-}
-
-/** @deprecated Use ConfirmToolParams (tool/confirm) instead. Will be removed in V0.5. */
-export interface BashSkipParams {
-    sessionId: string;
-    commandId: string;
-}
-
-// =============================================================================
-// Plan Confirmation
-// =============================================================================
-
-/** @deprecated Use ConfirmToolParams (tool/confirm) instead. Will be removed in V0.5. */
-export interface PlanConfirmParams {
-    sessionId: string;
-}
-
-// =============================================================================
 // Session Update Notifications
 // =============================================================================
 
@@ -280,7 +255,8 @@ export type UpdateType =
     | 'subagent_run'
     | 'error'
     | 'confirmation_request'
-    | 'session_switch';
+    | 'session_switch'
+    | 'execution_summary';
 
 export interface SessionSwitchUpdate {
     previousSessionId: string | null;
@@ -301,7 +277,8 @@ export interface UpdateNotificationParams {
     | SubagentRunUpdate
     | ErrorUpdate
     | ConfirmationRequestUpdate
-    | SessionSwitchUpdate;
+    | SessionSwitchUpdate
+    | ExecutionSummaryUpdate;
 }
 
 export interface ThoughtUpdate {
@@ -388,6 +365,7 @@ export type ErrorCode =
     | 'CLI_ERROR'
     | 'AUTH_REQUIRED'
     | 'CLI_NOT_FOUND'
+    | 'PREFLIGHT_FAILED'
     | 'PERSISTENT_SESSION_CLOSED';
 
 export interface ErrorUpdate {
@@ -587,35 +565,6 @@ export interface HistoryDeleteResult {
     deleted: boolean;
 }
 
-// =============================================================================
-// V0.2: Structured Permission Protocol
-// =============================================================================
-
-/**
- * Permission request from agent to client (bidirectional JSON-RPC).
- * Replaces TTY-based y/n prompts for headless mode compatibility.
- */
-export interface RequestPermissionParams {
-    sessionId: string;
-    /** Unique ID for this tool call */
-    toolCallId: string;
-    /** Tool name requesting permission */
-    toolName: string;
-    /** Tool input (for display/risk assessment) */
-    toolInput: Record<string, unknown>;
-    /** Optional metadata for UI */
-    metadata?: {
-        /** Risk level assessment */
-        riskLevel?: 'low' | 'medium' | 'high';
-        /** Human-readable summary */
-        summary?: string;
-        /** Command to execute (for terminal tools) */
-        command?: string;
-        /** File path (for file tools) */
-        filePath?: string;
-    };
-}
-
 export interface PermissionRule {
     id: string;
     toolName?: string;
@@ -625,15 +574,6 @@ export interface PermissionRule {
     updatedAt: string;
     expiresAt?: string;
     description?: string;
-}
-
-export interface RequestPermissionResult {
-    /** Permission outcome */
-    outcome: 'allow' | 'deny';
-    /** Optional reason for denial */
-    reason?: string;
-    /** Updated permission rules (if "Always allow" selected) */
-    updatedRules?: PermissionRule[];
 }
 
 // =============================================================================
@@ -857,6 +797,55 @@ export interface FsWriteTextFileResult {
 }
 
 // =============================================================================
+// CLI Subcommand Forwarding (V0.7)
+// =============================================================================
+
+/**
+ * Parameters for executing a CLI subcommand (e.g., `plugin list --json`).
+ * Used to surface CLI ecosystem features (Skills, Plugins, Hooks) without reimplementation.
+ */
+export interface CliSubcommandParams {
+    /** Subcommand to execute (e.g., 'plugin list --json') */
+    subcommand: string;
+    /** Additional arguments */
+    args?: string[];
+    /** Working directory */
+    cwd?: string;
+}
+
+export interface CliSubcommandResult {
+    /** Stdout output from the subcommand */
+    stdout: string;
+    /** Exit code of the subcommand */
+    exitCode: number;
+}
+
+// =============================================================================
+// Execution Summary (V0.7)
+// =============================================================================
+
+/**
+ * Aggregated execution summary emitted at the end of each assistant turn.
+ * Provides a quick overview of what happened during the turn.
+ */
+export interface ExecutionSummaryUpdate {
+    /** Files modified during this turn */
+    filesModified: string[];
+    /** Files created during this turn */
+    filesCreated: string[];
+    /** Files deleted during this turn */
+    filesDeleted: string[];
+    /** Tools used with invocation counts */
+    toolsUsed: Array<{ name: string; count: number }>;
+    /** Number of errors encountered */
+    errors: number;
+    /** Token usage for this turn */
+    usage?: { inputTokens: number; outputTokens: number };
+    /** Duration of this turn in milliseconds */
+    durationMs?: number;
+}
+
+// =============================================================================
 // V0.2: Agent Profile Configuration
 // =============================================================================
 
@@ -893,8 +882,6 @@ export const ACPMethods = {
     SESSION_SWITCH: 'session/switch',
     SESSION_DELETE: 'session/delete',
     SESSION_CANCEL: 'session/cancel',
-    SESSION_REQUEST_PERMISSION: 'session/requestPermission',
-
     // Interaction
     SESSION_PROMPT: 'session/prompt',
     SESSION_PROMPT_PERSISTENT: 'session/promptPersistent',
@@ -905,13 +892,6 @@ export const ACPMethods = {
     // File operations
     FILE_ACCEPT: 'file/accept',
     FILE_REJECT: 'file/reject',
-
-    // Bash operations (deprecated: use TOOL_CONFIRM instead, will be removed in V0.5)
-    BASH_CONFIRM: 'bash/confirm',
-    BASH_SKIP: 'bash/skip',
-
-    // Plan operations (deprecated: use TOOL_CONFIRM instead, will be removed in V0.5)
-    PLAN_CONFIRM: 'plan/confirm',
 
     // Tool operations
     TOOL_CONFIRM: 'tool/confirm',
@@ -943,6 +923,9 @@ export const ACPMethods = {
     LSP_FIND_REFERENCES: 'lsp/findReferences',
     LSP_HOVER: 'lsp/hover',
     LSP_GET_DIAGNOSTICS: 'lsp/getDiagnostics',
+
+    // CLI subcommand forwarding (V0.7)
+    CLI_SUBCOMMAND: 'cli/subcommand',
 } as const;
 
 export type ACPMethod = typeof ACPMethods[keyof typeof ACPMethods];

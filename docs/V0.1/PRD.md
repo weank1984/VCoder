@@ -1,3 +1,5 @@
+> [Archived] 此文档为 V0.1 历史版本，仅供参考。当前需求请参见 PRD-LONG-TERM.md。
+
 # VCoder - 产品需求文档 (PRD)
 
 > 基于 CLI Agent 的 VSCode 智能编程助手插件（支持 Claude Code / Codex CLI）

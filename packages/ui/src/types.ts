@@ -128,20 +128,6 @@ export interface SetThinkingMessage {
     maxThinkingTokens?: number;
 }
 
-export interface ConfirmBashMessage {
-    type: 'confirmBash';
-    commandId: string;
-}
-
-export interface SkipBashMessage {
-    type: 'skipBash';
-    commandId: string;
-}
-
-export interface ConfirmPlanMessage {
-    type: 'confirmPlan';
-}
-
 export interface CancelMessage {
     type: 'cancel';
 }
@@ -449,9 +435,6 @@ export type WebviewMessage =
     | SetPlanModeMessage
     | SetPermissionModeMessage
     | SetThinkingMessage
-    | ConfirmBashMessage
-    | SkipBashMessage
-    | ConfirmPlanMessage
     | CancelMessage
     | ExecuteCommandMessage
     | GetWorkspaceFilesMessage
@@ -565,6 +548,8 @@ export interface SessionState {
     lastActivityTime: number;
     createdAt: number;
     updatedAt: number;
+    /** Execution summary for the last completed turn */
+    executionSummary?: import('@vcoder/shared').ExecutionSummaryUpdate;
 }
 
 export interface AppState {
@@ -597,6 +582,15 @@ export interface AppState {
     permissionRules: PermissionRule[];
     // Prompt mode: 'persistent' keeps CLI alive for multi-turn, 'oneshot' spawns a new process per prompt
     promptMode: 'oneshot' | 'persistent';
+    // Mode status (persistent session runtime state)
+    modeStatus: {
+        isPersistent: boolean;
+        running: boolean;
+        cliSessionId: string | null;
+        state: string;
+        messageCount: number;
+        totalUsage: { inputTokens: number; outputTokens: number };
+    } | null;
     // Agent
     agents: AgentInfo[];
     currentAgentId: string | null;

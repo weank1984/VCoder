@@ -43,7 +43,7 @@ VCoder 的长期目标是：开发一套统一 UI，同时以 **VSCode 插件（
 
 1. 自研模型推理循环或替代 Claude Runtime。
 2. 与 CLI 无对应能力的重型"平台幻想型"功能。
-3. 企业级 IAM/SSO/多租户策略中心（仅保留接口预留）。
+3. 企业级 IAM/SSO/多租户策略中心。
 4. App 与 Plugin 的差异化 UI（两端共享同一套 Webview，不做分叉设计）。
 
 ## 5. 目标用户
@@ -159,13 +159,13 @@ VCoder 的长期目标是：开发一套统一 UI，同时以 **VSCode 插件（
 
 - FR-501：支持历史会话列表与消息回放（与在线会话隔离）。
 - FR-502：支持按会话/文件/工具类型检索历史记录。
-- FR-503：支持 projectKey 异常场景兜底解析（history.jsonl 反查）。
+- FR-503：支持 projectKey 异常场景兜底解析（history.jsonl 反查）。 `[P3 降级]`
 
 ### 8.6 CLI 生态集成
 
 - FR-601：提供 MCP Server 管理（添加、健康检查、失败展示）。
 - FR-602：提供 Skills 统一视图（个人/项目/插件来源与优先级）。
-- FR-603：提供 Plugins/Marketplace 基础管理视图（列表、安装、启停、版本）。
+- FR-603：提供 Plugins/Marketplace 基础管理视图（列表、安装、启停、版本）。 `[观望]`
 - FR-604：提供 Hooks 配置来源可视化与执行审计。
 
 ### 8.7 实验能力（Feature Flag）
@@ -262,7 +262,7 @@ VCoder 的长期目标是：开发一套统一 UI，同时以 **VSCode 插件（
 | P2 | CLI 生态管理 UI（MCP/Skills/Plugins/Hooks） | 在基线稳定后上线统一管理面板；能力命名与行为严格对齐 CLI | Plugin + App 同步 |
 | P2 | 历史检索增强 | 在现有 `history/list/load/delete` 基础上增加按会话/文件/工具类型检索 | Plugin + App 同步 |
 | P3 | Agent Teams（实验能力） | 仅通过 Feature Flag 开启，不纳入主路径 SLA | Plugin + App |
-| P3 | 多后端能力对齐（如 Codex CLI） | 先做能力探测与差异展示，再决定统一交互抽象 | Plugin + App |
+| P3 | ~~多后端能力对齐（如 Codex CLI）~~ `[已移除]` | ~~先做能力探测与差异展示，再决定统一交互抽象~~ | ~~Plugin + App~~ |
 
 ### 15.4 执行顺序约束
 

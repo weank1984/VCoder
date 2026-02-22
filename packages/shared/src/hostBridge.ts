@@ -9,6 +9,22 @@
  * No host-specific APIs (e.g. `window.electronAPI`, VSCode internals) should appear
  * inside the shared Webview code — satisfying NFR-006.
  */
+/**
+ * Capabilities that a host environment may provide.
+ * The Webview queries these at startup to conditionally enable UI features
+ * that depend on host-specific functionality.
+ */
+export interface HostCapabilities {
+  /** Host can insert text into the active editor at cursor position */
+  insertText?: boolean;
+  /** Host can open a file in the editor/viewer */
+  openFile?: boolean;
+  /** Host can show a native diff view (e.g. VSCode diff editor) */
+  nativeDiff?: boolean;
+  /** Host can export audit logs to a file */
+  auditExport?: boolean;
+}
+
 export interface HostBridgeApi {
   /**
    * Send a message to the host.
@@ -27,4 +43,10 @@ export interface HostBridgeApi {
    * Persist webview UI state so it can be restored after the webview is hidden or reloaded.
    */
   setState(state: unknown): void;
+
+  /**
+   * Query which capabilities the host environment supports.
+   * Optional — if not implemented, the Webview assumes no extended capabilities.
+   */
+  getCapabilities?(): HostCapabilities;
 }

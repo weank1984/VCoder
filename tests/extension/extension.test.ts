@@ -73,14 +73,6 @@ vi.mock('../../apps/vscode-extension/src/providers/fileDecorationProvider', () =
     VCoderFileDecorationProvider: class {},
 }));
 
-vi.mock('../../apps/vscode-extension/src/services/permissionProvider', () => ({
-    PermissionProvider: class {
-        async handlePermissionRequest() {
-            return { outcome: 'allow' };
-        }
-    },
-}));
-
 vi.mock('../../apps/vscode-extension/src/services/agentRegistry', () => ({
     AgentRegistry: class {
         async loadProfiles() {}

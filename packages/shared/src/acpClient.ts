@@ -486,29 +486,6 @@ export class ACPClient extends EventEmitter {
         });
     }
 
-    async confirmBash(commandId: string): Promise<void> {
-        if (!this.currentSession) return;
-        await this.sendRequest(ACPMethods.BASH_CONFIRM, {
-            sessionId: this.currentSession.id,
-            commandId,
-        });
-    }
-
-    async skipBash(commandId: string): Promise<void> {
-        if (!this.currentSession) return;
-        await this.sendRequest(ACPMethods.BASH_SKIP, {
-            sessionId: this.currentSession.id,
-            commandId,
-        });
-    }
-
-    async confirmPlan(): Promise<void> {
-        if (!this.currentSession) return;
-        await this.sendRequest(ACPMethods.PLAN_CONFIRM, {
-            sessionId: this.currentSession.id,
-        });
-    }
-
     /**
      * Confirm or reject a tool operation that requires user approval.
      * This is the unified method for all tool confirmations.

@@ -101,6 +101,12 @@ export const createUiSlice: SliceCreator<UiSlice> = (set, _get) => ({
     setPromptMode: (mode) => {
         set({ promptMode: mode });
         postMessage({ type: 'setPromptMode', mode });
+        // After switching prompt mode, request updated mode status
+        postMessage({ type: 'getModeStatus' });
+    },
+
+    setModeStatus: (status) => {
+        set({ modeStatus: status });
     },
 
     setExperimentalAgentTeams: (enabled) => {

@@ -1,3 +1,5 @@
+> [Archived] 本文为 V0.5 前的架构分析记录。文中涉及的 Chain A（session/requestPermission、BashConfirm 等）已在 V0.6 中移除，权限链路已统一为 Chain B（control_request + tool/confirm）。
+
 # 双向流式通信 (Bidirectional Streaming) - 分析与方案总结
 
 ## 1. 背景

@@ -23,9 +23,6 @@ vi.mock('../../packages/server/src/claude/wrapper', () => ({
     bindClaudeSessionId = vi.fn();
     acceptFileChange = vi.fn().mockResolvedValue(undefined);
     rejectFileChange = vi.fn().mockResolvedValue(undefined);
-    confirmBash = vi.fn().mockResolvedValue(undefined);
-    skipBash = vi.fn().mockResolvedValue(undefined);
-    confirmPlan = vi.fn().mockResolvedValue(undefined);
     confirmTool = vi.fn().mockResolvedValue(undefined);
     cancel = vi.fn().mockResolvedValue(undefined);
     promptPersistent = vi.fn().mockResolvedValue(undefined);
@@ -274,51 +271,6 @@ describe('ACPServer', () => {
         params: {
           sessionId: 'test-session',
           path: '/test/file.txt',
-        },
-      });
-
-      expect(response.error).toBeUndefined();
-    });
-  });
-
-  describe('Bash Operations', () => {
-    it('should handle bash confirm', async () => {
-      const response = await (server as any).handleRequest({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'bash/confirm',
-        params: {
-          sessionId: 'test-session',
-          commandId: 'cmd-123',
-        },
-      });
-
-      expect(response.error).toBeUndefined();
-    });
-
-    it('should handle bash skip', async () => {
-      const response = await (server as any).handleRequest({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'bash/skip',
-        params: {
-          sessionId: 'test-session',
-          commandId: 'cmd-123',
-        },
-      });
-
-      expect(response.error).toBeUndefined();
-    });
-  });
-
-  describe('Plan Operations', () => {
-    it('should handle plan confirm', async () => {
-      const response = await (server as any).handleRequest({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'plan/confirm',
-        params: {
-          sessionId: 'test-session',
         },
       });
 

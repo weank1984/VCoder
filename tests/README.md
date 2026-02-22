@@ -10,7 +10,9 @@
 tests/
 ├── shared/          # @vcoder/shared 包测试
 ├── server/          # @vcoder/server 包测试
-└── extension/       # vcoder extension 包测试
+├── extension/       # vcoder extension 包测试
+├── desktop-shell/   # desktop-shell 桌面应用测试
+└── mocks/           # 共享 mock（vscode, electron）
 ```
 
 ## 运行测试
@@ -33,11 +35,13 @@ npm run test:coverage
 ## 测试结果
 
 当前测试覆盖率：
-- ✅ **@vcoder/shared**: 15/15 通过 (100%)
-- ✅ **@vcoder/server**: 14/14 通过 (100%)
-- ✅ **vcoder extension**: 14/17 通过 (82%)
+- ✅ **@vcoder/shared**: 22/22 通过 (100%)
+- ✅ **@vcoder/server**: 40/40 通过 (100%)
+- ✅ **vcoder extension**: 108/108 通过 (100%) — 含 ACP 客户端、服务管理、能力编排、Agent 注册、消息队列等
+- ✅ **desktop-shell**: 78/78 通过 (100%) — 含 DesktopRuntime、AuditLogger、ToastManager、WindowManager
+- ⚠️ **webview store** (既有问题): 5 个测试文件因模块路径解析失败未运行
 
-**总计: 43/46 通过 (93.5%)**
+**总计: 343 tests 通过 (26/31 suites)**
 
 ## 测试内容
 
@@ -62,15 +66,20 @@ npm run test:coverage
 - 错误处理
 
 ### vcoder extension
-测试 ACP 客户端实现：
-- 客户端初始化
-- 会话管理（创建、列表、切换、删除）
-- 提示操作
-- 设置变更
-- 文件变更处理
-- Bash 命令处理
-- 计划确认
-- 通知处理
+测试 ACP 客户端及扩展服务：
+- 客户端初始化、会话管理、提示操作、设置变更
+- 文件变更处理 (DiffManager)
+- 能力编排 (CapabilityOrchestrator) — 依赖拓扑排序、冲突检测、生命周期管理
+- 服务器管理 (ServerManager) — 进程生命周期、状态转换
+- Agent 注册 (AgentRegistry) — 多 Agent 切换、内置 Agent 回退
+- 消息队列 (MessageQueue) — 优先级排序、批量发送、溢出策略
+
+### desktop-shell
+测试桌面应用核心模块：
+- **DesktopRuntime** — 消息路由分发、路径安全校验、文件变更追踪、权限规则 CRUD
+- **DesktopAuditLogger** — JSONL 写入、日志轮转、字符串截断
+- **ToastManager** — 各类型通知发送、异常窗口处理
+- **WindowManager** — 窗口状态持久化、屏幕边界检测
 
 ## 编写新测试
 

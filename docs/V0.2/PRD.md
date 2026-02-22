@@ -1,3 +1,5 @@
+> [Archived] 此文档为 V0.2 历史版本，仅供参考。当前需求请参见 PRD-LONG-TERM.md。
+
 # PRD：ACP/MCP 驱动的 VSCode 智能编程插件（类 zcode 体验）
 
 ## 0. 文档信息
