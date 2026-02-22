@@ -6,8 +6,7 @@ import { useEffect, useMemo, useCallback, useRef, useState, type CSSProperties }
 import { useStore, flushTextBuffer } from '@vcoder/ui/store/useStore';
 import { useSmartScroll } from '@vcoder/ui/hooks/useSmartScroll';
 import { useVirtualList } from '@vcoder/ui/hooks/useVirtualList';
-import { PlanBlock } from '@vcoder/ui/components/PlanBlock';
-import { TaskRunsBlock } from '@vcoder/ui/components/TaskRunsBlock';
+import { MissionControl } from '@vcoder/ui/components/MissionControl';
 import { VirtualMessageItem } from '@vcoder/ui/components/VirtualMessageItem';
 import { InputArea, type InputAreaHandle } from '@vcoder/ui/components/InputArea';
 import { SessionHeader } from '@vcoder/ui/components/SessionHeader';
@@ -21,7 +20,6 @@ import { PermissionDialog, type PermissionRequest } from '@vcoder/ui/components/
 import { PermissionRulesPanel } from '@vcoder/ui/components/PermissionRulesPanel';
 import { MessageSkeleton } from '@vcoder/ui/components/Skeleton';
 import { StickyUserPrompt } from '@vcoder/ui/components/StickyUserPrompt';
-import { TodoTaskManager } from '@vcoder/ui/components/TodoTaskManager';
 import type { EnhancedTodoItem, TaskItem } from '@vcoder/ui/components/TodoTaskManager';
 import { useToast } from '@vcoder/ui/utils/Toast';
 import { postMessage } from '@vcoder/ui/bridge';
@@ -53,8 +51,6 @@ function App() {
     messages,
     tasks,
     subagentRuns,
-    planMode,
-    permissionMode,
     error,
     isLoading,
     setUiLanguage,
@@ -485,8 +481,6 @@ function App() {
     return items;
   }, [messages]);
 
-  const hasTodoOrTask = todoItems.length > 0 || taskItems.length > 0;
-
   return (
     <div className="app">
       <SessionHeader
@@ -495,25 +489,12 @@ function App() {
         onSwitchSession={(sessionId) => postMessage({ type: 'switchSession', sessionId })}
       />
 
-      {tasks.length > 0 && (planMode || permissionMode === 'plan') && (
-          <PlanBlock plan={tasks} sticky={true} />
-      )}
-
-      {subagentRuns.length > 0 && (planMode || permissionMode === 'plan') && (
-          <TaskRunsBlock runs={subagentRuns} sticky={true} />
-      )}
-
-      {hasTodoOrTask && (
-        <div className="sticky-todo-task-manager">
-          <TodoTaskManager
-            todos={todoItems}
-            tasks={taskItems}
-            expandByDefault={false}
-            showFilters={true}
-            sortable={true}
-          />
-        </div>
-      )}
+      <MissionControl
+        planTasks={tasks}
+        subagentRuns={subagentRuns}
+        todoItems={todoItems}
+        taskItems={taskItems}
+      />
 
       <div className="messages-panel">
         {enableStickyUserPrompt && (

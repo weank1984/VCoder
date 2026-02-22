@@ -28,6 +28,8 @@ export * from './Icon';
 
 // === 任务管理组件 ===
 export { TodoTaskManager } from './TodoTaskManager';
+export { MissionControl } from './MissionControl';
+export type { MissionControlProps } from './MissionControl';
 
 // === 布局组件 ===
 export { Card, CardHeader, CardBody, CardFooter } from './Card';

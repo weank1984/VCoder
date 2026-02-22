@@ -56,11 +56,21 @@ function formatLineRange(lineRange?: [number, number]): string {
     return `:L${start}-${end}`;
 }
 
+const HIDDEN_TASK_TOOLS = new Set([
+    'Task', 'TaskCreate', 'TaskGet', 'TaskList',
+    'TaskUpdate', 'TaskOutput', 'TaskStop',
+]);
+
 export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }: StepEntryProps) {
     const { t } = useI18n();
     const [isExpanded, setIsExpanded] = useState(hideSummary);
 
     const tc = entry.toolCall;
+
+    // Hide task management tool calls from chat flow
+    if (HIDDEN_TASK_TOOLS.has(tc.name)) {
+        return null;
+    }
     const isPending = tc.status === 'pending';
     const isCommandPending = isPending && (tc.name === 'Bash' || tc.name === 'run_command');
     const isAwaitingConfirmation = tc.status === 'awaiting_confirmation';

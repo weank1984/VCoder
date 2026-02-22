@@ -314,6 +314,14 @@ export default {
     TimeoutTerminated: 'Terminated due to timeout',
     MaxTurnsReached: 'Maximum conversation turns reached',
   },
+  MissionControl: {
+    Title: 'Mission Control',
+    Plan: 'Plan',
+    Agents: 'Agents',
+    Todos: 'TODOs',
+    Summary: '{completed}/{total} done · {running} running',
+    NoData: 'No active tasks',
+  },
   ModeSelector: {
     AgentDesc: 'Full autonomous agent',
     PlanDesc: 'Plan before executing',

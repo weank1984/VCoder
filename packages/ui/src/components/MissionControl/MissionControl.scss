@@ -1,0 +1,444 @@
+// MissionControl - 统一任务管理面板
+.mission-control {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  margin: 0;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+  .mc-summary-text {
+    margin-left: auto;
+    margin-right: 8px;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mc-body {
+    &.collapsed {
+      display: none;
+    }
+  }
+
+  // Tabs
+  .mc-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--agent-block-border);
+    background: var(--agent-block-header-bg);
+
+    .mc-tab {
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--vscode-descriptionForeground);
+      background: transparent;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: var(--agent-block-hover-bg);
+        color: var(--vscode-editor-foreground);
+      }
+
+      &.mc-tab-active {
+        color: var(--vscode-textLink-activeForeground);
+        background: color-mix(in srgb, var(--vscode-textLink-activeForeground) 12%, transparent);
+      }
+    }
+  }
+
+  // Content
+  .mc-content {
+    max-height: 300px;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--vscode-scrollbarSlider-background);
+      border-radius: 3px;
+    }
+  }
+
+  // Shared section
+  .mc-section {
+    padding: 8px 12px;
+  }
+
+  .mc-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 4px;
+
+    .mc-section-count {
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+    }
+  }
+
+  // Shared dot
+  .mc-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--vscode-descriptionForeground);
+    opacity: 0.4;
+  }
+
+  // Spin animation
+  .mc-icon-spin {
+    animation: agent-block-spin 1.5s linear infinite;
+  }
+
+  // === Plan Section ===
+  .mc-plan-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .mc-plan-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: var(--agent-block-hover-bg);
+    }
+
+    .mc-plan-index {
+      min-width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 50%;
+      background: var(--vscode-badge-background);
+      color: var(--vscode-badge-foreground);
+      flex-shrink: 0;
+    }
+
+    .mc-plan-icon {
+      font-size: 12px;
+      min-width: 16px;
+      text-align: center;
+    }
+
+    .mc-plan-text {
+      flex: 1;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    &.pending {
+      opacity: 0.6;
+
+      .mc-plan-icon {
+        color: var(--vscode-descriptionForeground);
+      }
+    }
+
+    &.in-progress {
+      background: color-mix(in srgb, var(--vscode-textLink-activeForeground) 15%, transparent);
+
+      .mc-plan-index {
+        background: var(--vscode-textLink-activeForeground);
+        color: #fff;
+      }
+
+      .mc-plan-icon {
+        color: var(--vscode-textLink-activeForeground);
+      }
+    }
+
+    &.completed {
+      .mc-plan-icon {
+        color: var(--vscode-gitDecoration-addedResourceForeground, #73c991);
+      }
+
+      .mc-plan-text {
+        text-decoration: line-through;
+        opacity: 0.6;
+      }
+
+      .mc-plan-index {
+        background: var(--vscode-gitDecoration-addedResourceForeground, #73c991);
+        color: #fff;
+      }
+    }
+
+    &.failed {
+      background: color-mix(in srgb, var(--vscode-errorForeground) 12%, transparent);
+
+      .mc-plan-icon {
+        color: var(--vscode-errorForeground);
+      }
+
+      .mc-plan-index {
+        background: var(--vscode-errorForeground);
+        color: #fff;
+      }
+    }
+  }
+
+  // === Agent Section ===
+  .mc-agent-list,
+  .mc-task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .mc-task-list {
+    margin-top: 4px;
+  }
+
+  .mc-agent-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: var(--agent-block-hover-bg);
+    }
+
+    .mc-agent-index {
+      min-width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 50%;
+      background: var(--vscode-badge-background);
+      color: var(--vscode-badge-foreground);
+      flex-shrink: 0;
+    }
+
+    .mc-agent-icon {
+      font-size: 12px;
+      min-width: 16px;
+      text-align: center;
+    }
+
+    .mc-agent-text {
+      flex: 1;
+      font-size: 13px;
+      line-height: 1.4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mc-agent-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 6px;
+      font-size: 10px;
+      font-weight: 500;
+      border-radius: 8px;
+      background: var(--agent-block-header-bg);
+      border: 1px solid var(--agent-block-border);
+      color: var(--vscode-descriptionForeground);
+      flex-shrink: 0;
+    }
+
+    .mc-agent-expand {
+      font-size: 12px;
+      color: var(--vscode-descriptionForeground);
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+
+      &.expanded {
+        transform: rotate(90deg);
+      }
+    }
+
+    &.in-progress {
+      background: color-mix(in srgb, var(--vscode-textLink-activeForeground) 12%, transparent);
+
+      .mc-agent-index {
+        background: var(--vscode-textLink-activeForeground);
+        color: var(--vscode-button-foreground);
+      }
+
+      .mc-agent-icon {
+        color: var(--vscode-textLink-activeForeground);
+      }
+    }
+
+    &.completed {
+      .mc-agent-icon {
+        color: var(--vscode-gitDecoration-addedResourceForeground, var(--vscode-terminal-ansiGreen));
+      }
+
+      .mc-agent-index {
+        background: var(--vscode-gitDecoration-addedResourceForeground, var(--vscode-terminal-ansiGreen));
+        color: var(--vscode-button-foreground);
+      }
+    }
+
+    &.failed {
+      background: color-mix(in srgb, var(--vscode-errorForeground) 10%, transparent);
+
+      .mc-agent-icon {
+        color: var(--vscode-errorForeground);
+      }
+
+      .mc-agent-index {
+        background: var(--vscode-errorForeground);
+        color: var(--vscode-button-foreground);
+      }
+    }
+
+    &.pending {
+      opacity: 0.6;
+    }
+  }
+
+  .mc-agent-details {
+    padding: 6px 12px 8px;
+    border-left: 2px solid var(--agent-block-border);
+    margin-left: 12px;
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .mc-agent-panel {
+    border: 1px solid var(--agent-block-border);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--agent-block-bg);
+
+    .mc-agent-panel-title {
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--agent-block-header-bg);
+      border-bottom: 1px solid var(--agent-block-border);
+    }
+
+    .mc-agent-json {
+      margin: 0;
+      padding: 6px 8px;
+      font-family: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+      font-size: 12px;
+      line-height: 1.4;
+      background: var(--agent-block-code-bg);
+      max-height: 200px;
+      overflow: auto;
+    }
+  }
+
+  // === Todo Section ===
+  .mc-todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .mc-todo-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: var(--agent-block-hover-bg);
+    }
+
+    &[data-status="completed"] {
+      opacity: 0.6;
+    }
+
+    .mc-todo-checkbox {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      font-size: 12px;
+      flex-shrink: 0;
+      color: var(--vscode-descriptionForeground);
+
+      &.mc-todo-checked {
+        color: var(--vscode-gitDecoration-addedResourceForeground, #73c991);
+      }
+    }
+
+    .mc-todo-content {
+      flex: 1;
+      font-size: 13px;
+      line-height: 1.4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      &.mc-todo-done {
+        text-decoration: line-through;
+        color: var(--vscode-descriptionForeground);
+      }
+    }
+
+    .mc-todo-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 6px;
+      font-size: 10px;
+      font-weight: 500;
+      border-radius: 8px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+
+      &.mc-todo-badge-high {
+        background: color-mix(in srgb, var(--vscode-errorForeground) 15%, transparent);
+        color: var(--vscode-errorForeground);
+      }
+
+      &.mc-todo-badge-medium {
+        background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 15%, transparent);
+        color: var(--vscode-editorWarning-foreground, #cca700);
+      }
+
+      &.mc-todo-badge-low {
+        background: var(--agent-block-header-bg);
+        color: var(--vscode-descriptionForeground);
+      }
+    }
+
+    // Priority left border
+    &.mc-todo-priority-high {
+      border-left: 2px solid var(--vscode-errorForeground);
+    }
+
+    &.mc-todo-priority-medium {
+      border-left: 2px solid var(--vscode-editorWarning-foreground, #cca700);
+    }
+  }
+}

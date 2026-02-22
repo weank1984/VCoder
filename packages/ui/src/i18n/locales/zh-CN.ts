@@ -297,6 +297,14 @@ export default {
     TimeoutTerminated: '超时终止',
     MaxTurnsReached: '已达最大对话轮数',
   },
+  MissionControl: {
+    Title: '任务中心',
+    Plan: '计划',
+    Agents: '代理',
+    Todos: '待办',
+    Summary: '{completed}/{total} 完成 · {running} 运行中',
+    NoData: '暂无活跃任务',
+  },
   ModeSelector: {
     AgentDesc: '完全自主代理',
     PlanDesc: '先规划再执行',
