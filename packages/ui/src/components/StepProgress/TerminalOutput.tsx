@@ -26,6 +26,8 @@ interface TerminalOutputProps {
     onKill?: (terminalId: string) => void;
     /** Default collapsed state */
     defaultCollapsed?: boolean;
+    /** Hide collapse toggle (when parent already handles collapsing) */
+    hideCollapse?: boolean;
 }
 
 /**
@@ -46,9 +48,10 @@ export function TerminalOutput({
     terminalId,
     onKill,
     defaultCollapsed = false,
+    hideCollapse = false,
 }: TerminalOutputProps) {
     const { t } = useI18n();
-    const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+    const [isCollapsed, setIsCollapsed] = useState(hideCollapse ? false : defaultCollapsed);
     const outputRef = useRef<HTMLPreElement>(null);
     const [autoScroll, setAutoScroll] = useState(true);
 
@@ -93,48 +96,52 @@ export function TerminalOutput({
         }
     };
 
+    const effectiveCollapsed = hideCollapse ? false : isCollapsed;
+
     return (
-        <div className={`terminal-output ${state} ${isCollapsed ? 'collapsed' : ''}`}>
-            {/* Terminal Title Bar */}
-            <div className="terminal-title-bar">
-                <div className="terminal-title-text">
-                    <span className="terminal-prompt-prefix">$</span> {command || 'bash'}
-                </div>
-                <div className="terminal-title-actions">
-                    {isRunning && terminalId && onKill && (
+        <div className={`terminal-output ${state} ${effectiveCollapsed ? 'collapsed' : ''} ${hideCollapse ? 'no-header' : ''}`}>
+            {/* Terminal Title Bar - hidden when parent handles collapsing */}
+            {!hideCollapse && (
+                <div className="terminal-title-bar">
+                    <div className="terminal-title-text">
+                        <span className="terminal-prompt-prefix">$</span> {command || 'bash'}
+                    </div>
+                    <div className="terminal-title-actions">
+                        {isRunning && terminalId && onKill && (
+                            <button
+                                className="terminal-kill-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleKill();
+                                }}
+                                title={t('Terminal.Kill')}
+                            >
+                                <StopIcon />
+                            </button>
+                        )}
                         <button
-                            className="terminal-kill-btn"
+                            className="terminal-copy-btn"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                handleKill();
+                                copyToClipboard(output);
                             }}
-                            title={t('Terminal.Kill')}
+                            title={t('Terminal.CopyOutput')}
                         >
-                            <StopIcon />
+                            <CopyIcon />
                         </button>
-                    )}
-                    <button
-                        className="terminal-copy-btn"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            copyToClipboard(output);
-                        }}
-                        title={t('Terminal.CopyOutput')}
-                    >
-                        <CopyIcon />
-                    </button>
-                    <button
-                        className="terminal-toggle-btn"
-                        onClick={() => setIsCollapsed(!isCollapsed)}
-                        title={isCollapsed ? t('Terminal.Expand') : t('Terminal.Collapse')}
-                    >
-                        {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
-                    </button>
+                        <button
+                            className="terminal-toggle-btn"
+                            onClick={() => setIsCollapsed(!isCollapsed)}
+                            title={isCollapsed ? t('Terminal.Expand') : t('Terminal.Collapse')}
+                        >
+                            {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
 
-            {/* Terminal Content - compact output only */}
-            {!isCollapsed && (
+            {/* Terminal Content */}
+            {!effectiveCollapsed && (
                 <div className="terminal-content">
                     {(cleanedOutput || isRunning) && (
                         <pre

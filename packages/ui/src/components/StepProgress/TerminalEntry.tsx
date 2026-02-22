@@ -5,6 +5,8 @@ import { TerminalOutput } from './TerminalOutput';
 
 interface TerminalEntryProps {
     toolCall: ToolCall;
+    /** Hide inner collapse toggle (parent handles collapsing) */
+    hideCollapse?: boolean;
 }
 
 export function useTerminalData(toolCall: ToolCall) {
@@ -37,7 +39,7 @@ export function shouldShowTerminal(toolCall: ToolCall, data: ReturnType<typeof u
     return Boolean(data.output || data.isRunning || data.command);
 }
 
-export function TerminalEntry({ toolCall }: TerminalEntryProps) {
+export function TerminalEntry({ toolCall, hideCollapse = false }: TerminalEntryProps) {
     const data = useTerminalData(toolCall);
 
     if (!shouldShowTerminal(toolCall, data)) return null;
@@ -51,6 +53,7 @@ export function TerminalEntry({ toolCall }: TerminalEntryProps) {
             isRunning={data.isRunning}
             terminalId={data.terminalId}
             defaultCollapsed={false}
+            hideCollapse={hideCollapse}
         />
     );
 }

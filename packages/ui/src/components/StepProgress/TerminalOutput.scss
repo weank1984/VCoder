@@ -146,6 +146,18 @@
     }
 }
 
+// No-header state (parent handles collapsing, title bar hidden)
+.terminal-output.no-header {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+
+    .terminal-output-text {
+        border-radius: var(--vc-radius-md);
+        border: 1px solid var(--vscode-panel-border);
+    }
+}
+
 // Collapsed state
 .terminal-output.collapsed {
     .terminal-content {

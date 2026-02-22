@@ -208,7 +208,7 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
                     )}
 
                     {hasTerminalSection && isTerminalTool && (
-                        <TerminalEntry toolCall={tc} />
+                        <TerminalEntry toolCall={tc} hideCollapse={hideSummary} />
                     )}
 
                     {hasDiffSection && isFileEditTool && (
