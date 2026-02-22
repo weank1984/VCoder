@@ -54,6 +54,12 @@ export class PersistentSession extends EventEmitter {
     private taskList: TaskListUpdate | null = null;
     private subagentRunMetaById: Map<string, { title: string; subagentType?: string; parentTaskId?: string; input?: Record<string, unknown> }> = new Map();
     private thinkingContent = '';
+    private receivedStreamingThinking = false;
+    // Throttle thinking_delta IPC emissions (150ms interval)
+    private thinkingThrottleTimer: ReturnType<typeof setTimeout> | null = null;
+    private thinkingLastEmitTime = 0;
+    // Track emitted tool_use IDs to avoid duplicates
+    private emittedToolUseIds: Set<string> = new Set();
     private parser = new JsonStreamParser();
     private isRunning = false;
     private _state: PersistentSessionState = 'idle';
@@ -477,6 +483,13 @@ export class PersistentSession extends EventEmitter {
                 this.process = null;
                 this.parser = new JsonStreamParser();
                 this.thinkingContent = '';
+                this.receivedStreamingThinking = false;
+                if (this.thinkingThrottleTimer) {
+                    clearTimeout(this.thinkingThrottleTimer);
+                    this.thinkingThrottleTimer = null;
+                }
+                this.thinkingLastEmitTime = 0;
+                this.emittedToolUseIds.clear();
 
                 await this.start();
 
@@ -552,6 +565,10 @@ export class PersistentSession extends EventEmitter {
             clearInterval(this._healthCheckTimer);
             this._healthCheckTimer = null;
         }
+        if (this.thinkingThrottleTimer) {
+            clearTimeout(this.thinkingThrottleTimer);
+            this.thinkingThrottleTimer = null;
+        }
     }
 
     private handleJsonText(jsonText: string): void {
@@ -620,6 +637,8 @@ export class PersistentSession extends EventEmitter {
 
                 for (const block of content) {
                     if (block.type === 'thinking' && typeof block.thinking === 'string' && block.thinking) {
+                        // Skip if we already sent this via content_block_delta/content_block_stop
+                        if (this.receivedStreamingThinking) continue;
                         const update: ThoughtUpdate = {
                             content: block.thinking,
                             isComplete: true,
@@ -638,6 +657,9 @@ export class PersistentSession extends EventEmitter {
                         this.emitToolUse(toolName, toolInput, toolId);
                     }
                 }
+
+                // Reset streaming flags for next turn
+                this.receivedStreamingThinking = false;
                 break;
             }
 
@@ -687,22 +709,61 @@ export class PersistentSession extends EventEmitter {
                 const delta = event.delta as Record<string, unknown> | undefined;
                 if (delta?.type === 'thinking_delta' && typeof delta.thinking === 'string') {
                     this.thinkingContent += delta.thinking;
-                    const update: ThoughtUpdate = {
-                        content: delta.thinking,
-                        isComplete: false,
-                    };
-                    this.emit('update', update, 'thought');
+                    this.receivedStreamingThinking = true;
+
+                    // Throttled emit: only send IPC update at most every 150ms
+                    const now = Date.now();
+                    const elapsed = now - this.thinkingLastEmitTime;
+
+                    if (elapsed >= 150) {
+                        this.thinkingLastEmitTime = now;
+                        if (this.thinkingThrottleTimer) {
+                            clearTimeout(this.thinkingThrottleTimer);
+                            this.thinkingThrottleTimer = null;
+                        }
+                        const update: ThoughtUpdate = {
+                            content: this.thinkingContent,
+                            isComplete: false,
+                        };
+                        this.emit('update', update, 'thought');
+                    } else {
+                        // Schedule a delayed emit if not already scheduled
+                        if (!this.thinkingThrottleTimer) {
+                            this.thinkingThrottleTimer = setTimeout(() => {
+                                this.thinkingThrottleTimer = null;
+                                this.thinkingLastEmitTime = Date.now();
+                                if (this.thinkingContent) {
+                                    const delayedUpdate: ThoughtUpdate = {
+                                        content: this.thinkingContent,
+                                        isComplete: false,
+                                    };
+                                    this.emit('update', delayedUpdate, 'thought');
+                                }
+                            }, 150 - elapsed);
+                        }
+                    }
                 } else if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
                     // Streaming text content - emit incremental updates for typewriter effect
                     const update: TextUpdate = {
                         text: delta.text,
                     };
                     this.emit('update', update, 'text');
+                } else if (delta?.type === 'input_json_delta') {
+                    // Tool input streaming delta; handled by assistant event's tool_use block
+                } else if (delta) {
+                    console.error(`[PersistentSession] Unhandled delta type: ${delta.type}`);
                 }
                 break;
             }
 
             case 'content_block_stop': {
+                // Clear any pending throttle timer
+                if (this.thinkingThrottleTimer) {
+                    clearTimeout(this.thinkingThrottleTimer);
+                    this.thinkingThrottleTimer = null;
+                }
+                this.thinkingLastEmitTime = 0;
+
                 if (this.thinkingContent.length > 0) {
                     const update: ThoughtUpdate = {
                         content: this.thinkingContent,
@@ -714,12 +775,22 @@ export class PersistentSession extends EventEmitter {
                 break;
             }
 
+            case 'message_start':
+            case 'message_delta':
+            case 'message_stop':
+                // Claude API message-level envelope events; safely ignored
+                break;
+
             default:
                 console.error('[PersistentSession] Unhandled event type:', type);
         }
     }
 
     private emitToolUse(toolName: string, toolInput: Record<string, unknown>, toolId: string): void {
+        // Dedup: skip if we've already emitted this tool_use ID
+        if (this.emittedToolUseIds.has(toolId)) return;
+        this.emittedToolUseIds.add(toolId);
+
         this.toolNameById.set(toolId, toolName);
 
         // File write detection

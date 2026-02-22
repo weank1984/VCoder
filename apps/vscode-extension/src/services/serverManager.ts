@@ -63,9 +63,10 @@ export class ServerManager {
                 this.process = null;
             });
 
-            // Log stderr
+            // Forward server stderr (already prefixed with [ACPServer]/[ClaudeCode])
             this.process.stderr?.on('data', (data) => {
-                console.log('[Server]', data.toString().trim());
+                const text = data.toString().trim();
+                if (text) console.log(text);
             });
 
             this.updateStatus('running');

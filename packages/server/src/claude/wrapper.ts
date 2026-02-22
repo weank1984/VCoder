@@ -61,6 +61,12 @@ export class ClaudeCodeWrapper extends EventEmitter {
     // Track if we've received streaming events (content_block_delta) for a session
     // If we have, we should ignore the final assistant message to avoid duplication
     private receivedStreamingTextByLocalSessionId: Map<string, boolean> = new Map();
+    private receivedStreamingThinkingByLocalSessionId: Map<string, boolean> = new Map();
+    // Throttle thinking_delta IPC emissions (150ms interval)
+    private thinkingThrottleTimerByLocalSessionId: Map<string, ReturnType<typeof setTimeout>> = new Map();
+    private thinkingLastEmitTimeByLocalSessionId: Map<string, number> = new Map();
+    // Track emitted tool_use IDs to avoid duplicates
+    private emittedToolUseIdsByLocalSessionId: Map<string, Set<string>> = new Map();
     private readonly debugThinking = process.env.VCODER_DEBUG_THINKING === '1';
     private lastToolIdByLocalSessionId: Map<string, string> = new Map();
     private readonly pendingCanUseToolByToolCallKey: Map<
@@ -102,8 +108,15 @@ export class ClaudeCodeWrapper extends EventEmitter {
         this.toolNameByIdByLocalSessionId.delete(sessionId);
         this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
         this.receivedStreamingTextByLocalSessionId.delete(sessionId);
+        this.receivedStreamingThinkingByLocalSessionId.delete(sessionId);
         this.lastToolIdByLocalSessionId.delete(sessionId);
         this.seenCanUseToolByLocalSessionId.delete(sessionId);
+        this.emittedToolUseIdsByLocalSessionId.delete(sessionId);
+        // Clear thinking throttle timer
+        const throttleTimer = this.thinkingThrottleTimerByLocalSessionId.get(sessionId);
+        if (throttleTimer) clearTimeout(throttleTimer);
+        this.thinkingThrottleTimerByLocalSessionId.delete(sessionId);
+        this.thinkingLastEmitTimeByLocalSessionId.delete(sessionId);
 
         for (const [key, resolver] of this.pendingConfirmationResolvers.entries()) {
             if (key.startsWith(`${sessionId}:`)) {
@@ -292,6 +305,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
         this.startedLocalSessions.add(sessionId);
         this.toolNameByIdByLocalSessionId.set(sessionId, new Map());
         this.subagentRunMetaByIdByLocalSessionId.set(sessionId, new Map());
+        this.emittedToolUseIdsByLocalSessionId.set(sessionId, new Set());
         this.lastToolIdByLocalSessionId.set(sessionId, ''); // Reset last tool
         this.setupProcessListeners(sessionId, child);
 
@@ -478,15 +492,21 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 const content = message.content as Array<Record<string, unknown>> | undefined;
                 if (!content || !Array.isArray(content)) break;
 
-                // Check if we've already received streaming text for this session
-                // If so, skip text blocks to avoid duplication
-                const receivedStreaming = this.receivedStreamingTextByLocalSessionId.get(sessionId) ?? false;
-                if (this.debugThinking && receivedStreaming) {
+                // Check if we've already received streaming content for this session
+                // If so, skip corresponding blocks to avoid duplication
+                const receivedStreamingText = this.receivedStreamingTextByLocalSessionId.get(sessionId) ?? false;
+                const receivedStreamingThinking = this.receivedStreamingThinkingByLocalSessionId.get(sessionId) ?? false;
+                if (this.debugThinking && receivedStreamingText) {
                     console.error(`[ClaudeCode] assistant event: skipping text blocks (already streamed)`);
+                }
+                if (this.debugThinking && receivedStreamingThinking) {
+                    console.error(`[ClaudeCode] assistant event: skipping thinking blocks (already streamed)`);
                 }
 
                 for (const block of content) {
                     if (block.type === 'thinking' && typeof block.thinking === 'string' && block.thinking) {
+                        // Skip if we already sent this via content_block_delta/content_block_stop
+                        if (receivedStreamingThinking) continue;
                         this.logThinking(sessionId, `assistant_block len=${block.thinking.length}`);
                         const update: ThoughtUpdate = {
                             content: block.thinking,
@@ -496,7 +516,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
                     } else if (block.type === 'text' && typeof block.text === 'string' && block.text) {
                         // Only emit text if we haven't received streaming updates
                         // This handles the case where CLI doesn't support streaming
-                        if (!receivedStreaming) {
+                        if (!receivedStreamingText) {
                             if (this.debugThinking) {
                                 console.error(`[ClaudeCode] assistant event: emitting text (no streaming) len=${block.text.length}`);
                             }
@@ -510,17 +530,18 @@ export class ClaudeCodeWrapper extends EventEmitter {
                         const toolId = block.id as string | undefined;
                         const toolInput = block.input as Record<string, unknown> | undefined;
                         if (!toolName || !toolId || !toolInput) continue;
-                        
+
                         // Track last tool ID for permission handling in stderr
                         this.lastToolIdByLocalSessionId.set(sessionId, toolId);
-                        
+
                         this.emitToolUse(sessionId, toolName, toolInput, toolId);
                     }
                 }
-                
-                // Reset streaming flag after processing assistant message
+
+                // Reset streaming flags after processing assistant message
                 // (for next turn in multi-turn conversations)
                 this.receivedStreamingTextByLocalSessionId.delete(sessionId);
+                this.receivedStreamingThinkingByLocalSessionId.delete(sessionId);
                 break;
             }
 
@@ -604,14 +625,45 @@ export class ClaudeCodeWrapper extends EventEmitter {
                     const existing = this.thinkingContentByLocalSessionId.get(sessionId) || '';
                     const next = existing + delta.thinking;
                     this.thinkingContentByLocalSessionId.set(sessionId, next);
+                    this.receivedStreamingThinkingByLocalSessionId.set(sessionId, true);
                     this.logThinking(sessionId, `stream_delta len=${delta.thinking.length} total=${next.length}`);
 
-                    // Emit incremental update
-                    const update: ThoughtUpdate = {
-                        content: delta.thinking,
-                        isComplete: false,
-                    };
-                    this.emit('update', sessionId, update, 'thought');
+                    // Throttled emit: only send IPC update at most every 150ms
+                    const now = Date.now();
+                    const lastEmit = this.thinkingLastEmitTimeByLocalSessionId.get(sessionId) ?? 0;
+                    const elapsed = now - lastEmit;
+
+                    if (elapsed >= 150) {
+                        // Enough time has passed, emit immediately
+                        this.thinkingLastEmitTimeByLocalSessionId.set(sessionId, now);
+                        const existingTimer = this.thinkingThrottleTimerByLocalSessionId.get(sessionId);
+                        if (existingTimer) {
+                            clearTimeout(existingTimer);
+                            this.thinkingThrottleTimerByLocalSessionId.delete(sessionId);
+                        }
+                        const update: ThoughtUpdate = {
+                            content: next,
+                            isComplete: false,
+                        };
+                        this.emit('update', sessionId, update, 'thought');
+                    } else {
+                        // Schedule a delayed emit if not already scheduled
+                        if (!this.thinkingThrottleTimerByLocalSessionId.has(sessionId)) {
+                            const timer = setTimeout(() => {
+                                this.thinkingThrottleTimerByLocalSessionId.delete(sessionId);
+                                this.thinkingLastEmitTimeByLocalSessionId.set(sessionId, Date.now());
+                                const accumulated = this.thinkingContentByLocalSessionId.get(sessionId) || '';
+                                if (accumulated) {
+                                    const delayedUpdate: ThoughtUpdate = {
+                                        content: accumulated,
+                                        isComplete: false,
+                                    };
+                                    this.emit('update', sessionId, delayedUpdate, 'thought');
+                                }
+                            }, 150 - elapsed);
+                            this.thinkingThrottleTimerByLocalSessionId.set(sessionId, timer);
+                        }
+                    }
                 } else if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
                     // Streaming text content - emit incremental updates for typewriter effect
                     // Mark that we've received streaming text, so we can skip duplicates in assistant event
@@ -623,14 +675,23 @@ export class ClaudeCodeWrapper extends EventEmitter {
                         text: delta.text,
                     };
                     this.emit('update', sessionId, update, 'text');
+                } else if (delta?.type === 'input_json_delta') {
+                    // Tool input streaming delta; handled by assistant event's tool_use block
                 } else if (delta) {
-                    // Log unhandled delta types for debugging
                     console.error(`[ClaudeCode] Unhandled delta type: ${delta.type}`);
                 }
                 break;
             }
 
             case 'content_block_stop': {
+                // Clear any pending throttle timer
+                const pendingTimer = this.thinkingThrottleTimerByLocalSessionId.get(sessionId);
+                if (pendingTimer) {
+                    clearTimeout(pendingTimer);
+                    this.thinkingThrottleTimerByLocalSessionId.delete(sessionId);
+                }
+                this.thinkingLastEmitTimeByLocalSessionId.delete(sessionId);
+
                 // Finalize thinking block if we were accumulating
                 const thinking = this.thinkingContentByLocalSessionId.get(sessionId);
                 if (thinking !== undefined) {
@@ -647,6 +708,12 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 }
                 break;
             }
+
+            case 'message_start':
+            case 'message_delta':
+            case 'message_stop':
+                // Claude API message-level envelope events; safely ignored
+                break;
 
             default:
                 // Don't spam logs for harmless new event types; keep as debug.
@@ -1134,6 +1201,15 @@ export class ClaudeCodeWrapper extends EventEmitter {
     }
 
     private emitToolUse(sessionId: string, toolName: string, toolInput: Record<string, unknown>, toolId: string): void {
+        // Dedup: skip if we've already emitted this tool_use ID
+        let emittedIds = this.emittedToolUseIdsByLocalSessionId.get(sessionId);
+        if (!emittedIds) {
+            emittedIds = new Set();
+            this.emittedToolUseIdsByLocalSessionId.set(sessionId, emittedIds);
+        }
+        if (emittedIds.has(toolId)) return;
+        emittedIds.add(toolId);
+
         this.toolNameByIdByLocalSessionId.get(sessionId)?.set(toolId, toolName);
 
         if (toolName === 'Task') {
