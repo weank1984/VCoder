@@ -158,8 +158,7 @@ export class TeamManager extends EventEmitter {
      */
     async shutdownAll(): Promise<void> {
         const teamNames = [...this.teams.keys()];
-        await Promise.all(teamNames.map((name) => this.stopTeam(name)));
-        this.teams.clear();
+        await Promise.all(teamNames.map((name) => this.stopTeam(name, true)));
     }
 
     /**

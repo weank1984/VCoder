@@ -260,7 +260,7 @@ export class ACPServer {
                     result = { teams: this.claudeCode.teams.getTeams() };
                     break;
                 case ACPMethods.TEAM_STOP:
-                    await this.claudeCode.teams.stopTeam((params as TeamStopParams).teamName);
+                    await this.claudeCode.teams.stopTeam((params as TeamStopParams).teamName, true);
                     result = null;
                     break;
                 case ACPMethods.TEAM_STOP_MEMBER: {

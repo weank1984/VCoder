@@ -2,16 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import type { SubagentRunUpdate, TeamMemberInfo } from '@vcoder/shared';
 import type { ToolCall } from '../../types';
 import type { TaskItem } from '../TodoTaskManager/types';
+import type { TeamInfo } from './types';
 import classNames from 'classnames';
 import { useI18n } from '../../i18n/I18nProvider';
 import { CheckIcon, ErrorIcon, LoadingIcon, ArrowRightIcon, RocketIcon } from '../Icon';
-
-interface TeamInfo {
-  teamName: string;
-  description?: string;
-  leadSessionId: string;
-  members: TeamMemberInfo[];
-}
 
 interface AgentSectionProps {
   subagentRuns: SubagentRunUpdate[];

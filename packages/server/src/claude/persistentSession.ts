@@ -65,7 +65,10 @@ export class PersistentSession extends EventEmitter {
     private thinkingLastEmitTime = 0;
     // Track emitted tool_use IDs to avoid duplicates
     private emittedToolUseIds: Set<string> = new Set();
+    // Track pending TeamCreate/TeamDelete tool calls
+    private teamToolPendingByToolId: Map<string, { type: 'create' | 'delete'; teamName: string }> = new Map();
     private parser = new JsonStreamParser();
+    private readonly debug = process.env.VCODER_DEBUG === '1';
     private isRunning = false;
     private _state: PersistentSessionState = 'idle';
     private _messageCount = 0;
@@ -432,9 +435,13 @@ export class PersistentSession extends EventEmitter {
 
         this.process.stdout?.setEncoding('utf8');
         this.process.stdout?.on('data', (chunk: string) => {
-            console.error(`[PersistentSession stdout] raw chunk (${chunk.length} bytes):`, chunk.slice(0, 500));
+            if (this.debug) {
+                console.error(`[PersistentSession stdout] raw chunk (${chunk.length} bytes):`, chunk.slice(0, 500));
+            }
             const jsonTexts = this.parser.feed(chunk);
-            console.error(`[PersistentSession stdout] parsed ${jsonTexts.length} JSON objects`);
+            if (this.debug) {
+                console.error(`[PersistentSession stdout] parsed ${jsonTexts.length} JSON objects`);
+            }
             for (const jsonText of jsonTexts) {
                 this.handleJsonText(jsonText);
             }
@@ -498,6 +505,7 @@ export class PersistentSession extends EventEmitter {
                 }
                 this.thinkingLastEmitTime = 0;
                 this.emittedToolUseIds.clear();
+                this.teamToolPendingByToolId.clear();
 
                 await this.start();
 
@@ -600,7 +608,9 @@ export class PersistentSession extends EventEmitter {
         }
 
         const type = event.type as string;
-        console.error(`[PersistentSession] handleEvent type=${type}, state=${this._state}`);
+        if (this.debug) {
+            console.error(`[PersistentSession] handleEvent type=${type}, state=${this._state}`);
+        }
 
         switch (type) {
             case 'stream_event': {
@@ -836,6 +846,15 @@ export class PersistentSession extends EventEmitter {
     private emitToolResult(toolId: string, result: unknown, error?: string): void {
         const toolName = this.toolNameById.get(toolId);
 
+        // Handle TeamCreate/TeamDelete tool results
+        const teamPending = this.teamToolPendingByToolId.get(toolId);
+        if (teamPending) {
+            this.teamToolPendingByToolId.delete(toolId);
+            if (!error) {
+                this.emit('team_tool', teamPending.type, teamPending.teamName);
+            }
+        }
+
         // Pop Task from active stack
         if (toolName === 'Task') {
             const idx = this.activeTaskStack.lastIndexOf(toolId);
@@ -870,6 +889,21 @@ export class PersistentSession extends EventEmitter {
         this.emittedToolUseIds.add(toolId);
 
         this.toolNameById.set(toolId, toolName);
+
+        // TeamCreate/TeamDelete detection — emit event for wrapper to trigger TeamManager
+        if (toolName === 'TeamCreate') {
+            const teamName = (toolInput as Record<string, unknown>)?.team_name as string;
+            if (teamName) {
+                // Store pending; will be resolved when tool_result arrives
+                this.teamToolPendingByToolId.set(toolId, { type: 'create', teamName });
+            }
+        }
+        if (toolName === 'TeamDelete') {
+            const teamName = (toolInput as Record<string, unknown>)?.team_name as string;
+            if (teamName) {
+                this.teamToolPendingByToolId.set(toolId, { type: 'delete', teamName });
+            }
+        }
 
         // Task (subagent) detection
         if (toolName === 'Task') {

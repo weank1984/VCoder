@@ -1781,6 +1781,14 @@ export class ClaudeCodeWrapper extends EventEmitter {
             void this.handleControlRequest(sessionId, event);
         });
 
+        session.on('team_tool', (type: 'create' | 'delete', teamName: string) => {
+            if (type === 'create') {
+                void this.teamManager.onTeamCreated(teamName, sessionId);
+            } else {
+                void this.teamManager.onTeamDeleted(teamName);
+            }
+        });
+
         session.on('close', (code: number) => {
             console.error(`[ClaudeCode] Persistent session ${sessionId} closed with code ${code}`);
             this.persistentSessions.delete(sessionId);
