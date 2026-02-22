@@ -12,8 +12,7 @@ import { FileSystemProvider } from './services/fileSystemProvider';
 import { TerminalProvider } from './services/terminalProvider';
 import { DiffManager } from './services/diffManager';
 import { VCoderFileDecorationProvider } from './providers/fileDecorationProvider';
-import { ACPMethods, type UpdateNotificationParams, type RequestPermissionParams, type PermissionRulesListParams, type PermissionRuleAddParams, type PermissionRuleUpdateParams, type PermissionRuleDeleteParams, type PermissionRule, type TerminalCreateParams, type TerminalWaitForExitParams } from '@vcoder/shared';
-import { PermissionProvider } from './services/permissionProvider';
+import { ACPMethods, type UpdateNotificationParams, type PermissionRulesListParams, type PermissionRuleAddParams, type PermissionRuleUpdateParams, type PermissionRuleDeleteParams, type PermissionRule, type TerminalCreateParams, type TerminalWaitForExitParams } from '@vcoder/shared';
 import { AgentRegistry } from './services/agentRegistry';
 
 // Declare output channel at top level
@@ -27,7 +26,6 @@ let fileSystemProvider: FileSystemProvider | undefined;
 let chatViewProvider: ChatViewProvider | undefined;
 let statusBarItem: vscode.StatusBarItem;
 let capabilityOrchestrator: CapabilityOrchestrator | null = null;
-let permissionProvider: PermissionProvider | undefined;
 let agentRegistry: AgentRegistry | undefined;
 
 /**
@@ -217,17 +215,9 @@ export async function activate(context: vscode.ExtensionContext) {
             }),
         );
 
-        permissionProvider = new PermissionProvider(chatViewProvider, sessionStore, auditLogger);
-        // Register session/requestPermission handler (chain A) only when legacy popup mode is enabled.
-        // Chain B (confirmation_request via session/update -> Webview inline UI -> tool/confirm) is the
-        // preferred path. See docs/learned/permission-unified-design.md for details.
-        const legacyPopup = vscode.workspace.getConfiguration('vcoder').get<boolean>('legacyPermissionPopup', false);
-        if (legacyPopup) {
-            acpClient.registerRequestHandler(
-                ACPMethods.SESSION_REQUEST_PERMISSION,
-                async (params) => permissionProvider!.handlePermissionRequest(params as RequestPermissionParams)
-            );
-        }
+        // Permission: Chain B only (confirmation_request -> Webview inline UI -> tool/confirm).
+        // Chain A (session/requestPermission) has been removed.
+        // See docs/learned/permission-unified-design.md for details.
 
         // Register permission rules RPC handlers (Server -> Client -> SessionStore)
         if (sessionStore) {

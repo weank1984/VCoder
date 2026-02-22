@@ -14,11 +14,14 @@ export default defineConfig({
         'packages/*/src/**/*.ts',
         'apps/vscode-extension/src/**/*.ts',
         'apps/vscode-extension/webview/src/**/*.{ts,tsx}',
+        'apps/desktop-shell/src/**/*.ts',
       ],
       exclude: [
         'apps/vscode-extension/**/node_modules/**',
         'apps/vscode-extension/**/dist/**',
         'apps/vscode-extension/**/out/**',
+        'apps/desktop-shell/**/node_modules/**',
+        'apps/desktop-shell/**/dist/**',
         'packages/*/node_modules/**',
         'packages/*/dist/**',
         'packages/*/out/**',
@@ -33,6 +36,7 @@ export default defineConfig({
       '@vcoder/shared': resolve(__dirname, './packages/shared/src'),
       '@vcoder/server': resolve(__dirname, './packages/server/src'),
       'vscode': resolve(__dirname, './tests/mocks/vscode.ts'),
+      'electron': resolve(__dirname, './tests/mocks/electron.ts'),
     },
   },
 });

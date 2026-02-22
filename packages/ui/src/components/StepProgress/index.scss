@@ -1,5 +1,6 @@
 /* Step Progress - Enhanced Card Style */
 
+@use '../../styles/mixins' as *;
 @use './TerminalOutput.scss';
 @use './DiffViewer.scss';
 @use './McpToolDisplay.scss';
@@ -91,13 +92,8 @@
     &.failed { color: var(--vc-color-error-text); }
     &.running {
         color: var(--vc-color-text-secondary);
-        animation: pulse 1.5s ease-in-out infinite;
+        @include pulse-animation;
     }
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
 }
 
 .step-title {
@@ -321,8 +317,6 @@
 .step-item.failed .step-title { color: var(--vc-color-error-text); }
 .step-item.running .step-title { color: var(--vc-color-text-primary); font-weight: var(--vc-font-weight-medium); }
 
-/* Hide step number completely */
-.step-number { display: none; }
 
 /* View button */
 .entry-view-btn {
@@ -356,7 +350,7 @@
     &.error { color: var(--vscode-terminal-ansiRed); }
     &.running, &.pending {
         color: var(--vc-color-text-secondary);
-        animation: pulse 1.5s ease-in-out infinite;
+        @include pulse-animation;
     }
 }
 

@@ -8,7 +8,8 @@ import { useState, useMemo, useCallback } from 'react';
 import type { ToolCall } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
 import { postMessage } from '../../bridge';
-import { CollapseIcon, ExpandIcon } from '../Icon';
+import { ChevronRightIcon } from '../Icon';
+import { Collapsible } from '../Collapsible';
 import { asRecord, asString } from '../../utils/typeGuards';
 import './index.scss';
 
@@ -104,13 +105,13 @@ export function ExploredSummary({ toolCalls, isComplete = true }: ExploredSummar
                 className={`explored-summary__header ${isComplete ? '' : 'is-loading'}`}
                 onClick={() => setIsExpanded(!isExpanded)}
             >
-                <span className="explored-summary__chevron">
-                    {isExpanded ? <CollapseIcon /> : <ExpandIcon />}
+                <span className={`explored-summary__chevron ${isExpanded ? 'is-open' : ''}`}>
+                    <ChevronRightIcon />
                 </span>
                 <span className="explored-summary__text">{summaryText}</span>
             </div>
 
-            {isExpanded && (
+            <Collapsible isOpen={isExpanded}>
                 <div className="explored-summary__list">
                     {items.map((item, idx) => (
                         <div
@@ -126,7 +127,7 @@ export function ExploredSummary({ toolCalls, isComplete = true }: ExploredSummar
                         </div>
                     ))}
                 </div>
-            )}
+            </Collapsible>
         </div>
     );
 }

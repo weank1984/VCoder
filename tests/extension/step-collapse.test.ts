@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isStepCollapsed, toggleStepOverride } from '../../apps/vscode-extension/webview/src/utils/stepCollapse';
+import { isStepCollapsed, toggleStepOverride } from '../../packages/ui/src/utils/stepCollapse';
 
 describe('stepCollapse', () => {
     it('collapse_all: default collapsed, override expands', () => {

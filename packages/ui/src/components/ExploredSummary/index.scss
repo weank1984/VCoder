@@ -1,50 +1,23 @@
 /* ExploredSummary.scss - Enhanced card style for "Explored N directory, N files" */
+@use '../../styles/mixins' as *;
 
 .explored-summary {
-    margin: 4px 0;
-    border-radius: var(--vc-radius-md);
-    background: color-mix(in srgb, var(--vscode-editor-background) 60%, transparent);
-    border: 1px solid color-mix(in srgb, var(--vc-color-border) 40%, transparent);
-    border-left: 2px solid color-mix(in srgb, var(--vc-color-primary, #d97706) 40%, transparent);
-    overflow: hidden;
+    @include collapsible-card;
 }
 
 .explored-summary__header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    @include collapsible-card-header;
     color: var(--vc-color-text-primary);
-    font-size: 13px;
-    cursor: pointer;
-    user-select: none;
-    padding: 6px 10px;
-    width: 100%;
-    transition: background 0.1s;
-
-    &:hover {
-        background: var(--vc-color-hover-bg);
-    }
 
     &.is-loading {
         .explored-summary__text {
-            animation: explored-pulse 1.5s ease-in-out infinite;
+            @include pulse-animation;
         }
     }
 }
 
 .explored-summary__chevron {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 14px;
-    height: 14px;
-    opacity: 0.6;
-
-    svg {
-        width: 10px;
-        height: 10px;
-        fill: currentColor;
-    }
+    @include collapsible-chevron;
 }
 
 .explored-summary__text {
@@ -98,9 +71,4 @@
             text-decoration: underline;
         }
     }
-}
-
-@keyframes explored-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
 }

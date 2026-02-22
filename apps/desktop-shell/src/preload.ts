@@ -26,6 +26,9 @@ const api: HostBridgeApi = {
   },
 };
 
+// Handshake so main process can confirm preload is running and IPC works.
+ipcRenderer.send(IPC_CHANNELS.WEBVIEW_OUTGOING, { type: 'preloadReady' });
+
 ipcRenderer.on(IPC_CHANNELS.WEBVIEW_INCOMING, (_event, payload: unknown) => {
   window.dispatchEvent(
     new MessageEvent('message', {

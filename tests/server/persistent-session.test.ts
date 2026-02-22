@@ -30,6 +30,7 @@ vi.mock('child_process', () => ({
 // Mock shared utilities
 vi.mock('../../packages/server/src/claude/shared', () => ({
     resolveClaudePath: () => '/usr/local/bin/claude',
+    preflightCheck: () => Promise.resolve({ ok: true, checks: [] }),
     JsonStreamParser: class {
         private buffer = '';
         feed(chunk: string): string[] {
@@ -55,6 +56,9 @@ function getSpawnedProcess() {
     const mockSpawn = spawn as unknown as ReturnType<typeof vi.fn>;
     return mockSpawn.mock.results[mockSpawn.mock.results.length - 1].value;
 }
+
+/** Yield a microtask so that start()'s `await preflightCheck()` settles before spawn is called. */
+const tick = () => new Promise<void>((r) => queueMicrotask(r));
 
 function simulateInit(proc: ReturnType<typeof getSpawnedProcess>) {
     // Emit system init event as JSON line
@@ -97,6 +101,7 @@ describe('PersistentSession', () => {
 
         it('should transition to idle after start', async () => {
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;
@@ -108,6 +113,7 @@ describe('PersistentSession', () => {
 
         it('should transition to processing on sendMessage', async () => {
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;
@@ -119,6 +125,7 @@ describe('PersistentSession', () => {
 
         it('should transition to waiting on result', async () => {
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;
@@ -135,6 +142,7 @@ describe('PersistentSession', () => {
 
         it('should transition to closed when process closes', async () => {
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;
@@ -148,6 +156,7 @@ describe('PersistentSession', () => {
     describe('Multi-turn Conversation', () => {
         it('should support 3 rounds of conversation', async () => {
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;
@@ -194,6 +203,7 @@ describe('PersistentSession', () => {
     describe('Token Usage Tracking', () => {
         it('should accumulate token usage across rounds', async () => {
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;
@@ -215,6 +225,7 @@ describe('PersistentSession', () => {
 
         it('should handle result without usage gracefully', async () => {
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;
@@ -227,6 +238,7 @@ describe('PersistentSession', () => {
 
         it('should return a copy of totalUsage (not reference)', async () => {
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;
@@ -251,6 +263,7 @@ describe('PersistentSession', () => {
         it('should pass --resume flag when resuming', async () => {
             session.setResumeSessionId('existing-cli-id');
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;
@@ -263,6 +276,7 @@ describe('PersistentSession', () => {
 
         it('should ignore setResumeSessionId after start', async () => {
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;
@@ -284,6 +298,7 @@ describe('PersistentSession', () => {
     describe('Event Forwarding', () => {
         it('should emit text updates', async () => {
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;
@@ -301,6 +316,7 @@ describe('PersistentSession', () => {
 
         it('should emit error on result error', async () => {
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;
@@ -324,11 +340,13 @@ describe('PersistentSession', () => {
             const session2 = new PersistentSession('session-2', { workingDirectory: '/test/2' });
 
             const start1 = session1.start();
+            await tick();
             const proc1 = getSpawnedProcess();
             proc1.stdout.push(JSON.stringify({ type: 'system', subtype: 'init', session_id: 'cli-1' }) + '\n');
             await start1;
 
             const start2 = session2.start();
+            await tick();
             const proc2 = getSpawnedProcess();
             proc2.stdout.push(JSON.stringify({ type: 'system', subtype: 'init', session_id: 'cli-2' }) + '\n');
             await start2;
@@ -373,6 +391,7 @@ describe('PersistentSession', () => {
     describe('Stop and Kill', () => {
         it('should set state to closed on kill', async () => {
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;
@@ -384,6 +403,7 @@ describe('PersistentSession', () => {
 
         it('should set state to closed on stop', async () => {
             const startPromise = session.start();
+            await tick();
             const proc = getSpawnedProcess();
             simulateInit(proc);
             await startPromise;

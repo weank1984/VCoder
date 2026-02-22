@@ -5,6 +5,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useI18n } from '../i18n/I18nProvider';
+import { ChevronRightIcon } from './Icon';
+import { Collapsible } from './Collapsible';
 import './ThoughtBlock.scss';
 
 interface ThoughtBlockProps {
@@ -58,14 +60,17 @@ export function ThoughtBlock({ content, defaultExpanded = false, isComplete = tr
                 className="thought-header"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
+                <span className={`thought-chevron ${isExpanded ? 'is-open' : ''}`}>
+                    <ChevronRightIcon />
+                </span>
                 <span className="thought-label">{label}</span>
             </div>
 
-            {isExpanded && displayContent && (
+            <Collapsible isOpen={isExpanded && !!displayContent}>
                 <div className="thought-content">
                     {displayContent}
                 </div>
-            )}
+            </Collapsible>
         </div>
     );
 }

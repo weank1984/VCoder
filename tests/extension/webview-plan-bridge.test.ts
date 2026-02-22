@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useStore } from '../../apps/vscode-extension/webview/src/store/useStore';
+import { useStore } from '../../packages/ui/src/store/useStore';
 
 describe('webview store plan bridge', () => {
   beforeEach(() => {

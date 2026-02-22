@@ -685,6 +685,104 @@
   }
 }
 
+@keyframes vc-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/**
+ * 脉冲动画（用于 loading/thinking 状态）
+ * @param {string} $duration - 动画时长
+ */
+@mixin pulse-animation($duration: 1.5s) {
+  animation: vc-pulse $duration ease-in-out infinite;
+}
+
+/**
+ * 可折叠卡片容器（ThoughtBlock, StepItem, ExploredSummary 共享）
+ * @param {string} $bg-opacity - 背景透明度
+ * @param {string} $border-opacity - 边框透明度
+ * @param {string} $accent-color - 左侧强调色
+ * @param {string} $accent-opacity - 强调色透明度
+ */
+@mixin collapsible-card(
+  $bg-opacity: 60%,
+  $border-opacity: 40%,
+  $accent-color: var(--vc-color-primary, #d97706),
+  $accent-opacity: 40%
+) {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 0;
+  border-radius: var(--vc-radius-md);
+  background: color-mix(in srgb, var(--vscode-editor-background) $bg-opacity, transparent);
+  border: 1px solid color-mix(in srgb, var(--vc-color-border) $border-opacity, transparent);
+  border-left: 2px solid color-mix(in srgb, $accent-color $accent-opacity, transparent);
+  overflow: hidden;
+}
+
+/**
+ * 可折叠卡片头部（可点击行，带 hover 效果）
+ * @param {string} $font-size - 字体大小
+ * @param {string} $padding - 内边距
+ */
+@mixin collapsible-card-header($font-size: 13px, $padding: 6px 10px) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: $font-size;
+  cursor: pointer;
+  user-select: none;
+  padding: $padding;
+  width: 100%;
+  transition: background var(--vc-transition-fast);
+
+  &:hover {
+    background: var(--vc-color-hover-bg);
+  }
+}
+
+/**
+ * CSS Grid 平滑高度动画（0 → auto）
+ */
+@mixin collapsible-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--vc-transition-slow) ease;
+
+  &.is-open {
+    grid-template-rows: 1fr;
+  }
+
+  > .collapsible-inner {
+    overflow: hidden;
+  }
+}
+
+/**
+ * 展开/折叠 chevron 图标（带旋转动画）
+ */
+@mixin collapsible-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  opacity: 0.6;
+  transition: transform var(--vc-transition-fast);
+  flex-shrink: 0;
+
+  svg {
+    width: 10px;
+    height: 10px;
+    fill: currentColor;
+  }
+
+  &.is-open {
+    transform: rotate(90deg);
+  }
+}
+
 /* ==========================================================================
    UTILTY MIXINS
    ========================================================================== */

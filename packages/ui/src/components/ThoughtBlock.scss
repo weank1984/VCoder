@@ -1,31 +1,17 @@
 /* ThoughtBlock.scss - Enhanced "Thought for Ns" with better visual weight */
+@use '../styles/mixins' as *;
 
 .thought-block {
-    display: flex;
-    flex-direction: column;
-    margin: 4px 0;
-    border-radius: var(--vc-radius-md);
-    background: color-mix(in srgb, var(--vscode-editor-background) 40%, transparent);
-    border: 1px solid color-mix(in srgb, var(--vc-color-border) 30%, transparent);
-    border-left: 2px solid color-mix(in srgb, var(--vc-color-primary, #d97706) 40%, transparent);
-    overflow: hidden;
+    @include collapsible-card($bg-opacity: 40%, $border-opacity: 30%);
 }
 
 .thought-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    @include collapsible-card-header($padding: 5px 10px);
     color: var(--vscode-descriptionForeground);
-    font-size: 13px;
-    cursor: pointer;
-    user-select: none;
-    padding: 5px 10px;
-    width: 100%;
-    transition: background 0.1s;
+}
 
-    &:hover {
-        background: var(--vc-color-hover-bg);
-    }
+.thought-chevron {
+    @include collapsible-chevron;
 }
 
 .thought-label {
@@ -52,11 +38,6 @@
     border-left-color: var(--vc-color-primary, #d97706);
 
     .thought-label {
-        animation: thinking-pulse 1.5s ease-in-out infinite;
+        @include pulse-animation;
     }
-}
-
-@keyframes thinking-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
 }

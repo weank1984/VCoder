@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useStore } from '../../apps/vscode-extension/webview/src/store/useStore';
+import { useStore } from '../../packages/ui/src/store/useStore';
 import type { ModelId } from '@vcoder/shared';
 
 describe('webview store settings', () => {

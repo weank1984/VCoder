@@ -647,16 +647,6 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         }
                     }
                     break;
-                case 'permissionResponse':
-                    {
-                        // Forward to PermissionProvider via event
-                        this.emit('permissionResponse', {
-                            requestId: message.requestId,
-                            outcome: message.outcome,
-                            trustAlways: message.trustAlways,
-                        });
-                    }
-                    break;
                 case 'getAuditStats':
                     {
                         if (this.auditLogger) {

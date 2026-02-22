@@ -285,6 +285,12 @@ app.whenReady().then(async () => {
 
   // Setup IPC before loading the webview to avoid missing early messages
   ipcMain.on(IPC_CHANNELS.WEBVIEW_OUTGOING, (_event, payload) => {
+    const t = (payload as { type?: unknown } | null)?.type;
+    const type = typeof t === 'string' ? t : '<unknown>';
+    // Always log key events so we can debug "send disappears" reports.
+    if (type === 'preloadReady' || type === 'send' || process.env.VCODER_DEBUG_IPC === '1') {
+      console.log(`[Desktop][IPC] <- webview type=${type}`);
+    }
     if (runtime) {
       void runtime.handleWebviewMessage(payload);
     }

@@ -15,6 +15,7 @@ import {
     ExpandIcon,
     CollapseIcon,
 } from '../Icon';
+import { Collapsible } from '../Collapsible';
 import { asRecord, asString, asNumber } from '../../utils/typeGuards';
 import { isTerminalToolName, isFileEditToolName } from '../../utils/toolClassifiers';
 
@@ -288,7 +289,6 @@ export function StepItem({
     return (
         <div className={`step-item ${step.status} ${step.isSingleEntry ? 'single-entry' : ''}`}>
             <div className="step-header" onClick={onToggle}>
-                <span className={`step-number ${step.status}`}>{step.index}</span>
                 <div className="step-info">
                     <div className="step-text">
                         <span className="step-title" title={displayTitle}>{displayTitle}</span>
@@ -298,7 +298,7 @@ export function StepItem({
                             </span>
                         )}
                     </div>
-                    <span 
+                    <span
                         className={`step-status-icon ${step.status}`}
                         title={errorInfo?.message || undefined}
                     >
@@ -309,7 +309,7 @@ export function StepItem({
                     {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
                 </span>
             </div>
-            
+
             {/* Error banner - shown when collapsed and has error, but not for rejected terminal commands */}
             {isCollapsed && errorInfo && !isRejectedTerminal && (
                 <div className="step-error-banner" onClick={(e) => {
@@ -321,8 +321,8 @@ export function StepItem({
                     <span className="step-error-expand">{t('Error.ViewDetails')}</span>
                 </div>
             )}
-            
-            {!isCollapsed && (
+
+            <Collapsible isOpen={!isCollapsed}>
                 <>
                     {/* Error details - shown when expanded */}
                     {errorInfo && (
@@ -342,7 +342,7 @@ export function StepItem({
                             </div>
                         </div>
                     )}
-                    
+
                     <div className="step-entries">
                         {step.entries.map((entry) => (
                             <StepEntry
@@ -355,7 +355,7 @@ export function StepItem({
                         ))}
                     </div>
                 </>
-            )}
+            </Collapsible>
         </div>
     );
 }

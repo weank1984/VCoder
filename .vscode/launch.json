@@ -162,6 +162,54 @@
       "sourceMapPathOverrides": {
         "webpack:///*": "${webRoot}/*"
       }
+    },
+    {
+      "name": "Debug Desktop App (Main Process)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+      "runtimeArgs": [
+        "--remote-debugging-port=9222",
+        "${workspaceFolder}/apps/desktop-shell/dist/main.js"
+      ],
+      "preLaunchTask": "build:app",
+      "outFiles": [
+        "${workspaceFolder}/apps/desktop-shell/dist/**/*.js",
+        "${workspaceFolder}/packages/server/dist/**/*.js",
+        "${workspaceFolder}/packages/shared/dist/**/*.js"
+      ],
+      "sourceMaps": true,
+      "console": "integratedTerminal",
+      "env": {
+        "VCODER_DEBUG_IPC": "1",
+        "NODE_ENV": "development"
+      },
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/apps/desktop-shell/dist/**/*.js",
+        "${workspaceFolder}/packages/server/dist/**/*.js",
+        "${workspaceFolder}/packages/shared/dist/**/*.js"
+      ]
+    },
+    {
+      "name": "Debug Desktop App (Renderer)",
+      "type": "chrome",
+      "request": "attach",
+      "port": 9222,
+      "webRoot": "${workspaceFolder}/apps/desktop-shell/webview",
+      "sourceMaps": true
+    },
+    {
+      "name": "Run Tests (Desktop Shell)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/.bin/vitest",
+      "args": [
+        "run",
+        "tests/desktop-shell"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "cwd": "${workspaceFolder}"
     }
   ],
   "compounds": [
@@ -179,6 +227,14 @@
         "Run Extension",
         "Debug Server"
       ]
+    },
+    {
+      "name": "Desktop App (Main + Renderer)",
+      "configurations": [
+        "Debug Desktop App (Main Process)",
+        "Debug Desktop App (Renderer)"
+      ],
+      "stopAll": true
     }
   ]
 }

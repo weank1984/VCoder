@@ -7,6 +7,8 @@
 export { Button } from './Button';
 export type { ButtonProps } from './Button';
 
+export { Collapsible } from './Collapsible';
+
 export { IconButton } from './IconButton';
 
 export { Dropdown } from './Dropdown';

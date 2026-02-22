@@ -18,7 +18,7 @@ import {
     TaskListUpdate,
     ErrorUpdate,
 } from '@vcoder/shared';
-import { resolveClaudePath, JsonStreamParser, computeFileChangeDiff, matchStderrError } from './shared';
+import { resolveClaudePath, JsonStreamParser, computeFileChangeDiff, matchStderrError, preflightCheck } from './shared';
 
 export interface PersistentSessionOptions {
     workingDirectory: string;
@@ -138,6 +138,19 @@ export class PersistentSession extends EventEmitter {
     async start(): Promise<void> {
         if (this.process) {
             throw new Error(`Session ${this.sessionId} already started`);
+        }
+
+        // Pre-flight environment validation
+        const preflight = await preflightCheck();
+        if (!preflight.ok) {
+            const failed = preflight.checks.filter((c) => c.status === 'fail');
+            const msg = failed.map((c) => c.message).join('; ');
+            throw new Error(`Preflight check failed: ${msg}`);
+        }
+        for (const check of preflight.checks) {
+            if (check.status === 'warn') {
+                console.error(`[PersistentSession] Preflight warning: ${check.name} - ${check.message}`);
+            }
         }
 
         const args: string[] = [

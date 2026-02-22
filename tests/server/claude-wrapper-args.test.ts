@@ -2,6 +2,17 @@ import { describe, expect, it, vi } from 'vitest';
 import { EventEmitter } from 'events';
 import { PassThrough } from 'stream';
 
+// Mock preflightCheck to always pass so spawn-arg tests aren't blocked
+vi.mock('../../packages/server/src/claude/shared', async () => {
+  const actual = await vi.importActual<typeof import('../../packages/server/src/claude/shared')>(
+    '../../packages/server/src/claude/shared'
+  );
+  return {
+    ...actual,
+    preflightCheck: () => Promise.resolve({ ok: true, checks: [] }),
+  };
+});
+
 function createFakeChildProcess() {
   const child = new EventEmitter() as any;
   child.stdin = new PassThrough();

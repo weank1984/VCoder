@@ -298,6 +298,10 @@ export class DesktopRuntime {
       return;
     }
 
+    if (process.env.VCODER_DEBUG_IPC === '1') {
+      console.log(`[DesktopRuntime] handleWebviewMessage type=${type}`);
+    }
+
     try {
       switch (type) {
         case 'uiReady':

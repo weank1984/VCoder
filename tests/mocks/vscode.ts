@@ -92,6 +92,12 @@ export const Disposable = {
   }),
 };
 
+export const ExtensionMode = {
+  Production: 1,
+  Development: 2,
+  Test: 3,
+};
+
 export const Range: MockApi = vi.fn();
 export const Position: MockApi = vi.fn();
 export const Selection: MockApi = vi.fn();
