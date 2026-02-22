@@ -81,7 +81,6 @@ function renderContentBlock(
                 <ThoughtBlock
                     key={`thought-${index}`}
                     content={block.content}
-                    defaultExpanded={false}
                     isComplete={block.isComplete}
                 />
             );

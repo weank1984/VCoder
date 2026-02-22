@@ -3,7 +3,7 @@ import type { ToolCall } from '../../types';
 import type { Step } from '../../utils/stepAggregator';
 import { useStore } from '../../store/useStore';
 import { isStepCollapsed as checkStepCollapsed, toggleStepOverride, type CollapseMode } from '../../utils/stepCollapse';
-import { isTerminalToolName, isFileEditToolName } from '../../utils/toolClassifiers';
+import { shouldAutoExpandTool } from '../../utils/toolClassifiers';
 
 interface StepCollapseState {
     collapseMode: CollapseMode;
@@ -18,9 +18,7 @@ function isStickyOpenStep(step: Step): boolean {
         const tc = e.toolCall;
         return (
             tc.status === 'awaiting_confirmation' ||
-            tc.name === 'TodoWrite' ||
-            isTerminalToolName(tc.name) ||
-            isFileEditToolName(tc.name)
+            shouldAutoExpandTool(tc.name)
         );
     });
 }
@@ -30,9 +28,7 @@ function shouldDefaultExpand(step: Step): boolean {
         const tc = e.toolCall;
         return (
             tc.status === 'awaiting_confirmation' ||
-            tc.name === 'TodoWrite' ||
-            isTerminalToolName(tc.name) ||
-            isFileEditToolName(tc.name)
+            shouldAutoExpandTool(tc.name)
         );
     });
 }

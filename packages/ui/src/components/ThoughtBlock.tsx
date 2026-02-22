@@ -11,23 +11,23 @@ import './ThoughtBlock.scss';
 
 interface ThoughtBlockProps {
     content: string;
-    defaultExpanded?: boolean;
     isComplete?: boolean;
 }
 
-export function ThoughtBlock({ content, defaultExpanded = false, isComplete = true }: ThoughtBlockProps) {
+export function ThoughtBlock({ content, isComplete = true }: ThoughtBlockProps) {
     const { t } = useI18n();
-    const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+    const [isExpanded, setIsExpanded] = useState(!isComplete);
     const wasCompleteRef = useRef(isComplete);
     const startTimeRef = useRef<number>(Date.now());
     const [duration, setDuration] = useState<number | null>(null);
     const isThinking = !isComplete;
 
-    // Track thinking duration
+    // Track thinking duration & auto-expand when thinking starts
     useEffect(() => {
         if (isThinking) {
             startTimeRef.current = Date.now();
             setDuration(null);
+            setIsExpanded(true);
         }
     }, [isThinking]);
 
