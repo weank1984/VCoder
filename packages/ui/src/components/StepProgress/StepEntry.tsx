@@ -71,6 +71,11 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
     if (HIDDEN_TASK_TOOLS.has(tc.name)) {
         return null;
     }
+
+    // Hide subagent tool calls from chat flow (displayed in MissionControl AgentSection)
+    if (tc.parentToolUseId) {
+        return null;
+    }
     const isPending = tc.status === 'pending';
     const isCommandPending = isPending && (tc.name === 'Bash' || tc.name === 'run_command');
     const isAwaitingConfirmation = tc.status === 'awaiting_confirmation';

@@ -265,6 +265,17 @@
       flex-shrink: 0;
     }
 
+    .mc-agent-elapsed {
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+
+      &.running {
+        color: var(--vscode-textLink-activeForeground);
+      }
+    }
+
     .mc-agent-expand {
       font-size: 12px;
       color: var(--vscode-descriptionForeground);
@@ -351,6 +362,140 @@
       background: var(--agent-block-code-bg);
       max-height: 200px;
       overflow: auto;
+    }
+  }
+
+  .mc-agent-error-panel {
+    border-color: color-mix(in srgb, var(--vscode-errorForeground) 40%, transparent);
+
+    .mc-agent-panel-title {
+      color: var(--vscode-errorForeground);
+      background: color-mix(in srgb, var(--vscode-errorForeground) 8%, var(--agent-block-header-bg));
+    }
+  }
+
+  .mc-agent-error-text {
+    color: var(--vscode-errorForeground);
+  }
+
+  // === Agent Child Tool Calls ===
+  .mc-agent-child-tools {
+    padding: 4px 0;
+    border-top: 1px solid var(--agent-block-border);
+
+    > .mc-agent-panel-title {
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--agent-block-header-bg);
+      border-bottom: 1px solid var(--agent-block-border);
+    }
+
+    .mc-agent-child-tools-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+
+      &:hover {
+        background: var(--agent-block-hover-bg);
+      }
+    }
+  }
+
+  .mc-child-tool {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    font-size: 12px;
+
+    &.completed .mc-child-tool-icon {
+      color: var(--vscode-gitDecoration-addedResourceForeground, var(--vscode-terminal-ansiGreen));
+    }
+
+    &.failed .mc-child-tool-icon {
+      color: var(--vscode-errorForeground);
+    }
+
+    &.in-progress .mc-child-tool-icon {
+      color: var(--vscode-textLink-activeForeground);
+    }
+  }
+
+  .mc-child-tool-name {
+    font-weight: 500;
+    color: var(--vscode-foreground);
+    flex-shrink: 0;
+  }
+
+  .mc-child-tool-summary {
+    color: var(--vscode-descriptionForeground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // === Team Members Section ===
+  .mc-team-section {
+    padding: 4px 0;
+    border-top: 1px solid var(--agent-block-border);
+    margin-top: 4px;
+  }
+
+  .mc-team-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+
+    .mc-team-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--vscode-descriptionForeground);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .mc-team-desc {
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+      opacity: 0.7;
+    }
+  }
+
+  .mc-team-members {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 12px;
+  }
+
+  .mc-team-member {
+    .mc-team-member-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .mc-team-member-status {
+      font-size: 10px;
+      color: var(--vscode-descriptionForeground);
+      flex-shrink: 0;
+    }
+
+    &.in-progress .mc-team-member-status {
+      color: var(--vscode-textLink-activeForeground);
+    }
+
+    &.failed .mc-team-member-status {
+      color: var(--vscode-errorForeground);
+    }
+
+    &.pending {
+      opacity: 0.5;
     }
   }
 

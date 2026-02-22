@@ -21,8 +21,10 @@ import {
     ErrorUpdate,
     ConfirmationRequestUpdate,
     ConfirmationType,
+    TeamUpdate,
 } from '@vcoder/shared';
 import { PersistentSession, PersistentSessionSettings } from './persistentSession';
+import { TeamManager } from './teamManager';
 import { resolveClaudePath, JsonStreamParser, computeFileChangeDiff, matchStderrError, preflightCheck } from './shared';
 
 export interface ClaudeCodeOptions {
@@ -68,6 +70,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
     // Track emitted tool_use IDs to avoid duplicates
     private emittedToolUseIdsByLocalSessionId: Map<string, Set<string>> = new Map();
     private readonly debugThinking = process.env.VCODER_DEBUG_THINKING === '1';
+    private activeTaskStackByLocalSessionId: Map<string, string[]> = new Map();
     private lastToolIdByLocalSessionId: Map<string, string> = new Map();
     private readonly pendingCanUseToolByToolCallKey: Map<
         string,
@@ -80,6 +83,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
         }
     > = new Map();
     private readonly seenCanUseToolByLocalSessionId: Set<string> = new Set();
+    private readonly trustedToolNamesPerSession: Map<string, Set<string>> = new Map();
     
     // Promise resolvers for pending permission confirmations
     // This allows handleControlRequest to block until user confirms/denies
@@ -96,8 +100,31 @@ export class ClaudeCodeWrapper extends EventEmitter {
     private readonly persistentSessions: Map<string, PersistentSession> = new Map();
     private static readonly MAX_PERSISTENT_SESSIONS = 3;
 
+    // Team management
+    private readonly teamManager: TeamManager;
+    private readonly teamCreatePendingByToolId: Map<string, { teamName: string; sessionId: string }> = new Map();
+    private readonly teamDeletePendingByToolId: Map<string, { teamName: string }> = new Map();
+
     constructor(private options: ClaudeCodeOptions) {
         super();
+
+        // Initialize TeamManager and wire up events
+        this.teamManager = new TeamManager(options.workingDirectory);
+
+        this.teamManager.on('teammate_update', (sessionId: string, update: unknown, type: string) => {
+            this.emit('update', sessionId, update, type);
+        });
+        this.teamManager.on('teammate_complete', (sessionId: string) => {
+            this.emit('complete', sessionId);
+        });
+        this.teamManager.on('team_update', (update: TeamUpdate) => {
+            this.emit('update', update.leadSessionId, update, 'team_update');
+        });
+    }
+
+    /** Expose TeamManager for ACP server routing */
+    get teams(): TeamManager {
+        return this.teamManager;
     }
 
     /**
@@ -107,11 +134,13 @@ export class ClaudeCodeWrapper extends EventEmitter {
         this.processesByLocalSessionId.delete(sessionId);
         this.toolNameByIdByLocalSessionId.delete(sessionId);
         this.subagentRunMetaByIdByLocalSessionId.delete(sessionId);
+        this.activeTaskStackByLocalSessionId.delete(sessionId);
         this.receivedStreamingTextByLocalSessionId.delete(sessionId);
         this.receivedStreamingThinkingByLocalSessionId.delete(sessionId);
         this.lastToolIdByLocalSessionId.delete(sessionId);
         this.seenCanUseToolByLocalSessionId.delete(sessionId);
         this.emittedToolUseIdsByLocalSessionId.delete(sessionId);
+        this.trustedToolNamesPerSession.delete(sessionId);
         // Clear thinking throttle timer
         const throttleTimer = this.thinkingThrottleTimerByLocalSessionId.get(sessionId);
         if (throttleTimer) clearTimeout(throttleTimer);
@@ -125,6 +154,9 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 this.pendingCanUseToolByToolCallKey.delete(key);
             }
         }
+
+        // If this session was a team lead, stop that team
+        void this.teamManager.onLeadSessionClosed(sessionId);
     }
 
     /**
@@ -292,6 +324,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 ...process.env,
                 TERM: 'xterm-256color',
                 HOME: process.env.HOME || os.homedir(),
+                CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: '1',
                 ...(this.settings.maxThinkingTokens ? { MAX_THINKING_TOKENS: String(this.settings.maxThinkingTokens) } : {}),
             },
         });
@@ -747,6 +780,14 @@ export class ClaudeCodeWrapper extends EventEmitter {
             this.lastToolIdByLocalSessionId.get(sessionId) ??
             requestId;
 
+        // Auto-allow already trusted tools (from "Always allow" grants)
+        const trustedTools = this.trustedToolNamesPerSession.get(sessionId);
+        if (trustedTools?.has(toolName)) {
+            this.emitToolUse(sessionId, toolName, toolInput, toolCallId);
+            this.sendControlResponse(sessionId, requestId, { behavior: 'allow', updatedInput: toolInput });
+            return;
+        }
+
         const key = `${sessionId}:${toolCallId}`;
         this.pendingCanUseToolByToolCallKey.set(key, { requestId, toolCallId, toolName, toolInput, suggestions });
 
@@ -972,6 +1013,15 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
     private emitToolResult(sessionId: string, toolId: string, result: unknown, error?: string): void {
         const toolName = this.toolNameByIdByLocalSessionId.get(sessionId)?.get(toolId);
+
+        // Pop Task from the active stack when its result arrives
+        if (toolName === 'Task') {
+            const activeStack = this.activeTaskStackByLocalSessionId.get(sessionId);
+            if (activeStack) {
+                const idx = activeStack.lastIndexOf(toolId);
+                if (idx >= 0) activeStack.splice(idx, 1);
+            }
+        }
         // Some Claude CLI flows represent user-questions as tool errors; treat them as informational.
         if (toolName === 'AskUserQuestion') {
             error = undefined;
@@ -1007,6 +1057,24 @@ export class ClaudeCodeWrapper extends EventEmitter {
         };
         this.emit('update', sessionId, update, 'tool_result');
 
+        // Handle TeamCreate tool result - start team management
+        const teamCreatePending = this.teamCreatePendingByToolId.get(toolId);
+        if (teamCreatePending && !error) {
+            void this.teamManager.onTeamCreated(teamCreatePending.teamName, teamCreatePending.sessionId);
+            this.teamCreatePendingByToolId.delete(toolId);
+        } else if (teamCreatePending) {
+            this.teamCreatePendingByToolId.delete(toolId);
+        }
+
+        // Handle TeamDelete tool result - stop team
+        const teamDeletePending = this.teamDeletePendingByToolId.get(toolId);
+        if (teamDeletePending && !error) {
+            void this.teamManager.onTeamDeleted(teamDeletePending.teamName);
+            this.teamDeletePendingByToolId.delete(toolId);
+        } else if (teamDeletePending) {
+            this.teamDeletePendingByToolId.delete(toolId);
+        }
+
         if (toolName === 'Task') {
             const meta = this.subagentRunMetaByIdByLocalSessionId.get(sessionId)?.get(toolId);
             const title = meta?.title ?? 'Task';
@@ -1023,6 +1091,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 status: error ? 'failed' : 'completed',
                 result,
                 error,
+                completedAt: Date.now(),
             };
             this.emitSubagentRun(sessionId, runUpdate);
             this.subagentRunMetaByIdByLocalSessionId.get(sessionId)?.delete(toolId);
@@ -1212,6 +1281,24 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
         this.toolNameByIdByLocalSessionId.get(sessionId)?.set(toolId, toolName);
 
+        // Active Task stack tracking: determine parentToolUseId
+        const activeStack = this.activeTaskStackByLocalSessionId.get(sessionId) ?? [];
+        const parentToolUseId = activeStack.length > 0 ? activeStack[activeStack.length - 1] : undefined;
+
+        // Detect TeamCreate/TeamDelete tools for team management
+        if (toolName === 'TeamCreate') {
+            const teamName = (toolInput as Record<string, unknown>)?.team_name as string;
+            if (teamName) {
+                this.teamCreatePendingByToolId.set(toolId, { teamName, sessionId });
+            }
+        }
+        if (toolName === 'TeamDelete') {
+            const teamName = (toolInput as Record<string, unknown>)?.team_name as string;
+            if (teamName) {
+                this.teamDeletePendingByToolId.set(toolId, { teamName });
+            }
+        }
+
         if (toolName === 'Task') {
             const { title, subagentType } = this.formatSubagentRunTitle(toolInput);
             const parentTaskId = this.taskListByLocalSessionId.get(sessionId)?.currentTaskId;
@@ -1230,8 +1317,14 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 parentTaskId,
                 status: 'running',
                 input: toolInput,
+                startedAt: Date.now(),
             };
             this.emitSubagentRun(sessionId, runUpdate);
+
+            // Push Task onto the active stack AFTER emit (so its own parentToolUseId
+            // points to the enclosing Task, not itself)
+            activeStack.push(toolId);
+            this.activeTaskStackByLocalSessionId.set(sessionId, activeStack);
         }
 
         // Handle specific tool types
@@ -1264,6 +1357,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 name: toolName,
                 input: toolInputForUi,
                 status: 'running',
+                parentToolUseId,
             };
             this.emit('update', sessionId, update, 'tool_use');
 
@@ -1358,6 +1452,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
             name: toolName,
             input: toolInput,
             status: 'running',
+            parentToolUseId,
         };
         this.emit('update', sessionId, update, 'tool_use');
     }
@@ -1431,8 +1526,17 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 updatedInput,
             };
 
-            if (options?.trustAlways && Array.isArray(suggestions)) {
-                response.updatedPermissions = suggestions;
+            if (options?.trustAlways) {
+                if (Array.isArray(suggestions)) {
+                    response.updatedPermissions = suggestions;
+                }
+                // Cache trust locally so subsequent requests are auto-allowed
+                let trusted = this.trustedToolNamesPerSession.get(sessionId);
+                if (!trusted) {
+                    trusted = new Set();
+                    this.trustedToolNamesPerSession.set(sessionId, trusted);
+                }
+                trusted.add(pending.toolName);
             }
 
             this.sendControlResponse(sessionId, requestId, response);
@@ -1476,6 +1580,9 @@ export class ClaudeCodeWrapper extends EventEmitter {
     }
 
     async shutdown(): Promise<void> {
+        // Shutdown all team member sessions
+        await this.teamManager.shutdownAll();
+
         // Shutdown one-shot processes
         for (const [sessionId, proc] of this.processesByLocalSessionId.entries()) {
             try {
@@ -1534,6 +1641,9 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 disallowedTools: this.settings.disallowedTools,
                 additionalDirs: this.settings.additionalDirs,
                 maxThinkingTokens: this.settings.maxThinkingTokens,
+                env: {
+                    CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: '1',
+                },
             };
 
             session = new PersistentSession(sessionId, this.options, settings);

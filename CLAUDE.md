@@ -83,11 +83,25 @@ Host → ACPClient (JSON-RPC 2.0 over stdio) → @vcoder/server
 Claude Code CLI (external process)
 ```
 
+### Subagent Event Flow
+
+Subagents run **within the same CLI process** as independent context windows (not separate child processes). The event flow through VCoder:
+
+```
+Claude CLI (same process)
+  ├─ tool_use(Task) → wrapper emits subagent_run(running)
+  ├─ subagent internal tool calls → tool_use events with parentToolUseId
+  └─ tool_result(Task) → wrapper emits subagent_run(completed/failed)
+```
+
+The Server's responsibility is to **transparently forward** events, not to spawn subagent processes. The `ClaudeCodeWrapper` converts `Task` tool_use/tool_result into semantic `subagent_run` update events for the UI.
+
 ### Key Abstractions
 
 - **HostBridgeApi** (`packages/shared/src/hostBridge.ts`): Unified interface that both VSCode and Electron hosts implement. The shared UI code in `@vcoder/ui` only talks through `bridge.ts`, never directly to host APIs.
 - **ACPClient/ACPServer**: Custom JSON-RPC 2.0 over stdio. Methods include `initialize`, `session/*`, `prompt`, `settings/change`, `file/accept|reject`, `history/*`, `permission/rules/*`, `lsp/*`.
 - **ClaudeCodeWrapper** (`packages/server/src/claude/wrapper.ts`): Manages per-session Claude CLI child processes. Each chat session maps to a separate process.
+- **SubagentRunUpdate** (`packages/shared/src/protocol.ts`): Protocol type for subagent lifecycle events. Contains `subagentId`, `status` (running/completed/failed), `subagentType`, `description`, and nested tool call information. Emitted by `ClaudeCodeWrapper` when it detects `Task` tool usage in the CLI event stream.
 - **CapabilityOrchestrator** (`apps/vscode-extension/src/services/capabilityOrchestrator.ts`): Dependency topology sort and lifecycle management of VS Code extension capabilities.
 - **Zustand store** (`packages/ui/src/store/`): Slice-based architecture — `messagesSlice`, `sessionsSlice`, `uiSlice`, `updateSlice`, `historySlice`, `agentSlice`, `permissionRulesSlice`.
 

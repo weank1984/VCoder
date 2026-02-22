@@ -73,6 +73,7 @@ const initialState: AppState = {
     agents: [],
     currentAgentId: null,
     experimentalAgentTeams: false,
+    activeTeams: new Map(),
 };
 
 const restoredState: AppState = {

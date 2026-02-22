@@ -2,7 +2,7 @@
  * Webview Types
  */
 
-import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, AgentProfile, FileChangeUpdate, SessionCompleteReason, ConfirmationType, PermissionRule } from '@vcoder/shared';
+import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, AgentProfile, FileChangeUpdate, SessionCompleteReason, ConfirmationType, PermissionRule, TeamMemberInfo } from '@vcoder/shared';
 
 export type { SessionCompleteReason };
 
@@ -561,4 +561,6 @@ export interface AppState {
     currentAgentId: string | null;
     // Experimental features
     experimentalAgentTeams: boolean;
+    // Active teams
+    activeTeams: Map<string, { teamName: string; description?: string; leadSessionId: string; members: TeamMemberInfo[] }>;
 }

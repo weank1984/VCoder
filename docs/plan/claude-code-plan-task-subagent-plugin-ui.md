@@ -56,11 +56,36 @@
   - Claude Code 退出时自动清理
 
 ## Subagent（子代理）
-- 定义：子代理是专用 AI 角色，有独立上下文、工具权限与系统提示。
-  - 参考：https://docs.claude.com/en/docs/claude-code/sub-agents
+
+### 工作机制
+- **Subagent 在同一 CLI 进程内以独立上下文窗口运行**，不是独立子进程。
+- Claude 通过 `Task` 工具 spawn subagent，subagent 拥有独立的上下文窗口、工具权限和系统提示，但共享同一 CLI 进程资源。
+- Subagent 不能嵌套 spawn 子 subagent（即 subagent 内部无法调用 `Task` 工具）。
+- 参考：https://code.claude.com/docs/en/sub-agents
+
+### 内置 Subagent 类型
+
+| 类型 | 模型 | 工具权限 | 用途 |
+|---|---|---|---|
+| `Explore` | Haiku（快速） | 只读（Glob/Grep/Read 等） | 快速搜索代码库、查找文件 |
+| `Plan` | 继承父级 | 只读（不含 Edit/Write/NotebookEdit） | 设计实现方案、架构分析 |
+| `general-purpose` | 继承父级 | 全工具 | 复杂多步任务、代码修改 |
+| `Bash` | 继承父级 | 仅 Bash | 命令执行、git 操作 |
+| `statusline-setup` | 继承父级 | Read/Edit | 配置状态栏 |
+| `claude-code-guide` | 继承父级 | Glob/Grep/Read/WebFetch/WebSearch | Claude Code 使用指南查询 |
+| `code-simplifier` | 继承父级 | 全工具 | 代码简化与重构 |
+
+### 自定义 Subagent 配置
 - 存放位置（Markdown + YAML frontmatter）：
-  - 项目级：`.claude/agents/`
-  - 用户级：`~/.claude/agents/`
+  - 项目级：`.claude/agents/<name>.md`
+  - 用户级：`~/.claude/agents/<name>.md`
+- 支持的 frontmatter 字段：
+  - `tools`：允许使用的工具列表
+  - `model`：指定模型（sonnet/opus/haiku）
+  - `permissionMode`：权限模式
+  - `hooks`：subagent 级别的 hooks 配置
+  - `memory`：是否加载 CLAUDE.md 等记忆
+  - `isolation`：可设为 `worktree` 在独立 git worktree 中运行
 - CLI 动态定义：`--agents` 传入 JSON。
   - 示例：
     ```bash
@@ -75,7 +100,31 @@
     ```
 - 管理入口：`/agents` 交互式界面（创建/编辑/权限/删除）。
 - 插件内子代理：插件 `agents/` 会出现在 `/agents` 中。
-  - 参考：https://docs.claude.com/en/docs/claude-code/sub-agents
+
+### 执行模式
+- **前台（阻塞）**：默认模式，主 agent 等待 subagent 完成后继续。
+- **后台（并发）**：通过 `run_in_background: true` 参数或 `Ctrl+B` 转入后台。后台 subagent 异步执行，主 agent 可继续其他工作。最多 10 个并发后台 subagent。
+- 通过 `TaskOutput` 工具获取后台 subagent 输出，`TaskStop` 终止后台 subagent。
+
+### Task 工具语法
+- `Task(subagent_type)` 调用内置类型：`Task(subagent_type="Explore")`
+- `Task(name="my-agent")` 调用自定义 agent
+- `Task(isolation="worktree")` 在独立 worktree 中执行
+
+### Subagent vs Agent Team 对比
+
+| 维度 | Subagent（Task 工具） | Agent Team |
+|---|---|---|
+| 进程模型 | 同一 CLI 进程内的独立上下文窗口 | 每个 teammate 是独立的 `claude` CLI 进程 |
+| 通信方式 | 直接函数调用（tool_use/tool_result） | 文件系统邮箱 + SendMessage 工具 |
+| 并发能力 | 最多 10 个后台 subagent | 无硬性限制，取决于系统资源 |
+| 嵌套能力 | 不支持嵌套 | 不支持嵌套 team，但 teammate 可使用 Task 工具 |
+| 任务协调 | 无共享任务列表 | 共享任务列表（TaskCreate/TaskList/TaskUpdate） |
+| 适用场景 | 单线程或受限并行任务 | 大规模并行探索、多方向推进 |
+| 成本 | 较低（共享进程） | 较高（多进程、多上下文） |
+| 状态 | 稳定特性 | 实验特性（需开关启用） |
+
+- 参考：https://code.claude.com/docs/en/sub-agents
 
 ## 插件 UI 展示与可控字段
 - 插件管理 UI（`/plugin`）展示字段主要来自：

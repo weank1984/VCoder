@@ -21,6 +21,7 @@ import { PermissionRulesPanel } from '@vcoder/ui/components/PermissionRulesPanel
 import { MessageSkeleton } from '@vcoder/ui/components/Skeleton';
 import { StickyUserPrompt } from '@vcoder/ui/components/StickyUserPrompt';
 import type { EnhancedTodoItem, TaskItem } from '@vcoder/ui/components/TodoTaskManager';
+import type { ToolCall } from '@vcoder/ui/types';
 import { useToast } from '@vcoder/ui/utils/Toast';
 import { postMessage } from '@vcoder/ui/bridge';
 import { performanceMonitor } from '@vcoder/ui/utils/messageQueue';
@@ -51,6 +52,7 @@ function App() {
     messages,
     tasks,
     subagentRuns,
+    activeTeams,
     error,
     isLoading,
     setUiLanguage,
@@ -481,6 +483,22 @@ function App() {
     return items;
   }, [messages]);
 
+  // Group tool calls by parentToolUseId for MissionControl AgentSection
+  const childToolCalls = useMemo(() => {
+    const map = new Map<string, ToolCall[]>();
+    for (const msg of messages) {
+      if (!msg.toolCalls) continue;
+      for (const tc of msg.toolCalls) {
+        if (tc.parentToolUseId) {
+          const list = map.get(tc.parentToolUseId) ?? [];
+          list.push(tc);
+          map.set(tc.parentToolUseId, list);
+        }
+      }
+    }
+    return map;
+  }, [messages]);
+
   return (
     <div className="app">
       <SessionHeader
@@ -494,6 +512,8 @@ function App() {
         subagentRuns={subagentRuns}
         todoItems={todoItems}
         taskItems={taskItems}
+        childToolCalls={childToolCalls}
+        activeTeams={activeTeams}
       />
 
       <div className="messages-panel">

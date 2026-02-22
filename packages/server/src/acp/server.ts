@@ -36,6 +36,8 @@ import {
     HistoryDeleteParams,
     HistoryDeleteResult,
     ConfirmToolParams,
+    TeamStopParams,
+    TeamStopMemberParams,
     McpServerConfig,
     LspGoToDefinitionParams,
     LspGoToDefinitionResult,
@@ -253,6 +255,20 @@ export class ACPServer {
                 case ACPMethods.LSP_GET_DIAGNOSTICS:
                     result = await this.handleLspGetDiagnostics(params as LspDiagnosticsParams);
                     break;
+                // Team management
+                case ACPMethods.TEAM_LIST:
+                    result = { teams: this.claudeCode.teams.getTeams() };
+                    break;
+                case ACPMethods.TEAM_STOP:
+                    await this.claudeCode.teams.stopTeam((params as TeamStopParams).teamName);
+                    result = null;
+                    break;
+                case ACPMethods.TEAM_STOP_MEMBER: {
+                    const tp = params as TeamStopMemberParams;
+                    await this.claudeCode.teams.stopMember(tp.teamName, tp.memberName);
+                    result = null;
+                    break;
+                }
                 default:
                     return {
                         jsonrpc: '2.0',

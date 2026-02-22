@@ -77,24 +77,54 @@
 ### 启用方式
 - 默认关闭；需在环境变量或 settings 中设置 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`。
 
-### 核心模型
-- Team lead + 多个 teammate（彼此独立 session）。
+### 架构：独立 CLI 进程模型
+- **每个 teammate 是独立的 `claude` CLI 进程**，拥有完全独立的上下文窗口和工具集。
+- 架构组成：**Team Lead**（主会话进程）+ **N 个 Teammates**（各自独立 CLI 进程）。
 - 共享任务列表与消息邮箱，可直接互发消息。
-- 团队与任务存储路径：
-  - `~/.claude/teams/{team-name}/config.json`
-  - `~/.claude/tasks/{team-name}/`
+- 存储路径：
+  - Team 配置：`~/.claude/teams/{team-name}/config.json`（包含 members 数组，每个成员有 name、agentId、agentType）
+  - 共享任务：`~/.claude/tasks/{team-name}/`
 
-### 与 Subagents 的差异
-- 适合并行探索与多方向推进；成本高于 subagents，不适合单线程或同一文件连续编辑。
+### 通信机制
+- **message（点对点）**：`SendMessage(type="message", recipient="name", content="...")` 发送给指定 teammate。
+- **broadcast（广播）**：`SendMessage(type="broadcast", content="...")` 发送给所有 teammate，成本高（N 个 teammate = N 条消息），应谨慎使用。
+- **shutdown_request / shutdown_response**：Team Lead 请求 teammate 关闭，teammate 可批准或拒绝。
+- **plan_approval_request / plan_approval_response**：Team Lead 要求 teammate 先输出计划，审批通过后再执行。
+- 消息自动送达：teammate 的消息自动推送给 lead，无需手动轮询。
+- Teammate 每轮结束后自动进入 idle 状态，idle 通知自动发送给 lead。
+
+### 任务协调
+- Team 共享任务列表，所有 teammate 可通过 `TaskCreate/TaskList/TaskUpdate/TaskGet` 操作。
+- 任务状态：`pending` → `in_progress` → `completed`。
+- 任务支持 `blocks/blockedBy` 依赖关系。
+- Teammate 完成任务后应主动检查 `TaskList` 认领下一个可用任务。
+
+### Hooks（Agent Teams 专用）
+- **`TeammateIdle`**：teammate 空闲时触发，可用于自动任务分配或质量检查。
+- **`TaskCompleted`**：任务完成时触发，可用于质量门禁（如自动运行测试）。
 
 ### 控制与模式
 - 显示模式：in-process（默认）或 split panes（tmux/iTerm2）。
 - `teammateMode` 设置决定显示模式；`--teammate-mode` 可按会话覆盖。
 - Delegate 模式（Shift+Tab）下 lead 只负责调度与协调。
-- Plan 审批：lead 可要求 teammate 先输出计划再执行。
+- Plan 审批：lead 可要求 teammate 先输出计划再执行（`plan_mode_required`）。
 
 ### 权限
 - Teammate 默认继承 lead 权限设置，可在启动后调整。
+- Teammate 可通过 `subagent_type` 参数指定 agent 类型，不同类型有不同工具权限。
+
+### 与 Subagents 的核心差异
+- **进程模型**：Subagent 在同一 CLI 进程内以独立上下文运行；Agent Team 的每个 teammate 是独立 CLI 进程。
+- **适用场景**：Subagent 适合单线程或受限并行任务；Agent Team 适合大规模并行探索与多方向推进。
+- **成本**：Agent Team 成本显著高于 Subagent（多进程、多上下文）。
+- **状态管理**：Agent Team 有共享任务列表和消息邮箱；Subagent 通过 tool_use/tool_result 直接返回结果。
+
+### 已知限制
+- 不支持 session resume（teammate 进程终止后无法恢复）。
+- 任务状态可能存在滞后（基于文件系统的最终一致性）。
+- 每个 session 只能管理一个 team。
+- 不支持嵌套 team（team 内不能创建子 team）。
+- Teammate 之间的直接消息不经过 lead 中转，lead 仅能在 idle 通知中看到摘要。
 
 ## 6) 对 VCoder 的集成影响（建议）
 
@@ -118,9 +148,15 @@
 - 将 hook 执行落入权限/审计日志，方便溯源。
 
 ### Agent Teams
-- 多会话编排层：lead + teammate 并行管理。
-- UI 支持队友列表、任务板、队友消息。
-- VSCode 内替代 tmux/iTerm2 的多面板展示。
+- **多 CLI 进程编排层**：lead + teammate 各为独立 CLI 进程，VCoder Server 需管理多个并发 `ClaudeCodeWrapper` 实例。
+- 协议扩展：需新增 `team/*` 系列 ACP 方法（team 生命周期、teammate 管理、消息路由、共享任务）。
+- UI 支持：
+  - Teammate 列表与状态（idle/working/blocked）
+  - 共享任务面板（Kanban 或列表视图）
+  - 消息收发面板（点对点 + 广播）
+  - Plan 审批弹窗
+  - VSCode 内替代 tmux/iTerm2 的多面板展示
+- Feature Flag 控制：所有 Agent Team 功能仅在 `experimentalAgentTeams` 开关下可见。
 
 ## 7) 建议落地顺序
 

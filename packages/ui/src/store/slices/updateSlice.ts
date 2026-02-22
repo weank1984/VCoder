@@ -58,6 +58,7 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
                     name: tc.name,
                     status: tc.status,
                     input: (tc as unknown as { input?: unknown }).input,
+                    parentToolUseId: (tc as unknown as { parentToolUseId?: string }).parentToolUseId,
                 }, targetSessionId);
                 break;
             }
@@ -211,6 +212,24 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
                 });
                 break;
             }
+            case 'team_update': {
+                const teamUpdate = content as import('@vcoder/shared').TeamUpdate;
+                set((prevState) => {
+                    const teams = new Map(prevState.activeTeams);
+                    if (teamUpdate.status === 'disbanded') {
+                        teams.delete(teamUpdate.teamName);
+                    } else {
+                        teams.set(teamUpdate.teamName, {
+                            teamName: teamUpdate.teamName,
+                            description: teamUpdate.description,
+                            leadSessionId: teamUpdate.leadSessionId,
+                            members: teamUpdate.members,
+                        });
+                    }
+                    return { activeTeams: teams };
+                });
+                break;
+            }
         }
     },
 
@@ -242,6 +261,7 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
             currentAgentId: null,
             permissionRules: [],
             experimentalAgentTeams: false,
+            activeTeams: new Map(),
         } satisfies AppState);
     },
 });

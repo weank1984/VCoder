@@ -8,13 +8,14 @@ import { TodoSection } from './TodoSection';
 import type { MissionControlProps, MissionControlTab } from './types';
 import './MissionControl.scss';
 
-export function MissionControl({ planTasks, subagentRuns, todoItems, taskItems }: MissionControlProps) {
+export function MissionControl({ planTasks, subagentRuns, todoItems, taskItems, childToolCalls, activeTeams }: MissionControlProps) {
   const { t } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<MissionControlTab>('plan');
 
   const hasPlan = planTasks.length > 0;
-  const hasAgents = subagentRuns.length > 0 || taskItems.length > 0;
+  const hasTeamMembers = activeTeams ? [...activeTeams.values()].some((team) => team.members.length > 0) : false;
+  const hasAgents = subagentRuns.length > 0 || taskItems.length > 0 || hasTeamMembers;
   const hasTodos = todoItems.length > 0;
 
   const availableTabs = useMemo(() => {
@@ -105,7 +106,7 @@ export function MissionControl({ planTasks, subagentRuns, todoItems, taskItems }
 
         <div className="mc-content">
           {effectiveTab === 'plan' && <PlanSection plan={planTasks} />}
-          {effectiveTab === 'agents' && <AgentSection subagentRuns={subagentRuns} taskItems={taskItems} />}
+          {effectiveTab === 'agents' && <AgentSection subagentRuns={subagentRuns} taskItems={taskItems} childToolCalls={childToolCalls} activeTeams={activeTeams} />}
           {effectiveTab === 'todos' && <TodoSection todos={todoItems} />}
         </div>
       </div>

@@ -2,8 +2,8 @@
 
 ## 0. 文档信息
 
-- 版本：v1.3
-- 日期：2026-02-21
+- 版本：v1.4
+- 日期：2026-02-23
 - 状态：Draft
 - 规划周期：12-18 个月
 - 目标读者：产品、研发、设计、测试
@@ -124,7 +124,8 @@ VCoder 的长期目标是：开发一套统一 UI，同时以 **VSCode 插件（
 | Skills | `.claude/skills` 体系 | 提供 Skills 列表、来源与调用入口（FR-502） |
 | Plugins | CLI plugin/marketplace 子命令 | 提供插件安装/启停/版本视图（FR-503） |
 | Hooks | 多来源 hooks 配置 | 提供可见性与审计（FR-504） |
-| Agent Teams | 实验能力（开关启用） | 仅实验通道，不作为主路径承诺（FR-601） |
+| Subagent（Task 工具） | 同一 CLI 进程内独立上下文窗口，通过 Task 工具 spawn；事件已透传 | 补全 UI 展示：状态指示、子工具调用聚合、前台/后台切换（FR-205/206） |
+| Agent Teams | 实验能力（开关启用）；每个 teammate 是独立 `claude` CLI 进程 | 需完整 ACP 扩展：team 生命周期、消息路由、共享任务（FR-701/703） |
 
 ## 8. 功能需求（FR，按对齐后范围）
 
@@ -141,6 +142,8 @@ VCoder 的长期目标是：开发一套统一 UI，同时以 **VSCode 插件（
 - FR-202：`TodoWrite` 与 `Task` 分离展示：Task List / Task Runs。
 - FR-203：支持 Bash/Terminal 输出增量查看、等待退出、终止。
 - FR-204：支持工具调用分组汇总与展开详情。
+- FR-205：Subagent 运行可视化——实时状态指示（running/completed/failed）、子工具调用折叠聚合展示、前台/后台切换、耗时统计、并行 subagent 并排展示、失败错误详情。
+- FR-206：自定义 Subagent 管理——列表/创建/编辑自定义 agent（对应 CLI `/agents` 命令），支持 `.claude/agents/` Markdown + YAML frontmatter 格式的读写。
 
 ### 8.3 权限与安全
 
@@ -170,8 +173,9 @@ VCoder 的长期目标是：开发一套统一 UI，同时以 **VSCode 插件（
 
 ### 8.7 实验能力（Feature Flag）
 
-- FR-701：Agent Teams 仅在实验开关下显示并可用。
+- FR-701：Agent Teams 仅在实验开关下显示并可用。Agent Teams 基于多 CLI 进程协调模型——每个 teammate 是独立的 `claude` CLI 进程，VCoder Server 需通过 `TeamManager` 管理多个并发 `ClaudeCodeWrapper` 实例的生命周期和通信。
 - FR-702：实验能力默认不影响主流程稳定性与发布门禁。
+- FR-703：Agent Teams 共享任务面板与消息路由——提供 team 创建/删除、teammate 列表（状态：idle/working/blocked）、共享任务面板（Kanban 或列表视图）、消息收发面板（点对点 + 广播）、Plan 审批弹窗。协议层新增 `team/*` 系列 ACP 方法。
 
 ## 9. 非功能需求（NFR）
 
@@ -188,9 +192,9 @@ VCoder 的长期目标是：开发一套统一 UI，同时以 **VSCode 插件（
 | 阶段 | 时间 | 目标 | 关键交付（Plugin） | 关键交付（App） |
 |---|---|---|---|---|
 | Phase 1 | 0-3 个月 | CLI 核心能力对齐 + 双端基线打通 | 流式会话、工具解析、权限链路、续聊稳定 | Desktop Shell IPC 桥接稳定；与 Plugin 功能对等 |
-| Phase 2 | 3-6 个月 | 统一审阅体验 | Diff 审阅闭环、执行摘要、历史回放与检索 | App 内 Diff 审阅可用；宿主无关 HostBridge 接口完成 |
+| Phase 2 | 3-6 个月 | 统一审阅体验 + Subagent 可视化 | Diff 审阅闭环、执行摘要、历史回放与检索、**Subagent 运行可视化完善**（FR-205/206） | App 内 Diff 审阅可用；宿主无关 HostBridge 接口完成 |
 | Phase 3 | 6-12 个月 | 生态管理能力 | MCP/Skills/Plugins/Hooks 统一管理 UI | App 同步上线相同管理面板 |
-| Phase 4 | 12-18 个月 | 实验编排能力 | Task Manager 增强、Agent Teams 实验化 | App 同步支持实验能力 |
+| Phase 4 | 12-18 个月 | 实验编排能力 | Task Manager 增强、**Agent Teams 实验化**（ACP `team/*` 协议扩展、TeamManager 多进程管理、共享任务面板、消息路由、Plan 审批） | App 同步支持实验能力 |
 
 ## 11. 验收标准（长期 DoD）
 
@@ -261,7 +265,8 @@ VCoder 的长期目标是：开发一套统一 UI，同时以 **VSCode 插件（
 |---|---|---|---|
 | P2 | CLI 生态管理 UI（MCP/Skills/Plugins/Hooks） | 在基线稳定后上线统一管理面板；能力命名与行为严格对齐 CLI | Plugin + App 同步 |
 | P2 | 历史检索增强 | 在现有 `history/list/load/delete` 基础上增加按会话/文件/工具类型检索 | Plugin + App 同步 |
-| P3 | Agent Teams（实验能力） | 仅通过 Feature Flag 开启，不纳入主路径 SLA | Plugin + App |
+| P1 | Subagent 运行可视化完善 | 当前仅有 MissionControl/AgentSection 骨架，需补全：实时进度指示、子工具调用折叠展示、耗时统计、并行 subagent 并排展示、失败错误详情；PersistentSession 补齐 Task 工具处理逻辑（emitToolUse 缺少 subagent_run 发射） | Plugin + App |
+| P3 | Agent Teams（实验能力） | 仅通过 Feature Flag 开启，不纳入主路径 SLA。具体子任务：(1) 协议扩展——新增 `team/*` 系列 ACP 方法（team 生命周期/teammate 管理/消息路由/共享任务）；(2) Server 层——新增 TeamManager 管理多个并发 ClaudeCodeWrapper 实例；(3) Store 层——新增 teamSlice；(4) UI 层——增强 AgentTeamsPanel（team 管理、teammate 列表、任务面板、消息面板、Plan 审批）；(5) Feature Flag 控制——ACP Server 按 flag 注册 team 方法 | Plugin + App |
 | P3 | ~~多后端能力对齐（如 Codex CLI）~~ `[已移除]` | ~~先做能力探测与差异展示，再决定统一交互抽象~~ | ~~Plugin + App~~ |
 
 ### 15.4 执行顺序约束

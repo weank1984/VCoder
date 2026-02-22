@@ -256,7 +256,8 @@ export type UpdateType =
     | 'error'
     | 'confirmation_request'
     | 'session_switch'
-    | 'execution_summary';
+    | 'execution_summary'
+    | 'team_update';
 
 export interface SessionSwitchUpdate {
     previousSessionId: string | null;
@@ -278,7 +279,8 @@ export interface UpdateNotificationParams {
     | ErrorUpdate
     | ConfirmationRequestUpdate
     | SessionSwitchUpdate
-    | ExecutionSummaryUpdate;
+    | ExecutionSummaryUpdate
+    | TeamUpdate;
 }
 
 export interface ThoughtUpdate {
@@ -295,6 +297,7 @@ export interface ToolUseUpdate {
     name: string;
     input: Record<string, unknown>;
     status: 'pending' | 'running' | 'completed' | 'failed';
+    parentToolUseId?: string;
 }
 
 export interface ToolResultUpdate {
@@ -348,6 +351,10 @@ export interface SubagentRunUpdate {
     input?: Record<string, unknown>;
     result?: unknown;
     error?: string;
+    /** Timestamp (ms) when the subagent started running */
+    startedAt?: number;
+    /** Timestamp (ms) when the subagent completed or failed */
+    completedAt?: number;
 }
 
 
@@ -866,6 +873,46 @@ export interface AgentProfile {
 }
 
 // =============================================================================
+// Agent Team Types
+// =============================================================================
+
+export interface TeamMemberInfo {
+    name: string;
+    agentId: string;
+    agentType?: string;
+    model?: string;
+    color?: string;
+    status: 'pending' | 'starting' | 'running' | 'idle' | 'stopped' | 'failed';
+    sessionId?: string;
+}
+
+export interface TeamUpdate {
+    teamName: string;
+    description?: string;
+    leadSessionId: string;
+    members: TeamMemberInfo[];
+    status: 'created' | 'member_added' | 'member_status_changed' | 'disbanded';
+}
+
+export interface TeamListResult {
+    teams: Array<{
+        teamName: string;
+        description?: string;
+        leadSessionId: string;
+        members: TeamMemberInfo[];
+    }>;
+}
+
+export interface TeamStopParams {
+    teamName: string;
+}
+
+export interface TeamStopMemberParams {
+    teamName: string;
+    memberName: string;
+}
+
+// =============================================================================
 // ACP Method Constants
 // =============================================================================
 
@@ -926,6 +973,11 @@ export const ACPMethods = {
 
     // CLI subcommand forwarding (V0.7)
     CLI_SUBCOMMAND: 'cli/subcommand',
+
+    // Team management
+    TEAM_LIST: 'team/list',
+    TEAM_STOP: 'team/stop',
+    TEAM_STOP_MEMBER: 'team/stopMember',
 } as const;
 
 export type ACPMethod = typeof ACPMethods[keyof typeof ACPMethods];

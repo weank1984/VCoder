@@ -1,13 +1,23 @@
-import { useState, useMemo } from 'react';
-import type { SubagentRunUpdate } from '@vcoder/shared';
+import { useState, useEffect, useMemo } from 'react';
+import type { SubagentRunUpdate, TeamMemberInfo } from '@vcoder/shared';
+import type { ToolCall } from '../../types';
 import type { TaskItem } from '../TodoTaskManager/types';
 import classNames from 'classnames';
 import { useI18n } from '../../i18n/I18nProvider';
 import { CheckIcon, ErrorIcon, LoadingIcon, ArrowRightIcon, RocketIcon } from '../Icon';
 
+interface TeamInfo {
+  teamName: string;
+  description?: string;
+  leadSessionId: string;
+  members: TeamMemberInfo[];
+}
+
 interface AgentSectionProps {
   subagentRuns: SubagentRunUpdate[];
   taskItems: TaskItem[];
+  childToolCalls?: Map<string, ToolCall[]>;
+  activeTeams?: Map<string, TeamInfo>;
 }
 
 function safeJson(value: unknown): string {
@@ -16,6 +26,24 @@ function safeJson(value: unknown): string {
   } catch {
     return String(value);
   }
+}
+
+function formatElapsed(ms: number): string {
+  if (ms < 1000) return '<1s';
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainSeconds = seconds % 60;
+  return `${minutes}m ${remainSeconds}s`;
+}
+
+function ElapsedTimer({ startedAt }: { startedAt: number }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return <span className="mc-agent-elapsed running">{formatElapsed(now - startedAt)}</span>;
 }
 
 function getRunStatusIcon(status: SubagentRunUpdate['status']) {
@@ -32,6 +60,40 @@ function getRunStatusClass(status: SubagentRunUpdate['status']) {
     case 'failed': return 'failed';
     case 'running': return 'in-progress';
   }
+}
+
+function getToolStatusIcon(status: ToolCall['status']) {
+  switch (status) {
+    case 'completed': return <CheckIcon />;
+    case 'failed': return <ErrorIcon />;
+    case 'running':
+    case 'pending':
+    case 'awaiting_confirmation': return <LoadingIcon />;
+  }
+}
+
+function getToolStatusClass(status: ToolCall['status']) {
+  switch (status) {
+    case 'completed': return 'completed';
+    case 'failed': return 'failed';
+    case 'running':
+    case 'pending':
+    case 'awaiting_confirmation': return 'in-progress';
+  }
+}
+
+function summarizeToolInput(tc: ToolCall): string {
+  if (!tc.input || typeof tc.input !== 'object') return '';
+  const input = tc.input as Record<string, unknown>;
+  // Show the most meaningful field
+  if (typeof input.command === 'string') return input.command.slice(0, 80);
+  if (typeof input.file_path === 'string') return input.file_path;
+  if (typeof input.path === 'string') return input.path;
+  if (typeof input.pattern === 'string') return input.pattern;
+  if (typeof input.query === 'string') return input.query;
+  if (typeof input.url === 'string') return input.url;
+  if (typeof input.description === 'string') return input.description.slice(0, 80);
+  return '';
 }
 
 function getTaskStatusIcon(status: TaskItem['status']) {
@@ -52,12 +114,58 @@ function getTaskStatusClass(status: TaskItem['status']) {
   }
 }
 
-export function AgentSection({ subagentRuns, taskItems }: AgentSectionProps) {
+function getMemberStatusIcon(status: TeamMemberInfo['status']) {
+  switch (status) {
+    case 'running': return <LoadingIcon />;
+    case 'idle': return <CheckIcon />;
+    case 'starting': return <LoadingIcon />;
+    case 'stopped': return <span className="mc-dot" />;
+    case 'failed': return <ErrorIcon />;
+    case 'pending': return <span className="mc-dot" />;
+  }
+}
+
+function getMemberStatusClass(status: TeamMemberInfo['status']) {
+  switch (status) {
+    case 'running': return 'in-progress';
+    case 'starting': return 'in-progress';
+    case 'idle': return 'completed';
+    case 'stopped': return 'pending';
+    case 'failed': return 'failed';
+    case 'pending': return 'pending';
+  }
+}
+
+function getMemberStatusKey(status: TeamMemberInfo['status']): string {
+  switch (status) {
+    case 'running': return 'MissionControl.MemberRunning';
+    case 'starting': return 'MissionControl.MemberStarting';
+    case 'idle': return 'MissionControl.MemberIdle';
+    case 'stopped': return 'MissionControl.MemberStopped';
+    case 'failed': return 'MissionControl.MemberFailed';
+    case 'pending': return 'MissionControl.MemberStarting';
+  }
+}
+
+const MEMBER_COLORS = ['#4a9eff', '#f5a623', '#7ed321', '#bd10e0', '#50e3c2', '#e74c3c'];
+
+export function AgentSection({ subagentRuns, taskItems, childToolCalls, activeTeams }: AgentSectionProps) {
   const { t } = useI18n();
   const [expandedRunIds, setExpandedRunIds] = useState<Set<string>>(() => new Set());
+  const [collapsedChildTools, setCollapsedChildTools] = useState<Set<string>>(() => new Set());
 
   const toggleRunDetails = (id: string) => {
     setExpandedRunIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleChildTools = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCollapsedChildTools((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -78,8 +186,10 @@ export function AgentSection({ subagentRuns, taskItems }: AgentSectionProps) {
 
   const hasRuns = subagentRuns.length > 0;
   const hasTasks = uniqueTaskItems.length > 0;
+  const teamEntries = activeTeams ? [...activeTeams.values()] : [];
+  const hasTeams = teamEntries.some((team) => team.members.length > 0);
 
-  if (!hasRuns && !hasTasks) return null;
+  if (!hasRuns && !hasTasks && !hasTeams) return null;
 
   return (
     <div className="mc-section mc-agent-section">
@@ -87,6 +197,19 @@ export function AgentSection({ subagentRuns, taskItems }: AgentSectionProps) {
         <div className="mc-agent-list">
           {subagentRuns.map((run, index) => {
             const isRunExpanded = expandedRunIds.has(run.id);
+            const childTools = childToolCalls?.get(run.id);
+            const hasChildTools = childTools && childTools.length > 0;
+            const isChildCollapsed = collapsedChildTools.has(run.id);
+
+            // Elapsed time
+            const elapsedNode = run.startedAt ? (
+              run.status === 'running' ? (
+                <ElapsedTimer startedAt={run.startedAt} />
+              ) : run.completedAt ? (
+                <span className="mc-agent-elapsed">{formatElapsed(run.completedAt - run.startedAt)}</span>
+              ) : null
+            ) : null;
+
             return (
               <div key={run.id} className="mc-agent-item-wrap">
                 <div
@@ -105,6 +228,7 @@ export function AgentSection({ subagentRuns, taskItems }: AgentSectionProps) {
                   {run.subagentType && (
                     <span className="mc-agent-type-badge">{run.subagentType}</span>
                   )}
+                  {elapsedNode}
                   <span className={classNames('mc-agent-expand', { expanded: isRunExpanded })}>
                     <ArrowRightIcon />
                   </span>
@@ -112,20 +236,51 @@ export function AgentSection({ subagentRuns, taskItems }: AgentSectionProps) {
 
                 {isRunExpanded && (
                   <div className="mc-agent-details">
+                    {run.status === 'failed' && run.error && (
+                      <div className="mc-agent-panel mc-agent-error-panel">
+                        <div className="mc-agent-panel-title">{t('Agent.ToolError')}</div>
+                        <pre className="mc-agent-json mc-agent-error-text">
+                          {typeof run.error === 'string' ? run.error : safeJson(run.error)}
+                        </pre>
+                      </div>
+                    )}
                     {run.input && (
                       <div className="mc-agent-panel">
                         <div className="mc-agent-panel-title">{t('Agent.ToolInput')}</div>
                         <pre className="mc-agent-json">{safeJson(run.input)}</pre>
                       </div>
                     )}
-                    {(run.result !== undefined || run.error) && (
+                    {run.result !== undefined && !run.error && (
                       <div className="mc-agent-panel">
-                        <div className="mc-agent-panel-title">
-                          {run.error ? t('Agent.ToolError') : t('Agent.ToolResult')}
+                        <div className="mc-agent-panel-title">{t('Agent.ToolResult')}</div>
+                        <pre className="mc-agent-json">{safeJson(run.result)}</pre>
+                      </div>
+                    )}
+                    {/* Show result alongside error if both exist */}
+                    {run.result !== undefined && run.error && (
+                      <div className="mc-agent-panel">
+                        <div className="mc-agent-panel-title">{t('Agent.ToolResult')}</div>
+                        <pre className="mc-agent-json">{safeJson(run.result)}</pre>
+                      </div>
+                    )}
+                    {hasChildTools && (
+                      <div className="mc-agent-child-tools">
+                        <div
+                          className="mc-agent-panel-title mc-agent-child-tools-header"
+                          onClick={(e) => toggleChildTools(run.id, e)}
+                        >
+                          <span>{t('Agent.ToolCalls')} ({childTools.length})</span>
+                          <span className={classNames('mc-agent-expand', { expanded: !isChildCollapsed })}>
+                            <ArrowRightIcon />
+                          </span>
                         </div>
-                        <pre className="mc-agent-json">
-                          {safeJson(run.error ? run.error : run.result)}
-                        </pre>
+                        {!isChildCollapsed && childTools.map(tc => (
+                          <div key={tc.id} className={classNames('mc-child-tool', getToolStatusClass(tc.status))}>
+                            <span className="mc-child-tool-icon">{getToolStatusIcon(tc.status)}</span>
+                            <span className="mc-child-tool-name">{tc.name}</span>
+                            <span className="mc-child-tool-summary">{summarizeToolInput(tc)}</span>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -162,6 +317,40 @@ export function AgentSection({ subagentRuns, taskItems }: AgentSectionProps) {
           ))}
         </div>
       )}
+
+      {hasTeams && teamEntries.map((team) => (
+        <div key={team.teamName} className="mc-team-section">
+          <div className="mc-team-header">
+            <span className="mc-team-name">{t('MissionControl.TeamMembers')}</span>
+            {team.description && <span className="mc-team-desc">{team.description}</span>}
+          </div>
+          <div className="mc-team-members">
+            {team.members.map((member, idx) => {
+              const color = member.color || MEMBER_COLORS[idx % MEMBER_COLORS.length];
+              return (
+                <div
+                  key={member.name}
+                  className={classNames('mc-agent-item mc-team-member', getMemberStatusClass(member.status))}
+                >
+                  <span className="mc-team-member-dot" style={{ background: color }} />
+                  <span
+                    className={classNames('mc-agent-icon', {
+                      'mc-icon-spin': member.status === 'running' || member.status === 'starting',
+                    })}
+                  >
+                    {getMemberStatusIcon(member.status)}
+                  </span>
+                  <span className="mc-agent-text">{member.name}</span>
+                  {member.agentType && (
+                    <span className="mc-agent-type-badge">{member.agentType}</span>
+                  )}
+                  <span className="mc-team-member-status">{t(getMemberStatusKey(member.status))}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -13,9 +13,11 @@ import {
     ThoughtUpdate,
     TextUpdate,
     ToolUseUpdate,
+    ToolResultUpdate,
     FileChangeUpdate,
     McpCallUpdate,
     TaskListUpdate,
+    SubagentRunUpdate,
     ErrorUpdate,
 } from '@vcoder/shared';
 import { resolveClaudePath, JsonStreamParser, computeFileChangeDiff, matchStderrError, preflightCheck } from './shared';
@@ -34,6 +36,8 @@ export interface PersistentSessionSettings {
     disallowedTools?: string[];
     additionalDirs?: string[];
     maxThinkingTokens?: number;
+    /** Additional environment variables to pass to the CLI process */
+    env?: Record<string, string>;
 }
 
 /**
@@ -53,6 +57,7 @@ export class PersistentSession extends EventEmitter {
     private toolNameById: Map<string, string> = new Map();
     private taskList: TaskListUpdate | null = null;
     private subagentRunMetaById: Map<string, { title: string; subagentType?: string; parentTaskId?: string; input?: Record<string, unknown> }> = new Map();
+    private activeTaskStack: string[] = [];
     private thinkingContent = '';
     private receivedStreamingThinking = false;
     // Throttle thinking_delta IPC emissions (150ms interval)
@@ -222,6 +227,7 @@ export class PersistentSession extends EventEmitter {
                 TERM: 'xterm-256color',
                 HOME: process.env.HOME || os.homedir(),
                 ...(this.settings.maxThinkingTokens ? { MAX_THINKING_TOKENS: String(this.settings.maxThinkingTokens) } : {}),
+                ...(this.settings.env ?? {}),
             },
         });
 
@@ -353,6 +359,8 @@ export class PersistentSession extends EventEmitter {
         this.clearTimers();
         this._recovering = false;
         this._messageBuffer.length = 0;
+        this.activeTaskStack = [];
+        this.subagentRunMetaById.clear();
 
         return new Promise((resolve) => {
             const proc = this.process!;
@@ -624,7 +632,25 @@ export class PersistentSession extends EventEmitter {
 
             case 'user': {
                 // User message echo (with --replay-user-messages)
-                console.error('[PersistentSession] User message echoed');
+                // Parse tool_result blocks from user messages
+                const userMessage = event.message as Record<string, unknown> | undefined;
+                const userContent = userMessage?.content as Array<Record<string, unknown>> | undefined;
+                if (userContent && Array.isArray(userContent)) {
+                    for (const block of userContent) {
+                        if (block.type === 'tool_result') {
+                            const toolUseId = block.tool_use_id as string | undefined;
+                            if (toolUseId) {
+                                const resultContent = block.content;
+                                const isError = block.is_error === true;
+                                this.emitToolResult(
+                                    toolUseId,
+                                    isError ? null : resultContent,
+                                    isError ? (typeof resultContent === 'string' ? resultContent : 'Tool error') : undefined
+                                );
+                            }
+                        }
+                    }
+                }
                 break;
             }
 
@@ -786,12 +812,82 @@ export class PersistentSession extends EventEmitter {
         }
     }
 
+    private firstLine(text: string): string {
+        const line = text.split('\n', 1)[0] ?? '';
+        return line.trim();
+    }
+
+    private formatSubagentRunTitle(toolInput: Record<string, unknown>): { title: string; subagentType?: string } {
+        const description = typeof toolInput.description === 'string' ? toolInput.description.trim() : '';
+        const prompt = typeof toolInput.prompt === 'string' ? this.firstLine(toolInput.prompt) : '';
+        const subagentType =
+            typeof toolInput.subagent_type === 'string' ? toolInput.subagent_type
+            : typeof toolInput.subagentType === 'string' ? toolInput.subagentType
+            : typeof toolInput.agent_type === 'string' ? toolInput.agent_type
+            : typeof toolInput.agentType === 'string' ? toolInput.agentType
+            : undefined;
+        return { title: description || prompt || 'Task', subagentType };
+    }
+
+    private emitSubagentRun(update: SubagentRunUpdate): void {
+        this.emit('update', update, 'subagent_run');
+    }
+
+    private emitToolResult(toolId: string, result: unknown, error?: string): void {
+        const toolName = this.toolNameById.get(toolId);
+
+        // Pop Task from active stack
+        if (toolName === 'Task') {
+            const idx = this.activeTaskStack.lastIndexOf(toolId);
+            if (idx >= 0) this.activeTaskStack.splice(idx, 1);
+        }
+
+        // Emit tool_result update
+        const toolResultUpdate: ToolResultUpdate = { id: toolId, result, error };
+        this.emit('update', toolResultUpdate, 'tool_result');
+
+        // Emit subagent_run completion
+        if (toolName === 'Task') {
+            const meta = this.subagentRunMetaById.get(toolId);
+            this.emitSubagentRun({
+                id: toolId,
+                title: meta?.title ?? 'Task',
+                subagentType: meta?.subagentType,
+                parentTaskId: meta?.parentTaskId,
+                input: meta?.input,
+                status: error ? 'failed' : 'completed',
+                result,
+                error,
+                completedAt: Date.now(),
+            });
+            this.subagentRunMetaById.delete(toolId);
+        }
+    }
+
     private emitToolUse(toolName: string, toolInput: Record<string, unknown>, toolId: string): void {
         // Dedup: skip if we've already emitted this tool_use ID
         if (this.emittedToolUseIds.has(toolId)) return;
         this.emittedToolUseIds.add(toolId);
 
         this.toolNameById.set(toolId, toolName);
+
+        // Task (subagent) detection
+        if (toolName === 'Task') {
+            const { title, subagentType } = this.formatSubagentRunTitle(toolInput);
+            const parentTaskId = this.taskList?.currentTaskId;
+            this.subagentRunMetaById.set(toolId, { title, subagentType, parentTaskId, input: toolInput });
+            this.emitSubagentRun({
+                id: toolId,
+                title,
+                subagentType,
+                parentTaskId,
+                status: 'running',
+                input: toolInput,
+                startedAt: Date.now(),
+            });
+            this.activeTaskStack.push(toolId);
+            // Fall through to also emit generic tool_use event
+        }
 
         // File write detection
         if (toolName === 'Write' || toolName === 'Edit') {
