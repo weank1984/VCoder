@@ -32,6 +32,7 @@ interface StepEntryProps {
     entry: StepEntryType;
     onViewFile?: (path: string, lineRange?: [number, number]) => void;
     onConfirm?: (tc: ToolCall, approve: boolean, options?: { trustAlways?: boolean; editedContent?: string }) => void;
+    onAnswer?: (tc: ToolCall, answer: string) => void;
     hideSummary?: boolean;
 }
 
@@ -61,7 +62,7 @@ const HIDDEN_TASK_TOOLS = new Set([
     'TaskUpdate', 'TaskOutput', 'TaskStop',
 ]);
 
-export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }: StepEntryProps) {
+export function StepEntry({ entry, onViewFile, onConfirm, onAnswer, hideSummary = false }: StepEntryProps) {
     const { t } = useI18n();
     const [isExpanded, setIsExpanded] = useState(hideSummary);
 
@@ -146,7 +147,7 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
     const hasTerminalSection = isTerminalTool && shouldShowTerminal(tc, terminalData);
     const hasDiffSection = isFileEditTool && shouldShowDiff(tc);
     const hasApprovalSection = Boolean(
-        (isAwaitingConfirmation && onConfirm) || (!isAwaitingConfirmation && isCommandPending && onConfirm)
+        (isAwaitingConfirmation && onConfirm && onAnswer) || (!isAwaitingConfirmation && isCommandPending && onConfirm && onAnswer)
     );
     const hasInputSection = Boolean(
         tc.input !== undefined && !isTerminalTool && !isFileEditTool && tc.name !== 'TodoWrite'
@@ -205,11 +206,12 @@ export function StepEntry({ entry, onViewFile, onConfirm, hideSummary = false }:
 
             {(isExpanded || hideSummary) && hasAnyDetails && (
                 <div className="entry-details">
-                    {hasApprovalSection && onConfirm && (
+                    {hasApprovalSection && onConfirm && onAnswer && (
                         <ApprovalSection
                             toolCall={tc}
                             isCommandPending={!isAwaitingConfirmation && isCommandPending}
                             onConfirm={onConfirm}
+                            onAnswer={onAnswer}
                         />
                     )}
 

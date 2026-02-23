@@ -81,6 +81,9 @@ export class ClaudeCodeWrapper extends EventEmitter {
     private readonly seenCanUseToolByLocalSessionId: Set<string> = new Set();
     private readonly trustedToolNamesPerSession: Map<string, Set<string>> = new Map();
     
+    // Promise resolvers for pending AskUserQuestion answers
+    private readonly pendingQuestionResolvers: Map<string, (answer: string) => void> = new Map();
+
     // Promise resolvers for pending permission confirmations
     // This allows handleControlRequest to block until user confirms/denies
     private readonly pendingConfirmationResolvers: Map<
@@ -142,6 +145,11 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 resolver.resolve();
                 this.pendingConfirmationResolvers.delete(key);
                 this.pendingCanUseToolByToolCallKey.delete(key);
+            }
+        }
+        for (const key of [...this.pendingQuestionResolvers.keys()]) {
+            if (key.startsWith(`${sessionId}:`)) {
+                this.pendingQuestionResolvers.delete(key);
             }
         }
 
@@ -265,8 +273,10 @@ export class ClaudeCodeWrapper extends EventEmitter {
             args.push('--allowedTools', process.env.VCODER_ALLOWED_TOOLS.trim());
         }
 
-        // Tool permissions: disallowed tools (default: disable interactive questions)
-        const disallowedTools = this.settings.disallowedTools || ['AskUserQuestion'];
+        // Tool permissions: disallowed tools
+        // AskUserQuestion is disabled by default until Claude Code CLI registers the tool properly.
+        // The VCoder QuestionUI implementation is ready — once CLI support lands, remove it from this list.
+        const disallowedTools = this.settings.disallowedTools ?? ['AskUserQuestion'];
         if (disallowedTools.length > 0) {
             args.push('--disallowed-tools', disallowedTools.join(' '));
         }
@@ -733,6 +743,36 @@ export class ClaudeCodeWrapper extends EventEmitter {
             return;
         }
 
+        // AskUserQuestion: emit user_question confirmation request and wait for answer
+        if (toolName === 'AskUserQuestion') {
+            // CLI sends { questions: [{ question, options: [{label, description, markdown?}] }] }
+            const questions = Array.isArray(toolInput.questions)
+                ? toolInput.questions as Array<{ question: string; options?: Array<{ label: string }> }>
+                : [{ question: typeof toolInput.question === 'string' ? toolInput.question : '', options: undefined }];
+            const firstQuestion = questions[0];
+            const question = firstQuestion?.question ?? '';
+            const options = firstQuestion?.options?.map((o) => (typeof o === 'string' ? o : o.label));
+            const confirmUpdate: ConfirmationRequestUpdate = {
+                id: `confirm-${toolCallId}-${Date.now()}`,
+                type: 'user_question',
+                toolCallId,
+                summary: question,
+                details: {
+                    question,
+                    ...(options ? { questionOptions: options } : {}),
+                },
+            };
+            this.emitToolUse(sessionId, toolName, toolInput, toolCallId);
+            this.emit('update', sessionId, confirmUpdate, 'confirmation_request');
+            const questionKey = `${sessionId}:${toolCallId}`;
+            this.pendingCanUseToolByToolCallKey.set(questionKey, { requestId, toolCallId, toolName, toolInput });
+            return new Promise<void>((resolve) => {
+                this.pendingQuestionResolvers.set(questionKey, (_answer: string) => {
+                    resolve();
+                });
+            });
+        }
+
         const key = `${sessionId}:${toolCallId}`;
         this.pendingCanUseToolByToolCallKey.set(key, { requestId, toolCallId, toolName, toolInput, suggestions });
 
@@ -967,11 +1007,6 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 if (idx >= 0) activeStack.splice(idx, 1);
             }
         }
-        // Some Claude CLI flows represent user-questions as tool errors; treat them as informational.
-        if (toolName === 'AskUserQuestion') {
-            error = undefined;
-        }
-        
         // Detect permission requests in tool results (fallback only).
         // When can_use_tool is available, tool permission should be handled through control_request/control_response.
         if (!this.seenCanUseToolByLocalSessionId.has(sessionId)) {
@@ -1509,6 +1544,48 @@ export class ClaudeCodeWrapper extends EventEmitter {
             resolver.resolve();
             this.pendingConfirmationResolvers.delete(key);
         }
+    }
+
+    async answerQuestion(sessionId: string, toolCallId: string, answer: string): Promise<void> {
+        const key = `${sessionId}:${toolCallId}`;
+        const pending = this.pendingCanUseToolByToolCallKey.get(key);
+        if (!pending) {
+            console.warn(`[ClaudeCode] answerQuestion: no pending AskUserQuestion for ${toolCallId}`);
+            return;
+        }
+        const { requestId, toolInput } = pending;
+        // CLI reads answers via updatedInput.answers, keyed by question text.
+        // Format: { ...toolInput, answers: { [questionText]: answerText } }
+        const questions = Array.isArray(toolInput.questions)
+            ? toolInput.questions as Array<{ question: string }>
+            : [{ question: typeof toolInput.question === 'string' ? toolInput.question : '' }];
+        const firstQuestionText = questions[0]?.question ?? '';
+        const answers: Record<string, string> = firstQuestionText ? { [firstQuestionText]: answer } : {};
+        this.sendControlResponse(sessionId, requestId, {
+            behavior: 'allow',
+            updatedInput: { ...toolInput, answers },
+        });
+        // Resolve the question promise
+        const resolver = this.pendingQuestionResolvers.get(key);
+        if (resolver) {
+            resolver(answer);
+            this.pendingQuestionResolvers.delete(key);
+        }
+        this.pendingCanUseToolByToolCallKey.delete(key);
+    }
+
+    private writeRawStdin(sessionId: string, data: string): void {
+        const persistentSession = this.persistentSessions.get(sessionId);
+        if (persistentSession) {
+            persistentSession.writeToStdin(data);
+            return;
+        }
+        const process = this.processesByLocalSessionId.get(sessionId);
+        if (!process?.stdin || process.stdin.destroyed || process.stdin.writableEnded) {
+            console.warn(`[ClaudeCode] writeRawStdin: no stdin for session ${sessionId}`);
+            return;
+        }
+        process.stdin.write(data);
     }
 
     async cancel(sessionId: string): Promise<void> {

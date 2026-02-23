@@ -513,4 +513,62 @@ export const createMessagesSlice: SliceCreator<MessagesSlice> = (set, get) => ({
             options,
         });
     },
+
+    answerQuestion: (toolCallId, answer, sessionId) => {
+        set((state) => {
+            const targetSessionId = sessionId ?? state.currentSessionId;
+            if (!targetSessionId) {
+                const messages = [...state.messages];
+                for (let i = 0; i < messages.length; i++) {
+                    const msg = messages[i];
+                    if (msg.toolCalls) {
+                        const tcIdx = msg.toolCalls.findIndex(t => t.id === toolCallId);
+                        if (tcIdx !== -1) {
+                            const newToolCalls = [...msg.toolCalls];
+                            const updatedTc = { ...newToolCalls[tcIdx] };
+                            updatedTc.status = 'running';
+                            delete updatedTc.confirmationType;
+                            delete updatedTc.confirmationData;
+                            newToolCalls[tcIdx] = updatedTc;
+                            messages[i] = { ...msg, toolCalls: newToolCalls };
+                            break;
+                        }
+                    }
+                }
+                return { messages };
+            }
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            const messages = [...sessionState.messages];
+            for (let i = 0; i < messages.length; i++) {
+                const msg = messages[i];
+                if (msg.toolCalls) {
+                    const tcIdx = msg.toolCalls.findIndex(t => t.id === toolCallId);
+                    if (tcIdx !== -1) {
+                        const newToolCalls = [...msg.toolCalls];
+                        const updatedTc = { ...newToolCalls[tcIdx] };
+                        updatedTc.status = 'running';
+                        delete updatedTc.confirmationType;
+                        delete updatedTc.confirmationData;
+                        newToolCalls[tcIdx] = updatedTc;
+                        messages[i] = { ...msg, toolCalls: newToolCalls };
+                        break;
+                    }
+                }
+            }
+            newSessionStates.set(targetSessionId, { ...sessionState, messages, updatedAt: Date.now() });
+
+            return {
+                sessionStates: newSessionStates,
+                messages: targetSessionId === state.currentSessionId ? messages : state.messages,
+            };
+        });
+
+        postMessage({
+            type: 'answerQuestion',
+            toolCallId,
+            answer,
+        });
+    },
 });

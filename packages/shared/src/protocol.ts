@@ -397,7 +397,8 @@ export type ConfirmationType =
     | 'file_delete'
     | 'plan'
     | 'mcp'
-    | 'dangerous';
+    | 'dangerous'
+    | 'user_question';
 
 export interface ConfirmationRequestUpdate {
     /** 确认请求唯一 ID */
@@ -422,6 +423,8 @@ export interface ConfirmationRequestUpdate {
         planSummary?: string;
         riskLevel?: 'low' | 'medium' | 'high';
         riskReasons?: string[];
+        question?: string;
+        questionOptions?: string[];
     };
 }
 
@@ -912,6 +915,12 @@ export interface TeamStopMemberParams {
     memberName: string;
 }
 
+export interface AnswerQuestionParams {
+    sessionId: string;
+    toolCallId: string;
+    answer: string;
+}
+
 // =============================================================================
 // ACP Method Constants
 // =============================================================================
@@ -942,6 +951,7 @@ export const ACPMethods = {
 
     // Tool operations
     TOOL_CONFIRM: 'tool/confirm',
+    QUESTION_ANSWER: 'question/answer',
 
     // History operations
     HISTORY_LIST: 'history/list',

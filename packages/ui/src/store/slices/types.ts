@@ -16,6 +16,7 @@ export interface MessagesSlice {
     addToolCall: (toolCall: ToolCall, sessionId?: string) => void;
     updateToolCall: (id: string, updates: Partial<ToolCall>, sessionId?: string) => void;
     confirmTool: (toolCallId: string, confirmed: boolean, options?: { trustAlways?: boolean; editedContent?: string }, sessionId?: string) => void;
+    answerQuestion: (toolCallId: string, answer: string, sessionId?: string) => void;
 }
 
 export interface SessionsSlice {

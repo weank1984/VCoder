@@ -204,6 +204,10 @@ export default {
     CodeInserted: '已插入',
     CopyCode: '复制代码',
     CodeCopied: '已复制',
+    QuestionTitle: 'Claude 正在提问',
+    QuestionSubmit: '提交',
+    QuestionSkip: '跳过',
+    QuestionPlaceholder: '输入你的回答...',
     // 通用标签
     Edited: '已编辑',
     Created: '已创建',

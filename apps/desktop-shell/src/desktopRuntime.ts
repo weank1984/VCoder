@@ -361,6 +361,14 @@ export class DesktopRuntime {
             );
           }
           return;
+        case 'answerQuestion':
+            if (typeof payload.toolCallId === 'string' && typeof payload.answer === 'string') {
+                await this.requireClient().answerQuestion(
+                    payload.toolCallId as string,
+                    payload.answer as string,
+                );
+            }
+            return;
         case 'cancel':
           await this.requireClient().cancelSession();
           return;

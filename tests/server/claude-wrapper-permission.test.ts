@@ -314,4 +314,66 @@ describe('ClaudeCodeWrapper permission confirmation flow', () => {
       expect.stringContaining('no pending can_use_tool request')
     );
   });
+
+  // ---------- AskUserQuestion flow ----------
+
+  it('AskUserQuestion: emits user_question confirmation_request with question text and options', async () => {
+    await startSession();
+
+    const updates: Array<{ sessionId: string; content: any; type: string }> = [];
+    wrapper.on('update', (sessionId: string, content: any, type: string) => {
+      updates.push({ sessionId, content, type });
+    });
+
+    sendControlRequest('req-q1', 'AskUserQuestion', {
+      questions: [
+        { question: '你想用哪种语言？', options: [{ label: 'Python' }, { label: 'TypeScript' }] },
+      ],
+    }, 'tool-q1');
+    await new Promise((r) => setTimeout(r, 50));
+
+    const confirmations = updates.filter((u) => u.type === 'confirmation_request');
+    expect(confirmations.length).toBeGreaterThanOrEqual(1);
+
+    const c = confirmations[0];
+    expect(c.content.type).toBe('user_question');
+    expect(c.content.toolCallId).toBe('tool-q1');
+    expect(c.content.details.question).toBe('你想用哪种语言？');
+    expect(c.content.details.questionOptions).toEqual(['Python', 'TypeScript']);
+  });
+
+  it('AskUserQuestion: answerQuestion sends control_response with updatedInput.answers', async () => {
+    await startSession();
+
+    sendControlRequest('req-q2', 'AskUserQuestion', {
+      questions: [{ question: '你喜欢哪种框架？', options: [] }],
+    }, 'tool-q2');
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Flush initial stdin write (the -p prompt message)
+    fakeChild.stdin.read();
+
+    await wrapper.answerQuestion('test-session', 'tool-q2', 'React');
+    await new Promise((r) => setTimeout(r, 20));
+
+    const lines = readStdinLines();
+    const controlResponses = lines
+      .map((l: string) => { try { return JSON.parse(l); } catch { return null; } })
+      .filter((o: any) => o && o.type === 'control_response');
+
+    expect(controlResponses.length).toBe(1);
+    const resp = controlResponses[0].response.response;
+    expect(resp.behavior).toBe('allow');
+    expect(resp.updatedInput.answers).toEqual({ '你喜欢哪种框架？': 'React' });
+  });
+
+  it('AskUserQuestion: answerQuestion warns when no pending question exists', async () => {
+    await startSession();
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await wrapper.answerQuestion('test-session', 'nonexistent-tool', 'answer');
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('no pending AskUserQuestion')
+    );
+  });
 });

@@ -1,0 +1,149 @@
+.question-ui {
+    border: 1px solid var(--vscode-input-border, #555);
+    border-radius: 6px;
+    padding: 12px;
+    margin: 8px 0;
+    background: var(--vscode-input-background, #1e1e1e);
+
+    .question-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+
+        .question-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--vscode-button-background, #0e639c);
+            color: var(--vscode-button-foreground, #fff);
+            font-weight: bold;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .question-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--vscode-descriptionForeground, #999);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    }
+
+    .question-text {
+        font-size: 13px;
+        color: var(--vscode-foreground, #d4d4d4);
+        margin-bottom: 12px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+    }
+
+    .question-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        .question-option-btn {
+            padding: 6px 14px;
+            border-radius: 4px;
+            border: 1px solid var(--vscode-button-background, #0e639c);
+            background: transparent;
+            color: var(--vscode-button-background, #0e639c);
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.15s, color 0.15s;
+
+            &:hover {
+                background: var(--vscode-button-background, #0e639c);
+                color: var(--vscode-button-foreground, #fff);
+            }
+        }
+
+        .question-skip-btn {
+            padding: 6px 14px;
+            border-radius: 4px;
+            border: 1px solid var(--vscode-descriptionForeground, #666);
+            background: transparent;
+            color: var(--vscode-descriptionForeground, #999);
+            cursor: pointer;
+            font-size: 13px;
+
+            &:hover {
+                border-color: var(--vscode-foreground, #d4d4d4);
+                color: var(--vscode-foreground, #d4d4d4);
+            }
+        }
+    }
+
+    .question-input-area {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .question-textarea {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--vscode-input-border, #555);
+            background: var(--vscode-input-background, #3c3c3c);
+            color: var(--vscode-input-foreground, #d4d4d4);
+            font-size: 13px;
+            font-family: inherit;
+            resize: vertical;
+            box-sizing: border-box;
+
+            &::placeholder {
+                color: var(--vscode-input-placeholderForeground, #666);
+            }
+
+            &:focus {
+                outline: 1px solid var(--vscode-focusBorder, #007fd4);
+                border-color: var(--vscode-focusBorder, #007fd4);
+            }
+        }
+
+        .question-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+
+            .question-skip-btn {
+                padding: 5px 12px;
+                border-radius: 4px;
+                border: 1px solid var(--vscode-descriptionForeground, #666);
+                background: transparent;
+                color: var(--vscode-descriptionForeground, #999);
+                cursor: pointer;
+                font-size: 12px;
+
+                &:hover {
+                    border-color: var(--vscode-foreground, #d4d4d4);
+                    color: var(--vscode-foreground, #d4d4d4);
+                }
+            }
+
+            .question-submit-btn {
+                padding: 5px 14px;
+                border-radius: 4px;
+                border: none;
+                background: var(--vscode-button-background, #0e639c);
+                color: var(--vscode-button-foreground, #fff);
+                cursor: pointer;
+                font-size: 12px;
+
+                &:hover:not(:disabled) {
+                    background: var(--vscode-button-hoverBackground, #1177bb);
+                }
+
+                &:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+            }
+        }
+    }
+}

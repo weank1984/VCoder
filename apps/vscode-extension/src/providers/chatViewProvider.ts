@@ -338,6 +338,11 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         await this.acpClient.confirmTool(toolCallId, confirmed, options);
                     }
                     break;
+                case 'answerQuestion': {
+                    const { toolCallId, answer } = message;
+                    await this.acpClient.answerQuestion(toolCallId, answer);
+                    break;
+                }
                 case 'cancel':
                     await this.acpClient.cancelSession();
                     this.postMessage({ type: 'complete' }, true);

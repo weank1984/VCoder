@@ -53,9 +53,8 @@ describe('ClaudeCodeWrapper spawn args', () => {
     expect(permissionIndex).toBeGreaterThan(-1);
     expect(args[permissionIndex + 1]).toBe('plan');
 
-    const disallowedIndex = args.indexOf('--disallowed-tools');
-    expect(disallowedIndex).toBeGreaterThan(-1);
-    expect(args[disallowedIndex + 1]).toBe('AskUserQuestion');
+    // No tools are disallowed by default (AskUserQuestion is fully supported via control_request)
+    expect(args).not.toContain('--disallowed-tools');
 
     const permissionPromptIndex = args.indexOf('--permission-prompt-tool');
     expect(permissionPromptIndex).toBeGreaterThan(-1);

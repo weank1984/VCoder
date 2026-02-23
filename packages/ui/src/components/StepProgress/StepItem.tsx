@@ -185,14 +185,16 @@ interface StepItemProps {
     onToggle: () => void;
     onViewFile?: (path: string, lineRange?: [number, number]) => void;
     onConfirm?: (tc: ToolCall, approve: boolean, options?: { trustAlways?: boolean; editedContent?: string }) => void;
+    onAnswer?: (tc: ToolCall, answer: string) => void;
 }
 
-export function StepItem({ 
-    step, 
-    isCollapsed, 
-    onToggle, 
+export function StepItem({
+    step,
+    isCollapsed,
+    onToggle,
     onViewFile,
-    onConfirm 
+    onConfirm,
+    onAnswer,
 }: StepItemProps) {
     const { t } = useI18n();
     
@@ -360,6 +362,7 @@ export function StepItem({
                                 entry={entry}
                                 onViewFile={onViewFile}
                                 onConfirm={onConfirm}
+                                onAnswer={onAnswer}
                                 hideSummary={step.isSingleEntry}
                             />
                         ))}

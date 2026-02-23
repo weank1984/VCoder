@@ -69,6 +69,10 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
     const handleConfirm = useCallback((tc: ToolCall, approve: boolean, options?: { trustAlways?: boolean; editedContent?: string }) => {
         useStore.getState().confirmTool(tc.id, approve, options);
     }, []);
+
+    const handleAnswer = useCallback((tc: ToolCall, answer: string) => {
+        useStore.getState().answerQuestion(tc.id, answer);
+    }, []);
     
     if (steps.length === 0) return null;
 
@@ -99,6 +103,7 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
                         onToggle={() => toggleStep(step.id)}
                         onViewFile={handleViewFile}
                         onConfirm={handleConfirm}
+                        onAnswer={handleAnswer}
                     />
                 ))}
             </div>

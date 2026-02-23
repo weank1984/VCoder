@@ -505,6 +505,18 @@ export class ACPClient extends EventEmitter {
     }
 
     /**
+     * Submit an answer to an AskUserQuestion prompt.
+     */
+    async answerQuestion(toolCallId: string, answer: string): Promise<void> {
+        if (!this.currentSession) return;
+        await this.sendRequest(ACPMethods.QUESTION_ANSWER, {
+            sessionId: this.currentSession.id,
+            toolCallId,
+            answer,
+        });
+    }
+
+    /**
      * Send a prompt using persistent session mode (bidirectional streaming).
      * Streaming events are identical to prompt() but the CLI process stays alive.
      */

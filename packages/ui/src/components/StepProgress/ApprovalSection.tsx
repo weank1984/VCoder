@@ -2,18 +2,28 @@ import type { ToolCall } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
 import { CheckIcon, StopIcon, InfoIcon } from '../Icon';
 import { ApprovalUI } from './ApprovalUI';
+import { QuestionUI } from './QuestionUI';
 
 interface ApprovalSectionProps {
     toolCall: ToolCall;
     isCommandPending: boolean;
     onConfirm: (tc: ToolCall, approve: boolean, options?: { trustAlways?: boolean; editedContent?: string }) => void;
+    onAnswer: (tc: ToolCall, answer: string) => void;
 }
 
-export function ApprovalSection({ toolCall, isCommandPending, onConfirm }: ApprovalSectionProps) {
+export function ApprovalSection({ toolCall, isCommandPending, onConfirm, onAnswer }: ApprovalSectionProps) {
     const { t } = useI18n();
     const isAwaitingConfirmation = toolCall.status === 'awaiting_confirmation';
 
     if (isAwaitingConfirmation) {
+        if (toolCall.confirmationType === 'user_question') {
+            return (
+                <QuestionUI
+                    toolCall={toolCall}
+                    onAnswer={(answer) => onAnswer(toolCall, answer)}
+                />
+            );
+        }
         return (
             <ApprovalUI
                 toolCall={toolCall}

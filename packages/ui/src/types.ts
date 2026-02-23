@@ -293,6 +293,12 @@ export interface ConfirmToolMessage {
     };
 }
 
+export interface AnswerQuestionMessage {
+    type: 'answerQuestion';
+    toolCallId: string;
+    answer: string;
+}
+
 export interface PermissionRequestMessage {
     type: 'permissionRequest';
     data: {
@@ -436,7 +442,8 @@ export type WebviewMessage =
     | ExportAuditLogMessage
     | GetEcosystemDataMessage
     | AddMcpServerMessage
-    | RemoveMcpServerMessage;
+    | RemoveMcpServerMessage
+    | AnswerQuestionMessage;
 export interface ChatMessage {
     id: string;
     role: 'user' | 'assistant';
@@ -498,6 +505,12 @@ export interface ConfirmationData {
     
     /** 风险原因列表 */
     riskReasons?: string[];
+
+    /** AskUserQuestion: 问题文本 */
+    question?: string;
+
+    /** AskUserQuestion: 预设选项列表 */
+    questionOptions?: string[];
 }
 
 export interface ReviewStats {

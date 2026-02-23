@@ -204,7 +204,7 @@ export class PersistentSession extends EventEmitter {
             args.push('--allowedTools', this.settings.allowedTools.join(' '));
         }
 
-        const disallowedTools = this.settings.disallowedTools || ['AskUserQuestion'];
+        const disallowedTools = this.settings.disallowedTools ?? ['AskUserQuestion'];
         if (disallowedTools.length > 0) {
             args.push('--disallowed-tools', disallowedTools.join(' '));
         }
@@ -351,6 +351,17 @@ export class PersistentSession extends EventEmitter {
             },
         };
         this.process.stdin.write(JSON.stringify(payload) + '\n');
+    }
+
+    /**
+     * Write raw data to CLI stdin (used for AskUserQuestion answers).
+     */
+    writeToStdin(data: string): void {
+        if (!this.process || !this.process.stdin || this.process.stdin.destroyed || this.process.stdin.writableEnded) {
+            console.error(`[PersistentSession] Cannot writeToStdin: stdin not available`);
+            return;
+        }
+        this.process.stdin.write(data);
     }
 
     /**

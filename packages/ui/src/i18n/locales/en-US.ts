@@ -218,6 +218,10 @@ export default {
     CodeInserted: 'Inserted',
     CopyCode: 'Copy code',
     CodeCopied: 'Copied',
+    QuestionTitle: 'Claude is asking',
+    QuestionSubmit: 'Submit',
+    QuestionSkip: 'Skip',
+    QuestionPlaceholder: 'Type your answer...',
   },
   StepProgress: {
     Title: 'Progress Updates',

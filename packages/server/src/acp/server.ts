@@ -36,6 +36,7 @@ import {
     HistoryDeleteParams,
     HistoryDeleteResult,
     ConfirmToolParams,
+    AnswerQuestionParams,
     TeamStopParams,
     TeamStopMemberParams,
     McpServerConfig,
@@ -228,6 +229,9 @@ export class ACPServer {
                     break;
                 case ACPMethods.TOOL_CONFIRM:
                     result = await this.handleToolConfirm(params as ConfirmToolParams);
+                    break;
+                case ACPMethods.QUESTION_ANSWER:
+                    result = await this.handleQuestionAnswer(params as AnswerQuestionParams);
                     break;
                 // Permission Rules management
                 case ACPMethods.PERMISSION_RULES_LIST:
@@ -476,6 +480,16 @@ export class ACPServer {
             params.confirmed,
             params.options
         );
+    }
+
+    private async handleQuestionAnswer(params: AnswerQuestionParams): Promise<void> {
+        if (!params.toolCallId || typeof params.toolCallId !== 'string') {
+            throw new Error('question/answer requires a valid toolCallId');
+        }
+        if (typeof params.answer !== 'string') {
+            throw new Error('question/answer requires a string answer field');
+        }
+        await this.claudeCode.answerQuestion(params.sessionId, params.toolCallId, params.answer);
     }
 
     private async handleSessionCancel(params: CancelSessionParams): Promise<void> {
