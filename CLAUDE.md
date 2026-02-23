@@ -119,6 +119,10 @@ Both webview apps (VSCode + Desktop) use Vite with identical patterns:
 - SCSS `loadPaths` include `packages/ui/src` for shared style imports
 - Single-file bundle output (`cssCodeSplit: false`) for WebView CSP compliance
 
+## Development Environment Notes
+
+- **模型配置**：本项目使用本地 GLM 模型（如 `glm-4.6`）代替 Anthropic 官方模型进行开发和测试，这是预期配置。日志中出现 `--model glm-4.6` 或 `Preflight warning: api_key - No API key found` 均属正常，无需处理。
+
 ## Conventions
 
 - Language: Project docs and comments are primarily in Chinese (zh-CN), code identifiers in English
