@@ -8,6 +8,20 @@ import { useI18n } from '../../i18n/I18nProvider';
 import { CheckIcon, ErrorIcon, LoadingIcon, ArrowRightIcon, RocketIcon } from '../Icon';
 
 interface AgentSectionProps {
+  /**
+   * 两种不同来源的 agent 数据，概念上完全不同：
+   *
+   * [subagentRuns / taskItems] ← Claude Code Task 工具派生的子 agent
+   *   - 来源：Claude CLI 调用 Task 工具时，ClaudeCodeWrapper 发出 subagent_run 事件
+   *   - 本质：同一 CLI 进程内的独立 context window（不是新进程）
+   *   - subagentRuns = 服务端实时事件路径（优先）
+   *   - taskItems   = 客户端消息扫描路径（降级备用，有重叠时去重）
+   *
+   * [activeTeams] ← VCoder Agent Teams 多会话协作体系
+   *   - 来源：Claude CLI 调用 TeamCreate 工具，VCoder 为每个成员创建 PersistentSession
+   *   - 本质：多个独立 VCoder 会话，通过 TaskCreate/TaskList/TaskUpdate 协调任务
+   *   - 任务 ID 为纯数字字符串（如 "1", "2"），不是 agent 名称
+   */
   subagentRuns: SubagentRunUpdate[];
   taskItems: TaskItem[];
   childToolCalls?: Map<string, ToolCall[]>;

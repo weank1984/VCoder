@@ -435,8 +435,13 @@ function App() {
     [enableStickyUserPrompt, stickyPromptHeight]
   );
 
-  // Extract TODOs from TodoWrite tool calls across all messages
+  // 从消息历史中提取 TodoWrite 工具的最新输出（客户端路径）
+  // TodoWrite 是 Claude Code CLI 内置的会话内工作追踪工具，与 plan mode 无关。
+  // 注意：planTasks（来自 store.tasks）与 todoItems 均来源于 TodoWrite，是同一份数据的不同视图：
+  //   - planTasks：服务端层级解析，包含 children，用于 Checklist（清单）Tab
+  //   - todoItems：客户端扁平解析，包含 priority 字段，用于 TODOs Tab
   const todoItems = useMemo(() => {
+    // 从后往前扫描，取最新的 TodoWrite 调用
     // Find the latest TodoWrite call across all messages
     let latestTodoWrite: Record<string, unknown> | null = null;
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -479,7 +484,14 @@ function App() {
     }) as EnhancedTodoItem[];
   }, [messages]);
 
-  // Extract TASKs from Task tool calls across all messages
+  // 从消息历史中提取 Task 工具调用（客户端路径，降级备用）
+  // Task 工具是 Claude Code CLI 派生子 agent 的机制，子 agent 运行在独立 context window 中。
+  // taskItems 与 subagentRuns（服务端实时事件）来自同一 Task 工具，在 AgentSection 中会去重：
+  //   - subagentRuns：服务端实时路径（优先，包含耗时、结果等完整信息）
+  //   - taskItems：客户端消息扫描路径（降级备用，subagentRuns 存在时会过滤重叠项）
+  // 注意：Task 工具 ≠ Agent Teams 的 TaskCreate：
+  //   - Task 工具：派生子 agent（独立 context window，单会话内）
+  //   - TaskCreate：Agent Teams 的跨会话任务协调（任务 ID 为纯数字）
   const taskItems = useMemo(() => {
     const items: TaskItem[] = [];
     for (const msg of messages) {
