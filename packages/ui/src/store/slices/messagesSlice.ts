@@ -1,4 +1,4 @@
-import type { SliceCreator, MessagesSlice, ChatMessage, ToolCall } from './types';
+import type { SliceCreator, MessagesSlice, ChatMessage, ContentBlock, ToolCall } from './types';
 import { createId, normalizeToolName, createSessionState, appendContentBlock, debugThinking } from './helpers';
 import { postMessage } from '../../bridge';
 
@@ -141,7 +141,8 @@ export const createMessagesSlice: SliceCreator<MessagesSlice> = (set, get) => ({
                     targetIndex = messages.length;
                 }
 
-                target.thought = isComplete ? thought : (target.thought || '') + thought;
+                // Server now sends incremental deltas, so append
+                target.thought = (target.thought || '') + thought;
                 target.thoughtIsComplete = isComplete;
                 appendContentBlock(target, { type: 'thought', content: thought, isComplete });
                 messages[targetIndex] = target;
@@ -178,11 +179,63 @@ export const createMessagesSlice: SliceCreator<MessagesSlice> = (set, get) => ({
                 targetIndex = messages.length;
             }
 
-            target.thought = isComplete ? thought : (target.thought || '') + thought;
+            // Server sends full accumulated thinking content (not deltas), so always replace
+            target.thought = thought;
             target.thoughtIsComplete = isComplete;
             appendContentBlock(target, { type: 'thought', content: thought, isComplete });
 
             messages[targetIndex] = target;
+            newSessionStates.set(targetSessionId, { ...sessionState, messages, updatedAt: Date.now() });
+
+            return {
+                sessionStates: newSessionStates,
+                messages: targetSessionId === state.currentSessionId ? messages : state.messages,
+            };
+        }),
+
+    setThoughtComplete: (sessionId) =>
+        set((state) => {
+            const targetSessionId = sessionId ?? state.currentSessionId;
+            if (!targetSessionId) {
+                const messages = [...state.messages];
+                const lastIndex = messages.length - 1;
+                const last = messages[lastIndex];
+                if (last && last.role === 'assistant' && !last.isComplete) {
+                    const target = { ...last };
+                    target.thoughtIsComplete = true;
+                    if (target.contentBlocks) {
+                        const blocks = [...target.contentBlocks];
+                        const thoughtIndex = blocks.findIndex(b => b.type === 'thought');
+                        if (thoughtIndex >= 0) {
+                            const tb = blocks[thoughtIndex] as Extract<ContentBlock, { type: 'thought' }>;
+                            blocks[thoughtIndex] = { ...tb, isComplete: true };
+                            target.contentBlocks = blocks;
+                        }
+                    }
+                    messages[lastIndex] = target;
+                }
+                return { messages };
+            }
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            const messages = [...sessionState.messages];
+            const lastIndex = messages.length - 1;
+            const last = messages[lastIndex];
+            if (last && last.role === 'assistant' && !last.isComplete) {
+                const target = { ...last };
+                target.thoughtIsComplete = true;
+                if (target.contentBlocks) {
+                    const blocks = [...target.contentBlocks];
+                    const thoughtIndex = blocks.findIndex(b => b.type === 'thought');
+                    if (thoughtIndex >= 0) {
+                        const tb = blocks[thoughtIndex] as Extract<ContentBlock, { type: 'thought' }>;
+                        blocks[thoughtIndex] = { ...tb, isComplete: true };
+                        target.contentBlocks = blocks;
+                    }
+                }
+                messages[lastIndex] = target;
+            }
             newSessionStates.set(targetSessionId, { ...sessionState, messages, updatedAt: Date.now() });
 
             return {

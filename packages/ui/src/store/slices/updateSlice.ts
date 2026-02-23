@@ -1,5 +1,5 @@
 import type { SliceCreator, UpdateSlice, ToolCall, Task, FileChangeUpdate, SubagentRunUpdate, ErrorUpdate } from './types';
-import { createSessionState, queueTextUpdate, cleanupAllTextBuffers } from './helpers';
+import { createSessionState, queueTextUpdate, cleanupAllTextBuffers, queueThoughtUpdate, flushThoughtBuffer, cleanupAllThoughtBuffers } from './helpers';
 import type { AppState } from './types';
 
 export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
@@ -43,7 +43,14 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
         switch (type) {
             case 'thought': {
                 const { content: text, isComplete } = content as { content: string; isComplete: boolean };
-                get().setThought(text, isComplete, targetSessionId);
+                if (text) {
+                    queueThoughtUpdate(text, get(), targetSessionId);
+                }
+                if (isComplete) {
+                    // Flush any pending buffered thought delta before marking complete
+                    flushThoughtBuffer(get(), targetSessionId);
+                    get().setThoughtComplete(targetSessionId);
+                }
                 break;
             }
             case 'text': {
@@ -235,6 +242,7 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
 
     reset: () => {
         cleanupAllTextBuffers();
+        cleanupAllThoughtBuffers();
         set({
             sessions: [],
             currentSessionId: null,

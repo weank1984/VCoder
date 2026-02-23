@@ -59,14 +59,10 @@ export class ClaudeCodeWrapper extends EventEmitter {
         string,
         Map<string, { title: string; subagentType?: string; parentTaskId?: string; input?: Record<string, unknown> }>
     > = new Map();
-    private thinkingContentByLocalSessionId: Map<string, string> = new Map();
     // Track if we've received streaming events (content_block_delta) for a session
     // If we have, we should ignore the final assistant message to avoid duplication
     private receivedStreamingTextByLocalSessionId: Map<string, boolean> = new Map();
     private receivedStreamingThinkingByLocalSessionId: Map<string, boolean> = new Map();
-    // Throttle thinking_delta IPC emissions (150ms interval)
-    private thinkingThrottleTimerByLocalSessionId: Map<string, ReturnType<typeof setTimeout>> = new Map();
-    private thinkingLastEmitTimeByLocalSessionId: Map<string, number> = new Map();
     // Track emitted tool_use IDs to avoid duplicates
     private emittedToolUseIdsByLocalSessionId: Map<string, Set<string>> = new Map();
     private readonly debugThinking = process.env.VCODER_DEBUG_THINKING === '1';
@@ -141,12 +137,6 @@ export class ClaudeCodeWrapper extends EventEmitter {
         this.seenCanUseToolByLocalSessionId.delete(sessionId);
         this.emittedToolUseIdsByLocalSessionId.delete(sessionId);
         this.trustedToolNamesPerSession.delete(sessionId);
-        // Clear thinking throttle timer
-        const throttleTimer = this.thinkingThrottleTimerByLocalSessionId.get(sessionId);
-        if (throttleTimer) clearTimeout(throttleTimer);
-        this.thinkingThrottleTimerByLocalSessionId.delete(sessionId);
-        this.thinkingLastEmitTimeByLocalSessionId.delete(sessionId);
-
         for (const [key, resolver] of this.pendingConfirmationResolvers.entries()) {
             if (key.startsWith(`${sessionId}:`)) {
                 resolver.resolve();
@@ -623,10 +613,15 @@ export class ClaudeCodeWrapper extends EventEmitter {
             }
 
             // Legacy event types (keep for compatibility)
+            // Skip if we already received streaming thinking via content_block_delta
             case 'thinking': {
+                if (this.receivedStreamingThinkingByLocalSessionId.get(sessionId)) break;
+                const thinkingText = event.content as string;
+                const thinkingIsComplete = (event.is_complete as boolean) || false;
+                // Forward delta directly (no accumulation)
                 const update: ThoughtUpdate = {
-                    content: event.content as string,
-                    isComplete: (event.is_complete as boolean) || false,
+                    content: thinkingText,
+                    isComplete: thinkingIsComplete,
                 };
                 this.emit('update', sessionId, update, 'thought');
                 break;
@@ -644,8 +639,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
             case 'content_block_start': {
                 const contentBlock = event.content_block as Record<string, unknown> | undefined;
                 if (contentBlock?.type === 'thinking') {
-                    // Start of a new thinking block - initialize accumulator
-                    this.thinkingContentByLocalSessionId.set(sessionId, '');
+                    this.receivedStreamingThinkingByLocalSessionId.set(sessionId, true);
                     this.logThinking(sessionId, 'stream_start');
                 }
                 break;
@@ -654,49 +648,13 @@ export class ClaudeCodeWrapper extends EventEmitter {
             case 'content_block_delta': {
                 const delta = event.delta as Record<string, unknown> | undefined;
                 if (delta?.type === 'thinking_delta' && typeof delta.thinking === 'string') {
-                    // Accumulate thinking content
-                    const existing = this.thinkingContentByLocalSessionId.get(sessionId) || '';
-                    const next = existing + delta.thinking;
-                    this.thinkingContentByLocalSessionId.set(sessionId, next);
-                    this.receivedStreamingThinkingByLocalSessionId.set(sessionId, true);
-                    this.logThinking(sessionId, `stream_delta len=${delta.thinking.length} total=${next.length}`);
-
-                    // Throttled emit: only send IPC update at most every 150ms
-                    const now = Date.now();
-                    const lastEmit = this.thinkingLastEmitTimeByLocalSessionId.get(sessionId) ?? 0;
-                    const elapsed = now - lastEmit;
-
-                    if (elapsed >= 150) {
-                        // Enough time has passed, emit immediately
-                        this.thinkingLastEmitTimeByLocalSessionId.set(sessionId, now);
-                        const existingTimer = this.thinkingThrottleTimerByLocalSessionId.get(sessionId);
-                        if (existingTimer) {
-                            clearTimeout(existingTimer);
-                            this.thinkingThrottleTimerByLocalSessionId.delete(sessionId);
-                        }
-                        const update: ThoughtUpdate = {
-                            content: next,
-                            isComplete: false,
-                        };
-                        this.emit('update', sessionId, update, 'thought');
-                    } else {
-                        // Schedule a delayed emit if not already scheduled
-                        if (!this.thinkingThrottleTimerByLocalSessionId.has(sessionId)) {
-                            const timer = setTimeout(() => {
-                                this.thinkingThrottleTimerByLocalSessionId.delete(sessionId);
-                                this.thinkingLastEmitTimeByLocalSessionId.set(sessionId, Date.now());
-                                const accumulated = this.thinkingContentByLocalSessionId.get(sessionId) || '';
-                                if (accumulated) {
-                                    const delayedUpdate: ThoughtUpdate = {
-                                        content: accumulated,
-                                        isComplete: false,
-                                    };
-                                    this.emit('update', sessionId, delayedUpdate, 'thought');
-                                }
-                            }, 150 - elapsed);
-                            this.thinkingThrottleTimerByLocalSessionId.set(sessionId, timer);
-                        }
-                    }
+                    // Forward delta directly to UI (no accumulation, no throttling)
+                    this.logThinking(sessionId, `stream_delta len=${delta.thinking.length}`);
+                    const update: ThoughtUpdate = {
+                        content: delta.thinking,
+                        isComplete: false,
+                    };
+                    this.emit('update', sessionId, update, 'thought');
                 } else if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
                     // Streaming text content - emit incremental updates for typewriter effect
                     // Mark that we've received streaming text, so we can skip duplicates in assistant event
@@ -717,27 +675,14 @@ export class ClaudeCodeWrapper extends EventEmitter {
             }
 
             case 'content_block_stop': {
-                // Clear any pending throttle timer
-                const pendingTimer = this.thinkingThrottleTimerByLocalSessionId.get(sessionId);
-                if (pendingTimer) {
-                    clearTimeout(pendingTimer);
-                    this.thinkingThrottleTimerByLocalSessionId.delete(sessionId);
-                }
-                this.thinkingLastEmitTimeByLocalSessionId.delete(sessionId);
-
-                // Finalize thinking block if we were accumulating
-                const thinking = this.thinkingContentByLocalSessionId.get(sessionId);
-                if (thinking !== undefined) {
-                    // Emit final complete update if there was content
-                    if (thinking.length > 0) {
-                        this.logThinking(sessionId, `stream_end total=${thinking.length}`);
-                        const update: ThoughtUpdate = {
-                            content: thinking,
-                            isComplete: true,
-                        };
-                        this.emit('update', sessionId, update, 'thought');
-                    }
-                    this.thinkingContentByLocalSessionId.delete(sessionId);
+                // If we were streaming thinking, emit completion marker
+                if (this.receivedStreamingThinkingByLocalSessionId.get(sessionId)) {
+                    this.logThinking(sessionId, 'stream_end');
+                    const update: ThoughtUpdate = {
+                        content: '',
+                        isComplete: true,
+                    };
+                    this.emit('update', sessionId, update, 'thought');
                 }
                 break;
             }

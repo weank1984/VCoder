@@ -73,10 +73,15 @@ export function appendContentBlock(target: ChatMessage, block: ContentBlock): vo
             blocks.push(block);
         }
     } else if (block.type === 'thought') {
-        if (last?.type === 'thought') {
-            blocks[lastIndex] = {
-                ...last,
-                content: last.content + block.content,
+        // Find existing thought block anywhere in array (not just last position),
+        // because text or tool blocks may have been appended after the thought block
+        const thoughtIndex = blocks.findIndex(b => b.type === 'thought');
+        if (thoughtIndex >= 0) {
+            // Append incremental delta (same as text blocks)
+            const existing = blocks[thoughtIndex] as Extract<ContentBlock, { type: 'thought' }>;
+            blocks[thoughtIndex] = {
+                ...existing,
+                content: existing.content + block.content,
                 isComplete: block.isComplete
             };
         } else {
@@ -197,6 +202,117 @@ export function queueTextUpdate(
         bufferState.rafId = null;
         if (bufferState.buffer) {
             store.appendToLastMessage(bufferState.buffer, sessionId);
+            bufferState.buffer = '';
+            bufferState.lastFlushTime = Date.now();
+        }
+    });
+}
+
+// Streaming thought update batching with adaptive throttling (per session)
+// Mirrors the text buffer pattern above for incremental thinking deltas
+type ThoughtBufferState = {
+    buffer: string;
+    rafId: number | null;
+    lastFlushTime: number;
+};
+
+const thoughtBuffers = new Map<string, ThoughtBufferState>();
+
+export function cleanupThoughtBuffer(sessionId?: string | null): void {
+    const sessionKey = sessionId && sessionId.trim().length > 0 ? sessionId : 'default';
+    const bufferState = thoughtBuffers.get(sessionKey);
+    if (bufferState && bufferState.rafId !== null) {
+        const anyGlobal = globalThis as unknown as { cancelAnimationFrame?: (id: number) => void };
+        if (typeof anyGlobal.cancelAnimationFrame === 'function') {
+            anyGlobal.cancelAnimationFrame(bufferState.rafId);
+        }
+    }
+    thoughtBuffers.delete(sessionKey);
+}
+
+export function cleanupAllThoughtBuffers(): void {
+    const anyGlobal = globalThis as unknown as { cancelAnimationFrame?: (id: number) => void };
+    for (const [, bufferState] of thoughtBuffers.entries()) {
+        if (bufferState && bufferState.rafId !== null && typeof anyGlobal.cancelAnimationFrame === 'function') {
+            anyGlobal.cancelAnimationFrame(bufferState.rafId);
+        }
+    }
+    thoughtBuffers.clear();
+}
+
+function getThoughtBufferState(sessionKey: string): ThoughtBufferState {
+    const existing = thoughtBuffers.get(sessionKey);
+    if (existing) return existing;
+    const created: ThoughtBufferState = {
+        buffer: '',
+        rafId: null,
+        lastFlushTime: 0,
+    };
+    thoughtBuffers.set(sessionKey, created);
+    return created;
+}
+
+export function flushThoughtBuffer(
+    store: { setThought: (thought: string, isComplete: boolean, sessionId?: string) => void },
+    sessionId?: string
+) {
+    const sessionKey = resolveSessionKey(sessionId);
+    const bufferState = thoughtBuffers.get(sessionKey);
+    if (!bufferState) return;
+
+    if (bufferState.rafId !== null) {
+        const anyGlobal = globalThis as unknown as { cancelAnimationFrame?: (id: number) => void };
+        if (typeof anyGlobal.cancelAnimationFrame === 'function') {
+            anyGlobal.cancelAnimationFrame(bufferState.rafId);
+        }
+        bufferState.rafId = null;
+    }
+    if (bufferState.buffer) {
+        store.setThought(bufferState.buffer, false, sessionId);
+        bufferState.buffer = '';
+        bufferState.lastFlushTime = Date.now();
+    }
+}
+
+export function queueThoughtUpdate(
+    text: string,
+    store: { setThought: (thought: string, isComplete: boolean, sessionId?: string) => void },
+    sessionId?: string
+) {
+    const anyGlobal = globalThis as unknown as { requestAnimationFrame?: (cb: () => void) => number };
+
+    if (typeof anyGlobal.requestAnimationFrame !== 'function') {
+        store.setThought(text, false, sessionId);
+        return;
+    }
+
+    const sessionKey = resolveSessionKey(sessionId);
+    const bufferState = getThoughtBufferState(sessionKey);
+    bufferState.buffer += text;
+
+    const now = Date.now();
+    const timeSinceLastFlush = now - bufferState.lastFlushTime;
+
+    if (bufferState.buffer.length >= MAX_BUFFER_SIZE || timeSinceLastFlush >= MIN_FLUSH_INTERVAL * 2) {
+        if (bufferState.rafId !== null) {
+            const caf = anyGlobal as unknown as { cancelAnimationFrame?: (id: number) => void };
+            if (typeof caf.cancelAnimationFrame === 'function') {
+                caf.cancelAnimationFrame(bufferState.rafId);
+            }
+            bufferState.rafId = null;
+        }
+        store.setThought(bufferState.buffer, false, sessionId);
+        bufferState.buffer = '';
+        bufferState.lastFlushTime = now;
+        return;
+    }
+
+    if (bufferState.rafId !== null) return;
+
+    bufferState.rafId = anyGlobal.requestAnimationFrame(() => {
+        bufferState.rafId = null;
+        if (bufferState.buffer) {
+            store.setThought(bufferState.buffer, false, sessionId);
             bufferState.buffer = '';
             bufferState.lastFlushTime = Date.now();
         }

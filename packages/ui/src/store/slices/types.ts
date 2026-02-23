@@ -12,6 +12,7 @@ export interface MessagesSlice {
     updateMessage: (id: string, updates: Partial<ChatMessage>, sessionId?: string) => void;
     appendToLastMessage: (text: string, sessionId?: string) => void;
     setThought: (thought: string, isComplete: boolean, sessionId?: string) => void;
+    setThoughtComplete: (sessionId?: string) => void;
     addToolCall: (toolCall: ToolCall, sessionId?: string) => void;
     updateToolCall: (id: string, updates: Partial<ToolCall>, sessionId?: string) => void;
     confirmTool: (toolCallId: string, confirmed: boolean, options?: { trustAlways?: boolean; editedContent?: string }, sessionId?: string) => void;
