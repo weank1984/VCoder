@@ -53,8 +53,8 @@ describe('ClaudeCodeWrapper spawn args', () => {
     expect(permissionIndex).toBeGreaterThan(-1);
     expect(args[permissionIndex + 1]).toBe('plan');
 
-    // No tools are disallowed by default (AskUserQuestion is fully supported via control_request)
-    expect(args).not.toContain('--disallowed-tools');
+    // AskUserQuestion is disallowed by default until CLI registers the tool properly
+    expect(args).toContain('--disallowed-tools');
 
     const permissionPromptIndex = args.indexOf('--permission-prompt-tool');
     expect(permissionPromptIndex).toBeGreaterThan(-1);
@@ -95,10 +95,11 @@ describe('ClaudeCodeWrapper spawn args', () => {
     expect(options.env.MAX_THINKING_TOKENS).toBe('16000');
   });
 
-  it('passes user message via -p flag and does not use --input-format stream-json', async () => {
+  it('sends user message via stdin stream-json instead of -p flag', async () => {
     vi.resetModules();
 
     const fakeChild = createFakeChildProcess();
+    const stdinWriteSpy = vi.spyOn(fakeChild.stdin, 'write');
     const spawnMock = vi.fn(() => {
       process.nextTick(() => fakeChild.emit('close', 0));
       return fakeChild;
@@ -114,13 +115,22 @@ describe('ClaudeCodeWrapper spawn args', () => {
     expect(spawnMock).toHaveBeenCalledTimes(1);
     const args = spawnMock.mock.calls[0][1] as string[];
 
-    // -p must carry the actual user message
-    const pIndex = args.indexOf('-p');
-    expect(pIndex).toBeGreaterThan(-1);
-    expect(args[pIndex + 1]).toBe('test message');
+    // -p must NOT be present (message is sent via stdin)
+    expect(args).not.toContain('-p');
 
-    // --input-format stream-json must NOT be present (it caused spurious empty turns on --resume)
-    expect(args).not.toContain('--input-format');
+    // --input-format stream-json must be present
+    const inputFormatIndex = args.indexOf('--input-format');
+    expect(inputFormatIndex).toBeGreaterThan(-1);
+    expect(args[inputFormatIndex + 1]).toBe('stream-json');
+
+    // User message must be written to stdin as JSON
+    expect(stdinWriteSpy).toHaveBeenCalledTimes(1);
+    const written = stdinWriteSpy.mock.calls[0][0] as string;
+    const parsed = JSON.parse(written.trim());
+    expect(parsed).toEqual({
+      type: 'user',
+      message: { role: 'user', content: 'test message' },
+    });
   });
 
   it('uses --resume when an existing Claude session id is bound', async () => {

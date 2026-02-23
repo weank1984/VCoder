@@ -25,7 +25,7 @@ import {
 } from '@vcoder/shared';
 import { PersistentSession, PersistentSessionSettings } from './persistentSession';
 import { TeamManager } from './teamManager';
-import { resolveClaudePath, JsonStreamParser, computeFileChangeDiff, matchStderrError, preflightCheck } from './shared';
+import { resolveClaudePath, loadClaudeEnv, JsonStreamParser, computeFileChangeDiff, matchStderrError, preflightCheck } from './shared';
 
 export interface ClaudeCodeOptions {
     workingDirectory: string;
@@ -216,21 +216,20 @@ export class ClaudeCodeWrapper extends EventEmitter {
             throw new Error(`Session ${sessionId} already has a running Claude process`);
         }
 
-        const fullMessage = attachments
+        const fullMessage = attachments?.length
             ? `${message}\n\nAttachments:\n${attachments.map((a) => `${a.name}: ${a.content}`).join('\n')}`
             : message;
 
-        // Pass the user message via -p flag.
-        // We do NOT use --input-format stream-json for the user message because combining
-        // -p "" with --input-format stream-json and --resume SESSION_ID causes the CLI to
-        // process the empty -p as a spurious first turn, emitting `result` (which kills
-        // the process) before it ever reads the real message from stdin.
-        // stdin is kept open exclusively for control_request/control_response exchanges
-        // (--permission-prompt-tool stdio).
+        // Send user message via --input-format stream-json + stdin (same as persistent mode).
+        // This keeps stdin open so control_request/control_response (--permission-prompt-tool stdio)
+        // works correctly. Previously we used `-p` which required stdin.end() to start processing,
+        // but closing stdin broke permission prompt interaction.
+        // Note: we do NOT pass `-p` at all — combining `-p ""` with stream-json + --resume
+        // caused spurious results. Omitting `-p` entirely avoids that issue.
         const args: string[] = [
-            '-p',
-            fullMessage,
             '--output-format',
+            'stream-json',
+            '--input-format',
             'stream-json',
             '--verbose',
             '--include-partial-messages',
@@ -315,6 +314,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
         // Start Claude Code CLI subprocess
         const claudePath = this.resolveClaudePath();
+        const claudeEnv = loadClaudeEnv(this.options.workingDirectory);
         console.error(`[ClaudeCode] Spawning session ${sessionId} with args:`, args.join(' '));
 
         const child = spawn(claudePath, args, {
@@ -322,6 +322,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
             stdio: ['pipe', 'pipe', 'pipe'],
             env: {
                 ...process.env,
+                ...claudeEnv,
                 TERM: 'xterm-256color',
                 HOME: process.env.HOME || os.homedir(),
                 CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: '1',
@@ -329,9 +330,16 @@ export class ClaudeCodeWrapper extends EventEmitter {
             },
         });
 
-        // IMPORTANT: We keep stdin open to support interactive permissions!
-        // The user message is already passed via -p; stdin is used only for
-        // control_request/control_response exchanges (permission prompts).
+        // Send the user message via stdin in stream-json format.
+        // stdin stays open for control_request/control_response permission exchanges.
+        const userMessage = JSON.stringify({
+            type: 'user',
+            message: {
+                role: 'user',
+                content: fullMessage,
+            },
+        }) + '\n';
+        child.stdin?.write(userMessage);
 
         // Setup Listeners
         this.processesByLocalSessionId.set(sessionId, child);
@@ -612,8 +620,8 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 }
                 
                 // For one-shot prompt sessions, 'result' indicates the end of the turn.
-                // Since we are keeping stdin open, the process won't exit by itself.
-                // We must forcibly kill the process to signal completion to 'prompt' promise.
+                // stdin is kept open for permission interaction (stream-json mode), so the
+                // process won't exit by itself. Kill it to resolve the 'prompt' promise.
                 if (this.processesByLocalSessionId.has(sessionId)) {
                     console.error(`[ClaudeCode] One-shot session ${sessionId} completed, closing process.`);
                     const child = this.processesByLocalSessionId.get(sessionId);
