@@ -318,7 +318,7 @@ export default {
   },
   MissionControl: {
     Title: 'Mission Control',
-    Plan: 'Plan',
+    Plan: 'Checklist',
     Agents: 'Agents',
     Todos: 'TODOs',
     Summary: '{completed}/{total} done · {running} running',

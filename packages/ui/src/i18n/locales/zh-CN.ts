@@ -320,7 +320,7 @@ export default {
   },
   MissionControl: {
     Title: '任务中心',
-    Plan: '计划',
+    Plan: '清单',
     Agents: '代理',
     Todos: '待办',
     Summary: '{completed}/{total} 完成 · {running} 运行中',
