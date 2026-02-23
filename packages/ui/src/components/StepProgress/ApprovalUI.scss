@@ -2,9 +2,10 @@
 
 .approval-container {
   border: 1px solid var(--vscode-panel-border);
-  background: var(--vscode-editorWidget-background);
+  background: color-mix(in srgb, var(--vscode-foreground) 3%, var(--vscode-editorWidget-background));
   border-radius: var(--vc-radius-lg);
   overflow: hidden;
+  box-shadow: var(--vc-shadow-md);
 
   &.type-file_delete {
     border-color: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 40%, var(--vscode-panel-border));
@@ -15,6 +16,8 @@
 .approval-header {
   padding: 14px 16px 10px;
   color: var(--vc-color-text-primary);
+  background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 60%, transparent);
 }
 
 .approval-header .header-title {
@@ -350,8 +353,10 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 8px;
   padding: 10px 14px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--vscode-panel-border) 60%, transparent);
+  background: color-mix(in srgb, var(--vscode-foreground) 2%, transparent);
 }
 
 .approval-btn {
@@ -378,22 +383,26 @@
 // Deny button - secondary/ghost
 .approval-btn.btn-deny {
   background: transparent;
-  color: var(--vscode-foreground);
-  border-color: var(--vscode-panel-border);
+  color: var(--vscode-descriptionForeground);
+  border-color: color-mix(in srgb, var(--vscode-panel-border) 80%, transparent);
 
   &:hover {
     background: var(--vc-color-hover-bg);
+    color: var(--vscode-foreground);
+    border-color: var(--vscode-panel-border);
   }
 }
 
 // Always allow for session - secondary/outlined
 .approval-btn.btn-session {
   background: transparent;
-  color: var(--vscode-foreground);
-  border-color: var(--vscode-panel-border);
+  color: var(--vscode-descriptionForeground);
+  border-color: color-mix(in srgb, var(--vscode-panel-border) 80%, transparent);
 
   &:hover {
     background: var(--vc-color-hover-bg);
+    color: var(--vscode-foreground);
+    border-color: var(--vscode-panel-border);
   }
 }
 
@@ -402,9 +411,11 @@
   background: var(--vscode-button-background, #1e1e1e);
   color: var(--vscode-button-foreground, #ffffff);
   border-color: transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 
   &:hover {
     background: var(--vscode-button-hoverBackground);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   }
 }
 
