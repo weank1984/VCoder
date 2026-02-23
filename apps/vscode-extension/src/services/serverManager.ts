@@ -118,7 +118,8 @@ export class ServerManager {
         const bundledPath = path.join(this.context.extensionPath, 'server', 'index.js');
         // Development: prefer monorepo build output to avoid running stale bundled copies.
         // Note: In strict production (VSIX), this path won't exist or be accessible.
-        const devPath = path.resolve(this.context.extensionPath, '..', 'server', 'dist', 'index.js');
+        // Path: apps/vscode-extension/../../packages/server/dist/index.js
+        const devPath = path.resolve(this.context.extensionPath, '..', '..', 'packages', 'server', 'dist', 'index.js');
 
         if (this.context.extensionMode === vscode.ExtensionMode.Development && fs.existsSync(devPath)) {
             return devPath;
