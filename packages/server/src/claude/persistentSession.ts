@@ -20,7 +20,7 @@ import {
     SubagentRunUpdate,
     ErrorUpdate,
 } from '@vcoder/shared';
-import { resolveClaudePath, JsonStreamParser, computeFileChangeDiff, matchStderrError, preflightCheck } from './shared';
+import { resolveClaudePath, loadClaudeEnv, JsonStreamParser, computeFileChangeDiff, matchStderrError, preflightCheck } from './shared';
 
 export interface PersistentSessionOptions {
     workingDirectory: string;
@@ -220,6 +220,7 @@ export class PersistentSession extends EventEmitter {
         }
 
         const claudePath = this.resolveClaudePath();
+        const claudeEnv = loadClaudeEnv(this.options.workingDirectory);
         console.error(`[PersistentSession] Starting session ${this.sessionId} with args:`, args.join(' '));
 
         this.process = spawn(claudePath, args, {
@@ -227,6 +228,7 @@ export class PersistentSession extends EventEmitter {
             stdio: ['pipe', 'pipe', 'pipe'],
             env: {
                 ...process.env,
+                ...claudeEnv,
                 TERM: 'xterm-256color',
                 HOME: process.env.HOME || os.homedir(),
                 ...(this.settings.maxThinkingTokens ? { MAX_THINKING_TOKENS: String(this.settings.maxThinkingTokens) } : {}),
@@ -314,7 +316,7 @@ export class PersistentSession extends EventEmitter {
             throw new Error('Session not started');
         }
 
-        const fullContent = attachments
+        const fullContent = attachments?.length
             ? `${content}\n\nAttachments:\n${attachments.map((a) => `${a.name}: ${a.content}`).join('\n')}`
             : content;
 

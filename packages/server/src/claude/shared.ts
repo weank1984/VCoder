@@ -4,11 +4,38 @@
  */
 
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import * as dns from 'dns';
 import { execFile } from 'child_process';
 import { ErrorUpdate } from '@vcoder/shared';
 import { generateUnifiedDiff } from '../utils/unifiedDiff';
+
+/**
+ * Read `env` blocks from Claude CLI settings files and merge them.
+ * Priority: global < project shared < project local (last wins).
+ */
+export function loadClaudeEnv(workingDirectory: string): Record<string, string> {
+    const home = process.env.HOME || os.homedir();
+    const candidates = [
+        path.join(home, '.claude', 'settings.json'),
+        path.join(workingDirectory, '.claude', 'settings.json'),
+        path.join(workingDirectory, '.claude', 'settings.local.json'),
+    ];
+    const merged: Record<string, string> = {};
+    for (const filePath of candidates) {
+        try {
+            const raw = fs.readFileSync(filePath, 'utf-8');
+            const parsed = JSON.parse(raw);
+            if (parsed.env && typeof parsed.env === 'object') {
+                Object.assign(merged, parsed.env);
+            }
+        } catch {
+            // File doesn't exist or invalid JSON — skip
+        }
+    }
+    return merged;
+}
 
 /**
  * Resolve the path to the Claude CLI binary.

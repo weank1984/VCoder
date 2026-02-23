@@ -30,6 +30,7 @@ vi.mock('child_process', () => ({
 // Mock shared utilities
 vi.mock('../../packages/server/src/claude/shared', () => ({
     resolveClaudePath: () => '/usr/local/bin/claude',
+    loadClaudeEnv: () => ({}),
     preflightCheck: () => Promise.resolve({ ok: true, checks: [] }),
     JsonStreamParser: class {
         private buffer = '';
