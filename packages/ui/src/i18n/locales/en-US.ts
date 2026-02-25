@@ -335,6 +335,9 @@ export default {
     MemberFailed: 'Failed',
     StopTeam: 'Stop Team',
     StopMember: 'Stop Member',
+    Running: 'running',
+    NeedsConfirmation: 'Needs Confirmation',
+    Back: 'Back',
   },
   ModeSelector: {
     AgentDesc: 'Full autonomous agent',

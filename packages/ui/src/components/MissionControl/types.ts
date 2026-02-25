@@ -61,6 +61,9 @@ export interface MissionControlProps {
   /** 子 agent 的嵌套工具调用，按父 Task 的 toolUseId 分组 */
   childToolCalls?: Map<string, ToolCall[]>;
 
+  /** 点击"待确认"徽章时，滚动消息流到底部以显示 ApprovalUI */
+  onScrollToConfirmation?: () => void;
+
   /**
    * 来源：VCoder Agent Teams 功能（TeamCreate 工具 + PersistentSession）。
    * Agent Teams 是跨会话的多 agent 协作机制，与 Claude Code 的 Task 工具子 agent 完全不同：

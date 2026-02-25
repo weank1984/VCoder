@@ -526,6 +526,7 @@ function App() {
         taskItems={taskItems}
         childToolCalls={childToolCalls}
         activeTeams={activeTeams}
+        onScrollToConfirmation={jumpToBottom}
       />
 
       <div className="messages-panel">

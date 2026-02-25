@@ -337,6 +337,9 @@ export default {
     MemberFailed: '失败',
     StopTeam: '停止团队',
     StopMember: '停止成员',
+    Running: '运行中',
+    NeedsConfirmation: '待确认',
+    Back: '返回',
   },
   ModeSelector: {
     AgentDesc: '完全自主代理',

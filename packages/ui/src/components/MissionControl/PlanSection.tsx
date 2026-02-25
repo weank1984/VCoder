@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import type { Task } from '@vcoder/shared';
 import classNames from 'classnames';
 import { CheckIcon, ErrorIcon, LoadingIcon } from '../Icon';
@@ -32,7 +31,10 @@ function renderTaskItem(task: Task, index: number, depth: number = 0) {
         className={classNames('mc-plan-item', getStatusClass(task.status))}
         style={{ paddingLeft: 12 + depth * 16 }}
       >
-        <span className="mc-plan-index">{index + 1}</span>
+        {depth > 0
+          ? <span className="mc-plan-child-bullet" />
+          : <span className="mc-plan-index">{index + 1}</span>
+        }
         <span
           className={classNames('mc-plan-icon', {
             'mc-icon-spin': task.status === 'in_progress',
@@ -48,27 +50,10 @@ function renderTaskItem(task: Task, index: number, depth: number = 0) {
 }
 
 export function PlanSection({ plan }: PlanSectionProps) {
-  const counts = useMemo(() => {
-    let total = 0;
-    let completed = 0;
-    const traverse = (tasks: Task[]) => {
-      for (const t of tasks) {
-        total++;
-        if (t.status === 'completed') completed++;
-        if (t.children) traverse(t.children);
-      }
-    };
-    traverse(plan);
-    return { total, completed };
-  }, [plan]);
-
   if (plan.length === 0) return null;
 
   return (
     <div className="mc-section mc-plan-section">
-      <div className="mc-section-header">
-        <span className="mc-section-count">{counts.completed}/{counts.total}</span>
-      </div>
       <div className="mc-plan-list">
         {plan.map((task, index) => renderTaskItem(task, index))}
       </div>

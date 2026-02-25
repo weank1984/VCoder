@@ -18,8 +18,12 @@
   }
 
   .mc-body {
-    &.collapsed {
-      display: none;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+
+    &:not(.collapsed) {
+      max-height: 380px;
     }
   }
 
@@ -215,12 +219,7 @@
     gap: 8px;
     padding: 6px 8px;
     border-radius: 4px;
-    cursor: pointer;
     transition: background-color 0.15s ease;
-
-    &:hover {
-      background: var(--agent-block-hover-bg);
-    }
 
     .mc-agent-index {
       min-width: 20px;
@@ -276,17 +275,6 @@
       }
     }
 
-    .mc-agent-expand {
-      font-size: 12px;
-      color: var(--vscode-descriptionForeground);
-      transition: transform 0.2s ease;
-      flex-shrink: 0;
-
-      &.expanded {
-        transform: rotate(90deg);
-      }
-    }
-
     &.in-progress {
       background: color-mix(in srgb, var(--vscode-textLink-activeForeground) 12%, transparent);
 
@@ -329,111 +317,55 @@
     }
   }
 
-  .mc-agent-details {
-    padding: 6px 12px 8px;
-    border-left: 2px solid var(--agent-block-border);
-    margin-left: 12px;
-    margin-top: 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .mc-agent-panel {
-    border: 1px solid var(--agent-block-border);
-    border-radius: 4px;
-    overflow: hidden;
-    background: var(--agent-block-bg);
-
-    .mc-agent-panel-title {
-      padding: 4px 8px;
-      font-size: 12px;
-      font-weight: 600;
-      background: var(--agent-block-header-bg);
-      border-bottom: 1px solid var(--agent-block-border);
-    }
-
-    .mc-agent-json {
-      margin: 0;
-      padding: 6px 8px;
-      font-family: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
-      font-size: 12px;
-      line-height: 1.4;
-      background: var(--agent-block-code-bg);
-      max-height: 200px;
-      overflow: auto;
-    }
-  }
-
-  .mc-agent-error-panel {
-    border-color: color-mix(in srgb, var(--vscode-errorForeground) 40%, transparent);
-
-    .mc-agent-panel-title {
-      color: var(--vscode-errorForeground);
-      background: color-mix(in srgb, var(--vscode-errorForeground) 8%, var(--agent-block-header-bg));
-    }
-  }
-
-  .mc-agent-error-text {
-    color: var(--vscode-errorForeground);
-  }
-
-  // === Agent Child Tool Calls ===
-  .mc-agent-child-tools {
-    padding: 4px 0;
-    border-top: 1px solid var(--agent-block-border);
-
-    > .mc-agent-panel-title {
-      padding: 4px 8px;
-      font-size: 12px;
-      font-weight: 600;
-      background: var(--agent-block-header-bg);
-      border-bottom: 1px solid var(--agent-block-border);
-    }
-
-    .mc-agent-child-tools-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-
-      &:hover {
-        background: var(--agent-block-hover-bg);
-      }
-    }
-  }
-
-  .mc-child-tool {
+  // === 内联工具活动行 ===
+  // 显示在 Agent 行正下方，仅当有 running 或 awaiting_confirmation 工具时出现
+  .mc-agent-activity {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 3px 8px;
-    font-size: 12px;
-
-    &.completed .mc-child-tool-icon {
-      color: var(--vscode-gitDecoration-addedResourceForeground, var(--vscode-terminal-ansiGreen));
-    }
-
-    &.failed .mc-child-tool-icon {
-      color: var(--vscode-errorForeground);
-    }
-
-    &.in-progress .mc-child-tool-icon {
-      color: var(--vscode-textLink-activeForeground);
-    }
-  }
-
-  .mc-child-tool-name {
-    font-weight: 500;
-    color: var(--vscode-foreground);
-    flex-shrink: 0;
-  }
-
-  .mc-child-tool-summary {
+    gap: 5px;
+    padding: 1px 8px 4px 36px; // 左对齐到 Agent 文字，视觉上形成层级
+    font-size: 11px;
     color: var(--vscode-descriptionForeground);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+
+    .mc-agent-activity-icon {
+      font-size: 10px;
+      min-width: 12px;
+      flex-shrink: 0;
+      opacity: 0.8;
+    }
+
+    .mc-agent-activity-name {
+      font-weight: 500;
+      flex-shrink: 0;
+      color: var(--vscode-descriptionForeground);
+    }
+
+    .mc-agent-activity-summary {
+      opacity: 0.7;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &.in-progress {
+      .mc-agent-activity-icon {
+        color: var(--vscode-textLink-activeForeground);
+        animation: agent-block-spin 1.5s linear infinite;
+      }
+      .mc-agent-activity-name {
+        color: var(--vscode-textLink-activeForeground);
+      }
+    }
+
+    &.awaiting-confirmation {
+      .mc-agent-activity-icon {
+        color: var(--vscode-editorWarning-foreground, #cca700);
+        animation: mc-await-pulse 1.5s ease-in-out infinite;
+      }
+      .mc-agent-activity-name {
+        color: var(--vscode-editorWarning-foreground, #cca700);
+      }
+    }
   }
 
   // === Team Members Section ===
@@ -496,6 +428,233 @@
 
     &.pending {
       opacity: 0.5;
+    }
+  }
+
+  // === Awaiting Confirmation Styles ===
+  .mc-agent-item.awaiting-confirmation {
+    background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 10%, transparent);
+
+    .mc-agent-index {
+      background: var(--vscode-editorWarning-foreground, #cca700);
+      color: #fff;
+    }
+
+    .mc-agent-icon {
+      color: var(--vscode-editorWarning-foreground, #cca700);
+    }
+  }
+
+  @keyframes mc-await-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  .mc-confirm-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 10px;
+    border: 1px solid var(--vscode-editorWarning-foreground, #cca700);
+    color: var(--vscode-editorWarning-foreground, #cca700);
+    background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 12%, transparent);
+    cursor: pointer;
+    animation: mc-await-pulse 2s ease-in-out infinite;
+
+    &:hover {
+      background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 20%, transparent);
+    }
+  }
+
+  .mc-source-separator {
+    height: 1px;
+    background: var(--agent-block-border);
+    margin: 4px 8px;
+  }
+
+  .mc-plan-child-bullet {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--vscode-descriptionForeground);
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  // === Back Button & Detail Title ===
+  .mc-back-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--vscode-descriptionForeground);
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 14px;
+    transition: background-color 0.1s ease, color 0.1s ease;
+
+    &:hover {
+      background: var(--agent-block-hover-bg);
+      color: var(--vscode-editor-foreground);
+    }
+  }
+
+  .mc-detail-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // === Agent Detail View ===
+  .mc-detail-view {
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mc-detail-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mc-detail-prompt {
+    padding: 6px 8px;
+    background: var(--agent-block-header-bg);
+    border-radius: 4px;
+    border-left: 2px solid var(--vscode-textLink-activeForeground);
+  }
+
+  .mc-detail-prompt-text {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--vscode-editor-foreground);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .mc-detail-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .mc-detail-tool {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+
+    &.completed {
+      .mc-detail-tool-icon { color: var(--vscode-gitDecoration-addedResourceForeground, #73c991); }
+    }
+
+    &.failed {
+      background: color-mix(in srgb, var(--vscode-errorForeground) 8%, transparent);
+      .mc-detail-tool-icon { color: var(--vscode-errorForeground); }
+    }
+
+    &.in-progress {
+      .mc-detail-tool-icon {
+        color: var(--vscode-textLink-activeForeground);
+        animation: agent-block-spin 1.5s linear infinite;
+      }
+    }
+
+    &.awaiting-confirmation {
+      background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 8%, transparent);
+      .mc-detail-tool-icon {
+        color: var(--vscode-editorWarning-foreground, #cca700);
+        animation: mc-await-pulse 1.5s ease-in-out infinite;
+      }
+    }
+
+    .mc-detail-tool-icon {
+      font-size: 10px;
+      min-width: 12px;
+      flex-shrink: 0;
+      color: var(--vscode-descriptionForeground);
+      opacity: 0.7;
+    }
+
+    .mc-detail-tool-name {
+      font-weight: 500;
+      flex-shrink: 0;
+      color: var(--vscode-editor-foreground);
+    }
+
+    .mc-detail-tool-summary {
+      opacity: 0.7;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--vscode-descriptionForeground);
+    }
+  }
+
+  .mc-detail-result {
+    padding: 6px 8px;
+    background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #73c991) 8%, transparent);
+    border-radius: 4px;
+    border-left: 2px solid var(--vscode-gitDecoration-addedResourceForeground, #73c991);
+  }
+
+  .mc-detail-result-text {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--vscode-editor-foreground);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .mc-detail-error {
+    padding: 6px 8px;
+    background: color-mix(in srgb, var(--vscode-errorForeground) 8%, transparent);
+    border-radius: 4px;
+    border-left: 2px solid var(--vscode-errorForeground);
+  }
+
+  .mc-detail-error-text {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--vscode-errorForeground);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 80px;
+    overflow-y: auto;
+  }
+
+  // === Selectable Agent Row ===
+  .mc-agent-item.mc-selectable {
+    cursor: pointer;
+
+    &:hover {
+      background: var(--agent-block-hover-bg);
+    }
+
+    &.in-progress:hover {
+      background: color-mix(in srgb, var(--vscode-textLink-activeForeground) 18%, transparent);
+    }
+
+    &.awaiting-confirmation:hover {
+      background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 15%, transparent);
     }
   }
 
