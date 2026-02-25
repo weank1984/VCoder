@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { SubagentRunUpdate } from '@vcoder/shared';
 import type { ToolCall } from '../../types';
 import classNames from 'classnames';
@@ -79,6 +79,15 @@ export function AgentDetailView({ run, childTools }: AgentDetailViewProps) {
     ? (typeof run.error === 'string' ? run.error : JSON.stringify(run.error))
     : null;
 
+  const toolStats = useMemo(() => {
+    if (!childTools?.length) return null;
+    const counts: Record<string, number> = {};
+    for (const tc of childTools) {
+      counts[tc.name] = (counts[tc.name] ?? 0) + 1;
+    }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [childTools]);
+
   return (
     <div className="mc-detail-view">
       {/* 状态栏：类型 + 耗时 */}
@@ -92,6 +101,17 @@ export function AgentDetailView({ run, childTools }: AgentDetailViewProps) {
           </span>
         )}
       </div>
+
+      {/* 工具调用统计 */}
+      {toolStats && (
+        <div className="mc-detail-tool-stats">
+          {toolStats.map(([name, count]) => (
+            <span key={name} className="mc-detail-tool-stat">
+              {name} <span className="mc-detail-tool-stat-count">×{count}</span>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* 任务描述 */}
       {taskDescription && (
