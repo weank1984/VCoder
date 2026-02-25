@@ -305,8 +305,8 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                 ].filter(Boolean).join(' ')}
             >
                 <div className="input-content">
-                    {/* Attachment preview */}
-                    {attachments.length > 0 && (
+                    {/* Attachment preview (hidden in history mode) */}
+                    {viewMode !== 'history' && attachments.length > 0 && (
                         <div className="attachments-preview">
                             {attachments.map((att, idx) => (
                                 <div key={idx} className="attachment-chip">
@@ -324,62 +324,44 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                         </div>
                     )}
 
-                    <textarea
-                        ref={textareaRef}
-                        className="input-field"
-                        placeholder={viewMode === 'history' ? t('Chat.ViewingHistoryReadonly') : t('Chat.InputPlaceholder')}
-                        value={input}
-                        onChange={handleInputChange}
-                        onKeyDown={handleKeyDown}
-                        onCompositionStart={() => setIsComposing(true)}
-                        onCompositionEnd={() => setIsComposing(false)}
-                        disabled={isLoading || viewMode === 'history'}
-                        rows={1}
-                        onClick={(e) => {
-                            setCursorPosition(e.currentTarget.selectionStart);
-                            setShowPicker(false);
-                        }}
-                    />
-
-                    {viewMode === 'history' && (
-                        <div className="history-mode-banner">
-                            <div className="history-mode-banner__text">
-                                {t('Chat.ViewingHistoryReadonly')}
-                            </div>
-                            <div className="history-mode-banner__actions">
-                                <button
-                                    type="button"
-                                    className="vc-action-btn vc-action-btn--primary"
-                                    onClick={handleResumeHistory}
-                                    disabled={!currentSessionId}
-                                >
-                                    {t('Chat.ResumeHistory')}
-                                </button>
-                                <button
-                                    type="button"
-                                    className="vc-action-btn vc-action-btn--secondary"
-                                    onClick={exitHistoryMode}
-                                >
-                                    {t('Chat.ExitHistory')}
-                                </button>
-                            </div>
-                        </div>
+                    {/* Textarea (hidden in history mode) */}
+                    {viewMode !== 'history' && (
+                        <textarea
+                            ref={textareaRef}
+                            className="input-field"
+                            placeholder={t('Chat.InputPlaceholder')}
+                            value={input}
+                            onChange={handleInputChange}
+                            onKeyDown={handleKeyDown}
+                            onCompositionStart={() => setIsComposing(true)}
+                            onCompositionEnd={() => setIsComposing(false)}
+                            disabled={isLoading}
+                            rows={1}
+                            onClick={(e) => {
+                                setCursorPosition(e.currentTarget.selectionStart);
+                                setShowPicker(false);
+                            }}
+                        />
                     )}
 
                     <ComposerToolbar
-                        showModeSelector
-                        showModelSelector
+                        showModeSelector={viewMode !== 'history'}
+                        showModelSelector={viewMode !== 'history'}
+                        showImageButton={viewMode !== 'history'}
+                        primaryAction={viewMode === 'history' ? 'apply' : 'send'}
+                        applyLabel={viewMode === 'history' ? t('Chat.ResumeHistory') : undefined}
+                        cancelLabel={viewMode === 'history' ? t('Chat.ExitHistory') : undefined}
+                        onApply={viewMode === 'history' ? handleResumeHistory : undefined}
+                        onCancel={viewMode === 'history' ? exitHistoryMode : undefined}
                         currentMode={permissionMode}
                         onSelectMode={setPermissionMode}
                         selectedModel={model}
                         onSelectModel={setModel}
-                        showImageButton
                         onImageClick={handleAddFiles}
-                        primaryAction="send"
                         isLoading={isLoading}
                         onSend={handleSubmit}
                         onStop={() => postMessage({ type: 'cancel' })}
-                        disabled={isComposerLocked}
+                        disabled={viewMode === 'history' ? !currentSessionId : isComposerLocked}
                     />
                 </div>
             </div>

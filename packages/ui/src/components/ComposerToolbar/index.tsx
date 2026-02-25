@@ -3,7 +3,7 @@
  * Layout: flex with left selectors (Mode + Model) and right action buttons
  */
 
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { ModelId, PermissionMode } from '@vcoder/shared';
 import { ModelSelector } from '../ModelSelector';
@@ -52,6 +52,22 @@ function ModeSelector({ currentMode, onSelectMode, disabled }: ModeSelectorProps
     const triggerRef = useRef<HTMLDivElement>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
     const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
+    const prevModeRef = useRef<PermissionMode>(currentMode);
+    const [isPulsing, setIsPulsing] = useState(false);
+    const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // 检测外部 mode 变更（如从 server 端同步）并触发脉冲
+    useEffect(() => {
+        if (prevModeRef.current !== currentMode) {
+            prevModeRef.current = currentMode;
+            if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+            setIsPulsing(true);
+            pulseTimerRef.current = setTimeout(() => setIsPulsing(false), 500);
+        }
+        return () => {
+            if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+        };
+    }, [currentMode]);
 
     // Close on outside click
     useEffect(() => {
@@ -89,10 +105,21 @@ function ModeSelector({ currentMode, onSelectMode, disabled }: ModeSelectorProps
 
     const current = getModeOption(currentMode);
 
+    const handleSelect = useCallback((mode: PermissionMode) => {
+        onSelectMode(mode);
+        setIsOpen(false);
+        // 用户主动切换也触发脉冲
+        if (mode !== currentMode) {
+            if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+            setIsPulsing(true);
+            pulseTimerRef.current = setTimeout(() => setIsPulsing(false), 500);
+        }
+    }, [onSelectMode, currentMode]);
+
     return (
         <div className="mode-selector" ref={triggerRef}>
             <button
-                className={`composer-unified-dropdown ${disabled ? 'is-disabled' : ''}`}
+                className={`composer-unified-dropdown ${disabled ? 'is-disabled' : ''} ${isPulsing ? 'is-mode-pulsing' : ''}`}
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 title={current.label}
             >
@@ -116,10 +143,7 @@ function ModeSelector({ currentMode, onSelectMode, disabled }: ModeSelectorProps
                             <div
                                 key={opt.id}
                                 className={`mode-selector__item ${opt.id === currentMode ? 'is-selected' : ''}`}
-                                onClick={() => {
-                                    onSelectMode(opt.id);
-                                    setIsOpen(false);
-                                }}
+                                onClick={() => handleSelect(opt.id)}
                             >
                                 <span className="mode-selector__item-icon">{opt.icon}</span>
                                 <span className="mode-selector__item-label">{opt.label}</span>
@@ -147,6 +171,8 @@ export interface ComposerToolbarProps {
     showImageButton?: boolean;
     onImageClick?: () => void;
     primaryAction: 'send' | 'apply';
+    applyLabel?: string;
+    cancelLabel?: string;
     isLoading?: boolean;
     isSendDisabled?: boolean;
     onSend?: () => void;
@@ -166,6 +192,8 @@ export function ComposerToolbar({
     showImageButton = true,
     onImageClick,
     primaryAction,
+    applyLabel,
+    cancelLabel,
     isLoading = false,
     onSend,
     onStop,
@@ -230,7 +258,7 @@ export function ComposerToolbar({
                             onClick={onCancel}
                             type="button"
                         >
-                            {t('Agent.Cancel')}
+                            {cancelLabel ?? t('Agent.Cancel')}
                         </button>
                         <button
                             className="vc-action-btn vc-action-btn--primary"
@@ -238,7 +266,7 @@ export function ComposerToolbar({
                             type="button"
                             disabled={disabled}
                         >
-                            {t('Chat.UseAsInput')}
+                            {applyLabel ?? t('Chat.UseAsInput')}
                         </button>
                     </div>
                 )}
