@@ -32,6 +32,7 @@
     --vc-letter-spacing-base: 0;
 
     /* Modular Type Scale (Major Third: 1.25) */
+    --vc-font-size-2xs: 10px;  /* 10px - Smallest text, kbd hints */
     --vc-font-size-xs: 11px;   /* 11px - Labels, tags, small text */
     --vc-font-size-sm: 12px;   /* 12px - Captions, hints */
     --vc-font-size-md: 13px;   /* 13px - Base body text */
@@ -39,6 +40,7 @@
     --vc-font-size-xl: 16px;   /* 16px - Headings, titles */
     --vc-font-size-2xl: 18px;  /* 18px - Large headings */
     --vc-font-size-3xl: 20px;  /* 20px - Page titles */
+    --vc-font-size-4xl: 22px;  /* 22px - Hero titles */
 
     /* Line Heights (Optimized for readability) */
     --vc-line-height-tight: 1.25;

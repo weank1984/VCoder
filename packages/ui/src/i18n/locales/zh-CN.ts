@@ -208,6 +208,7 @@ export default {
     QuestionSubmit: '提交',
     QuestionSkip: '跳过',
     QuestionPlaceholder: '输入你的回答...',
+    TokenCount: '↓ {0}',
     // 通用标签
     Edited: '已编辑',
     Created: '已创建',
@@ -269,6 +270,9 @@ export default {
     TypeMcp: 'MCP',
     TypeNotebook: '笔记本',
     TypeOther: '工具',
+    Approved: '已通过',
+    Denied: '已拒绝',
+    AwaitingApproval: '等待审批',
   },
   ErrorBoundary: {
     Title: '出错了',
@@ -340,6 +344,9 @@ export default {
     Running: '运行中',
     NeedsConfirmation: '待确认',
     Back: '返回',
+  },
+  FloatingApproval: {
+    QueuedCount: '还有 {count} 项待处理',
   },
   ModeSelector: {
     AgentDesc: '完全自主代理',

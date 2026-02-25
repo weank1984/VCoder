@@ -14,7 +14,7 @@
 
 // Header
 .approval-header {
-  padding: 14px 16px 10px;
+  padding: var(--vc-space-3) var(--vc-space-4) var(--vc-space-2);
   color: var(--vc-color-text-primary);
   background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 60%, transparent);
@@ -24,22 +24,22 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 400;
+  gap: var(--vc-space-2);
+  font-size: var(--vc-font-size-lg);
+  font-weight: var(--vc-font-weight-regular);
   color: var(--vscode-foreground);
   line-height: 1.5;
 
   strong {
-    font-weight: 600;
+    font-weight: var(--vc-font-weight-semibold);
   }
 }
 
 .header-context-name {
   font-family: var(--vscode-editor-font-family, monospace);
-  font-size: 13px;
+  font-size: var(--vc-font-size-md);
   color: var(--vscode-foreground);
-  font-weight: 600;
+  font-weight: var(--vc-font-weight-semibold);
   background: none;
   padding: 0;
   border-radius: 0;
@@ -48,21 +48,21 @@
 .header-file-path {
   margin-top: 4px;
   font-family: var(--vscode-editor-font-family, monospace);
-  font-size: 12px;
+  font-size: var(--vc-font-size-sm);
   color: var(--vscode-descriptionForeground);
   word-break: break-all;
-  line-height: 1.4;
+  line-height: var(--vc-line-height-snug);
 }
 
 // Risk badge (inline in title)
 .risk-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--vc-space-1);
   padding: 2px 7px;
   border-radius: var(--vc-radius-sm);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: var(--vc-font-size-xs);
+  font-weight: var(--vc-font-weight-medium);
 
   &.risk-medium {
     color: var(--vscode-terminal-ansiYellow);
@@ -72,7 +72,7 @@
   &.risk-high {
     color: var(--vscode-terminal-ansiRed);
     background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 15%, transparent);
-    animation: risk-pulse 2s ease-in-out infinite;
+    animation: risk-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }
 
@@ -89,19 +89,19 @@
 // Content area
 .approval-content {
   padding: 0 16px 12px;
-  font-size: 13px;
+  font-size: var(--vc-font-size-md);
   color: var(--vc-color-text-primary);
 }
 
 // Command preview (bash)
 .command-preview {
   display: flex;
-  gap: 8px;
+  gap: var(--vc-space-2);
   align-items: flex-start;
   font-family: var(--vscode-editor-font-family, monospace);
-  font-size: 13px;
-  line-height: 1.6;
-  padding: 10px 12px;
+  font-size: var(--vc-font-size-md);
+  line-height: var(--vc-line-height-normal);
+  padding: var(--vc-space-2) var(--vc-space-3);
   border-radius: var(--vc-radius-md);
   background: var(--vscode-editor-background);
   color: var(--vscode-terminal-foreground, var(--vscode-foreground));
@@ -112,7 +112,7 @@
 
 .command-preview .command-prompt {
   color: var(--vscode-terminal-ansiGreen, #4ec9b0);
-  font-weight: 700;
+  font-weight: var(--vc-font-weight-bold);
   flex-shrink: 0;
   user-select: none;
 }
@@ -153,20 +153,20 @@
 
 // Risk hints
 .risk-hints {
-  margin-top: 8px;
+  margin-top: var(--vc-space-2);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
   color: var(--vscode-descriptionForeground);
-  font-size: 11px;
+  font-size: var(--vc-font-size-xs);
 }
 
 .risk-title {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-weight: 400;
+  gap: var(--vc-space-1);
+  font-weight: var(--vc-font-weight-regular);
   flex-shrink: 0;
   opacity: 0.7;
 }
@@ -181,11 +181,11 @@
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--vc-space-1);
 
   li {
     list-style: none;
-    font-size: 11px;
+    font-size: var(--vc-font-size-xs);
     padding: 2px 6px;
     border-radius: 3px;
     background: color-mix(in srgb, var(--vscode-descriptionForeground) 10%, transparent);
@@ -198,8 +198,8 @@
   border: 1px solid var(--vscode-panel-border);
   overflow: hidden;
   font-family: var(--vscode-editor-font-family, monospace);
-  font-size: 12.5px;
-  line-height: 1.6;
+  font-size: var(--vc-font-size-md);
+  line-height: var(--vc-line-height-normal);
   background: var(--vscode-editor-background);
   max-height: 320px;
   overflow-y: auto;
@@ -249,7 +249,7 @@
   padding: 0 10px 0 0;
   color: var(--vscode-editorLineNumber-foreground);
   user-select: none;
-  font-size: 11.5px;
+  font-size: var(--vc-font-size-sm);
   opacity: 0.7;
   border-right: 1px solid var(--vscode-panel-border);
   margin-right: 0;
@@ -259,11 +259,11 @@
   text-align: center;
   padding: 0 2px;
   user-select: none;
-  font-weight: 600;
+  font-weight: var(--vc-font-weight-semibold);
 }
 
 .inline-diff .line-content {
-  padding: 0 12px 0 4px;
+  padding: 0 var(--vc-space-3) 0 var(--vc-space-1);
   text-overflow: ellipsis;
   overflow: hidden;
   color: var(--vscode-editor-foreground, var(--vscode-foreground));
@@ -272,7 +272,7 @@
 .diff-more {
   padding: 4px 12px;
   color: var(--vscode-descriptionForeground);
-  font-size: 11px;
+  font-size: var(--vc-font-size-xs);
   font-family: var(--vscode-editor-font-family, monospace);
   cursor: pointer;
   text-align: center;
@@ -286,11 +286,11 @@
 .diff-stats {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--vc-space-2);
   padding: 6px 12px;
   border-top: 1px solid var(--vscode-panel-border);
   color: var(--vscode-descriptionForeground);
-  font-size: 11px;
+  font-size: var(--vc-font-size-xs);
   background: color-mix(in srgb, var(--vscode-foreground) 3%, var(--vscode-editor-background));
 }
 
@@ -308,7 +308,7 @@
   border: 1px solid var(--vscode-panel-border);
   background: transparent;
   color: var(--vscode-descriptionForeground);
-  font-size: 11px;
+  font-size: var(--vc-font-size-xs);
   border-radius: 3px;
   cursor: pointer;
 
@@ -328,12 +328,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: var(--vc-space-2) var(--vc-space-3);
   border-radius: 6px;
   border: 1px solid color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 40%, var(--vscode-panel-border));
   background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 10%, transparent);
   color: var(--vscode-foreground);
-  margin-bottom: 8px;
+  margin-bottom: var(--vc-space-2);
 }
 
 .file-delete-warning svg {
@@ -345,7 +345,7 @@
 
 .file-delete-notice {
   color: var(--vscode-descriptionForeground);
-  font-size: 12px;
+  font-size: var(--vc-font-size-sm);
 }
 
 // Action bar - three buttons right-aligned
@@ -353,8 +353,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 10px 14px 12px;
+  gap: var(--vc-space-2);
+  padding: var(--vc-space-2) var(--vc-space-3) var(--vc-space-3);
   border-top: 1px solid color-mix(in srgb, var(--vscode-panel-border) 60%, transparent);
   background: color-mix(in srgb, var(--vscode-foreground) 2%, transparent);
 }
@@ -362,16 +362,20 @@
 .approval-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
+  gap: var(--vc-space-1);
+  padding: var(--vc-space-1) var(--vc-space-3);
   border-radius: 6px;
   border: 1px solid var(--vscode-panel-border);
   cursor: pointer;
-  font-size: 12.5px;
-  font-weight: 500;
+  font-size: var(--vc-font-size-md);
+  font-weight: var(--vc-font-weight-medium);
   line-height: 1;
-  transition: background 0.1s, border-color 0.1s;
+  transition: all 0.15s ease, transform 0.1s ease;
   white-space: nowrap;
+
+  &:active {
+    transform: scale(0.97);
+  }
 }
 
 .approval-btn svg {
@@ -435,11 +439,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: var(--vc-font-size-2xs);
   padding: 1px 4px;
-  border-radius: 3px;
+  border-radius: var(--vc-token-radius-xs, 4px);
   font-family: var(--vscode-editor-font-family, monospace);
-  line-height: 1.4;
+  line-height: var(--vc-line-height-snug);
   font-style: normal;
   min-width: 16px;
 }
@@ -467,25 +471,25 @@
 
 .generic-info .info-label {
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: var(--vc-font-size-sm);
   color: var(--vscode-descriptionForeground);
-  font-weight: 500;
+  font-weight: var(--vc-font-weight-medium);
 }
 
 .generic-info .info-value {
   min-width: 0;
   word-break: break-word;
-  font-size: 12px;
+  font-size: var(--vc-font-size-sm);
 }
 
 .generic-info pre.code-block {
   margin: 0;
-  padding: 10px 12px;
+  padding: var(--vc-space-2) var(--vc-space-3);
   border-radius: 6px;
   border: 1px solid var(--vscode-panel-border);
   background: var(--vscode-textCodeBlock-background);
   font-family: var(--vscode-editor-font-family, monospace);
-  font-size: 12px;
+  font-size: var(--vc-font-size-sm);
   overflow: auto;
   max-height: 200px;
 }
@@ -512,7 +516,7 @@
 // Mobile
 @media (max-width: 400px) {
   .approval-actions {
-    gap: 4px;
+    gap: var(--vc-space-1);
   }
 
   .approval-btn.btn-session span {

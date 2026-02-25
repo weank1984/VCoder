@@ -146,8 +146,12 @@ export function StepEntry({ entry, onViewFile, onConfirm, onAnswer, hideSummary 
 
     const hasTerminalSection = isTerminalTool && shouldShowTerminal(tc, terminalData);
     const hasDiffSection = isFileEditTool && shouldShowDiff(tc);
+    // Top-level awaiting_confirmation tool calls are handled by FloatingApproval;
+    // only keep inline approval for command-pending (pre-confirmation) and subagent child calls.
+    const isTopLevelAwaiting = isAwaitingConfirmation && !tc.parentToolUseId;
     const hasApprovalSection = Boolean(
-        (isAwaitingConfirmation && onConfirm && onAnswer) || (!isAwaitingConfirmation && isCommandPending && onConfirm && onAnswer)
+        (!isTopLevelAwaiting && isAwaitingConfirmation && onConfirm && onAnswer) ||
+        (!isAwaitingConfirmation && isCommandPending && onConfirm && onAnswer)
     );
     const hasInputSection = Boolean(
         tc.input !== undefined && !isTerminalTool && !isFileEditTool && tc.name !== 'TodoWrite'
@@ -189,6 +193,9 @@ export function StepEntry({ entry, onViewFile, onConfirm, onAnswer, hideSummary 
                     >
                         {statusIcon}
                     </span>
+                    {isTopLevelAwaiting && (
+                        <span className="entry-approval-badge awaiting">{t('StepProgress.AwaitingApproval')}</span>
+                    )}
                     {showViewBtn && (
                         <button
                             className="entry-view-btn"

@@ -3,6 +3,7 @@ import type { SubagentRunUpdate } from '@vcoder/shared';
 import type { ToolCall } from '../../types';
 import classNames from 'classnames';
 import { CheckIcon, ErrorIcon, LoadingIcon } from '../Icon';
+import { MarkdownContent } from '../MarkdownContent';
 
 interface AgentDetailViewProps {
   run: SubagentRunUpdate;
@@ -141,7 +142,7 @@ export function AgentDetailView({ run, childTools }: AgentDetailViewProps) {
       {/* 执行结果 */}
       {run.status === 'completed' && resultText && (
         <div className="mc-detail-result">
-          <p className="mc-detail-result-text">{resultText}</p>
+          <MarkdownContent content={resultText} isComplete />
         </div>
       )}
 

@@ -22,6 +22,7 @@ import {
     ConfirmationRequestUpdate,
     ConfirmationType,
     TeamUpdate,
+    TokenUsageUpdate,
 } from '@vcoder/shared';
 import { PersistentSession, PersistentSessionSettings } from './persistentSession';
 import { TeamManager } from './teamManager';
@@ -68,6 +69,8 @@ export class ClaudeCodeWrapper extends EventEmitter {
     private readonly debugThinking = process.env.VCODER_DEBUG_THINKING === '1';
     private activeTaskStackByLocalSessionId: Map<string, string[]> = new Map();
     private lastToolIdByLocalSessionId: Map<string, string> = new Map();
+    private usageByLocalSessionId: Map<string, { inputTokens: number; outputTokens: number }> = new Map();
+    private currentTurnUsageByLocalSessionId: Map<string, { inputTokens: number; outputTokens: number }> = new Map();
     private readonly pendingCanUseToolByToolCallKey: Map<
         string,
         {
@@ -139,6 +142,8 @@ export class ClaudeCodeWrapper extends EventEmitter {
         this.lastToolIdByLocalSessionId.delete(sessionId);
         this.seenCanUseToolByLocalSessionId.delete(sessionId);
         this.emittedToolUseIdsByLocalSessionId.delete(sessionId);
+        this.usageByLocalSessionId.delete(sessionId);
+        this.currentTurnUsageByLocalSessionId.delete(sessionId);
         this.trustedToolNamesPerSession.delete(sessionId);
         for (const [key, resolver] of this.pendingConfirmationResolvers.entries()) {
             if (key.startsWith(`${sessionId}:`)) {
@@ -359,7 +364,8 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 // Note: code 143/137 are shell conventions (128+N) but Node.js child_process
                 // reports null+signal instead — keep them for safety but signal check is the real guard.
                 if (code === 0 || code === 143 || code === 137 || code === null || signal === 'SIGTERM' || signal === 'SIGKILL') {
-                     this.emit('complete', sessionId);
+                     const usage = this.usageByLocalSessionId.get(sessionId);
+                     this.emit('complete', sessionId, usage);
                      resolve();
                 } else {
                      reject(new Error(`Exit code ${code}`));
@@ -622,7 +628,16 @@ export class ClaudeCodeWrapper extends EventEmitter {
                     };
                     this.emit('update', sessionId, update, 'error');
                 }
-                
+
+                // Accumulate token usage from result event
+                const resultUsage = event.usage as { input_tokens?: number; output_tokens?: number } | undefined;
+                if (resultUsage) {
+                    const existing = this.usageByLocalSessionId.get(sessionId) ?? { inputTokens: 0, outputTokens: 0 };
+                    existing.inputTokens += resultUsage.input_tokens ?? 0;
+                    existing.outputTokens += resultUsage.output_tokens ?? 0;
+                    this.usageByLocalSessionId.set(sessionId, existing);
+                }
+
                 // For one-shot prompt sessions, 'result' indicates the end of the turn.
                 // stdin is kept open for permission interaction (stream-json mode), so the
                 // process won't exit by itself. Close stdin (EOF) to let the CLI exit gracefully,
@@ -722,10 +737,33 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 break;
             }
 
-            case 'message_start':
-            case 'message_delta':
+            case 'message_start': {
+                const msg = event.message as Record<string, unknown> | undefined;
+                const msgUsage = (msg?.usage as { input_tokens?: number } | undefined);
+                if (msgUsage?.input_tokens) {
+                    this.currentTurnUsageByLocalSessionId.set(sessionId, {
+                        inputTokens: msgUsage.input_tokens,
+                        outputTokens: 0,
+                    });
+                    const tokenUpdate: TokenUsageUpdate = {
+                        inputTokens: msgUsage.input_tokens,
+                        outputTokens: 0,
+                    };
+                    this.emit('update', sessionId, tokenUpdate, 'token_usage');
+                }
+                break;
+            }
+            case 'message_delta': {
+                const deltaUsage = event.usage as { output_tokens?: number } | undefined;
+                const current = this.currentTurnUsageByLocalSessionId.get(sessionId);
+                if (deltaUsage?.output_tokens && current) {
+                    current.outputTokens = deltaUsage.output_tokens;
+                    const tokenUpdate: TokenUsageUpdate = { ...current };
+                    this.emit('update', sessionId, tokenUpdate, 'token_usage');
+                }
+                break;
+            }
             case 'message_stop':
-                // Claude API message-level envelope events; safely ignored
                 break;
 
             default:
@@ -1820,8 +1858,8 @@ export class ClaudeCodeWrapper extends EventEmitter {
             this.emit('update', sessionId, update, type);
         });
 
-        session.on('complete', () => {
-            this.emit('complete', sessionId);
+        session.on('complete', (usage?: { inputTokens: number; outputTokens: number }) => {
+            this.emit('complete', sessionId, usage);
         });
 
         session.on('control_request', (event: Record<string, unknown>) => {

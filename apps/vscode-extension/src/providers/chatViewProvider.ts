@@ -99,6 +99,13 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                 );
             }
 
+            // Intercept settings_changed and forward as dedicated message
+            if (params.type === 'settings_changed') {
+                const content = params.content as { model?: string; permissionMode?: string };
+                this.postMessage({ type: 'settingsChanged', data: content }, true);
+                return;
+            }
+
             if (this.debugThinking) {
                 if (params.type === 'thought') {
                     const thought = params.content as { content?: string; isComplete?: boolean };

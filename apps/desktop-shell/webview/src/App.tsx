@@ -18,6 +18,7 @@ import { Welcome } from '@vcoder/ui/components/Welcome';
 import { PermissionDialog, type PermissionRequest } from '@vcoder/ui/components/PermissionDialog';
 import { PermissionRulesPanel } from '@vcoder/ui/components/PermissionRulesPanel';
 import { MessageSkeleton } from '@vcoder/ui/components/Skeleton';
+import { FloatingApproval } from '@vcoder/ui/components/FloatingApproval';
 import { StickyUserPrompt } from '@vcoder/ui/components/StickyUserPrompt';
 import type { EnhancedTodoItem, TaskItem } from '@vcoder/ui/components/TodoTaskManager';
 import type { ToolCall } from '@vcoder/ui/types';
@@ -248,10 +249,11 @@ function App() {
               setLoading(false);
             }
 
+            const usage = message.data?.usage as { inputTokens: number; outputTokens: number } | undefined;
             const sessionState = targetSessionId ? state.sessionStates.get(targetSessionId) : null;
             const lastMsg = sessionState?.messages[sessionState.messages.length - 1] ?? state.messages[state.messages.length - 1];
             if (lastMsg) {
-              state.updateMessage(lastMsg.id, { isComplete: true }, targetSessionId);
+              state.updateMessage(lastMsg.id, { isComplete: true, ...(usage ? { usage } : {}) }, targetSessionId);
             }
           }
           break;
@@ -310,6 +312,13 @@ function App() {
               });
               useStore.setState({ sessionStates: newSessionStates });
             }
+          }
+          break;
+        case 'settingsChanged':
+          {
+            const { model, permissionMode } = message.data;
+            if (model) useStore.setState({ model });
+            if (permissionMode) useStore.setState({ permissionMode });
           }
           break;
         case 'error':
@@ -598,7 +607,10 @@ function App() {
           </div>
         )}
 
-        <InputArea ref={inputAreaRef} />
+        <div className="app-input-dock">
+          <FloatingApproval />
+          <InputArea ref={inputAreaRef} />
+        </div>
       </div>
 
       {/* Overlay panels */}

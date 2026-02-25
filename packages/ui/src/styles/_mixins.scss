@@ -784,6 +784,72 @@
 }
 
 /* ==========================================================================
+   REFINED MODERN MIXINS
+   ========================================================================== */
+
+/**
+ * Glass surface — frosted translucent background for floating elements
+ */
+@mixin glass-surface {
+  background: var(--vc-token-glass-bg);
+  backdrop-filter: blur(var(--vc-token-glass-blur));
+  -webkit-backdrop-filter: blur(var(--vc-token-glass-blur));
+  border: 1px solid var(--vc-token-glass-border);
+
+  @media (prefers-contrast: high) {
+    background: var(--vscode-editor-background);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/**
+ * Floating panel — shared styles for floating approval / popover panels
+ */
+@mixin floating-panel {
+  @include glass-surface;
+  border-radius: var(--vc-token-radius-lg);
+  box-shadow: var(--vc-token-shadow-float);
+  animation: vc-float-enter var(--vc-token-duration-normal) var(--vc-token-ease-spring);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/**
+ * Refined card — soft shadow + subtle gradient border
+ */
+@mixin refined-card {
+  background: var(--vc-token-bg-surface);
+  border: 1px solid var(--vc-token-glass-border);
+  border-radius: var(--vc-token-radius-lg);
+  box-shadow: var(--vc-token-shadow-sm);
+  transition: box-shadow var(--vc-token-duration-normal) var(--vc-token-ease-default),
+              border-color var(--vc-token-duration-normal) var(--vc-token-ease-default);
+}
+
+/**
+ * Status glow — subtle radial glow for running/active states
+ * @param {color} $color - Glow color
+ */
+@mixin status-glow($color: var(--vc-token-accent)) {
+  box-shadow: 0 0 0 1px color-mix(in srgb, $color 20%, transparent),
+              0 0 12px color-mix(in srgb, $color 10%, transparent);
+}
+
+@keyframes vc-float-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ==========================================================================
    UTILTY MIXINS
    ========================================================================== */
 

@@ -222,6 +222,7 @@ export default {
     QuestionSubmit: 'Submit',
     QuestionSkip: 'Skip',
     QuestionPlaceholder: 'Type your answer...',
+    TokenCount: '↓ {0}',
   },
   StepProgress: {
     Title: 'Progress Updates',
@@ -267,6 +268,9 @@ export default {
     TypeMcp: 'MCP',
     TypeNotebook: 'Notebook',
     TypeOther: 'Tool',
+    Approved: 'Approved',
+    Denied: 'Denied',
+    AwaitingApproval: 'Awaiting approval',
   },
   ErrorBoundary: {
     Title: 'Something went wrong',
@@ -338,6 +342,9 @@ export default {
     Running: 'running',
     NeedsConfirmation: 'Needs Confirmation',
     Back: 'Back',
+  },
+  FloatingApproval: {
+    QueuedCount: '{count} more pending',
   },
   ModeSelector: {
     AgentDesc: 'Full autonomous agent',

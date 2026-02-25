@@ -1,5 +1,5 @@
 /**
- * Model Selector Styles - Cursor-style model picker menu
+ * Model Selector Styles — Refined Modern (glass surface)
  */
 
 /* Overlay */
@@ -9,55 +9,56 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: var(--vc-z-index-dropdown, 1000);
+    z-index: var(--vc-token-z-dropdown, 400);
     background: transparent;
 }
 
-/* Model Picker Menu */
+/* Model Picker Menu — glass surface */
 .model-picker-menu {
     box-sizing: border-box;
-    border-radius: 8px;
-    /* quickInput is the elevated popup surface (white in light theme) */
-    background-color: var(--vscode-quickInput-background, var(--vscode-editorWidget-background, #ffffff));
-    border: 1px solid var(--vscode-widget-border, rgba(0,0,0,0.12));
+    border-radius: var(--vc-token-radius-lg);
+    background: var(--vc-token-glass-bg);
+    backdrop-filter: blur(var(--vc-token-glass-blur));
+    -webkit-backdrop-filter: blur(var(--vc-token-glass-blur));
+    border: 1px solid var(--vc-token-glass-border);
     align-items: stretch;
-    font-size: 13px;
+    font-size: var(--vc-token-font-md);
     display: flex;
     flex-direction: column;
     gap: 0;
-    padding: 4px 0;
+    padding: var(--vc-token-space-1) 0;
     contain: paint;
     outline: none;
     pointer-events: auto;
     min-width: 240px;
-    z-index: var(--vc-z-index-popover, 1001);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.10);
-    animation: modelPickerIn 0.12s ease-out;
+    z-index: var(--vc-token-z-popover, 300);
+    box-shadow: var(--vc-token-shadow-float);
+    animation: modelPickerIn var(--vc-token-duration-fast) var(--vc-token-ease-out);
 }
 
 @keyframes modelPickerIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(6px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Search */
 .model-picker-search {
     display: flex;
-    gap: 4px;
+    gap: var(--vc-token-space-1);
     align-items: center;
-    padding: 0 10px;
+    padding: 0 var(--vc-token-space-3);
     border: none;
     box-sizing: border-box;
     outline: none;
-    margin: 4px 4px 2px;
-    border-bottom: 1px solid var(--vscode-widget-border, rgba(0,0,0,0.1));
-    padding-bottom: 6px;
+    margin: var(--vc-token-space-1) var(--vc-token-space-1) 0;
+    border-bottom: 1px solid var(--vc-token-glass-border);
+    padding-bottom: var(--vc-token-space-2);
 }
 
 .model-picker-search-input {
-    font-size: 13px;
+    font-size: var(--vc-token-font-md);
     line-height: 20px;
-    border-radius: 4px;
+    border-radius: var(--vc-token-radius-xs);
     background: transparent;
     color: var(--vscode-input-foreground);
     padding: 0;
@@ -68,7 +69,7 @@
     box-sizing: border-box;
 
     &::placeholder {
-        opacity: 0.5;
+        opacity: 0.4;
         color: var(--vscode-input-placeholderForeground);
     }
 }
@@ -85,7 +86,7 @@
     }
 
     &::-webkit-scrollbar-thumb {
-        background: var(--vc-color-border);
+        background: rgba(255, 255, 255, 0.1);
         border-radius: 3px;
     }
 }
@@ -102,44 +103,44 @@
 .model-picker-divider {
     height: 1px;
     width: 100%;
-    background: var(--vscode-commandCenter-inactiveBorder, var(--vc-color-border));
-    opacity: 0.8;
+    background: var(--vc-token-glass-border);
+    margin: 2px 0;
 }
 
 /* Item */
 .model-picker-item {
-    border-radius: 6px;
+    border-radius: var(--vc-token-radius-sm);
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 10px;
+    padding: var(--vc-token-space-2) var(--vc-token-space-3);
     min-width: 0;
     cursor: pointer;
     color: var(--vscode-foreground);
-    transition: background 80ms ease;
-    margin: 0 4px;
+    transition: background var(--vc-token-duration-instant) var(--vc-token-ease-default);
+    margin: 0 var(--vc-token-space-1);
 
     &:hover {
-        background: var(--vscode-list-hoverBackground);
+        background: rgba(255, 255, 255, 0.06);
     }
 
     &.is-selected {
-        color: var(--vc-color-primary, #3b82f6);
+        background: var(--vc-token-accent-soft);
     }
 }
 
 .model-picker-item-left {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--vc-token-space-2);
     min-width: 0;
     flex: 1;
 }
 
 .model-picker-item-label {
-    font-size: 13px;
-    line-height: 1.4;
+    font-size: var(--vc-token-font-md);
+    line-height: var(--vc-token-lh-tight);
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
@@ -150,18 +151,33 @@
 .model-picker-item-right {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--vc-token-space-2);
     flex-shrink: 0;
     height: 16px;
 }
 
 /* Checkmark for selected model */
 .model-picker-check {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--vc-color-primary, #3b82f6);
+    font-size: var(--vc-token-font-sm);
+    font-weight: var(--vc-token-weight-semibold);
     flex-shrink: 0;
     line-height: 1;
+}
+
+/* Selected item + check color per model */
+.model-picker-item.is-selected {
+    &[data-model="sonnet"] {
+        color: var(--vc-token-model-sonnet);
+        .model-picker-check { color: var(--vc-token-model-sonnet); }
+    }
+    &[data-model="haiku"] {
+        color: var(--vc-token-model-haiku);
+        .model-picker-check { color: var(--vc-token-model-haiku); }
+    }
+    &[data-model="glm"] {
+        color: var(--vc-token-model-glm);
+        .model-picker-check { color: var(--vc-token-model-glm); }
+    }
 }
 
 /* Chevron right (for "Add Models") */
@@ -179,61 +195,61 @@
 
 /* Footer item */
 .model-picker-footer-item {
-    font-size: 12px;
+    font-size: var(--vc-token-font-sm);
 }
 
 /* Empty state */
 .model-picker-empty {
-    padding: 8px 6px;
+    padding: var(--vc-token-space-2) var(--vc-token-space-2);
     text-align: center;
     color: var(--vscode-descriptionForeground);
-    font-size: 12px;
+    font-size: var(--vc-token-font-sm);
 }
 
 /* ==========================================================================
-   TOGGLE SWITCH - Cursor-style mini toggle
+   TOGGLE SWITCH — Refined style
    ========================================================================== */
 
 .model-picker-toggle {
     display: inline-block;
     flex-shrink: 0;
-    margin-left: 4px;
+    margin-left: var(--vc-token-space-1);
     cursor: pointer;
 }
 
 .model-picker-toggle-track {
     width: 24px;
     height: 14px;
-    border-radius: 9999px;
+    border-radius: var(--vc-token-radius-full);
     position: relative;
     display: flex;
     align-items: center;
     cursor: pointer;
-    transition: all 300ms ease;
+    transition: all var(--vc-token-duration-slow) var(--vc-token-ease-default);
     overflow: hidden;
-    background: var(--vscode-button-secondaryBackground, var(--vc-color-bg-tertiary));
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .model-picker-toggle-fill {
-    border-radius: 9999px;
+    border-radius: var(--vc-token-radius-full);
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
     height: 100%;
-    background: var(--vc-color-success, #22c55e);
+    background: var(--vc-token-accent);
     opacity: 0;
     width: 0%;
-    transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: var(--vc-token-duration-fast) var(--vc-token-ease-default);
 }
 
 .model-picker-toggle-thumb {
     width: 10px;
     height: 10px;
-    border-radius: 9999px;
+    border-radius: var(--vc-token-radius-full);
     position: absolute;
-    background: white;
-    transition: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    background: rgba(255, 255, 255, 0.8);
+    transition: var(--vc-token-duration-normal) var(--vc-token-ease-spring);
     left: 2px;
 }
 
@@ -246,6 +262,7 @@
 
     .model-picker-toggle-thumb {
         left: calc(100% - 12px);
+        background: white;
     }
 }
 
@@ -271,6 +288,9 @@
 
 @media (prefers-contrast: high) {
     .model-picker-menu {
+        background: var(--vscode-editor-background);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
         border-width: 2px;
     }
 

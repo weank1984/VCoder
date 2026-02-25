@@ -3,7 +3,7 @@
  * Layout: flex with left selectors (Mode + Model) and right action buttons
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { ModelId, PermissionMode } from '@vcoder/shared';
 import { ModelSelector } from '../ModelSelector';
@@ -14,6 +14,10 @@ import {
     StopIcon,
     CheckIcon,
     SendIcon,
+    SparkleIcon,
+    ListCheckIcon,
+    EditIcon,
+    RocketIcon,
 } from '../Icon';
 import { useI18n } from '../../i18n/I18nProvider';
 import './index.scss';
@@ -22,14 +26,14 @@ import './index.scss';
 interface ModeOption {
     id: PermissionMode;
     label: string;
-    icon: string;
+    icon: ReactNode;
 }
 
 const MODE_OPTIONS: ModeOption[] = [
-    { id: 'default', label: 'Agent', icon: '∞' },
-    { id: 'plan', label: 'Plan', icon: '⊞' },
-    { id: 'acceptEdits', label: 'Auto Edit', icon: '⚡' },
-    { id: 'bypassPermissions', label: 'YOLO', icon: '🔓' },
+    { id: 'default', label: 'Agent', icon: <SparkleIcon /> },
+    { id: 'plan', label: 'Plan', icon: <ListCheckIcon /> },
+    { id: 'acceptEdits', label: 'Auto Edit', icon: <EditIcon /> },
+    { id: 'bypassPermissions', label: 'YOLO', icon: <RocketIcon /> },
 ];
 
 function getModeOption(mode: PermissionMode): ModeOption {

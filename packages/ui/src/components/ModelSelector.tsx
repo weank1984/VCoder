@@ -9,11 +9,18 @@ import type { ModelId } from '@vcoder/shared';
 import { ArrowBottomIcon, ArrowRightIcon } from './Icon';
 import './ModelSelector.scss';
 
-const MODELS: { id: ModelId; name: string }[] = [
-    { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5' },
-    { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5' },
-    { id: 'glm-4.6', name: 'GLM 4.6' },
+type ModelColorKey = 'haiku' | 'sonnet' | 'glm';
+
+const MODELS: { id: ModelId; name: string; colorKey: ModelColorKey }[] = [
+    { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', colorKey: 'haiku' },
+    { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', colorKey: 'sonnet' },
+    { id: 'glm-4.6', name: 'GLM 4.6', colorKey: 'glm' },
 ];
+
+/** Map a model ID to its color key for styling */
+export function getModelColorKey(modelId: string): ModelColorKey | undefined {
+    return MODELS.find(m => m.id === modelId)?.colorKey;
+}
 
 interface ToggleOption {
     id: string;
@@ -124,6 +131,7 @@ export function ModelSelector({ selectedModel, onSelectModel, disabled = false }
             <div
                 ref={triggerRef}
                 className={`composer-unified-dropdown-model ${disabled ? 'is-disabled' : ''}`}
+                data-model={currentModel?.colorKey}
                 onClick={() => !disabled && setIsOpen(!isOpen)}
             >
                 <div className="model-label">
@@ -190,6 +198,7 @@ export function ModelSelector({ selectedModel, onSelectModel, disabled = false }
                                         <div
                                             key={model.id}
                                             className={`model-picker-item ${isSelected ? 'is-selected' : ''}`}
+                                            data-model={model.colorKey}
                                             onClick={() => handleSelectModel(model.id)}
                                         >
                                             <div className="model-picker-item-left">

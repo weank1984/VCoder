@@ -1,20 +1,20 @@
 /**
  * Task Entry Component
- * Displays Task (subagent) tool calls with nested child entries
+ * Displays Task (subagent) tool calls with nested child entries.
+ * When a task completes with a text result, renders the result as
+ * MarkdownContent directly in the conversation flow.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useI18n } from '../../i18n/I18nProvider';
 import type { ToolCall } from '../../types';
-import { 
+import {
     RocketIcon,
-    CheckIcon, 
-    LoadingIcon, 
+    CheckIcon,
+    LoadingIcon,
     ErrorIcon,
-    ExpandIcon,
-    CollapseIcon,
 } from '../Icon';
-import { ToolResultDisplay } from './ToolResultDisplay';
+import { MarkdownContent } from '../MarkdownContent';
 
 interface TaskEntryProps {
     toolCall: ToolCall;
@@ -27,12 +27,11 @@ interface TaskEntryProps {
 function parseTaskInfo(input: unknown): {
     description: string;
     subagentType?: string;
-    prompt?: string;
 } {
     if (!input || typeof input !== 'object') {
         return { description: 'Task' };
     }
-    
+
     const obj = input as Record<string, unknown>;
     const description = String(
         obj.TaskName ??
@@ -52,9 +51,8 @@ function parseTaskInfo(input: unknown): {
         obj.subagentName ??
         obj.type
     ) as string | undefined;
-    const prompt = (obj.prompt ?? obj.Prompt) as string | undefined;
-    
-    return { description, subagentType, prompt };
+
+    return { description, subagentType };
 }
 
 /** Get status icon */
@@ -78,40 +76,57 @@ function truncate(text: string, maxLen: number): string {
     return text.slice(0, maxLen) + '...';
 }
 
+/**
+ * Extract displayable text from the Task tool result.
+ * Returns null if no meaningful text content is found.
+ */
+function extractResultText(result: unknown): string | null {
+    if (result == null) return null;
+    if (typeof result === 'string') {
+        const trimmed = result.trim();
+        return trimmed.length > 0 ? trimmed : null;
+    }
+    // result may be an array of content blocks from the CLI
+    if (Array.isArray(result)) {
+        const textParts: string[] = [];
+        for (const block of result) {
+            if (block && typeof block === 'object' && 'type' in block) {
+                const b = block as { type: string; text?: string; content?: string };
+                if (b.type === 'text' && typeof b.text === 'string') {
+                    textParts.push(b.text);
+                } else if (b.type === 'text' && typeof b.content === 'string') {
+                    textParts.push(b.content);
+                }
+            } else if (typeof block === 'string') {
+                textParts.push(block);
+            }
+        }
+        const joined = textParts.join('\n').trim();
+        return joined.length > 0 ? joined : null;
+    }
+    return null;
+}
+
 export function TaskEntry({ toolCall, status, hideHeader = false }: TaskEntryProps) {
     const { t } = useI18n();
-    const [isExpanded, setIsExpanded] = useState(true);
-    
+
     const taskInfo = useMemo(() => parseTaskInfo(toolCall.input), [toolCall.input]);
-    
-    const hasAnyDetails = Boolean(taskInfo.prompt || toolCall.result !== undefined);
+    const resultText = useMemo(() => extractResultText(toolCall.result), [toolCall.result]);
+    const isComplete = status === 'success' || status === 'error';
 
-    const details = (
-        <div className="task-details">
-            {taskInfo.prompt && (
-                <div className="task-prompt">
-                    <div className="prompt-header">Prompt</div>
-                    <pre>{taskInfo.prompt}</pre>
-                </div>
-            )}
-
-            {toolCall.result !== undefined && (
-                <div className="task-result">
-                    <div className="result-header">{t('Agent.ToolResult')}</div>
-                    <ToolResultDisplay result={toolCall.result} toolName="Task" />
-                </div>
-            )}
-        </div>
-    );
-
+    // hideHeader mode: only render the result text
     if (hideHeader) {
-        if (!hasAnyDetails) return null;
-        return <div className={`task-entry ${status}`}>{details}</div>;
+        if (!resultText) return null;
+        return (
+            <div className="task-entry-result">
+                <MarkdownContent content={resultText} isComplete={isComplete} />
+            </div>
+        );
     }
 
     return (
         <div className={`task-entry ${status}`}>
-            <div className="task-header" onClick={() => setIsExpanded(!isExpanded)}>
+            <div className="task-header">
                 <span className="task-icon">
                     <RocketIcon />
                 </span>
@@ -129,12 +144,14 @@ export function TaskEntry({ toolCall, status, hideHeader = false }: TaskEntryPro
                 <span className={`task-status-icon ${status}`} title={toolCall.error || undefined}>
                     {getStatusIcon(status)}
                 </span>
-                <span className="task-expand-icon">
-                    {isExpanded ? <CollapseIcon /> : <ExpandIcon />}
-                </span>
             </div>
 
-            {isExpanded ? details : null}
+            {/* Render result text as MarkdownContent directly in the conversation flow */}
+            {resultText && (
+                <div className="task-entry-result">
+                    <MarkdownContent content={resultText} isComplete={isComplete} />
+                </div>
+            )}
         </div>
     );
 }

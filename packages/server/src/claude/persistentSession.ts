@@ -19,6 +19,7 @@ import {
     TaskListUpdate,
     SubagentRunUpdate,
     ErrorUpdate,
+    TokenUsageUpdate,
 } from '@vcoder/shared';
 import { resolveClaudePath, loadClaudeEnv, JsonStreamParser, computeFileChangeDiff, matchStderrError, preflightCheck } from './shared';
 
@@ -74,6 +75,7 @@ export class PersistentSession extends EventEmitter {
     private _state: PersistentSessionState = 'idle';
     private _messageCount = 0;
     private _totalUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
+    private _currentTurnUsage: TokenUsage | null = null;
     private _startedAt: number = 0;
     private _lastActivityAt: number = 0;
 
@@ -746,7 +748,7 @@ export class PersistentSession extends EventEmitter {
                 this._state = 'waiting';
                 this._lastActivityAt = Date.now();
                 this.resetIdleTimer();
-                this.emit('complete');
+                this.emit('complete', { ...this._totalUsage });
                 break;
             }
 
@@ -829,10 +831,29 @@ export class PersistentSession extends EventEmitter {
                 break;
             }
 
-            case 'message_start':
-            case 'message_delta':
+            case 'message_start': {
+                const msg = event.message as Record<string, unknown> | undefined;
+                const msgUsage = (msg?.usage as { input_tokens?: number } | undefined);
+                if (msgUsage?.input_tokens) {
+                    this._currentTurnUsage = {
+                        inputTokens: msgUsage.input_tokens,
+                        outputTokens: 0,
+                    };
+                    const tokenUpdate: TokenUsageUpdate = { ...this._currentTurnUsage };
+                    this.emit('update', tokenUpdate, 'token_usage');
+                }
+                break;
+            }
+            case 'message_delta': {
+                const deltaUsage = event.usage as { output_tokens?: number } | undefined;
+                if (deltaUsage?.output_tokens && this._currentTurnUsage) {
+                    this._currentTurnUsage.outputTokens = deltaUsage.output_tokens;
+                    const tokenUpdate: TokenUsageUpdate = { ...this._currentTurnUsage };
+                    this.emit('update', tokenUpdate, 'token_usage');
+                }
+                break;
+            }
             case 'message_stop':
-                // Claude API message-level envelope events; safely ignored
                 break;
 
             default:

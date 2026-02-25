@@ -237,6 +237,33 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
                 });
                 break;
             }
+            case 'settings_changed':
+                // Handled elsewhere (settings sync); no store update needed
+                break;
+            case 'token_usage': {
+                const tokenUsage = content as { inputTokens: number; outputTokens: number };
+                set((prevState) => {
+                    const newSessionStates = new Map(prevState.sessionStates);
+                    const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+                    const messages = [...sessionState.messages];
+                    for (let i = messages.length - 1; i >= 0; i--) {
+                        if (messages[i].role === 'assistant') {
+                            messages[i] = { ...messages[i], usage: tokenUsage };
+                            break;
+                        }
+                    }
+                    newSessionStates.set(targetSessionId, {
+                        ...sessionState,
+                        messages,
+                        updatedAt: Date.now(),
+                    });
+                    return {
+                        sessionStates: newSessionStates,
+                        messages: targetSessionId === currentSessionId ? messages : prevState.messages,
+                    };
+                });
+                break;
+            }
         }
     },
 

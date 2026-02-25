@@ -70,6 +70,9 @@ export function partitionToolCalls(toolCalls: ToolCall[]): PartitionResult {
     const actionCalls: ToolCall[] = [];
 
     for (const tc of toolCalls) {
+        // Skip subagent child tool calls — handled by MissionControl
+        if (tc.parentToolUseId) continue;
+
         if (isExploredTool(tc)) {
             exploredCalls.push(tc);
         } else {

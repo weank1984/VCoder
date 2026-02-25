@@ -1,0 +1,106 @@
+@use '../../styles/mixins' as *;
+
+/* ==========================================================================
+   FLOATING APPROVAL — glass card anchored above InputArea
+   Uses absolute positioning within .app-input-dock wrapper
+   ========================================================================== */
+
+.floating-approval {
+  position: absolute;
+  bottom: 100%;
+  left: var(--vc-space-3);
+  right: var(--vc-space-3);
+  z-index: var(--vc-token-z-floating-approval, 200);
+  margin-bottom: var(--vc-space-1);
+  pointer-events: auto;
+
+  @include floating-panel;
+  border-radius: var(--vc-token-radius-lg, 12px);
+
+  // Amber accent line at top
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 16px;
+    right: 16px;
+    height: 2px;
+    background: linear-gradient(90deg,
+      transparent,
+      var(--vscode-terminal-ansiYellow, #f59e0b) 20%,
+      var(--vscode-terminal-ansiYellow, #f59e0b) 80%,
+      transparent
+    );
+    border-radius: 0 0 1px 1px;
+    opacity: 0.8;
+  }
+}
+
+/* Queue badge — shown when multiple pending approvals exist */
+.floating-approval__queue-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--vc-space-1) var(--vc-space-3);
+  font-size: var(--vc-font-size-xs);
+  font-weight: var(--vc-font-weight-medium);
+  color: var(--vscode-descriptionForeground);
+  border-bottom: 1px solid var(--vc-token-glass-border, rgba(255, 255, 255, 0.08));
+}
+
+/* Inner card — resets nested approval/question chrome so it merges with the float */
+.floating-approval__card {
+  // Reset ApprovalUI container styles so it blends with the floating card
+  .approval-container {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+
+    .approval-header {
+      background: transparent;
+      border-bottom-color: var(--vc-token-glass-border, rgba(255, 255, 255, 0.08));
+    }
+
+    .approval-actions {
+      background: transparent;
+      border-top-color: var(--vc-token-glass-border, rgba(255, 255, 255, 0.08));
+    }
+  }
+
+  // Reset QuestionUI styles
+  .question-ui {
+    border: none;
+    border-radius: 0;
+    margin: 0;
+    background: transparent;
+  }
+}
+
+/* Exit animation — slide down and fade */
+.floating-approval--exiting {
+  animation: vc-float-exit var(--vc-token-duration-fast, 150ms) var(--vc-token-ease-in, ease-in) forwards;
+}
+
+@keyframes vc-float-exit {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .floating-approval,
+  .floating-approval--exiting {
+    animation: none;
+  }
+}
+
+@media (prefers-contrast: high) {
+  .floating-approval {
+    background: var(--vscode-editor-background);
+    border: 2px solid currentColor;
+    backdrop-filter: none;
+  }
+}

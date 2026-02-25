@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { HelpIcon } from '../Icon';
+import React, { useEffect } from 'react';
+import { BugIcon, SparkleIcon, DocSearchIcon, WrenchIcon, ChatIcon, HelpIcon } from '../Icon';
 import { Logo } from '../Logo';
 import { postMessage } from '../../bridge';
 import { useI18n } from '../../i18n/I18nProvider';
@@ -24,29 +24,34 @@ function formatUpdatedAt(updatedAt: string | undefined, locale: string): string 
 }
 
 interface PromptSuggestion {
-  icon: string;
+  icon: React.ReactNode;
+  iconColor: string;
   title: string;
   prompt: string;
 }
 
 const PROMPT_SUGGESTIONS_EN: PromptSuggestion[] = [
   {
-    icon: '🐛',
+    icon: <BugIcon />,
+    iconColor: 'var(--vc-suggestion-color-debug)',
     title: 'Debug my code',
     prompt: 'Help me find and fix the bug in my code',
   },
   {
-    icon: '✨',
+    icon: <SparkleIcon />,
+    iconColor: 'var(--vc-suggestion-color-feature)',
     title: 'Write a feature',
     prompt: 'Help me implement a new feature',
   },
   {
-    icon: '📝',
+    icon: <DocSearchIcon />,
+    iconColor: 'var(--vc-suggestion-color-explain)',
     title: 'Explain this code',
     prompt: 'Explain how this code works and what it does',
   },
   {
-    icon: '🔧',
+    icon: <WrenchIcon />,
+    iconColor: 'var(--vc-suggestion-color-refactor)',
     title: 'Refactor code',
     prompt: 'Help me refactor this code to be cleaner and more maintainable',
   },
@@ -54,22 +59,26 @@ const PROMPT_SUGGESTIONS_EN: PromptSuggestion[] = [
 
 const PROMPT_SUGGESTIONS_ZH: PromptSuggestion[] = [
   {
-    icon: '🐛',
+    icon: <BugIcon />,
+    iconColor: 'var(--vc-suggestion-color-debug)',
     title: '调试代码',
     prompt: '帮我找到并修复代码中的 bug',
   },
   {
-    icon: '✨',
+    icon: <SparkleIcon />,
+    iconColor: 'var(--vc-suggestion-color-feature)',
     title: '开发新功能',
     prompt: '帮我实现一个新功能',
   },
   {
-    icon: '📝',
+    icon: <DocSearchIcon />,
+    iconColor: 'var(--vc-suggestion-color-explain)',
     title: '解释代码',
     prompt: '解释这段代码的工作原理和功能',
   },
   {
-    icon: '🔧',
+    icon: <WrenchIcon />,
+    iconColor: 'var(--vc-suggestion-color-refactor)',
     title: '重构代码',
     prompt: '帮我重构这段代码，使其更简洁易维护',
   },
@@ -127,7 +136,12 @@ export function Welcome() {
             className={`${prefixClass}-suggestion-card`}
             onClick={() => handleSuggestionClick(suggestion.prompt)}
           >
-            <span className={`${prefixClass}-suggestion-icon`}>{suggestion.icon}</span>
+            <span
+              className={`${prefixClass}-suggestion-icon`}
+              style={{ '--icon-color': suggestion.iconColor } as React.CSSProperties}
+            >
+              {suggestion.icon}
+            </span>
             <span className={`${prefixClass}-suggestion-title`}>{suggestion.title}</span>
           </button>
         ))}
@@ -149,7 +163,7 @@ export function Welcome() {
                 onClick={() => postMessage({ type: 'loadHistory', sessionId: s.id })}
                 title={sanitizeSessionTitle(s.title, t('Common.UntitledSession'))}
               >
-                <span className={`${prefixClass}-recents-item-icon`}>💬</span>
+                <span className={`${prefixClass}-recents-item-icon`}><ChatIcon /></span>
                 <span className={`${prefixClass}-recents-item-title`}>{sanitizeSessionTitle(s.title, t('Common.UntitledSession'))}</span>
                 <span className={`${prefixClass}-recents-item-time`}>
                   {formatUpdatedAt(s.updatedAt, language === 'zh-CN' ? 'zh-CN' : 'en-US')}

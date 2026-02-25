@@ -154,6 +154,12 @@ export class DesktopRuntime {
         const err = params.content as { message?: string; type?: string };
         this.auditLogger.logError(params.sessionId, err.type ?? 'agent_error', err.message ?? 'unknown');
       }
+      // Intercept settings_changed and forward as dedicated message
+      if (params.type === 'settings_changed') {
+        const content = params.content as { model?: string; permissionMode?: string };
+        this.options.postMessage({ type: 'settingsChanged', data: content });
+        return;
+      }
       this.options.postMessage({
         type: 'update',
         data: params,

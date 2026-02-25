@@ -257,11 +257,23 @@ export type UpdateType =
     | 'confirmation_request'
     | 'session_switch'
     | 'execution_summary'
-    | 'team_update';
+    | 'team_update'
+    | 'settings_changed'
+    | 'token_usage';
 
 export interface SessionSwitchUpdate {
     previousSessionId: string | null;
     newSessionId: string;
+}
+
+export interface SettingsChangedUpdate {
+    model?: ModelId;
+    permissionMode?: PermissionMode;
+}
+
+export interface TokenUsageUpdate {
+    inputTokens: number;
+    outputTokens: number;
 }
 
 export interface UpdateNotificationParams {
@@ -280,7 +292,9 @@ export interface UpdateNotificationParams {
     | ConfirmationRequestUpdate
     | SessionSwitchUpdate
     | ExecutionSummaryUpdate
-    | TeamUpdate;
+    | TeamUpdate
+    | SettingsChangedUpdate
+    | TokenUsageUpdate;
 }
 
 export interface ThoughtUpdate {

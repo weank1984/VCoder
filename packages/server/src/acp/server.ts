@@ -457,6 +457,18 @@ export class ACPServer {
             appendSystemPrompt: params.appendSystemPrompt,
             maxThinkingTokens: params.maxThinkingTokens,
         });
+
+        // Notify UI of settings changes so model/permission indicators stay in sync
+        if (params.model || params.permissionMode) {
+            this.sendNotification(ACPMethods.SESSION_UPDATE, {
+                sessionId: params.sessionId,
+                type: 'settings_changed',
+                content: {
+                    ...(params.model && { model: params.model }),
+                    ...(params.permissionMode && { permissionMode: params.permissionMode }),
+                },
+            });
+        }
     }
 
     private async handleFileAccept(params: FileAcceptParams): Promise<void> {

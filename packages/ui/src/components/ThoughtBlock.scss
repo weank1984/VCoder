@@ -4,13 +4,15 @@
     display: flex;
     flex-direction: column;
     margin: 2px 0;
+    border-left: 2px solid color-mix(in srgb, var(--vc-color-primary, #3b82f6) 30%, transparent);
+    padding-left: var(--vc-space-2);
 }
 
 .thought-header {
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 13px;
+    gap: var(--vc-space-1);
+    font-size: var(--vc-font-size-md);
     cursor: pointer;
     user-select: none;
     padding: 2px 0;
@@ -44,18 +46,18 @@
 }
 
 .thought-label {
-    font-weight: 400;
+    font-weight: var(--vc-font-weight-regular);
     font-style: italic;
     color: var(--vscode-descriptionForeground);
     opacity: 0.8;
 }
 
 .thought-content {
-    padding: 4px 0 4px 18px;
+    padding: var(--vc-space-1) 0 var(--vc-space-1) 18px;
     margin: 0;
     color: var(--vscode-descriptionForeground);
-    font-size: 12px;
-    line-height: 1.6;
+    font-size: var(--vc-font-size-sm);
+    line-height: var(--vc-line-height-normal);
     font-style: normal;
     white-space: pre-wrap;
     max-height: 200px;
@@ -63,10 +65,21 @@
     opacity: 0.7;
 }
 
+.thought-token-count,
+.thought-token-usage {
+    margin-left: auto;
+    font-style: normal;
+    font-size: var(--vc-font-size-xs);
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.6;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
 /* Thinking animation */
 .thought-block.is-thinking {
     .thought-label {
-        animation: vc-pulse 1.5s ease-in-out infinite;
+        animation: vc-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
 }
 

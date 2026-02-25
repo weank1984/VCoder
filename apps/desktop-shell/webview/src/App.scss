@@ -20,6 +20,11 @@
     flex-direction: row;
 }
 
+.app-input-dock {
+    position: relative;
+    flex-shrink: 0;
+}
+
 /* Main content column (right side of sidebar) */
 .app__main {
     flex: 1;

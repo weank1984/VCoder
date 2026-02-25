@@ -15,6 +15,7 @@ export { default as AtIcon } from "./icons/AtIcon";
 export { default as AttachmentIcon } from "./icons/AttachmentIcon";
 export { default as BackBottomIcon } from "./icons/BackBottomIcon";
 export { default as BackIcon } from "./icons/BackIcon";
+export { default as BugIcon } from "./icons/BugIcon";
 export { default as CancelIcon } from "./icons/CancelIcon";
 export { default as ChatIcon } from "./icons/ChatIcon";
 export { default as ChevronRightIcon } from "./icons/RightIcon"; // Alias
@@ -28,6 +29,7 @@ export { default as CheckIcon } from "./icons/CheckIcon";
 export { default as CopiedIcon } from "./icons/CopiedIcon";
 export { default as CopyIcon } from "./icons/CopyIcon";
 
+export { default as DocSearchIcon } from "./icons/DocSearchIcon";
 export { default as DiffIcon } from "./icons/DiffIcon";
 export { default as DislikeIcon } from "./icons/DislikeIcon";
 export { default as DislikeFillIcon } from "./icons/DislikeFillIcon";
@@ -67,6 +69,7 @@ export { default as RocketIcon } from "./icons/RocketIcon";
 export { default as SearchIcon } from "./icons/SearchIcon";
 export { default as SendIcon } from "./icons/SendIcon";
 export { default as StopIcon } from "./icons/StopIcon";
+export { default as SparkleIcon } from "./icons/SparkleIcon";
 export { default as SyncIcon } from "./icons/SyncIcon";
 export { default as TerminalIcon } from "./icons/TerminalIcon";
 export { default as ThinkIcon } from "./icons/ThinkIcon";
@@ -75,3 +78,4 @@ export { default as UserIcon } from "./icons/UserIcon";
 export { default as VoyahIcon } from "./icons/VoyahIcon";
 export { default as WarningIcon } from "./icons/WarningIcon";
 export { default as WebIcon } from "./icons/WebIcon";
+export { default as WrenchIcon } from "./icons/WrenchIcon";

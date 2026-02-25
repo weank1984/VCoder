@@ -19,20 +19,26 @@
     &::before {
         content: '';
         position: absolute;
-        top: -20px;
+        top: -32px;
         left: 0;
         right: 0;
-        height: 20px;
-        background: linear-gradient(transparent, var(--vscode-editor-background, var(--vc-color-bg-base)));
+        height: 32px;
+        background: linear-gradient(
+            to bottom,
+            transparent 0%,
+            color-mix(in srgb, var(--vscode-editor-background, var(--vc-color-bg-base)) 30%, transparent) 40%,
+            var(--vscode-editor-background, var(--vc-color-bg-base)) 100%
+        );
         pointer-events: none;
     }
+
 }
 
 .input-wrapper {
     position: relative;
     display: flex;
     flex-direction: column;
-    margin: 0 12px 12px;
+    margin: 0 var(--vc-space-3) var(--vc-space-3);
 }
 
 .input-content {
@@ -95,6 +101,7 @@
     color: var(--vc-color-text-primary);
     border: 1px solid var(--vc-color-border);
     border-radius: var(--vc-radius-sm);
+    box-shadow: var(--vc-token-shadow-xs, 0 1px 2px rgba(0, 0, 0, 0.15));
     transition: all var(--vc-transition-mid);
 
     &:hover {
@@ -147,8 +154,8 @@
     background: transparent;
     color: var(--vscode-input-foreground);
     font-family: var(--vscode-font-family, inherit);
-    font-size: 14px;
-    line-height: 1.55;
+    font-size: var(--vc-font-size-lg);
+    line-height: var(--vc-line-height-normal);
     resize: none;
     min-height: 24px;
     max-height: 240px;
@@ -157,7 +164,7 @@
     word-break: break-word;
     scrollbar-width: none;
     box-sizing: border-box;
-    padding: 10px 14px 4px;
+    padding: var(--vc-space-3) var(--vc-space-4) var(--vc-space-1);
 
     &::-webkit-scrollbar {
         display: none;
@@ -189,13 +196,13 @@
     height: 28px;
     box-sizing: border-box;
     width: 100%;
-    padding: 0 8px 8px;
+    padding: 0 var(--vc-space-2) var(--vc-space-2);
     margin-top: calc(1px + 0.5rem);
 
     .toolbar-left {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: var(--vc-space-1);
         min-width: 0;
         height: 20px;
         flex: 1;
@@ -204,80 +211,96 @@
     .toolbar-right {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: var(--vc-space-1);
         flex-shrink: 0;
     }
 }
 
 /* ==========================================================================
-   UNIFIED DROPDOWNS - Cursor-style pill triggers
+   UNIFIED DROPDOWNS - Refined pill triggers
    ========================================================================== */
 
 .composer-unified-dropdown {
     display: flex;
     gap: 2px;
-    font-size: 12px;
+    font-size: var(--vc-font-size-sm);
     align-items: center;
     line-height: 1.4;
     min-width: 0;
     max-width: 100%;
     padding: 2px 4px 2px 8px;
-    border-radius: 24px;
+    border-radius: var(--vc-token-radius-full);
     flex-shrink: 0;
     cursor: pointer;
     user-select: none;
     border: none;
+    outline: none;
     background: transparent;
     color: var(--vscode-foreground);
-    transition: background 100ms ease;
+    transition: background var(--vc-token-duration-instant) var(--vc-token-ease-default);
 
     &:hover:not(.is-disabled) {
-        background: var(--vc-color-hover-bg);
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* Suppress browser focus outline; show subtle ring on keyboard nav */
+    &:focus {
+        outline: none;
+    }
+
+    &:focus-visible {
+        outline: 1px solid var(--vc-token-accent-soft);
+        outline-offset: 1px;
     }
 
     .dropdown-content {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: var(--vc-token-space-1);
         min-width: 0;
         max-width: 100%;
         overflow: hidden;
     }
 
     .dropdown-icon {
-        font-size: 16px;
         flex-shrink: 0;
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
-        opacity: 0.5;
+        opacity: 0.6;
+
+        /* SVG icons via Icon component */
+        .vc-icon {
+            font-size: 12px;
+            width: 12px;
+            height: 12px;
+        }
     }
 
     .dropdown-label {
-        opacity: 0.8;
+        opacity: 0.7;
         max-width: 120px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         min-width: 0;
-        font-weight: 400;
+        font-weight: var(--vc-token-weight-regular);
         height: 16px;
         display: flex;
         align-items: center;
     }
 
     .dropdown-chevron {
-        font-size: 14px;
         flex-shrink: 0;
-        opacity: 0.5;
+        opacity: 0.35;
         display: flex;
         align-items: center;
 
         svg {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             fill: currentColor;
         }
     }
@@ -289,28 +312,38 @@
     }
 }
 
-/* Model selector trigger - Cursor style (transparent, no border) */
+/* Model selector trigger — Refined (transparent, no border) */
 .composer-unified-dropdown-model {
     display: flex;
     gap: 2px;
-    font-size: 12px;
+    font-size: var(--vc-font-size-sm);
     align-items: center;
     line-height: 12px;
     min-width: 0;
     max-width: 100%;
     padding: 2px 6px;
-    border-radius: 23px;
+    border-radius: var(--vc-token-radius-full);
     border: none;
+    outline: none;
     background: transparent;
     flex-shrink: 1;
     overflow: hidden;
     cursor: pointer;
     user-select: none;
     color: var(--vscode-input-foreground);
-    transition: background 100ms ease;
+    transition: background var(--vc-token-duration-instant) var(--vc-token-ease-default);
 
     &:hover:not(.is-disabled) {
-        background: var(--vc-color-hover-bg);
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    &:focus {
+        outline: none;
+    }
+
+    &:focus-visible {
+        outline: 1px solid var(--vc-token-accent-soft);
+        outline-offset: 1px;
     }
 
     .model-label {
@@ -321,7 +354,7 @@
         line-height: 12px;
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: var(--vc-token-space-1);
         overflow: hidden;
         height: 16px;
         flex-shrink: 1;
@@ -339,14 +372,14 @@
     }
 
     .model-chevron {
-        font-size: 14px;
         flex-shrink: 0;
         display: flex;
         align-items: center;
+        opacity: 0.35;
 
         svg {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             fill: currentColor;
         }
     }
@@ -355,6 +388,19 @@
         opacity: 0.5;
         cursor: not-allowed;
         pointer-events: none;
+    }
+
+    &[data-model="sonnet"] {
+        color: var(--vc-token-model-sonnet);
+        &:hover:not(.is-disabled) { background: var(--vc-token-model-sonnet-bg); }
+    }
+    &[data-model="haiku"] {
+        color: var(--vc-token-model-haiku);
+        &:hover:not(.is-disabled) { background: var(--vc-token-model-haiku-bg); }
+    }
+    &[data-model="glm"] {
+        color: var(--vc-token-model-glm);
+        &:hover:not(.is-disabled) { background: var(--vc-token-model-glm-bg); }
     }
 }
 
@@ -372,34 +418,36 @@
 }
 
 /* ==========================================================================
-   POPOVER CONTAINER (SHARED)
+   POPOVER CONTAINER (SHARED) — Glass surface
    ========================================================================== */
 
 .popover-container {
-    padding: var(--vc-space-1);
-    background: var(--vscode-quickInput-background, var(--vscode-editorWidget-background, #ffffff));
-    border: 1px solid var(--vscode-widget-border, rgba(0,0,0,0.12));
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08);
+    padding: var(--vc-token-space-1);
+    background: var(--vc-token-glass-bg);
+    backdrop-filter: blur(var(--vc-token-glass-blur));
+    -webkit-backdrop-filter: blur(var(--vc-token-glass-blur));
+    border: 1px solid var(--vc-token-glass-border);
+    border-radius: var(--vc-token-radius-lg);
+    box-shadow: var(--vc-token-shadow-float);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     color: var(--vc-color-text-primary);
     position: absolute;
-    bottom: calc(100% + var(--vc-space-2));
+    bottom: calc(100% + var(--vc-token-space-2));
     left: 0;
-    z-index: var(--vc-z-index-popover);
-    animation: fadeIn var(--vc-transition-mid) var(--vc-motion-ease-out);
+    z-index: var(--vc-token-z-popover);
+    animation: popoverFadeIn var(--vc-token-duration-fast) var(--vc-token-ease-out);
 }
 
-@keyframes fadeIn {
+@keyframes popoverFadeIn {
     from {
         opacity: 0;
-        transform: translateY(var(--vc-space-1));
+        transform: translateY(6px) scale(0.98);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
     }
 }
 
@@ -414,43 +462,43 @@
     .agent-list-item {
         display: flex;
         align-items: center;
-        gap: var(--vc-space-2);
-        padding: var(--vc-space-2);
+        gap: var(--vc-token-space-2);
+        padding: var(--vc-token-space-2);
         cursor: pointer;
-        border-radius: var(--vc-radius-sm);
-        font-size: var(--vc-font-size-sm);
-        transition: background var(--vc-transition-mid);
+        border-radius: var(--vc-token-radius-sm);
+        font-size: var(--vc-token-font-md);
+        transition: background var(--vc-token-duration-instant) var(--vc-token-ease-default);
 
         &:hover:not(.is-disabled) {
-            background: var(--vc-color-hover-bg);
+            background: rgba(255, 255, 255, 0.06);
         }
 
         &.selected {
-            background: var(--vc-color-selected-bg);
-            color: var(--vc-color-selected-fg);
+            background: var(--vc-token-accent-soft);
+            color: var(--vc-token-accent-hover);
         }
 
         .agent-icon {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: var(--vc-space-2);
-            opacity: 0.9;
+            width: var(--vc-token-space-2);
+            opacity: 0.7;
         }
 
         .agent-label {
             flex: 1;
-            font-weight: var(--vc-font-weight-medium);
+            font-weight: var(--vc-token-weight-medium);
         }
 
         .agent-shortcut {
-            font-size: var(--vc-font-size-xs);
+            font-size: var(--vc-token-font-xs);
             opacity: 0.6;
             background: var(--vscode-keybindingLabel-background);
             border: 1px solid var(--vscode-keybindingLabel-border);
             color: var(--vscode-keybindingLabel-foreground);
-            padding: var(--vc-space-1) calc(var(--vc-space-1));
-            border-radius: var(--vc-radius-xs);
+            padding: var(--vc-token-space-1);
+            border-radius: var(--vc-token-radius-xs);
         }
     }
 }
@@ -508,6 +556,10 @@
     .popover-container {
         transition: none;
     }
+
+    .popover-container {
+        animation: none;
+    }
 }
 
 @media (prefers-contrast: high) {
@@ -516,6 +568,13 @@
     }
 
     .attachment-chip {
+        border: 2px solid currentColor;
+    }
+
+    .popover-container {
+        background: var(--vscode-editor-background);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
         border: 2px solid currentColor;
     }
 }

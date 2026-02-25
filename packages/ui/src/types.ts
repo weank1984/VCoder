@@ -24,11 +24,12 @@ export interface UpdateMessage {
 
 export interface CompleteMessage {
     type: 'complete';
-    data: { 
-        sessionId: string; 
+    data: {
+        sessionId: string;
         reason: SessionCompleteReason;
         message?: string;
         error?: ErrorUpdate;
+        usage?: { inputTokens: number; outputTokens: number };
     };
 }
 
@@ -346,6 +347,11 @@ export interface ErrorMessage {
     };
 }
 
+export interface SettingsChangedMessage {
+    type: 'settingsChanged';
+    data: { model?: ModelId; permissionMode?: PermissionMode };
+}
+
 export interface BatchMessage {
     type: 'batch';
     messages: ExtensionMessage[];
@@ -403,7 +409,8 @@ export type ExtensionMessage =
     | AuditStatsMessage
     | BatchMessage
     | ShowEcosystemMessage
-    | EcosystemDataMessage;
+    | EcosystemDataMessage
+    | SettingsChangedMessage;
 
 export type WebviewMessage =
     | SendMessage
@@ -454,6 +461,8 @@ export interface ChatMessage {
     isComplete: boolean;
     /** 按时间顺序的内容块序列（用于按时序混合显示文本和工具） */
     contentBlocks?: ContentBlock[];
+    /** Token usage for this turn (set when complete) */
+    usage?: { inputTokens: number; outputTokens: number };
 }
 
 /** 内容块类型 - 按时间顺序混合显示 */

@@ -1,14 +1,18 @@
-/* Composer Surface - Cursor-style flat input box */
+/* Composer Surface - Refined Modern */
 
 .vc-composer-surface {
     background: var(--vscode-input-background, #ffffff);
     border: 1px solid var(--vc-color-border);
-    border-radius: 12px;
-    transition: border-color 150ms ease-in-out;
+    border-radius: var(--vc-radius-2xl);
+    transition: border-color var(--vc-motion-duration-slow) var(--vc-motion-ease-in-out),
+                box-shadow var(--vc-motion-duration-slow) var(--vc-motion-ease-in-out);
     position: relative;
     contain: unset;
     opacity: 1;
     pointer-events: auto;
+
+    /* Subtle inner shadow for depth */
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
 
     /* Interactive states */
     &--interactive {
@@ -19,6 +23,8 @@
 
     &--interactive:focus-within {
         border-color: var(--vc-color-primary);
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06),
+                    0 0 0 3px color-mix(in srgb, var(--vc-color-primary) 10%, transparent);
     }
 
     /* Loading/muted state */

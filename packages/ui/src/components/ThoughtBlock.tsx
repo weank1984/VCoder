@@ -7,14 +7,16 @@ import { useState, useRef, useEffect } from 'react';
 import { useI18n } from '../i18n/I18nProvider';
 import { ChevronRightIcon } from './Icon';
 import { Collapsible } from './Collapsible';
+import { formatTokens } from '../utils/tokenFormat';
 import './ThoughtBlock.scss';
 
 interface ThoughtBlockProps {
     content: string;
     isComplete?: boolean;
+    usage?: { inputTokens: number; outputTokens: number };
 }
 
-export function ThoughtBlock({ content, isComplete = true }: ThoughtBlockProps) {
+export function ThoughtBlock({ content, isComplete = true, usage }: ThoughtBlockProps) {
     const { t } = useI18n();
     const [isExpanded, setIsExpanded] = useState(!isComplete);
     const wasCompleteRef = useRef(isComplete);
@@ -64,6 +66,16 @@ export function ThoughtBlock({ content, isComplete = true }: ThoughtBlockProps) 
                     <ChevronRightIcon />
                 </span>
                 <span className="thought-label">{label}</span>
+                {isThinking && usage && usage.outputTokens > 0 && (
+                    <span className="thought-token-count">
+                        {'↓ '}{formatTokens(usage.outputTokens)}
+                    </span>
+                )}
+                {!isThinking && usage && (
+                    <span className="thought-token-usage">
+                        {'↑'}{formatTokens(usage.inputTokens)}{' ↓'}{formatTokens(usage.outputTokens)}
+                    </span>
+                )}
             </div>
 
             <Collapsible isOpen={isExpanded && !!displayContent}>

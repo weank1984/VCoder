@@ -15,6 +15,7 @@ import { CopyIcon, CheckIcon } from './Icon';
 import { useI18n } from '../i18n/I18nProvider';
 import { useToast } from '../utils/Toast';
 import { copyToClipboardAsync } from '../utils/clipboard';
+import { formatTokens } from '../utils/tokenFormat';
 import './ChatBubble.scss';
 
 interface ChatBubbleProps {
@@ -82,6 +83,7 @@ function renderContentBlock(
                     key={`thought-${index}`}
                     content={block.content}
                     isComplete={block.isComplete}
+                    usage={message.isComplete ? message.usage : undefined}
                 />
             );
         case 'text': {
@@ -160,8 +162,10 @@ export function ChatBubble({ message }: ChatBubbleProps) {
         return !hasThought && !hasVisibleText;
     }, [contentBlocks, isUser, message.thought, message.toolCalls]);
 
+    const isStreaming = !isUser && message.isComplete === false;
+
     const bubbleClass = `${baseBubbleClass}${isToolOnlyAssistant ? ' vc-bubble--tool-only' : ''}`;
-    const showBottomCursor = !isUser && message.isComplete === false;
+    const showBottomCursor = isStreaming;
 
     const handleCopy = useCallback(async () => {
         if (isCopying) return;
@@ -206,6 +210,9 @@ export function ChatBubble({ message }: ChatBubbleProps) {
                                 <span className="dot" />
                             </span>
                             <span className="vc-typing-label">{t('Agent.Thinking')}</span>
+                            {message.usage && message.usage.outputTokens > 0 && (
+                                <span className="vc-token-count">{'↓ '}{formatTokens(message.usage.outputTokens)}</span>
+                            )}
                         </div>
                     )}
 
@@ -219,6 +226,12 @@ export function ChatBubble({ message }: ChatBubbleProps) {
                             >
                                 {copied ? <CheckIcon /> : <CopyIcon />}
                             </button>
+                            {message.isComplete && message.usage && (
+                                <span className="vc-token-usage-badge">
+                                    {'↑'}{formatTokens(message.usage.inputTokens)}
+                                    {' ↓'}{formatTokens(message.usage.outputTokens)}
+                                </span>
+                            )}
                         </div>
                     )}
                 </div>
