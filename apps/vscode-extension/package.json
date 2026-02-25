@@ -238,10 +238,11 @@
         }
     },
     "scripts": {
-        "vscode:prepublish": "npm run build && npm run package:server",
-        "build": "tsc && pnpm -C webview build",
-        "package:server": "pnpm -C ../../packages/server build && mkdir -p server && cp -r ../../packages/server/dist/* server/",
-        "dev": "tsc --watch",
+        "vscode:prepublish": "pnpm build && pnpm package:server",
+        "build": "rm -rf out && node esbuild.mjs && pnpm -C webview build",
+        "build:types": "tsc --noEmit",
+        "package:server": "pnpm -C ../../packages/server build && rm -rf server && mkdir -p server && node -e \"require('esbuild').buildSync({entryPoints:['../../packages/server/src/index.ts'],bundle:true,platform:'node',target:'node20',format:'cjs',outfile:'server/index.js'})\"",
+        "dev": "node esbuild.mjs && pnpm -C webview build",
         "clean": "rm -rf out",
         "lint": "eslint src"
     },
@@ -254,6 +255,7 @@
         "@types/node": "^20.0.0",
         "@types/vscode": "^1.80.0",
         "@vscode/vsce": "^3.7.1",
+        "esbuild": "^0.24.2",
         "typescript": "^5.3.0"
     }
 }

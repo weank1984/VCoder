@@ -84,9 +84,9 @@ export class BuiltinMcpServer {
             void this.handleRequest(req, res);
         });
 
-        // Start server
+        // Start server (bind to 127.0.0.1 only — matches findAvailablePort check and avoids exposing to network)
         await new Promise<void>((resolve, reject) => {
-            this.server!.listen(this.port, () => {
+            this.server!.listen(this.port, '127.0.0.1', () => {
                 console.log(`[BuiltinMcpServer] Server started on port ${this.port}`);
                 resolve();
             });

@@ -3,18 +3,31 @@
 vsc-extension-quickstart.md
 .eslintrc.json
 tsconfig.json
+tsconfig.tsbuildinfo
+esbuild.mjs
 **/*.map
+**/*.d.ts
 test/**
 src/**
-# Keep essential runtime dependencies for VSIX packaging
-!node_modules/@vcoder/shared/**
-!node_modules/node-pty/**
-!node_modules/@agentclientprotocol/sdk/**
-# Exclude all other node_modules
+# All node_modules excluded — @vcoder/shared and @agentclientprotocol/sdk are bundled by esbuild;
+# node-pty is copied to native-deps/ by esbuild.mjs
 node_modules/**
-# Exclude webview source, but include built dist
+# Exclude webview dev files, keep only dist/
 webview/src/**
 webview/node_modules/**
 webview/tsconfig.json
+webview/tsconfig.app.json
+webview/tsconfig.node.json
 webview/vite.config.ts
 webview/index.html
+webview/eslint.config.js
+webview/package.json
+webview/package-lock.json
+webview/README.md
+webview/UI_COMPONENTS.md
+webview/TESTING_SESSION_SWITCH.md
+webview/test-highlight.html
+webview/public/**
+webview/.turbo/**
+webview/.gitignore
+.turbo/**
