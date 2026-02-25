@@ -351,10 +351,14 @@ export class ClaudeCodeWrapper extends EventEmitter {
         this.setupProcessListeners(sessionId, child);
 
         return new Promise((resolve, reject) => {
-            child.on('close', (code) => {
-                // Exit code 143 = SIGTERM (128+15), 137 = SIGKILL (128+9)
-                // These indicate successful cancellation, not errors
-                if (code === 0 || code === 143 || code === 137 || code === null) {
+            child.on('close', (code, signal) => {
+                // Treat as successful completion if:
+                // - code 0: clean exit
+                // - killed by SIGTERM/SIGKILL signal (user cancel or our stdin.end() timeout fallback)
+                // - code null: process ended via signal (Node.js reports null when signal kills it)
+                // Note: code 143/137 are shell conventions (128+N) but Node.js child_process
+                // reports null+signal instead — keep them for safety but signal check is the real guard.
+                if (code === 0 || code === 143 || code === 137 || code === null || signal === 'SIGTERM' || signal === 'SIGKILL') {
                      this.emit('complete', sessionId);
                      resolve();
                 } else {
@@ -621,11 +625,24 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 
                 // For one-shot prompt sessions, 'result' indicates the end of the turn.
                 // stdin is kept open for permission interaction (stream-json mode), so the
-                // process won't exit by itself. Kill it to resolve the 'prompt' promise.
+                // process won't exit by itself. Close stdin (EOF) to let the CLI exit gracefully,
+                // which ensures the session file is fully written to disk before the process ends.
+                // Using SIGTERM here was the root cause of intermittent --resume failures:
+                // SIGTERM could interrupt the CLI's session-write phase, leaving a partial/missing
+                // session file, causing the next --resume to fail with exit code 1.
                 if (this.processesByLocalSessionId.has(sessionId)) {
-                    console.error(`[ClaudeCode] One-shot session ${sessionId} completed, closing process.`);
+                    console.error(`[ClaudeCode] One-shot session ${sessionId} completed, closing stdin for graceful exit.`);
                     const child = this.processesByLocalSessionId.get(sessionId);
-                    child?.kill('SIGTERM'); 
+                    child?.stdin?.end();
+                    // Fallback: if the CLI doesn't exit within 5 seconds after stdin close, SIGTERM it.
+                    // This guards against a hung CLI while still giving it time to write the session file.
+                    const gracefulTimeout = setTimeout(() => {
+                        if (this.processesByLocalSessionId.has(sessionId)) {
+                            console.error(`[ClaudeCode] Session ${sessionId} did not exit after stdin close, sending SIGTERM.`);
+                            child?.kill('SIGTERM');
+                        }
+                    }, 5000);
+                    child?.on('close', () => clearTimeout(gracefulTimeout));
                 }
                 break;
             }
