@@ -6,9 +6,9 @@
   margin: 0;
   border-radius: 0 0 var(--vc-token-radius-lg, 12px) var(--vc-token-radius-lg, 12px);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  background: rgba(30, 31, 35, 0.85);
+  backdrop-filter: blur(var(--vc-token-glass-blur, 8px));
+  -webkit-backdrop-filter: blur(var(--vc-token-glass-blur, 8px));
+  background: var(--vc-token-glass-bg);
 
   .mc-summary-text {
     margin-left: auto;

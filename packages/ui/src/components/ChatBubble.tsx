@@ -10,6 +10,7 @@ import { ThoughtBlock } from './ThoughtBlock';
 import { StepProgressList } from './StepProgress';
 import { MarkdownContent } from './MarkdownContent';
 import { ExploredSummary } from './ExploredSummary';
+import { PlanModeDivider } from './PlanModeDivider';
 import { partitionToolCalls } from '../utils/toolCallPartitioner';
 import { CopyIcon, CheckIcon } from './Icon';
 import { useI18n } from '../i18n/I18nProvider';
@@ -129,6 +130,12 @@ function renderContentBlock(
 export function ChatBubble({ message }: ChatBubbleProps) {
     const { t } = useI18n();
     const { showError, showSuccess } = useToast();
+
+    // 系统事件消息：直接渲染分隔行，不走气泡逻辑
+    if (message.role === 'system' && message.systemEvent) {
+        return <PlanModeDivider type={message.systemEvent.type} />;
+    }
+
     const isUser = message.role === 'user';
     const baseBubbleClass = `vc-bubble ${isUser ? 'vc-bubble--user' : 'vc-bubble--assistant'}`;
 

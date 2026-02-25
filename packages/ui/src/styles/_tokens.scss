@@ -116,6 +116,8 @@
   --vc-token-glass-border: rgba(255, 255, 255, 0.08);
   --vc-token-glass-blur:   12px;
 
+  --vc-token-hover-soft:   rgba(255, 255, 255, 0.06);
+
   /* ==========================================================================
      Z-INDEX SYSTEM
      ========================================================================== */
@@ -127,4 +129,16 @@
   --vc-token-z-popover:          300;
   --vc-token-z-dropdown:         400;
   --vc-token-z-modal:            500;
+}
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES
+   ========================================================================== */
+
+.vscode-light,
+.vscode-high-contrast-light {
+  --vc-token-glass-bg:     rgba(255, 255, 255, 0.88);
+  --vc-token-glass-border: rgba(0, 0, 0, 0.08);
+  --vc-token-bg-overlay:   rgba(250, 249, 245, 0.92);
+  --vc-token-hover-soft:   rgba(0, 0, 0, 0.05);
 }

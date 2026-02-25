@@ -1,4 +1,4 @@
-import type { SliceCreator, UiSlice } from './types';
+import type { SliceCreator, UiSlice, ChatMessage } from './types';
 import { createSessionState, DEFAULT_MAX_THINKING_TOKENS } from './helpers';
 import { postMessage } from '../../bridge';
 
@@ -37,6 +37,7 @@ export const createUiSlice: SliceCreator<UiSlice> = (set, _get) => ({
     setPermissionMode: (mode) => {
         set((state) => {
             const switchingToPlan = mode === 'plan' && state.permissionMode !== 'plan';
+            const switchingFromPlan = mode !== 'plan' && state.permissionMode === 'plan';
             const currentSessionId = state.currentSessionId;
 
             if (!currentSessionId) {
@@ -51,8 +52,24 @@ export const createUiSlice: SliceCreator<UiSlice> = (set, _get) => ({
 
             const newSessionStates = new Map(state.sessionStates);
             const sessionState = newSessionStates.get(currentSessionId) ?? createSessionState(currentSessionId);
+
+            // 仅在有消息历史时注入系统事件行，避免空会话出现无意义分隔
+            let messages = sessionState.messages;
+            if ((switchingToPlan || switchingFromPlan) && messages.length > 0) {
+                const eventType = switchingToPlan ? 'plan_mode_enter' : 'plan_mode_exit';
+                const sysMsg: ChatMessage = {
+                    id: `sys-plan-${Date.now()}`,
+                    role: 'system',
+                    content: '',
+                    isComplete: true,
+                    systemEvent: { type: eventType },
+                };
+                messages = [...messages, sysMsg];
+            }
+
             newSessionStates.set(currentSessionId, {
                 ...sessionState,
+                messages,
                 tasks: switchingToPlan ? [] : sessionState.tasks,
                 subagentRuns: switchingToPlan ? [] : sessionState.subagentRuns,
                 pendingFileChanges: switchingToPlan ? [] : sessionState.pendingFileChanges,
@@ -65,6 +82,8 @@ export const createUiSlice: SliceCreator<UiSlice> = (set, _get) => ({
                 tasks: switchingToPlan ? [] : state.tasks,
                 subagentRuns: switchingToPlan ? [] : state.subagentRuns,
                 pendingFileChanges: switchingToPlan ? [] : state.pendingFileChanges,
+                // 同步 legacy messages 字段（当前 session 有修改时更新）
+                messages: messages,
                 sessionStates: newSessionStates,
             };
         });

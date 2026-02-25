@@ -9,7 +9,6 @@ import { useVirtualList } from '@vcoder/ui/hooks/useVirtualList';
 import { MissionControl } from '@vcoder/ui/components/MissionControl';
 import { VirtualMessageItem } from '@vcoder/ui/components/VirtualMessageItem';
 import { InputArea, type InputAreaHandle } from '@vcoder/ui/components/InputArea';
-import { SessionHeader } from '@vcoder/ui/components/SessionHeader';
 import { HistoryPanel } from '@vcoder/ui/components/HistoryPanel';
 import { EcosystemPanel } from '@vcoder/ui/components/EcosystemPanel';
 import { AgentTeamsPanel } from '@vcoder/ui/components/AgentTeamsPanel';
@@ -48,7 +47,6 @@ function App() {
   const activeMessageRafRef = useRef<number | null>(null);
 
   const {
-    sessions,
     currentSessionId,
     messages,
     tasks,
@@ -522,12 +520,6 @@ function App() {
 
   return (
     <div className="app">
-      <SessionHeader
-        sessions={sessions}
-        currentSessionId={currentSessionId}
-        onSwitchSession={(sessionId) => postMessage({ type: 'switchSession', sessionId })}
-      />
-
       <MissionControl
         planTasks={tasks}
         subagentRuns={subagentRuns}

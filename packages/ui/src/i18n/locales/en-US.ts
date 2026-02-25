@@ -85,6 +85,10 @@ export default {
     AgentTeamsStep3: 'Agents coordinate via TaskCreate/TaskUpdate',
     AgentTeamsStep4: 'Monitor progress in real-time',
     AgentTeamsLearnMore: 'Learn more in the Claude Code docs',
+    PlanModeEntered: 'Entered plan mode',
+    PlanModeExited: 'Exited plan mode',
+    PlanModeEnteredHint: 'Read-only analysis, no file changes',
+    PlanModeExitedHint: 'Normal permissions restored',
   },
   Chat: {
     WelcomeTitle: 'Write with VCoder',

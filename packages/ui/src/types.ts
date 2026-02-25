@@ -453,8 +453,10 @@ export type WebviewMessage =
     | AnswerQuestionMessage;
 export interface ChatMessage {
     id: string;
-    role: 'user' | 'assistant';
+    role: 'user' | 'assistant' | 'system';
     content: string;
+    /** 仅 role==='system' 时使用，描述系统事件类型 */
+    systemEvent?: { type: 'plan_mode_enter' | 'plan_mode_exit' };
     thought?: string;
     thoughtIsComplete?: boolean;
     toolCalls?: ToolCall[];

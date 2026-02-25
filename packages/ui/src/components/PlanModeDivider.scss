@@ -1,0 +1,98 @@
+/* PlanModeDivider — 计划模式切换系统事件行 */
+
+.plan-mode-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    margin: 2px 0;
+    animation: plan-divider-in var(--vc-token-duration-normal, 200ms) var(--vc-token-ease-out, ease-out);
+
+    &__line {
+        flex: 1;
+        height: 0;
+        border-top: 1px dashed;
+        border-color: rgba(128, 128, 128, 0.2);
+    }
+
+    &__badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px 3px 8px;
+        border-radius: var(--vc-token-radius-full, 9999px);
+        white-space: nowrap;
+        user-select: none;
+    }
+
+    &__icon {
+        display: flex;
+        align-items: center;
+        svg {
+            width: 11px;
+            height: 11px;
+        }
+    }
+
+    &__label {
+        font-size: var(--vc-token-font-xs, 11px);
+        font-weight: var(--vc-token-weight-medium, 500);
+        letter-spacing: 0.01em;
+    }
+
+    &__hint {
+        font-size: var(--vc-token-font-2xs, 10px);
+        opacity: 0.65;
+
+        // Prepend separator
+        &::before {
+            content: '·';
+            margin-right: 4px;
+        }
+    }
+
+    // 进入计划模式：蓝色 accent
+    &--enter {
+        .plan-mode-divider__badge {
+            background: var(--vc-token-accent-soft, rgba(108, 140, 255, 0.12));
+        }
+        .plan-mode-divider__icon,
+        .plan-mode-divider__label {
+            color: var(--vc-token-accent, #6c8cff);
+        }
+        .plan-mode-divider__hint {
+            color: var(--vc-token-accent, #6c8cff);
+        }
+        .plan-mode-divider__line {
+            border-color: rgba(108, 140, 255, 0.2);
+        }
+    }
+
+    // 退出计划模式：绿色 success
+    &--exit {
+        .plan-mode-divider__badge {
+            background: rgba(74, 222, 128, 0.1);
+        }
+        .plan-mode-divider__icon,
+        .plan-mode-divider__label {
+            color: var(--vc-token-success, #4ade80);
+        }
+        .plan-mode-divider__hint {
+            color: var(--vc-token-success, #4ade80);
+        }
+        .plan-mode-divider__line {
+            border-color: rgba(74, 222, 128, 0.2);
+        }
+    }
+}
+
+@keyframes plan-divider-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

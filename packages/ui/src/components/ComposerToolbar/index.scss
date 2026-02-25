@@ -49,7 +49,7 @@
     transition: background var(--vc-token-duration-instant) var(--vc-token-ease-default);
 
     &:hover {
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--vc-token-hover-soft);
     }
 
     &.is-selected {

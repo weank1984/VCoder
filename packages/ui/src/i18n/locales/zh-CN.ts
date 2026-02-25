@@ -85,6 +85,10 @@ export default {
     AgentTeamsStep3: 'Agent 通过 TaskCreate/TaskUpdate 协作',
     AgentTeamsStep4: '实时监控进度',
     AgentTeamsLearnMore: '查看 Claude Code 文档了解更多',
+    PlanModeEntered: '进入计划模式',
+    PlanModeExited: '退出计划模式',
+    PlanModeEnteredHint: '只读分析，不会修改文件',
+    PlanModeExitedHint: '恢复正常权限',
   },
   Chat: {
     WelcomeTitle: '使用 VCoder 编程',

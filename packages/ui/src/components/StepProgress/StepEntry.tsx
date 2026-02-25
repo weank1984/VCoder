@@ -60,6 +60,8 @@ function formatLineRange(lineRange?: [number, number]): string {
 const HIDDEN_TASK_TOOLS = new Set([
     'Task', 'TaskCreate', 'TaskGet', 'TaskList',
     'TaskUpdate', 'TaskOutput', 'TaskStop',
+    // 计划模式 meta-tool：视觉反馈由 PlanModeDivider 负责，工具卡（含错误）一律隐藏
+    'EnterPlanMode', 'ExitPlanMode',
 ]);
 
 export function StepEntry({ entry, onViewFile, onConfirm, onAnswer, hideSummary = false }: StepEntryProps) {

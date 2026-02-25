@@ -19,7 +19,7 @@
     "main": "./out/extension.js",
     "contributes": {
         "viewsContainers": {
-            "activitybar": [
+            "secondarySidebar": [
                 {
                     "id": "vcoder",
                     "title": "VCoder",
@@ -103,13 +103,6 @@
             }
         ],
         "menus": {
-            "editor/title": [
-                {
-                    "command": "vcoder.openChat",
-                    "when": "editorTextFocus",
-                    "group": "navigation@1"
-                }
-            ],
             "view/title": [
                 {
                     "command": "vcoder.newChat",
