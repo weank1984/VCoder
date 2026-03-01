@@ -494,6 +494,30 @@
   max-height: 200px;
 }
 
+// Plan summary markdown container
+.plan-summary-text {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: var(--vc-radius-md);
+  background: var(--vscode-editor-background);
+  padding: var(--vc-space-2) var(--vc-space-3);
+  margin-top: var(--vc-space-2);
+
+  // Reset inner markdown spacing
+  > .markdown-content {
+    font-size: var(--vc-font-size-md);
+
+    > :first-child {
+      margin-top: 0;
+    }
+
+    > :last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
 // Unused - kept for backwards compatibility
 .file-info-row {
   display: none;
