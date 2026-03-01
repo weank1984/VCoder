@@ -297,6 +297,7 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
             permissionRules: [],
             experimentalAgentTeams: false,
             activeTeams: new Map(),
+            systemModeChange: null,
         } satisfies AppState);
     },
 });

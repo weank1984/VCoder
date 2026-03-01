@@ -17,7 +17,6 @@ import {
     SparkleIcon,
     ListCheckIcon,
     EditIcon,
-    RocketIcon,
 } from '../Icon';
 import { useI18n } from '../../i18n/I18nProvider';
 import './index.scss';
@@ -29,15 +28,72 @@ interface ModeOption {
     icon: ReactNode;
 }
 
+// 与 CLI 交互式 UI 对齐：仅暴露可在运行时切换的三种模式
+// dontAsk / bypassPermissions 属于启动参数级别的高级选项，不在运行时 UI 中提供
 const MODE_OPTIONS: ModeOption[] = [
     { id: 'default', label: 'Agent', icon: <SparkleIcon /> },
     { id: 'plan', label: 'Plan', icon: <ListCheckIcon /> },
     { id: 'acceptEdits', label: 'Auto Edit', icon: <EditIcon /> },
-    { id: 'bypassPermissions', label: 'YOLO', icon: <RocketIcon /> },
 ];
 
 function getModeOption(mode: PermissionMode): ModeOption {
     return MODE_OPTIONS.find(m => m.id === mode) ?? MODE_OPTIONS[0];
+}
+
+/* ─── ModeChangeHint — system-initiated mode switch notification ─── */
+interface ModeChangeHintProps {
+    systemModeChange: { fromMode: PermissionMode; toMode: PermissionMode; id: number } | null;
+    triggerRef: React.RefObject<HTMLDivElement | null>;
+}
+
+function ModeChangeHint({ systemModeChange, triggerRef }: ModeChangeHintProps) {
+    const { t } = useI18n();
+    const [visible, setVisible] = useState(false);
+    const [hintStyle, setHintStyle] = useState<React.CSSProperties>({});
+    const prevIdRef = useRef<number | null>(null);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hintRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!systemModeChange || systemModeChange.id === prevIdRef.current) return;
+        prevIdRef.current = systemModeChange.id;
+
+        if (triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setHintStyle({
+                position: 'fixed',
+                bottom: `${window.innerHeight - rect.top + 8}px`,
+                left: `${rect.left}px`,
+            });
+        }
+
+        setVisible(true);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setVisible(false), 3000);
+    }, [systemModeChange, triggerRef]);
+
+    useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+    if (!visible || !systemModeChange) return null;
+
+    const toOption = getModeOption(systemModeChange.toMode);
+    const isDanger = systemModeChange.toMode === 'bypassPermissions' || systemModeChange.toMode === 'dontAsk';
+
+    return createPortal(
+        <div
+            ref={hintRef}
+            className={`mode-change-hint ${isDanger ? 'mode-change-hint--warn' : ''}`}
+            style={hintStyle}
+            onClick={() => setVisible(false)}
+            role="status"
+        >
+            <span className="mode-change-hint__icon">{toOption.icon}</span>
+            <span className="mode-change-hint__text">
+                {t('ModeSwitchedTo', toOption.label)}
+            </span>
+        </div>,
+        document.body
+    );
 }
 
 /* ─── ModeSelector sub-component ─── */
@@ -45,9 +101,10 @@ interface ModeSelectorProps {
     currentMode: PermissionMode;
     onSelectMode: (mode: PermissionMode) => void;
     disabled?: boolean;
+    systemModeChange?: { fromMode: PermissionMode; toMode: PermissionMode; id: number } | null;
 }
 
-function ModeSelector({ currentMode, onSelectMode, disabled }: ModeSelectorProps) {
+function ModeSelector({ currentMode, onSelectMode, disabled, systemModeChange }: ModeSelectorProps) {
     const [isOpen, setIsOpen] = useState(false);
     const triggerRef = useRef<HTMLDivElement>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
@@ -130,6 +187,8 @@ function ModeSelector({ currentMode, onSelectMode, disabled }: ModeSelectorProps
                 <span className="dropdown-chevron"><ArrowBottomIcon /></span>
             </button>
 
+            <ModeChangeHint systemModeChange={systemModeChange ?? null} triggerRef={triggerRef} />
+
             {isOpen && createPortal(
                 <>
                     <div className="mode-selector__overlay" onClick={() => setIsOpen(false)} />
@@ -166,6 +225,7 @@ export interface ComposerToolbarProps {
     showModelSelector?: boolean;
     currentMode?: PermissionMode;
     onSelectMode?: (mode: PermissionMode) => void;
+    systemModeChange?: { fromMode: PermissionMode; toMode: PermissionMode; id: number } | null;
     selectedModel?: ModelId;
     onSelectModel?: (model: ModelId) => void;
     showImageButton?: boolean;
@@ -187,6 +247,7 @@ export function ComposerToolbar({
     showModelSelector = true,
     currentMode = 'default',
     onSelectMode,
+    systemModeChange,
     selectedModel,
     onSelectModel,
     showImageButton = true,
@@ -211,6 +272,7 @@ export function ComposerToolbar({
                     <ModeSelector
                         currentMode={currentMode}
                         onSelectMode={onSelectMode}
+                        systemModeChange={systemModeChange}
                         disabled={disabled}
                     />
                 )}

@@ -572,6 +572,7 @@ export interface AppState {
     pendingFileChanges: Array<FileChangeUpdate & { sessionId: string; receivedAt: number; conflict?: boolean }>;
     planMode: boolean;
     permissionMode: PermissionMode;
+    systemModeChange: { fromMode: PermissionMode; toMode: PermissionMode; id: number } | null;
     thinkingEnabled: boolean;
     model: ModelId;
     isLoading: boolean;

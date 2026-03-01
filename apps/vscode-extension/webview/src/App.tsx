@@ -315,7 +315,7 @@ function App() {
           {
             const { model, permissionMode } = message.data;
             if (model) useStore.setState({ model });
-            if (permissionMode) useStore.setState({ permissionMode });
+            if (permissionMode) useStore.getState().setPermissionModeFromSystem(permissionMode);
           }
           break;
         case 'error':

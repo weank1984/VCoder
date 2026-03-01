@@ -115,6 +115,10 @@ export const createHistorySlice: SliceCreator<HistorySlice> = (set, _get) => ({
             historyTeamMessages: teamMessages,
         });
 
+        // 恢复该历史会话的 permissionMode（只读展示，不回传给 host）
+        const historySession = state.historySessions.find(s => s.id === sessionId);
+        const permissionMode = historySession?.permissionMode ?? 'default';
+
         return {
             viewMode: 'history',
             currentSessionId: sessionId,
@@ -122,6 +126,8 @@ export const createHistorySlice: SliceCreator<HistorySlice> = (set, _get) => ({
             messages,
             isLoading: false,
             pendingFileChanges: [],
+            permissionMode,
+            planMode: permissionMode === 'plan',
         };
     }),
 

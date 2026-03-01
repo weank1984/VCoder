@@ -21,6 +21,7 @@ import {
     ErrorUpdate,
     ConfirmationRequestUpdate,
     ConfirmationType,
+    SettingsChangedUpdate,
     TeamUpdate,
     TokenUsageUpdate,
 } from '@vcoder/shared';
@@ -915,6 +916,22 @@ export class ClaudeCodeWrapper extends EventEmitter {
     ): ConfirmationRequestUpdate {
         const lower = toolName.toLowerCase();
 
+        if (lower === 'exitplanmode' || lower === 'enterplanmode') {
+            const planSummary = typeof toolInput.plan === 'string' ? toolInput.plan : undefined;
+            const tasks = Array.isArray(toolInput.tasks) ? toolInput.tasks : undefined;
+            const isEnter = lower === 'enterplanmode';
+            return {
+                id: `confirm-${toolCallId}-${Date.now()}`,
+                type: 'plan',
+                toolCallId,
+                summary: isEnter ? '进入规划模式' : '退出规划模式，开始执行',
+                details: {
+                    ...(tasks ? { tasks } : {}),
+                    ...(planSummary ? { planSummary } : {}),
+                },
+            };
+        }
+
         if (lower === 'bash' || lower.includes('bash')) {
             const command =
                 (typeof toolInput.command === 'string' && toolInput.command) ||
@@ -1583,6 +1600,18 @@ export class ClaudeCodeWrapper extends EventEmitter {
             }
 
             this.sendControlResponse(sessionId, requestId, response);
+
+            // EnterPlanMode / ExitPlanMode 批准后主动同步模式到 UI
+            const toolNameLower = pending.toolName.toLowerCase();
+            if (toolNameLower === 'enterplanmode') {
+                this.settings.permissionMode = 'plan';
+                const modeUpdate: SettingsChangedUpdate = { permissionMode: 'plan' };
+                this.emit('update', sessionId, modeUpdate, 'settings_changed');
+            } else if (toolNameLower === 'exitplanmode') {
+                this.settings.permissionMode = 'default';
+                const modeUpdate: SettingsChangedUpdate = { permissionMode: 'default' };
+                this.emit('update', sessionId, modeUpdate, 'settings_changed');
+            }
         } else {
             this.sendControlResponse(sessionId, requestId, {
                 behavior: 'deny',

@@ -56,6 +56,7 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
         historySessions,
         exitHistoryMode,
         permissionMode,
+        systemModeChange,
         setPermissionMode,
         setModel,
         addMessage,
@@ -352,6 +353,7 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                         onApply={viewMode === 'history' ? handleResumeHistory : undefined}
                         onCancel={viewMode === 'history' ? exitHistoryMode : undefined}
                         currentMode={permissionMode}
+                        systemModeChange={systemModeChange}
                         onSelectMode={setPermissionMode}
                         selectedModel={model}
                         onSelectModel={setModel}

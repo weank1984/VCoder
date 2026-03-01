@@ -66,6 +66,9 @@ export default {
     ModePlanDesc: '只读模式，执行前展示计划',
     ModeAcceptEdits: '自动编辑',
     ModeAcceptEditsDesc: '自动批准文件编辑',
+    ModeDontAsk: '静默',
+    ModeDontAskDesc: '不弹出任何权限确认，静默执行',
+    ModeSwitchedTo: 'Claude 切换为 {0}',
     ModeBypass: 'Yolo',
     ModeBypassDesc: '跳过所有权限检查（谨慎使用）',
     // Agent Teams experimental

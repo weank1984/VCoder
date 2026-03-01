@@ -10,7 +10,7 @@ import * as fsPromises from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import * as readline from 'readline';
-import type { HistorySession, HistoryChatMessage, HistoryToolCall, HistoryContentBlock, HistoryTeammateMessage, HistoryLoadResult } from '@vcoder/shared';
+import type { HistorySession, HistoryChatMessage, HistoryToolCall, HistoryContentBlock, HistoryTeammateMessage, HistoryLoadResult, PermissionMode } from '@vcoder/shared';
 
 /**
  * Derive the projectKey from a workspace path.
@@ -428,22 +428,28 @@ async function extractSessionMetadata(
     let firstEvent: any = null;
     let lastEvent: any = null;
     let title = '未命名会话';
+    let lastPermissionMode: string | undefined;
 
     for await (const line of rl) {
         if (!line.trim()) continue;
 
         try {
             const event = JSON.parse(line);
-            
+
             // Skip sidechain events (Claude CLI internal messages like "Warmup")
             if (event.isSidechain === true) {
                 continue;
             }
-            
+
             if (!firstEvent) {
                 firstEvent = event;
             }
             lastEvent = event;
+
+            // Track permissionMode from each event (last one wins)
+            if (typeof event.permissionMode === 'string') {
+                lastPermissionMode = event.permissionMode;
+            }
 
             // Extract title from first user message
             if (!title || title === '未命名会话') {
@@ -480,6 +486,7 @@ async function extractSessionMetadata(
 
     const createdAt = extractTimestamp(firstEvent) || new Date().toISOString();
     const updatedAt = extractTimestamp(lastEvent) || createdAt;
+    const permissionMode = isValidPermissionMode(lastPermissionMode) ? lastPermissionMode : undefined;
 
     return {
         id: sessionId,
@@ -487,6 +494,7 @@ async function extractSessionMetadata(
         createdAt,
         updatedAt,
         projectKey,
+        ...(permissionMode ? { permissionMode } : {}),
     };
 }
 
@@ -988,6 +996,7 @@ async function extractMetadataFromLargeFile(
 
     let firstEvent: any = null;
     let title = '未命名会话';
+    let firstPermissionMode: string | undefined;
 
     try {
         for await (const line of rl) {
@@ -995,13 +1004,16 @@ async function extractMetadataFromLargeFile(
 
             try {
                 const event = JSON.parse(line);
-                
+
                 if (event.isSidechain === true) {
                     continue;
                 }
-                
+
                 if (!firstEvent) {
                     firstEvent = event;
+                    if (typeof event.permissionMode === 'string') {
+                        firstPermissionMode = event.permissionMode;
+                    }
                 }
 
                 const role = getEventRole(event);
@@ -1041,6 +1053,7 @@ async function extractMetadataFromLargeFile(
 
     const createdAt = extractTimestamp(firstEvent) || new Date().toISOString();
     const updatedAt = createdAt;
+    const permissionMode = isValidPermissionMode(firstPermissionMode) ? firstPermissionMode : undefined;
 
     return {
         id: sessionId,
@@ -1048,7 +1061,12 @@ async function extractMetadataFromLargeFile(
         title,
         createdAt,
         updatedAt,
+        ...(permissionMode ? { permissionMode } : {}),
     };
+}
+
+function isValidPermissionMode(value: string | undefined): value is PermissionMode {
+    return value === 'default' || value === 'plan' || value === 'acceptEdits' || value === 'dontAsk' || value === 'bypassPermissions';
 }
 
 /**

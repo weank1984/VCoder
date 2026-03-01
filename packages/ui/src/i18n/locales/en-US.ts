@@ -66,6 +66,9 @@ export default {
     ModePlanDesc: 'Read-only, shows plan before execution',
     ModeAcceptEdits: 'Auto-Edit',
     ModeAcceptEditsDesc: 'Auto-approve file edits',
+    ModeDontAsk: 'No Ask',
+    ModeDontAskDesc: 'Run without any permission prompts',
+    ModeSwitchedTo: 'Claude switched to {0}',
     ModeBypass: 'Yolo',
     ModeBypassDesc: 'Skip all permission checks (use with caution)',
     // Agent Teams experimental

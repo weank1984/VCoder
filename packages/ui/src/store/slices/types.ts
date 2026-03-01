@@ -36,6 +36,7 @@ export interface SessionsSlice {
 export interface UiSlice {
     setPlanMode: (enabled: boolean) => void;
     setPermissionMode: (mode: PermissionMode) => void;
+    setPermissionModeFromSystem: (mode: PermissionMode) => void;
     setThinkingEnabled: (enabled: boolean) => void;
     setModel: (model: ModelId) => void;
     setLoading: (loading: boolean) => void;

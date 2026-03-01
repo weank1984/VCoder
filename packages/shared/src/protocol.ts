@@ -212,9 +212,10 @@ export type ModelId =
  * - 'default': Normal permission checks
  * - 'plan': Plan mode - AI plans before executing
  * - 'acceptEdits': Auto-accept file edits
+ * - 'dontAsk': Run without asking for any permissions (no prompts)
  * - 'bypassPermissions': Skip all permission checks (sandbox only)
  */
-export type PermissionMode = 'default' | 'plan' | 'acceptEdits' | 'bypassPermissions';
+export type PermissionMode = 'default' | 'plan' | 'acceptEdits' | 'dontAsk' | 'bypassPermissions';
 
 export interface SettingsChangeParams {
     sessionId: string;
@@ -504,6 +505,8 @@ export interface HistorySession {
     updatedAt: string;
     /** Project key (derived from workspace path) */
     projectKey: string;
+    /** Permission mode active at the end of the session */
+    permissionMode?: PermissionMode;
 }
 
 export interface HistoryListParams {

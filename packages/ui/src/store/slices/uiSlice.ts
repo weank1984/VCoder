@@ -90,6 +90,65 @@ export const createUiSlice: SliceCreator<UiSlice> = (set, _get) => ({
         postMessage({ type: 'setPermissionMode', mode });
     },
 
+    setPermissionModeFromSystem: (mode) => {
+        set((state) => {
+            const fromMode = state.permissionMode;
+            if (fromMode === mode) return {};
+
+            const switchingToPlan = mode === 'plan' && fromMode !== 'plan';
+            const switchingFromPlan = mode !== 'plan' && fromMode === 'plan';
+            const currentSessionId = state.currentSessionId;
+
+            if (!currentSessionId) {
+                return {
+                    permissionMode: mode,
+                    planMode: mode === 'plan',
+                    tasks: switchingToPlan ? [] : state.tasks,
+                    subagentRuns: switchingToPlan ? [] : state.subagentRuns,
+                    pendingFileChanges: switchingToPlan ? [] : state.pendingFileChanges,
+                    systemModeChange: { fromMode, toMode: mode, id: Date.now() },
+                };
+            }
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(currentSessionId) ?? createSessionState(currentSessionId);
+
+            let messages = sessionState.messages;
+            if ((switchingToPlan || switchingFromPlan) && messages.length > 0) {
+                const eventType = switchingToPlan ? 'plan_mode_enter' : 'plan_mode_exit';
+                const sysMsg: ChatMessage = {
+                    id: `sys-plan-${Date.now()}`,
+                    role: 'system',
+                    content: '',
+                    isComplete: true,
+                    systemEvent: { type: eventType },
+                };
+                messages = [...messages, sysMsg];
+            }
+
+            newSessionStates.set(currentSessionId, {
+                ...sessionState,
+                messages,
+                tasks: switchingToPlan ? [] : sessionState.tasks,
+                subagentRuns: switchingToPlan ? [] : sessionState.subagentRuns,
+                pendingFileChanges: switchingToPlan ? [] : sessionState.pendingFileChanges,
+                updatedAt: Date.now(),
+            });
+
+            return {
+                permissionMode: mode,
+                planMode: mode === 'plan',
+                tasks: switchingToPlan ? [] : state.tasks,
+                subagentRuns: switchingToPlan ? [] : state.subagentRuns,
+                pendingFileChanges: switchingToPlan ? [] : state.pendingFileChanges,
+                messages,
+                sessionStates: newSessionStates,
+                systemModeChange: { fromMode, toMode: mode, id: Date.now() },
+            };
+        });
+        // 不回传 postMessage，避免循环
+    },
+
     setThinkingEnabled: (enabled) => {
         set({ thinkingEnabled: enabled });
         postMessage({

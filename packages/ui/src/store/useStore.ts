@@ -1,6 +1,6 @@
 import { create } from './createStore';
 import type { AppState, UiLanguage } from '../types';
-import type { ModelId, PermissionMode } from '@vcoder/shared';
+import type { ModelId } from '@vcoder/shared';
 import { loadPersistedState, savePersistedState } from '../utils/persist';
 import type { AppStore } from './slices';
 import {
@@ -28,9 +28,6 @@ function isBoolean(value: unknown): value is boolean {
     return value === true || value === false;
 }
 
-function isPermissionMode(value: unknown): value is PermissionMode {
-    return value === 'default' || value === 'plan' || value === 'acceptEdits' || value === 'bypassPermissions';
-}
 
 function isModelId(value: unknown): value is ModelId {
     return (
@@ -57,6 +54,7 @@ const initialState: AppState = {
     pendingFileChanges: [],
     planMode: false,
     permissionMode: 'default',
+    systemModeChange: null,
     thinkingEnabled: false,
     model: 'claude-haiku-4-5-20251001',
     isLoading: false,
@@ -79,8 +77,8 @@ const initialState: AppState = {
 const restoredState: AppState = {
     ...initialState,
     model: isModelId(persisted.model) ? persisted.model : initialState.model,
-    planMode: isBoolean(persisted.planMode) ? persisted.planMode : initialState.planMode,
-    permissionMode: isPermissionMode(persisted.permissionMode) ? persisted.permissionMode : initialState.permissionMode,
+    planMode: false,           // 始终以 default 模式启动，不恢复上次的模式
+    permissionMode: 'default', // 始终以 default 模式启动，不恢复上次的模式
     thinkingEnabled: isBoolean(persisted.thinkingEnabled) ? persisted.thinkingEnabled : initialState.thinkingEnabled,
     currentSessionId: persisted.currentSessionId ?? initialState.currentSessionId,
     uiLanguage: getInitialUiLanguage(),
