@@ -465,10 +465,12 @@ function truncateText(text: string, maxLen: number): string {
 }
 
 function truncateCommand(command: string): string {
-    const maxLen = 50;
     const singleLine = command.replace(/\n/g, ' ').trim();
-    if (singleLine.length <= maxLen) return singleLine;
-    return singleLine.slice(0, maxLen) + '...';
+    // Short commands: show in full
+    if (singleLine.length <= 40) return singleLine;
+    // Long commands: show only the binary name to avoid cluttered paths/flags
+    const firstToken = singleLine.split(/\s+/)[0];
+    return firstToken.split(/[/\\]/).pop() || firstToken;
 }
 
 function extractDomain(url: string): string {
