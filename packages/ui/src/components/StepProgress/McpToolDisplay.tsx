@@ -32,6 +32,8 @@ interface McpToolDisplayProps {
     error?: string;
     /** Default collapsed state */
     defaultCollapsed?: boolean;
+    /** Hide header when rendered inside a single-entry StepItem */
+    hideHeader?: boolean;
 }
 
 interface McpInfo {
@@ -95,9 +97,10 @@ export function McpToolDisplay({
     status,
     error,
     defaultCollapsed = false,
+    hideHeader = false,
 }: McpToolDisplayProps) {
     const { t } = useI18n();
-    const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+    const [isCollapsed, setIsCollapsed] = useState(hideHeader ? false : defaultCollapsed);
     const [showFullInput, setShowFullInput] = useState(false);
     const [showFullResult, setShowFullResult] = useState(false);
     
@@ -125,34 +128,36 @@ export function McpToolDisplay({
     }
     
     return (
-        <div className={`mcp-tool-display ${status} ${isCollapsed ? 'collapsed' : ''}`}>
+        <div className={`mcp-tool-display ${status} ${isCollapsed ? 'collapsed' : ''} ${hideHeader ? 'no-header' : ''}`}>
             {/* MCP Tool Header */}
-            <div className="mcp-header" onClick={() => setIsCollapsed(!isCollapsed)}>
-                <span className="mcp-icon">
-                    <McpIcon />
-                </span>
-                <div className="mcp-info">
-                    <div className="mcp-tool-name">
-                        <span className="mcp-server-badge" title={`MCP Server: ${mcpInfo.server}`}>
-                            {mcpInfo.server}
-                        </span>
-                        <span className="mcp-tool">{mcpInfo.tool}</span>
-                    </div>
-                    {!isCollapsed && (
-                        <div className="mcp-summary">
-                            {inputSummary}
+            {!hideHeader && (
+                <div className="mcp-header" onClick={() => setIsCollapsed(!isCollapsed)}>
+                    <span className="mcp-icon">
+                        <McpIcon />
+                    </span>
+                    <div className="mcp-info">
+                        <div className="mcp-tool-name">
+                            <span className="mcp-server-badge" title={`MCP Server: ${mcpInfo.server}`}>
+                                {mcpInfo.server}
+                            </span>
+                            <span className="mcp-tool">{mcpInfo.tool}</span>
                         </div>
-                    )}
+                        {!isCollapsed && (
+                            <div className="mcp-summary">
+                                {inputSummary}
+                            </div>
+                        )}
+                    </div>
+                    <div className="mcp-status-area">
+                        <span className={`mcp-status-icon ${status}`} title={error || undefined}>
+                            {statusIcon}
+                        </span>
+                        <span className="mcp-collapse-icon">
+                            {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
+                        </span>
+                    </div>
                 </div>
-                <div className="mcp-status-area">
-                    <span className={`mcp-status-icon ${status}`} title={error || undefined}>
-                        {statusIcon}
-                    </span>
-                    <span className="mcp-collapse-icon">
-                        {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
-                    </span>
-                </div>
-            </div>
+            )}
             
             {/* MCP Tool Content */}
             {!isCollapsed && (

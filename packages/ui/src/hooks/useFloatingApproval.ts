@@ -20,9 +20,16 @@ export interface FloatingApprovalState {
  * (excluding subagent child calls) and provides action callbacks.
  */
 export function useFloatingApproval(): FloatingApprovalState {
-    const { messages, confirmTool, answerQuestion } = useStore();
+    const { messages, isLoading, confirmTool, answerQuestion } = useStore();
 
     const { pendingToolCall, pendingCount, isQuestion } = useMemo(() => {
+        // Don't show approval prompts when there is no active session.
+        // handleSessionComplete marks in-flight tool calls as failed, but this
+        // guard also prevents any brief flash if the store update is delayed.
+        if (!isLoading) {
+            return { pendingToolCall: null, pendingCount: 0, isQuestion: false };
+        }
+
         let latest: ToolCall | null = null;
         let count = 0;
 
@@ -46,7 +53,7 @@ export function useFloatingApproval(): FloatingApprovalState {
             pendingCount: count,
             isQuestion: latest?.confirmationType === 'user_question',
         };
-    }, [messages]);
+    }, [messages, isLoading]);
 
     const onConfirm = useCallback(
         (tc: ToolCall, approved: boolean, options?: { trustAlways?: boolean; editedContent?: string }) => {

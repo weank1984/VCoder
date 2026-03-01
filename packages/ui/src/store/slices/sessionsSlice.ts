@@ -182,6 +182,9 @@ export const createSessionsSlice: SliceCreator<SessionsSlice> = (set, get) => ({
             const sessionState = newSessionStates.get(targetSessionId);
             if (!sessionState) return {};
 
+            const now = Date.now();
+
+            // Mark the last assistant message as complete.
             const messages = [...sessionState.messages];
             if (messages.length > 0) {
                 const lastIndex = messages.length - 1;
@@ -191,10 +194,42 @@ export const createSessionsSlice: SliceCreator<SessionsSlice> = (set, get) => ({
                 }
             }
 
-            newSessionStates.set(targetSessionId, { ...sessionState, messages, updatedAt: Date.now() });
+            // On non-normal termination, finalize all in-flight tool calls and subagent
+            // runs so the UI doesn't keep showing spinners or stale approval prompts.
+            if (reason !== 'completed') {
+                for (let i = 0; i < messages.length; i++) {
+                    const msg = messages[i];
+                    if (!msg.toolCalls) continue;
+                    let changed = false;
+                    const toolCalls = msg.toolCalls.map((tc) => {
+                        if (
+                            tc.status === 'running' ||
+                            tc.status === 'pending' ||
+                            tc.status === 'awaiting_confirmation'
+                        ) {
+                            changed = true;
+                            return { ...tc, status: 'failed' as const };
+                        }
+                        return tc;
+                    });
+                    if (changed) messages[i] = { ...msg, toolCalls };
+                }
+            }
+
+            // Mark any still-running subagent runs as failed so their timers stop.
+            const subagentRuns = reason !== 'completed'
+                ? sessionState.subagentRuns.map((run) =>
+                    run.status === 'running'
+                        ? { ...run, status: 'failed' as const, completedAt: now }
+                        : run
+                )
+                : sessionState.subagentRuns;
+
+            newSessionStates.set(targetSessionId, { ...sessionState, messages, subagentRuns, updatedAt: now });
             return {
                 sessionStates: newSessionStates,
                 messages: targetSessionId === state.currentSessionId ? messages : state.messages,
+                subagentRuns: targetSessionId === state.currentSessionId ? subagentRuns : state.subagentRuns,
             };
         });
 

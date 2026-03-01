@@ -31,6 +31,7 @@ interface DiffViewerFullProps {
     actionsDisabled?: boolean;
     defaultCollapsed?: boolean;
     onViewFile?: (path: string) => void;
+    hideHeader?: boolean;
 }
 
 export function DiffViewerFull({
@@ -41,9 +42,10 @@ export function DiffViewerFull({
     actionsDisabled = false,
     defaultCollapsed = false,
     onViewFile,
+    hideHeader = false,
 }: DiffViewerFullProps) {
     const { t } = useI18n();
-    const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+    const [isCollapsed, setIsCollapsed] = useState(hideHeader ? false : defaultCollapsed);
     const [showAllLines, setShowAllLines] = useState(false);
 
     const stats = useMemo(() => parseDiffStats(diff), [diff]);
@@ -93,88 +95,90 @@ export function DiffViewerFull({
     }, []);
 
     return (
-        <div className={`diff-viewer ${isCollapsed ? 'collapsed' : ''}`}>
-            <div className="diff-header" onClick={() => setIsCollapsed(!isCollapsed)}>
-                <span className="diff-icon">
-                    <FileIcon />
-                </span>
-                <div className="diff-info">
-                    <div className="diff-file-path">
-                        <FilePath path={filePath} variant="compact" />
+        <div className={`diff-viewer ${isCollapsed ? 'collapsed' : ''} ${hideHeader ? 'no-header' : ''}`}>
+            {!hideHeader && (
+                <div className="diff-header" onClick={() => setIsCollapsed(!isCollapsed)}>
+                    <span className="diff-icon">
+                        <FileIcon />
+                    </span>
+                    <div className="diff-info">
+                        <div className="diff-file-path">
+                            <FilePath path={filePath} variant="compact" />
+                        </div>
+                        <div className="diff-stats">
+                            <span className="diff-type-label">{fileTypeLabel}</span>
+                            {stats.additions > 0 && (
+                                <span className="diff-stat additions">
+                                    +{stats.additions}
+                                </span>
+                            )}
+                            {stats.deletions > 0 && (
+                                <span className="diff-stat deletions">
+                                    -{stats.deletions}
+                                </span>
+                            )}
+                            {stats.changes > 0 && (
+                                <span className="diff-stat-summary">
+                                    {t('Agent.LinesChanged', [stats.changes])}
+                                </span>
+                            )}
+                        </div>
                     </div>
-                    <div className="diff-stats">
-                        <span className="diff-type-label">{fileTypeLabel}</span>
-                        {stats.additions > 0 && (
-                            <span className="diff-stat additions">
-                                +{stats.additions}
-                            </span>
+                    <div className="diff-actions-header">
+                        {!actionsDisabled && onAccept && onReject && (
+                            <>
+                                <button
+                                    className="diff-accept-btn"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onAccept();
+                                    }}
+                                    title={t('Agent.AcceptChanges')}
+                                >
+                                    <CheckIcon />
+                                    <span>{t('Agent.AcceptChanges')}</span>
+                                </button>
+                                <button
+                                    className="diff-reject-btn"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onReject();
+                                    }}
+                                    title={t('Agent.RejectChanges')}
+                                >
+                                    <StopIcon />
+                                    <span>{t('Agent.RejectChanges')}</span>
+                                </button>
+                            </>
                         )}
-                        {stats.deletions > 0 && (
-                            <span className="diff-stat deletions">
-                                -{stats.deletions}
-                            </span>
-                        )}
-                        {stats.changes > 0 && (
-                            <span className="diff-stat-summary">
-                                {t('Agent.LinesChanged', [stats.changes])}
-                            </span>
-                        )}
-                    </div>
-                </div>
-                <div className="diff-actions-header">
-                    {!actionsDisabled && onAccept && onReject && (
-                        <>
+                        {onViewFile && (
                             <button
-                                className="diff-accept-btn"
+                                className="diff-view-btn"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    onAccept();
+                                    onViewFile(filePath);
                                 }}
-                                title={t('Agent.AcceptChanges')}
+                                title={t('Agent.OpenInEditor')}
                             >
-                                <CheckIcon />
-                                <span>{t('Agent.AcceptChanges')}</span>
+                                <EditorIcon />
                             </button>
-                            <button
-                                className="diff-reject-btn"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onReject();
-                                }}
-                                title={t('Agent.RejectChanges')}
-                            >
-                                <StopIcon />
-                                <span>{t('Agent.RejectChanges')}</span>
-                            </button>
-                        </>
-                    )}
-                    {onViewFile && (
+                        )}
                         <button
-                            className="diff-view-btn"
+                            className="diff-copy-btn"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onViewFile(filePath);
+                                copyToClipboard(diff);
                             }}
-                            title={t('Agent.OpenInEditor')}
+                            title={t('Agent.CopyCode')}
                         >
-                            <EditorIcon />
+                            <CopyIcon />
                         </button>
-                    )}
-                    <button
-                        className="diff-copy-btn"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            copyToClipboard(diff);
-                        }}
-                        title={t('Agent.CopyCode')}
-                    >
-                        <CopyIcon />
-                    </button>
-                    <span className="diff-collapse-icon">
-                        {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
-                    </span>
+                        <span className="diff-collapse-icon">
+                            {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
+                        </span>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {!isCollapsed && (
                 <div className="diff-content">

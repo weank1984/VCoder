@@ -73,17 +73,27 @@ export function appendContentBlock(target: ChatMessage, block: ContentBlock): vo
             blocks.push(block);
         }
     } else if (block.type === 'thought') {
-        // Find existing thought block anywhere in array (not just last position),
-        // because text or tool blocks may have been appended after the thought block
-        const thoughtIndex = blocks.findIndex(b => b.type === 'thought');
+        // Find the LAST thought block (there may be multiple thinking phases per message)
+        let thoughtIndex = -1;
+        for (let i = blocks.length - 1; i >= 0; i--) {
+            if (blocks[i].type === 'thought') {
+                thoughtIndex = i;
+                break;
+            }
+        }
         if (thoughtIndex >= 0) {
-            // Append incremental delta (same as text blocks)
             const existing = blocks[thoughtIndex] as Extract<ContentBlock, { type: 'thought' }>;
-            blocks[thoughtIndex] = {
-                ...existing,
-                content: existing.content + block.content,
-                isComplete: block.isComplete
-            };
+            if (existing.isComplete) {
+                // Previous thinking phase is done — start a new thought block
+                blocks.push(block);
+            } else {
+                // Still in the same thinking phase — append incremental delta
+                blocks[thoughtIndex] = {
+                    ...existing,
+                    content: existing.content + block.content,
+                    isComplete: block.isComplete,
+                };
+            }
         } else {
             blocks.push(block);
         }

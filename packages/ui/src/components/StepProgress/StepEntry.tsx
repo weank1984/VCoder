@@ -243,6 +243,7 @@ export function StepEntry({ entry, onViewFile, onConfirm, onAnswer, hideSummary 
                             fallbackPath={entry.target.fullPath ?? ''}
                             onConfirm={onConfirm ? (t, approve) => onConfirm(t, approve) : undefined}
                             onViewFile={onViewFile ? (path) => onViewFile(path) : undefined}
+                            hideHeader={hideSummary}
                         />
                     )}
 
@@ -254,6 +255,7 @@ export function StepEntry({ entry, onViewFile, onConfirm, onAnswer, hideSummary 
                             status={tc.status === 'awaiting_confirmation' ? 'pending' : tc.status}
                             error={tc.error}
                             defaultCollapsed={false}
+                            hideHeader={hideSummary}
                         />
                     )}
 

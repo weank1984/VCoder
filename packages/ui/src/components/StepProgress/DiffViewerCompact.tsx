@@ -13,15 +13,17 @@ interface DiffViewerCompactProps {
     filePath: string;
     diff: string;
     defaultCollapsed?: boolean;
+    hideHeader?: boolean;
 }
 
 export function DiffViewerCompact({
     filePath,
     diff,
     defaultCollapsed = false,
+    hideHeader = false,
 }: DiffViewerCompactProps) {
     const { t } = useI18n();
-    const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+    const [isCollapsed, setIsCollapsed] = useState(hideHeader ? false : defaultCollapsed);
     const [showAllLines] = useState(false);
 
     const stats = useMemo(() => parseDiffStats(diff), [diff]);
@@ -58,23 +60,25 @@ export function DiffViewerCompact({
     }, []);
 
     return (
-        <div className={`diff-viewer ${isCollapsed ? 'collapsed' : ''} diff-viewer--compact`}>
-            <div className="diff-header" onClick={() => setIsCollapsed(!isCollapsed)}>
-                <span className="diff-compact-chevron">
-                    {isCollapsed ? '▸' : '▾'}
-                </span>
-                <span className="diff-compact-filename" title={filePath}>
-                    {basename}
-                </span>
-                <div className="diff-stats">
-                    {stats.additions > 0 && (
-                        <span className="diff-stat additions">+{stats.additions}</span>
-                    )}
-                    {stats.deletions > 0 && (
-                        <span className="diff-stat deletions">-{stats.deletions}</span>
-                    )}
+        <div className={`diff-viewer ${isCollapsed ? 'collapsed' : ''} diff-viewer--compact ${hideHeader ? 'no-header' : ''}`}>
+            {!hideHeader && (
+                <div className="diff-header" onClick={() => setIsCollapsed(!isCollapsed)}>
+                    <span className="diff-compact-chevron">
+                        {isCollapsed ? '▸' : '▾'}
+                    </span>
+                    <span className="diff-compact-filename" title={filePath}>
+                        {basename}
+                    </span>
+                    <div className="diff-stats">
+                        {stats.additions > 0 && (
+                            <span className="diff-stat additions">+{stats.additions}</span>
+                        )}
+                        {stats.deletions > 0 && (
+                            <span className="diff-stat deletions">-{stats.deletions}</span>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {!isCollapsed && (
                 <div className="diff-content">

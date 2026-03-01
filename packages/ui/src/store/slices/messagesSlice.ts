@@ -196,38 +196,19 @@ export const createMessagesSlice: SliceCreator<MessagesSlice> = (set, get) => ({
     setThoughtComplete: (sessionId) =>
         set((state) => {
             const targetSessionId = sessionId ?? state.currentSessionId;
-            if (!targetSessionId) {
-                const messages = [...state.messages];
-                const lastIndex = messages.length - 1;
-                const last = messages[lastIndex];
-                if (last && last.role === 'assistant' && !last.isComplete) {
-                    const target = { ...last };
-                    target.thoughtIsComplete = true;
-                    if (target.contentBlocks) {
-                        const blocks = [...target.contentBlocks];
-                        const thoughtIndex = blocks.findIndex(b => b.type === 'thought');
-                        if (thoughtIndex >= 0) {
-                            const tb = blocks[thoughtIndex] as Extract<ContentBlock, { type: 'thought' }>;
-                            blocks[thoughtIndex] = { ...tb, isComplete: true };
-                            target.contentBlocks = blocks;
-                        }
-                    }
-                    messages[lastIndex] = target;
-                }
-                return { messages };
-            }
 
-            const newSessionStates = new Map(state.sessionStates);
-            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
-            const messages = [...sessionState.messages];
-            const lastIndex = messages.length - 1;
-            const last = messages[lastIndex];
-            if (last && last.role === 'assistant' && !last.isComplete) {
+            function markLastThoughtComplete(messages: ChatMessage[], lastIndex: number): boolean {
+                const last = messages[lastIndex];
+                if (!(last && last.role === 'assistant' && !last.isComplete)) return false;
                 const target = { ...last };
                 target.thoughtIsComplete = true;
                 if (target.contentBlocks) {
                     const blocks = [...target.contentBlocks];
-                    const thoughtIndex = blocks.findIndex(b => b.type === 'thought');
+                    // Find the LAST thought block (supports multiple thinking phases)
+                    let thoughtIndex = -1;
+                    for (let i = blocks.length - 1; i >= 0; i--) {
+                        if (blocks[i].type === 'thought') { thoughtIndex = i; break; }
+                    }
                     if (thoughtIndex >= 0) {
                         const tb = blocks[thoughtIndex] as Extract<ContentBlock, { type: 'thought' }>;
                         blocks[thoughtIndex] = { ...tb, isComplete: true };
@@ -235,7 +216,19 @@ export const createMessagesSlice: SliceCreator<MessagesSlice> = (set, get) => ({
                     }
                 }
                 messages[lastIndex] = target;
+                return true;
             }
+
+            if (!targetSessionId) {
+                const messages = [...state.messages];
+                markLastThoughtComplete(messages, messages.length - 1);
+                return { messages };
+            }
+
+            const newSessionStates = new Map(state.sessionStates);
+            const sessionState = newSessionStates.get(targetSessionId) ?? createSessionState(targetSessionId);
+            const messages = [...sessionState.messages];
+            markLastThoughtComplete(messages, messages.length - 1);
             newSessionStates.set(targetSessionId, { ...sessionState, messages, updatedAt: Date.now() });
 
             return {

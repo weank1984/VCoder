@@ -89,6 +89,10 @@ function shouldBeIndependentStep(toolName: string): boolean {
 function canGroupTogether(entry1: StepEntry, entry2: StepEntry): boolean {
     if (entry1.type !== entry2.type) return false;
     if (entry1.actionKey !== entry2.actionKey) return false;
+    // Allow consecutive terminal commands to merge into one step (reduces visual noise)
+    if (isTerminalToolName(entry1.toolCall.name) && isTerminalToolName(entry2.toolCall.name)) {
+        return true;
+    }
     if (shouldBeIndependentStep(entry1.toolCall.name) || shouldBeIndependentStep(entry2.toolCall.name)) {
         return false;
     }

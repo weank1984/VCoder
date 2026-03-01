@@ -370,6 +370,18 @@
     }
 }
 
+// No-header state (parent handles collapsing, title bar hidden)
+.diff-viewer.no-header {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+
+    .diff-content {
+        border-radius: var(--vc-radius-md);
+        border: 1px solid var(--vscode-panel-border);
+    }
+}
+
 // Collapsed state
 .diff-viewer.collapsed {
     .diff-collapse-icon svg {

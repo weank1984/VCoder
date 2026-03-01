@@ -8,6 +8,7 @@ interface FileEditEntryProps {
     fallbackPath: string;
     onConfirm?: (tc: ToolCall, approve: boolean) => void;
     onViewFile?: (path: string) => void;
+    hideHeader?: boolean;
 }
 
 /**
@@ -80,7 +81,7 @@ export function shouldShowDiff(toolCall: ToolCall): boolean {
     return toolCall.status !== 'awaiting_confirmation';
 }
 
-export function FileEditEntry({ toolCall, fallbackPath, onConfirm, onViewFile }: FileEditEntryProps) {
+export function FileEditEntry({ toolCall, fallbackPath, onConfirm, onViewFile, hideHeader }: FileEditEntryProps) {
     const data = useDiffData(toolCall, fallbackPath);
 
     if (!shouldShowDiff(toolCall)) return null;
@@ -95,6 +96,7 @@ export function FileEditEntry({ toolCall, fallbackPath, onConfirm, onViewFile }:
             actionsDisabled={toolCall.status !== 'awaiting_confirmation'}
             defaultCollapsed={false}
             onViewFile={onViewFile}
+            hideHeader={hideHeader}
         />
     );
 }

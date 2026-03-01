@@ -10,6 +10,7 @@ interface DiffViewerProps {
     defaultCollapsed?: boolean;
     onViewFile?: (path: string) => void;
     variant?: 'full' | 'compact';
+    hideHeader?: boolean;
 }
 
 export function DiffViewer({
@@ -22,6 +23,7 @@ export function DiffViewer({
                 filePath={props.filePath}
                 diff={props.diff}
                 defaultCollapsed={props.defaultCollapsed}
+                hideHeader={props.hideHeader}
             />
         );
     }
@@ -35,6 +37,7 @@ export function DiffViewer({
             actionsDisabled={props.actionsDisabled}
             defaultCollapsed={props.defaultCollapsed}
             onViewFile={props.onViewFile}
+            hideHeader={props.hideHeader}
         />
     );
 }
