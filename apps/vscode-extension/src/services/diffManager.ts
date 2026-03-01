@@ -246,42 +246,8 @@ export class DiffManager extends EventEmitter implements vscode.TextDocumentCont
             `VCoder: Preview ${path.basename(resolvedPath)}`
         );
 
-        const canApply =
-            this.isWithinWorkspace(resolvedPath) &&
-            (change.type === 'deleted' || typeof change.content === 'string');
-        const message = canApply
-            ? `VCoder: Apply proposed change to ${change.path}?`
-            : `VCoder: Showing proposed change for ${change.path} (not applicable automatically).`;
-
-        const actions = canApply ? ['Accept', 'Reject'] as const : ['Reject'] as const;
-        const picked = await vscode.window.showInformationMessage(message, ...actions);
-
-        if (picked === 'Accept') {
-            // Conflict check before applying
-            const hasConflict = await this.checkConflict(entry);
-            if (hasConflict) {
-                const overwrite = await vscode.window.showWarningMessage(
-                    `File ${change.path} was modified during review. Overwrite with proposed changes?`,
-                    'Overwrite',
-                    'Cancel'
-                );
-                if (overwrite !== 'Overwrite') {
-                    this.emitStatsUpdate(sessionId);
-                    return;
-                }
-            }
-
-            await this.applyChange(entry);
-            await this.acpClient.acceptFileChange(change.path, entry.sessionId);
-            entry.status = 'accepted';
-        } else if (picked === 'Reject') {
-            await this.acpClient.rejectFileChange(change.path, entry.sessionId);
-            entry.status = 'rejected';
-        }
-
-        this.pending.delete(key);
-        this.onDidChangeEmitter.fire(originalUri);
-        this.onDidChangeEmitter.fire(proposedUri);
+        // No modal dialog — user reviews and accepts/rejects via WebView's PendingChangesBar.
+        // The entry stays in this.pending until acceptChange()/rejectChange() is called.
         this.emitStatsUpdate(sessionId);
     }
 
@@ -450,7 +416,7 @@ export class DiffManager extends EventEmitter implements vscode.TextDocumentCont
         if (e.contentChanges.length === 0) return;
 
         const filePath = e.document.uri.fsPath;
-        for (const [key, entry] of this.pending) {
+        for (const [_key, entry] of this.pending) {
             if (entry.resolvedPath === filePath && entry.status === 'pending') {
                 console.warn(`[DiffManager] File modified during review: ${filePath}`);
                 this.emit('conflict', {

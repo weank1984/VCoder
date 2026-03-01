@@ -16,6 +16,7 @@ import { BuiltinMcpServer } from '../services/builtinMcpServer';
 import { MessageQueue, getMessagePriority } from '../utils/messageQueue';
 import { AgentRegistry } from '../services/agentRegistry';
 import { DiffManager } from '../services/diffManager';
+import { InlineDiffProvider } from '../services/inlineDiffProvider';
 import { VCoderFileDecorationProvider } from './fileDecorationProvider';
 
 export class ChatViewProvider extends EventEmitter implements vscode.WebviewViewProvider {
@@ -28,6 +29,13 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
 
     private diffManager?: DiffManager;
     private fileDecorator?: VCoderFileDecorationProvider;
+    private inlineDiffProvider?: InlineDiffProvider;
+    private updateReviewStatusBar?: () => void;
+
+    // Terminal output ring buffer for @terminal feature
+    private terminalOutputBuffer: string[] = [];
+    private readonly TERMINAL_BUFFER_MAX_LINES = 200;
+
     constructor(
         private context: vscode.ExtensionContext,
         private acpClient: ACPClient,
@@ -129,6 +137,10 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
 
         this.acpClient.on('session/complete', (params: unknown) => {
             this.postMessage({ type: 'complete', data: params }, true);
+            // Clear file decorations on session complete
+            if (this.fileDecorator) {
+                this.fileDecorator.clear();
+            }
             // Audit log session end
             if (this.auditLogger) {
                 const p = params as { sessionId?: string; reason?: string; durationMs?: number; tokenUsage?: unknown } | undefined;
@@ -172,6 +184,54 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
             ],
         };
 
+        // Capture terminal shell execution output for @terminal feature
+        if (vscode.window.onDidEndTerminalShellExecution) {
+            this.context.subscriptions.push(
+                vscode.window.onDidEndTerminalShellExecution(async (e) => {
+                    try {
+                        const stream = e.execution.read();
+                        const lines: string[] = [];
+                        for await (const data of stream) {
+                            lines.push(data);
+                        }
+                        // Append to ring buffer
+                        this.terminalOutputBuffer.push(...lines);
+                        if (this.terminalOutputBuffer.length > this.TERMINAL_BUFFER_MAX_LINES) {
+                            this.terminalOutputBuffer = this.terminalOutputBuffer.slice(-this.TERMINAL_BUFFER_MAX_LINES);
+                        }
+                    } catch {
+                        // Shell integration may not be available
+                    }
+                }),
+            );
+        }
+
+        // Push editor context to WebView when active editor changes
+        this.context.subscriptions.push(
+            vscode.window.onDidChangeActiveTextEditor((editor) => {
+                if (editor) {
+                    this.postMessage({
+                        type: 'editorContext',
+                        data: {
+                            activeFile: vscode.workspace.asRelativePath(editor.document.uri),
+                            languageId: editor.document.languageId,
+                        },
+                    });
+                }
+            }),
+        );
+        // Send initial editor context
+        const initialEditor = vscode.window.activeTextEditor;
+        if (initialEditor) {
+            this.postMessage({
+                type: 'editorContext',
+                data: {
+                    activeFile: vscode.workspace.asRelativePath(initialEditor.document.uri),
+                    languageId: initialEditor.document.languageId,
+                },
+            });
+        }
+
         const assetsOk = await this.ensureWebviewAssets();
         if (!assetsOk) {
             webviewView.webview.html = this.getMissingAssetsHtml(webviewView.webview);
@@ -207,7 +267,27 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         if (session && this.auditLogger) {
                             void this.auditLogger.logUserPrompt(session.id, message.content);
                         }
-                        await this.acpClient.prompt(message.content, message.attachments);
+
+                        // Auto-inject editor context into prompt
+                        const editor = vscode.window.activeTextEditor;
+                        let contextPrefix = '';
+                        if (editor) {
+                            const activeFile = vscode.workspace.asRelativePath(editor.document.uri);
+                            const cursorLine = editor.selection.active.line + 1;
+                            contextPrefix += `[Active file: ${activeFile}, cursor at line ${cursorLine}]\n`;
+
+                            // Collect LSP diagnostics (errors + warnings, max 10)
+                            const diagnostics = vscode.languages.getDiagnostics(editor.document.uri)
+                                .filter(d => d.severity <= vscode.DiagnosticSeverity.Warning)
+                                .slice(0, 10)
+                                .map(d => `L${d.range.start.line + 1}: [${d.severity === 0 ? 'Error' : 'Warning'}] ${d.message}`);
+                            if (diagnostics.length > 0) {
+                                contextPrefix += `[Diagnostics:\n${diagnostics.join('\n')}]\n`;
+                            }
+                        }
+
+                        const fullContent = contextPrefix ? contextPrefix + '\n' + message.content : message.content;
+                        await this.acpClient.prompt(fullContent, message.attachments);
                     }
                     break;
                 case 'newSession':
@@ -262,6 +342,10 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                     // Clear pending diff changes for the deleted session
                     if (this.diffManager) {
                         this.diffManager.clearSession(message.sessionId);
+                    }
+                    // Clear file decorations
+                    if (this.fileDecorator) {
+                        this.fileDecorator.clear();
                     }
                     this.postMessage({ type: 'sessions', data: await this.acpClient.listSessions() }, true);
                     // Audit log session deletion
@@ -368,6 +452,65 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                                     return relative ? rel(relative) : rel(f.fsPath);
                                 })
                                 .filter((p) => typeof p === 'string' && p.length > 0),
+                        });
+                    }
+                    break;
+                case 'readFile':
+                    {
+                        const filePath = message.path as string;
+                        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                        if (!workspaceFolder || !filePath) break;
+                        try {
+                            const uri = vscode.Uri.joinPath(workspaceFolder.uri, filePath);
+                            const stat = await vscode.workspace.fs.stat(uri);
+                            // Skip files > 1MB — only attach path
+                            if (stat.size > 1 * 1024 * 1024) {
+                                this.postMessage({
+                                    type: 'fileContent',
+                                    data: { path: filePath, content: null, tooLarge: true },
+                                });
+                                break;
+                            }
+                            const content = await vscode.workspace.fs.readFile(uri);
+                            const text = new TextDecoder().decode(content);
+                            this.postMessage({
+                                type: 'fileContent',
+                                data: { path: filePath, content: text },
+                            });
+                        } catch (err) {
+                            console.error('[VCoder] Failed to read file:', filePath, err);
+                            this.postMessage({
+                                type: 'fileContent',
+                                data: { path: filePath, content: null, error: true },
+                            });
+                        }
+                    }
+                    break;
+                case 'getSelection':
+                    {
+                        const editor = vscode.window.activeTextEditor;
+                        if (!editor || editor.selection.isEmpty) {
+                            this.postMessage({ type: 'selectionContent', data: null });
+                            break;
+                        }
+                        const selection = editor.selection;
+                        const content = editor.document.getText(selection);
+                        this.postMessage({
+                            type: 'selectionContent',
+                            data: {
+                                path: vscode.workspace.asRelativePath(editor.document.uri),
+                                content: content || null,
+                                lineRange: [selection.start.line + 1, selection.end.line + 1] as [number, number],
+                            },
+                        });
+                    }
+                    break;
+                case 'getTerminalOutput':
+                    {
+                        const output = this.terminalOutputBuffer.join('\n');
+                        this.postMessage({
+                            type: 'terminalOutput',
+                            data: { content: output || null },
                         });
                     }
                     break;
@@ -703,11 +846,9 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                 );
             }
 
-            // Update file decorator
+            // Update file decorator — clear decoration on both accept and reject
             if (this.fileDecorator) {
-                if (data.decision === 'rejected') {
-                    this.fileDecorator.removeFile(data.filePath);
-                }
+                this.fileDecorator.removeFile(data.filePath);
             }
         });
 
@@ -750,6 +891,14 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
     }
 
     /**
+     * Set the InlineDiffProvider instance for in-editor decorations.
+     */
+    setInlineDiffProvider(provider: InlineDiffProvider, updateStatusBar: () => void): void {
+        this.inlineDiffProvider = provider;
+        this.updateReviewStatusBar = updateStatusBar;
+    }
+
+    /**
      * Handle file_change events from the agent.
      * When proposed=true, triggers Diff review flow.
      */
@@ -764,12 +913,19 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
             return;
         }
 
-        // Check permission mode - bypassPermissions skips diff review
+        // Check permission mode - bypassPermissions auto-accepts without diff review
         const config = vscode.workspace.getConfiguration('vcoder');
         const permissionMode = config.get<string>('permissionMode', 'default');
         if (permissionMode === 'bypassPermissions') {
-            console.log('[VCoder] bypassPermissions mode: skipping diff review for', change.path);
+            console.log('[VCoder] bypassPermissions mode: auto-accepting', change.path);
+            void this.acpClient.acceptFileChange(change.path, sessionId);
             return;
+        }
+
+        // Show inline diff decorations in the editor
+        if (this.inlineDiffProvider) {
+            this.inlineDiffProvider.showInlineDiff(sessionId, change);
+            this.updateReviewStatusBar?.();
         }
 
         // Trigger Diff review in VSCode

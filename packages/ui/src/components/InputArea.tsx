@@ -57,6 +57,7 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
         exitHistoryMode,
         permissionMode,
         systemModeChange,
+        editorContext,
         setPermissionMode,
         setModel,
         addMessage,
@@ -114,6 +115,59 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
         setShowPermissionRules(false);
     }, [isLoading]);
 
+    // Listen for fileContent / selectionContent / terminalOutput messages from extension host
+    useEffect(() => {
+        const handler = (event: MessageEvent) => {
+            const msg = event.data;
+            if (!msg || typeof msg !== 'object') return;
+
+            if (msg.type === 'fileContent') {
+                const { path, content, tooLarge, error } = msg.data as {
+                    path: string; content: string | null; tooLarge?: boolean; error?: boolean;
+                };
+                if (error) {
+                    // Remove placeholder chip on error
+                    setAttachments((prev) => prev.filter((a) => !(a.type === 'file' && a.path === path)));
+                    return;
+                }
+                const fileContent = tooLarge ? `[File: ${path} — too large]` : content;
+                if (fileContent == null) return;
+                setAttachments((prev) => {
+                    const idx = prev.findIndex((a) => a.type === 'file' && a.path === path);
+                    if (idx !== -1) {
+                        const updated = [...prev];
+                        updated[idx] = { ...updated[idx], content: fileContent };
+                        return updated;
+                    }
+                    return [...prev, { type: 'file', name: path, path, content: fileContent }];
+                });
+            } else if (msg.type === 'selectionContent') {
+                const data = msg.data as {
+                    path: string; content: string | null; lineRange: [number, number];
+                } | null;
+                if (!data || !data.content) {
+                    // No selection — could show a toast or just ignore
+                    console.log('[InputArea] No selection content available');
+                    return;
+                }
+                const name = `${data.path}:L${data.lineRange[0]}-L${data.lineRange[1]}`;
+                setAttachments((prev) => [
+                    ...prev,
+                    { type: 'selection', name, path: data.path, content: data.content! },
+                ]);
+            } else if (msg.type === 'terminalOutput') {
+                const data = msg.data as { content: string } | null;
+                if (!data?.content) return;
+                setAttachments((prev) => [
+                    ...prev,
+                    { type: 'file', name: 'Terminal Output', content: data.content },
+                ]);
+            }
+        };
+        window.addEventListener('message', handler);
+        return () => window.removeEventListener('message', handler);
+    }, []);
+
     const handleAddFiles = () => {
         if (isComposerLocked) return;
         fileInputRef.current?.click();
@@ -129,7 +183,7 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
         if (!files) return;
 
         const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
-        
+
         Array.from(files).forEach((file) => {
             if (file.size > MAX_ATTACHMENT_SIZE) {
                 console.warn(`[InputArea] File too large: ${file.name} (${Math.round(file.size / 1024 / 1024)}MB, max ${MAX_ATTACHMENT_SIZE / 1024 / 1024}MB)`);
@@ -147,11 +201,11 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                     },
                 ]);
             };
-            
+
             reader.onerror = () => {
                 console.error(`[InputArea] Failed to read file: ${file.name}`);
             };
-            
+
             reader.readAsDataURL(file);
         });
 
@@ -219,20 +273,48 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
         }
     };
 
+    /** Remove @query text, create an attachment chip, and request file content from extension host. */
     const handleFileSelect = (file: string) => {
         const textBefore = input.slice(0, cursorPosition);
         const textAfter = input.slice(cursorPosition);
         const match = /@([\w./-]*)$/.exec(textBefore);
-        
+
         if (match) {
             const prefix = textBefore.slice(0, match.index);
-            const newValue = prefix + file + ' ' + textAfter;
-            setInput(newValue);
+            setInput(prefix + textAfter);
             setShowPicker(false);
-            
-            // Restore focus
+
+            const name = file.split('/').pop() || file;
+            // Create chip immediately (content filled when readFile responds)
+            setAttachments((prev) => {
+                if (prev.some((a) => a.type === 'file' && a.path === file)) return prev;
+                return [...prev, { type: 'file', path: file, name }];
+            });
+
+            postMessage({ type: 'readFile', path: file });
             textareaRef.current?.focus();
         }
+    };
+
+    /** Handle special picker options like @selection, @terminal. */
+    const handleSpecialSelect = (optionId: string) => {
+        // Remove @query text from input
+        const textBefore = input.slice(0, cursorPosition);
+        const textAfter = input.slice(cursorPosition);
+        const match = /@([\w./-]*)$/.exec(textBefore);
+        if (match) {
+            const prefix = textBefore.slice(0, match.index);
+            setInput(prefix + textAfter);
+        }
+        setShowPicker(false);
+
+        if (optionId === 'selection') {
+            postMessage({ type: 'getSelection' });
+        } else if (optionId === 'terminal') {
+            postMessage({ type: 'getTerminalOutput' });
+        }
+
+        textareaRef.current?.focus();
     };
 
     const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -246,7 +328,7 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                 // Prevent InputArea default behavior (submit/newline)
                 // FilePicker handles selection via window listener
                 if (e.key === 'Enter') e.preventDefault();
-                return; 
+                return;
             }
         }
 
@@ -265,6 +347,11 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
         }
     }, [input]);
 
+    // Build dynamic placeholder with active file context
+    const placeholder = editorContext?.activeFile
+        ? `Ask about ${editorContext.activeFile}...`
+        : t('Chat.InputPlaceholder');
+
     return (
         <div className="input-area">
             {/* Hidden file input for attachments */}
@@ -278,16 +365,6 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
             />
 
             <PendingChangesBar />
-
-            {showPicker && (
-                <FilePicker
-                    files={workspaceFiles}
-                    searchQuery={pickerQuery}
-                    position={{ top: -300, left: 0 }}
-                    onSelect={handleFileSelect}
-                    onClose={() => setShowPicker(false)}
-                />
-            )}
 
             <PermissionRulesPanel
                 visible={showPermissionRules}
@@ -303,6 +380,15 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                     isLoading ? 'vc-composer-surface--muted' : '',
                 ].filter(Boolean).join(' ')}
             >
+                {showPicker && (
+                    <FilePicker
+                        files={workspaceFiles}
+                        searchQuery={pickerQuery}
+                        onSelect={handleFileSelect}
+                        onSpecialSelect={handleSpecialSelect}
+                        onClose={() => setShowPicker(false)}
+                    />
+                )}
                 <div className="input-content">
                     {/* Attachment preview (hidden in history mode) */}
                     {viewMode !== 'history' && attachments.length > 0 && (
@@ -328,7 +414,7 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                         <textarea
                             ref={textareaRef}
                             className="input-field"
-                            placeholder={t('Chat.InputPlaceholder')}
+                            placeholder={placeholder}
                             value={input}
                             onChange={handleInputChange}
                             onKeyDown={handleKeyDown}

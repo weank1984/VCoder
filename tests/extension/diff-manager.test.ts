@@ -135,22 +135,12 @@ describe('DiffManager', () => {
                 proposed: true,
             };
 
-            let resolvePick: (value: string | undefined) => void = () => {};
-            const pickPromise = new Promise<string | undefined>((resolve) => {
-                resolvePick = resolve;
-            });
-            mockWindow.showInformationMessage.mockReturnValueOnce(pickPromise);
-
-            // First preview the change to populate pending
-            const previewPromise = diffManager.previewChange('test-session', change);
-            await Promise.resolve();
+            // Preview the change to populate pending (no modal, completes immediately)
+            await diffManager.previewChange('test-session', change);
 
             const uri = mockUri.parse('vcoder-diff:/test.txt?sessionId=test-session&path=test.txt&side=proposed');
             const content = await diffManager.provideTextDocumentContent(uri);
             expect(content).toBe('proposed content');
-
-            resolvePick(undefined);
-            await previewPromise;
         });
 
         it('should return empty string for deleted files on proposed side', async () => {
@@ -169,7 +159,7 @@ describe('DiffManager', () => {
     });
 
     describe('file change operations', () => {
-        it('should handle file changes correctly', async () => {
+        it('should leave change pending after preview (no modal)', async () => {
             const change: FileChangeUpdate = {
                 path: 'test.txt',
                 type: 'modified',
@@ -177,17 +167,30 @@ describe('DiffManager', () => {
                 proposed: true,
             };
 
-            const mockChoice = 'Accept';
-            mockWindow.showInformationMessage.mockResolvedValueOnce(mockChoice);
-            mockWorkspace.fs.readFile.mockResolvedValueOnce(Buffer.from('old content'));
-
             await diffManager.previewChange('test-session', change);
 
-            expect(mockWindow.showInformationMessage).toHaveBeenCalled();
+            // No modal dialog — change stays pending
+            expect(mockWindow.showInformationMessage).not.toHaveBeenCalled();
+            const pending = diffManager.getPendingChanges('test-session');
+            expect(pending.length).toBe(1);
+            expect(pending[0].originalPath).toBe('test.txt');
+        });
+
+        it('should accept changes via acceptChange method', async () => {
+            const change: FileChangeUpdate = {
+                path: 'test.txt',
+                type: 'modified',
+                content: 'new content',
+                proposed: true,
+            };
+
+            await diffManager.previewChange('test-session', change);
+            await diffManager.acceptChange('test-session', 'test.txt');
+
             expect(mockAcpClient.acceptFileChange).toHaveBeenCalledWith('test.txt', 'test-session');
         });
 
-        it('should handle rejected changes correctly', async () => {
+        it('should reject changes via rejectChange method', async () => {
             const change: FileChangeUpdate = {
                 path: 'test.txt',
                 type: 'modified',
@@ -195,18 +198,15 @@ describe('DiffManager', () => {
                 proposed: true,
             };
 
-            const mockChoice = 'Reject';
-            mockWindow.showInformationMessage.mockResolvedValueOnce(mockChoice);
-            mockWorkspace.fs.readFile.mockResolvedValueOnce(Buffer.from('old content'));
-
             await diffManager.previewChange('test-session', change);
+            await diffManager.rejectChange('test-session', 'test.txt');
 
             expect(mockAcpClient.rejectFileChange).toHaveBeenCalledWith('test.txt', 'test-session');
         });
     });
 
     describe('workspace boundary checking', () => {
-        it('should create directories within workspace', async () => {
+        it('should create directories within workspace on accept', async () => {
             const change: FileChangeUpdate = {
                 path: 'subdir/test.txt',
                 type: 'created',
@@ -214,10 +214,9 @@ describe('DiffManager', () => {
                 proposed: true,
             };
 
-            mockWindow.showInformationMessage.mockResolvedValueOnce('Accept');
-            
-            // Manually trigger apply by simulating accept
+            // Preview leaves it pending; accept applies the change
             await diffManager.previewChange('test-session', change);
+            await diffManager.acceptChange('test-session', 'subdir/test.txt');
 
             expect(mockWorkspace.fs.createDirectory).toHaveBeenCalled();
         });

@@ -25,6 +25,11 @@ export const window: MockApi = {
   registerWebviewViewProvider: vi.fn(() => ({ dispose: vi.fn() })),
   registerFileDecorationProvider: vi.fn(() => ({ dispose: vi.fn() })),
   createWebviewPanel: vi.fn(),
+  createTextEditorDecorationType: vi.fn(() => ({ dispose: vi.fn() })),
+  visibleTextEditors: [],
+  activeTextEditor: undefined,
+  onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
+  onDidEndTerminalShellExecution: undefined,
 };
 
 export const workspace: MockApi = {
@@ -101,3 +106,23 @@ export const ExtensionMode = {
 export const Range: MockApi = vi.fn();
 export const Position: MockApi = vi.fn();
 export const Selection: MockApi = vi.fn();
+export class ThemeColor {
+  constructor(public id: string) {}
+}
+export const OverviewRulerLane = {
+  Left: 1,
+  Center: 2,
+  Right: 4,
+  Full: 7,
+};
+export const DiagnosticSeverity = {
+  Error: 0,
+  Warning: 1,
+  Information: 2,
+  Hint: 3,
+};
+export const languages: MockApi = {
+  registerCodeLensProvider: vi.fn(() => ({ dispose: vi.fn() })),
+  getDiagnostics: vi.fn(() => []),
+};
+export const MarkdownString: MockApi = vi.fn();

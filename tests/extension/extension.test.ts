@@ -48,6 +48,7 @@ vi.mock('../../apps/vscode-extension/src/providers/chatViewProvider', () => ({
         on() {}
         setDiffManager() {}
         setFileDecorator() {}
+        setInlineDiffProvider() {}
     },
 }));
 
@@ -66,11 +67,23 @@ vi.mock('../../apps/vscode-extension/src/services/diffManager', () => ({
         register() {
             return { dispose: () => {} };
         }
+        on() {}
     },
 }));
 
 vi.mock('../../apps/vscode-extension/src/providers/fileDecorationProvider', () => ({
     VCoderFileDecorationProvider: class {},
+}));
+
+vi.mock('../../apps/vscode-extension/src/services/inlineDiffProvider', () => ({
+    InlineDiffProvider: class {
+        register() {}
+        on() {}
+        dispose() {}
+        getNextPendingFile() { return undefined; }
+        getEntry() { return undefined; }
+        get pendingCount() { return 0; }
+    },
 }));
 
 vi.mock('../../apps/vscode-extension/src/services/agentRegistry', () => ({

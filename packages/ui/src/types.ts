@@ -411,7 +411,13 @@ export type ExtensionMessage =
     | BatchMessage
     | ShowEcosystemMessage
     | EcosystemDataMessage
-    | SettingsChangedMessage;
+    | SettingsChangedMessage
+    | EditorContextMessage;
+
+export interface EditorContextMessage {
+    type: 'editorContext';
+    data: EditorContext;
+}
 
 export type WebviewMessage =
     | SendMessage
@@ -593,4 +599,11 @@ export interface AppState {
     activeTeams: Map<string, { teamName: string; description?: string; leadSessionId: string; members: TeamMemberInfo[] }>;
     // MissionControl navigation: when set, MissionControl navigates to this subagent run's detail view
     mcSelectedRunId: string | null;
+    // Editor context pushed from extension host
+    editorContext: EditorContext | null;
+}
+
+export interface EditorContext {
+    activeFile: string;
+    languageId: string;
 }

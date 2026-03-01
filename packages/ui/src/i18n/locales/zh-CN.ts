@@ -362,4 +362,10 @@ export default {
     AutoEditDesc: '自动批准文件编辑',
     YoloDesc: '跳过所有确认',
   },
+  FilePicker: {
+    Loading: '加载文件中...',
+    NoMatch: '未找到匹配文件',
+    NoSelection: '编辑器中没有选中代码',
+    FileTooLarge: '文件过大 (>1MB)，仅附加路径',
+  },
 };

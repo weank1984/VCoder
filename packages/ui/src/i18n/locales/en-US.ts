@@ -360,4 +360,10 @@ export default {
     AutoEditDesc: 'Auto-approve file edits',
     YoloDesc: 'Skip all confirmations',
   },
+  FilePicker: {
+    Loading: 'Loading files...',
+    NoMatch: 'No matching files found',
+    NoSelection: 'No code selected in the editor',
+    FileTooLarge: 'File too large (>1MB), path only',
+  },
 };

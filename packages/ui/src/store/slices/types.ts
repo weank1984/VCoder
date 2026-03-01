@@ -45,6 +45,7 @@ export interface UiSlice {
     setUiLanguage: (uiLanguage: UiLanguage, source?: 'user' | 'extension') => void;
     setExperimentalAgentTeams: (enabled: boolean) => void;
     setMcSelectedRunId: (id: string | null) => void;
+    setEditorContext: (ctx: { activeFile: string; languageId: string } | null) => void;
 }
 
 export interface HistorySlice {

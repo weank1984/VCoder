@@ -4,6 +4,7 @@
  */
 
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { ACPClient } from '@vcoder/shared/acpClient';
 import { ChatViewProvider } from './providers/chatViewProvider';
 import { ServerManager } from './services/serverManager';
@@ -12,6 +13,7 @@ import { FileSystemProvider } from './services/fileSystemProvider';
 import { TerminalProvider } from './services/terminalProvider';
 import { DiffManager } from './services/diffManager';
 import { VCoderFileDecorationProvider } from './providers/fileDecorationProvider';
+import { InlineDiffProvider } from './services/inlineDiffProvider';
 import { ACPMethods, type UpdateNotificationParams, type PermissionRulesListParams, type PermissionRuleAddParams, type PermissionRuleUpdateParams, type PermissionRuleDeleteParams, type PermissionRule, type TerminalCreateParams, type TerminalWaitForExitParams } from '@vcoder/shared';
 import { AgentRegistry } from './services/agentRegistry';
 
@@ -342,11 +344,73 @@ export async function activate(context: vscode.ExtensionContext) {
             const diffManager = new DiffManager(acpClient);
             context.subscriptions.push(diffManager.register());
 
+            // Initialize inline diff provider for in-editor decorations + CodeLens
+            const inlineDiffProvider = new InlineDiffProvider();
+            inlineDiffProvider.register(context);
+            context.subscriptions.push({ dispose: () => inlineDiffProvider.dispose() });
+
+            // StatusBar item showing pending review count
+            const reviewStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
+            reviewStatusBar.command = 'vcoder.reviewNextChange';
+            context.subscriptions.push(reviewStatusBar);
+
+            // Command to jump to the next pending file for review
+            context.subscriptions.push(
+                vscode.commands.registerCommand('vcoder.reviewNextChange', async () => {
+                    const nextFile = inlineDiffProvider.getNextPendingFile();
+                    if (!nextFile) {
+                        vscode.window.showInformationMessage('VCoder: No pending changes to review.');
+                        return;
+                    }
+                    const resolvedPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                    const filePath = resolvedPath ? vscode.Uri.file(path.join(resolvedPath, nextFile)) : vscode.Uri.file(nextFile);
+                    await vscode.window.showTextDocument(filePath);
+                }),
+            );
+
+            // Update status bar when review stats change
+            const updateReviewStatusBar = () => {
+                const count = inlineDiffProvider.pendingCount;
+                if (count > 0) {
+                    reviewStatusBar.text = `$(search) VCoder: ${count} pending`;
+                    reviewStatusBar.tooltip = `${count} file change(s) pending review. Click to review.`;
+                    reviewStatusBar.show();
+                } else {
+                    reviewStatusBar.hide();
+                }
+            };
+
+            // Wire InlineDiffProvider CodeLens actions to DiffManager
+            inlineDiffProvider.on('accept', (filePath) => {
+                const entry = inlineDiffProvider.getEntry(filePath);
+                if (entry) {
+                    void diffManager.acceptChange(entry.sessionId, filePath);
+                }
+            });
+            inlineDiffProvider.on('reject', (filePath) => {
+                const entry = inlineDiffProvider.getEntry(filePath);
+                if (entry) {
+                    void diffManager.rejectChange(entry.sessionId, filePath);
+                }
+            });
+            inlineDiffProvider.on('viewFull', (filePath, sessionId) => {
+                const originalUri = vscode.Uri.parse(`vcoder-diff:/${filePath}?sessionId=${sessionId}&path=${filePath}&side=original`);
+                const proposedUri = vscode.Uri.parse(`vcoder-diff:/${filePath}?sessionId=${sessionId}&path=${filePath}&side=proposed`);
+                void vscode.commands.executeCommand('vscode.diff', originalUri, proposedUri, `VCoder: Preview ${path.basename(filePath)}`);
+            });
+
+            // Clear inline diff when a decision is made
+            diffManager.on('decision', (data: { filePath: string }) => {
+                inlineDiffProvider.clearInlineDiff(data.filePath);
+                updateReviewStatusBar();
+            });
+
             // Wire DiffManager and FileDecorationProvider into ChatViewProvider
             // so file_change events automatically trigger Diff review flow
             if (chatViewProvider) {
                 chatViewProvider.setDiffManager(diffManager);
                 chatViewProvider.setFileDecorator(fileDecorator);
+                chatViewProvider.setInlineDiffProvider(inlineDiffProvider, updateReviewStatusBar);
             }
         }
         

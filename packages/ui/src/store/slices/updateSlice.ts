@@ -299,6 +299,7 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
             activeTeams: new Map(),
             systemModeChange: null,
             mcSelectedRunId: null,
+            editorContext: null,
         } satisfies AppState);
     },
 });

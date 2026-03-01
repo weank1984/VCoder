@@ -266,6 +266,9 @@ function App() {
         case 'workspaceFiles':
           useStore.getState().setWorkspaceFiles(message.data);
           break;
+        case 'editorContext':
+          useStore.getState().setEditorContext(message.data);
+          break;
         case 'showHistory':
           setShowHistory(true);
           postMessage({ type: 'listHistory' }); // Refresh history list when opening

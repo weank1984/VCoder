@@ -2,15 +2,18 @@
 
 .file-picker {
     position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    margin-bottom: 4px;
     background: var(--vscode-dropdown-background, #3c3c3c);
     border: 1px solid var(--vscode-dropdown-border, #454545);
-    border-radius: 6px;
+    border-radius: 8px;
     box-shadow: var(--vc-shadow-lg);
-    max-width: 400px;
-    min-width: 250px;
-    max-height: 300px;
+    max-height: 320px;
     overflow-y: auto;
     z-index: 1000;
+    padding: 4px;
 }
 
 .file-picker-empty {
@@ -24,8 +27,9 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 12px;
+    padding: 6px 8px;
     cursor: pointer;
+    border-radius: 5px;
     transition: background-color 0.1s;
 }
 
@@ -38,19 +42,38 @@
     background: var(--vscode-list-activeSelectionBackground, #094771);
 }
 
-.file-icon {
-    font-size: 16px;
+.file-picker-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+
+    .vc-icon {
+        font-size: 18px;
+    }
+
+    .file-type-icon {
+        display: inline-flex;
+    }
 }
 
-.file-info {
+.file-picker-icon--special {
+    background: color-mix(in srgb, var(--vscode-focusBorder, #007fd4) 15%, transparent);
+    color: var(--vscode-focusBorder, #007fd4);
+}
+
+.file-picker-info {
     display: flex;
     flex-direction: column;
     min-width: 0;
     overflow: hidden;
+    gap: 1px;
 }
 
-.file-name {
+.file-picker-name {
     font-size: 13px;
     color: var(--vscode-foreground);
     white-space: nowrap;
@@ -58,12 +81,24 @@
     text-overflow: ellipsis;
 }
 
-.file-path {
+.file-picker-desc {
     font-size: 11px;
     color: var(--vscode-descriptionForeground);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    opacity: 0.8;
+}
+
+.file-picker-divider {
+    height: 1px;
+    background: var(--vscode-dropdown-border, #454545);
+    margin: 4px 8px;
+    opacity: 0.5;
+}
+
+.file-picker-special .file-picker-name {
+    font-weight: 500;
 }
 
 /* Scrollbar styling */

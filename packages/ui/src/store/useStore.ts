@@ -74,6 +74,7 @@ const initialState: AppState = {
     experimentalAgentTeams: false,
     activeTeams: new Map(),
     mcSelectedRunId: null,
+    editorContext: null,
 };
 
 const restoredState: AppState = {

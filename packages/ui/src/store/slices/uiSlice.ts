@@ -183,4 +183,8 @@ export const createUiSlice: SliceCreator<UiSlice> = (set, _get) => ({
     setMcSelectedRunId: (id) => {
         set({ mcSelectedRunId: id });
     },
+
+    setEditorContext: (ctx) => {
+        set({ editorContext: ctx });
+    },
 });
