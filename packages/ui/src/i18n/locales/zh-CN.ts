@@ -280,6 +280,7 @@ export default {
     Approved: '已通过',
     Denied: '已拒绝',
     AwaitingApproval: '等待审批',
+    ViewInMissionControl: '在任务中心查看',
   },
   ErrorBoundary: {
     Title: '出错了',

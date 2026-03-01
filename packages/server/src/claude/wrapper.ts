@@ -1156,6 +1156,21 @@ export class ClaudeCodeWrapper extends EventEmitter {
             this.emitSubagentRun(sessionId, runUpdate);
             this.subagentRunMetaByIdByLocalSessionId.get(sessionId)?.delete(toolId);
         }
+
+        // EnterPlanMode / ExitPlanMode: sync mode to UI regardless of approval path
+        // (covers auto-approve / trusted tool cases where confirmTool is never called)
+        if (toolName && !error) {
+            const toolNameLower = toolName.toLowerCase();
+            if (toolNameLower === 'enterplanmode') {
+                this.settings.permissionMode = 'plan';
+                const modeUpdate: SettingsChangedUpdate = { permissionMode: 'plan' };
+                this.emit('update', sessionId, modeUpdate, 'settings_changed');
+            } else if (toolNameLower === 'exitplanmode') {
+                this.settings.permissionMode = 'default';
+                const modeUpdate: SettingsChangedUpdate = { permissionMode: 'default' };
+                this.emit('update', sessionId, modeUpdate, 'settings_changed');
+            }
+        }
     }
 
     /**

@@ -14,9 +14,10 @@ import {
     flushTextBuffer as _flushTextBuffer,
     cleanupTextBuffer as _cleanupTextBuffer,
     cleanupAllTextBuffers as _cleanupAllTextBuffers,
+    flushThoughtBuffer as _flushThoughtBuffer,
 } from './slices';
 
-export { _flushTextBuffer as flushTextBuffer, _cleanupTextBuffer as cleanupTextBuffer, _cleanupAllTextBuffers as cleanupAllTextBuffers };
+export { _flushTextBuffer as flushTextBuffer, _cleanupTextBuffer as cleanupTextBuffer, _cleanupAllTextBuffers as cleanupAllTextBuffers, _flushThoughtBuffer as flushThoughtBuffer };
 
 const persisted = loadPersistedState();
 
@@ -72,6 +73,7 @@ const initialState: AppState = {
     currentAgentId: null,
     experimentalAgentTeams: false,
     activeTeams: new Map(),
+    mcSelectedRunId: null,
 };
 
 const restoredState: AppState = {

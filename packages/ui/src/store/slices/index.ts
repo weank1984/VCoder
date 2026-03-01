@@ -6,4 +6,4 @@ export { createHistorySlice } from './historySlice';
 export { createAgentSlice } from './agentSlice';
 export { createPermissionRulesSlice } from './permissionRulesSlice';
 export { createUpdateSlice } from './updateSlice';
-export { flushTextBuffer, cleanupTextBuffer, cleanupAllTextBuffers } from './helpers';
+export { flushTextBuffer, cleanupTextBuffer, cleanupAllTextBuffers, flushThoughtBuffer } from './helpers';

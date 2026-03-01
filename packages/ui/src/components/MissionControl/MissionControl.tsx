@@ -7,6 +7,7 @@ import { AgentSection } from './AgentSection';
 import { AgentDetailView } from './AgentDetailView';
 import { TodoSection } from './TodoSection';
 import type { MissionControlProps, MissionControlTab } from './types';
+import { useStore } from '../../store/useStore';
 import './MissionControl.scss';
 
 export function MissionControl({ planTasks, subagentRuns, todoItems, taskItems, childToolCalls, activeTeams, onScrollToConfirmation }: MissionControlProps) {
@@ -14,6 +15,16 @@ export function MissionControl({ planTasks, subagentRuns, todoItems, taskItems, 
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<MissionControlTab>('plan');
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+
+  // Navigate to subagent detail when triggered from TaskEntry (→ button)
+  const { mcSelectedRunId } = useStore();
+  useEffect(() => {
+    if (!mcSelectedRunId) return;
+    setIsExpanded(true);
+    setActiveTab('agents');
+    setSelectedRunId(mcSelectedRunId);
+    useStore.getState().setMcSelectedRunId(null);
+  }, [mcSelectedRunId]);
 
   const hasPlan = planTasks.length > 0;
   const hasTeamMembers = activeTeams ? [...activeTeams.values()].some((team) => team.members.length > 0) : false;

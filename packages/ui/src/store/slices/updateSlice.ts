@@ -298,6 +298,7 @@ export const createUpdateSlice: SliceCreator<UpdateSlice> = (set, get) => ({
             experimentalAgentTeams: false,
             activeTeams: new Map(),
             systemModeChange: null,
+            mcSelectedRunId: null,
         } satisfies AppState);
     },
 });

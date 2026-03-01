@@ -10,6 +10,7 @@ import { useI18n } from '../../i18n/I18nProvider';
 import { postMessage } from '../../bridge';
 import { useStore } from '../../store/useStore';
 import { StepItem } from './StepItem';
+import { HIDDEN_TASK_TOOLS } from './StepEntry';
 import { useStepCollapseState } from './useStepCollapseState';
 import {
     CheckIcon,
@@ -44,8 +45,16 @@ export function StepProgressList({ toolCalls }: StepProgressListProps) {
         return out;
     }, [toolCalls]);
 
-    // Aggregate tool calls into steps
-    const steps = useMemo(() => aggregateToSteps(filteredToolCalls), [filteredToolCalls]);
+    // Aggregate tool calls into steps, then filter out steps where every entry is hidden
+    // (e.g. EnterPlanMode / ExitPlanMode steps should not produce orphaned step headers)
+    const steps = useMemo(() => {
+        const raw = aggregateToSteps(filteredToolCalls);
+        return raw.filter(
+            (step) => !step.entries.every(
+                (e) => HIDDEN_TASK_TOOLS.has(e.toolCall.name) || !!e.toolCall.parentToolUseId
+            )
+        );
+    }, [filteredToolCalls]);
 
     // Get progress stats
     const stats = useMemo(() => getProgressStats(steps), [steps]);

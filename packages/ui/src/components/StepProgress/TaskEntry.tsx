@@ -5,7 +5,7 @@
  * MarkdownContent directly in the conversation flow.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useI18n } from '../../i18n/I18nProvider';
 import type { ToolCall } from '../../types';
 import {
@@ -13,8 +13,10 @@ import {
     CheckIcon,
     LoadingIcon,
     ErrorIcon,
+    ArrowRightIcon,
 } from '../Icon';
 import { MarkdownContent } from '../MarkdownContent';
+import { useStore } from '../../store/useStore';
 
 interface TaskEntryProps {
     toolCall: ToolCall;
@@ -76,6 +78,23 @@ function truncate(text: string, maxLen: number): string {
     return text.slice(0, maxLen) + '...';
 }
 
+function formatElapsed(ms: number): string {
+    const seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainSeconds = seconds % 60;
+    return `${minutes}m ${remainSeconds}s`;
+}
+
+function ElapsedTimer({ startedAt }: { startedAt: number }) {
+    const [now, setNow] = useState(Date.now());
+    useEffect(() => {
+        const timer = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+    return <span className="task-elapsed running">{formatElapsed(now - startedAt)}</span>;
+}
+
 /**
  * Extract displayable text from the Task tool result.
  * Returns null if no meaningful text content is found.
@@ -114,6 +133,14 @@ export function TaskEntry({ toolCall, status, hideHeader = false }: TaskEntryPro
     const resultText = useMemo(() => extractResultText(toolCall.result), [toolCall.result]);
     const isComplete = status === 'success' || status === 'error';
 
+    // Get live subagent run data for elapsed time
+    const { subagentRuns } = useStore();
+    const subagentRun = subagentRuns.find(r => r.id === toolCall.id);
+
+    const handleOpenDetail = () => {
+        useStore.getState().setMcSelectedRunId(toolCall.id);
+    };
+
     // hideHeader mode: only render the result text
     if (hideHeader) {
         if (!resultText) return null;
@@ -123,6 +150,14 @@ export function TaskEntry({ toolCall, status, hideHeader = false }: TaskEntryPro
             </div>
         );
     }
+
+    const elapsedNode = subagentRun?.startedAt ? (
+        subagentRun.status === 'running' ? (
+            <ElapsedTimer startedAt={subagentRun.startedAt} />
+        ) : subagentRun.completedAt ? (
+            <span className="task-elapsed">{formatElapsed(subagentRun.completedAt - subagentRun.startedAt)}</span>
+        ) : null
+    ) : null;
 
     return (
         <div className={`task-entry ${status}`}>
@@ -141,9 +176,17 @@ export function TaskEntry({ toolCall, status, hideHeader = false }: TaskEntryPro
                         </span>
                     )}
                 </div>
+                {elapsedNode}
                 <span className={`task-status-icon ${status}`} title={toolCall.error || undefined}>
                     {getStatusIcon(status)}
                 </span>
+                <button
+                    className="task-detail-btn"
+                    title={t('StepProgress.ViewInMissionControl')}
+                    onClick={handleOpenDetail}
+                >
+                    <ArrowRightIcon />
+                </button>
             </div>
 
             {/* Render result text as MarkdownContent directly in the conversation flow */}

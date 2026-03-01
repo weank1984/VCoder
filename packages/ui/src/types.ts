@@ -591,4 +591,6 @@ export interface AppState {
     experimentalAgentTeams: boolean;
     // Active teams
     activeTeams: Map<string, { teamName: string; description?: string; leadSessionId: string; members: TeamMemberInfo[] }>;
+    // MissionControl navigation: when set, MissionControl navigates to this subagent run's detail view
+    mcSelectedRunId: string | null;
 }

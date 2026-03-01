@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useMemo, useCallback, useRef, useState, type CSSProperties } from 'react';
-import { useStore, flushTextBuffer } from '@vcoder/ui/store/useStore';
+import { useStore, flushTextBuffer, flushThoughtBuffer } from '@vcoder/ui/store/useStore';
 import { useSmartScroll } from '@vcoder/ui/hooks/useSmartScroll';
 import { useVirtualList } from '@vcoder/ui/hooks/useVirtualList';
 import { MissionControl } from '@vcoder/ui/components/MissionControl';
@@ -239,11 +239,14 @@ function App() {
           break;
         case 'complete':
           {
-            // Flush any pending text updates before marking complete
+            // Flush any pending text/thought updates before marking complete
             const state = useStore.getState();
             const sessionId = message.data?.sessionId as string | undefined;
             const targetSessionId = sessionId ?? state.currentSessionId ?? undefined;
             flushTextBuffer(state, targetSessionId);
+            // Flush buffered thought delta and mark thought complete so "思考中..." clears
+            flushThoughtBuffer(state, targetSessionId);
+            state.setThoughtComplete(targetSessionId);
 
             if (targetSessionId === state.currentSessionId) {
               setLoading(false);

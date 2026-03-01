@@ -44,6 +44,7 @@ export interface UiSlice {
     setWorkspaceFiles: (files: string[]) => void;
     setUiLanguage: (uiLanguage: UiLanguage, source?: 'user' | 'extension') => void;
     setExperimentalAgentTeams: (enabled: boolean) => void;
+    setMcSelectedRunId: (id: string | null) => void;
 }
 
 export interface HistorySlice {

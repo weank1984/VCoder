@@ -1,5 +1,5 @@
 import type { SliceCreator, SessionsSlice, AppState, SessionState } from './types';
-import { createSessionState, flushTextBuffer, cleanupTextBuffer } from './helpers';
+import { createSessionState, flushTextBuffer, cleanupTextBuffer, flushThoughtBuffer } from './helpers';
 
 export const createSessionsSlice: SliceCreator<SessionsSlice> = (set, get) => ({
     setSessions: (sessions) =>
@@ -172,6 +172,10 @@ export const createSessionsSlice: SliceCreator<SessionsSlice> = (set, get) => ({
         });
 
         flushTextBuffer(get(), targetSessionId);
+        // Flush any buffered thought delta and mark the thought complete so the
+        // "思考中..." indicator doesn't persist after the session ends.
+        flushThoughtBuffer(get(), targetSessionId);
+        get().setThoughtComplete(targetSessionId);
 
         set((state) => {
             const newSessionStates = new Map(state.sessionStates);

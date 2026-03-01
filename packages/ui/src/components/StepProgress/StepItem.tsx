@@ -197,7 +197,7 @@ export function StepItem({
     onAnswer,
 }: StepItemProps) {
     const { t } = useI18n();
-    
+
     // Check if this is a rejected terminal command
     const isRejectedTerminal = useMemo(() => {
         if (step.entries.length !== 1) return false;

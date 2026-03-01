@@ -278,6 +278,7 @@ export default {
     Approved: 'Approved',
     Denied: 'Denied',
     AwaitingApproval: 'Awaiting approval',
+    ViewInMissionControl: 'View in Mission Control',
   },
   ErrorBoundary: {
     Title: 'Something went wrong',

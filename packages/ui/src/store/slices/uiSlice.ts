@@ -179,4 +179,8 @@ export const createUiSlice: SliceCreator<UiSlice> = (set, _get) => ({
     setExperimentalAgentTeams: (enabled) => {
         set({ experimentalAgentTeams: enabled });
     },
+
+    setMcSelectedRunId: (id) => {
+        set({ mcSelectedRunId: id });
+    },
 });
