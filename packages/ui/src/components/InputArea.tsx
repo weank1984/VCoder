@@ -1,7 +1,6 @@
 /**
  * Input Area Component - Claude Code desktop style
  * Simplified: Agent + Model on left, Image on right, Enter to send
- * EnvironmentSelector ("Local") below the input box
  */
 
 import { forwardRef, useImperativeHandle, useState, useRef, useEffect, useCallback } from 'react';
@@ -11,7 +10,6 @@ import { useStore } from '../store/useStore';
 import { FilePicker } from './FilePicker';
 import { PermissionRulesPanel } from './PermissionRulesPanel';
 import { ComposerToolbar } from './ComposerToolbar';
-import { EnvironmentSelector } from './EnvironmentSelector';
 import { CloseIcon } from './Icon';
 import { PendingChangesBar } from './PendingChangesBar';
 import { useI18n } from '../i18n/I18nProvider';
@@ -366,8 +364,6 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                 </div>
             </div>
 
-            {/* Environment selector below the input box */}
-            <EnvironmentSelector disabled={isComposerLocked} />
         </div>
     );
 });

@@ -9,7 +9,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: var(--vc-token-z-dropdown, 400);
+    z-index: var(--vc-token-z-popover, 300);
     background: transparent;
 }
 
@@ -31,7 +31,7 @@
     outline: none;
     pointer-events: auto;
     min-width: 240px;
-    z-index: var(--vc-token-z-popover, 300);
+    z-index: var(--vc-token-z-dropdown, 400);
     box-shadow: var(--vc-token-shadow-float);
     animation: modelPickerIn var(--vc-token-duration-fast) var(--vc-token-ease-out);
 }
