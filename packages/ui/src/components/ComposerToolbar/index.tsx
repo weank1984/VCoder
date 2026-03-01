@@ -219,7 +219,6 @@ export function ComposerToolbar({
                     <ModelSelector
                         selectedModel={selectedModel}
                         onSelectModel={onSelectModel}
-                        disabled={disabled}
                     />
                 )}
 
