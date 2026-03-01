@@ -33,6 +33,14 @@ export const createSessionsSlice: SliceCreator<SessionsSlice> = (set, get) => ({
                 newSessionStates.set(sessionId!, sessionState);
             }
 
+            // When resuming from history mode, migrate the history messages into the new session
+            // so the user sees the historical context instead of a blank new conversation page.
+            const resumingFromHistory = prevState.viewMode === 'history' && sessionId && sessionId !== prevState.currentSessionId;
+            if (resumingFromHistory && sessionState && sessionState.messages.length === 0 && prevState.messages.length > 0) {
+                sessionState = { ...sessionState, messages: prevState.messages, updatedAt: Date.now() };
+                newSessionStates.set(sessionId!, sessionState);
+            }
+
             const currentSessionData = sessionState || {
                 messages: [],
                 tasks: [],

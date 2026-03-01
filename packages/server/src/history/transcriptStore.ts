@@ -10,7 +10,7 @@ import * as fsPromises from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import * as readline from 'readline';
-import type { HistorySession, HistoryChatMessage, HistoryToolCall, HistoryContentBlock } from '@vcoder/shared';
+import type { HistorySession, HistoryChatMessage, HistoryToolCall, HistoryContentBlock, HistoryTeammateMessage, HistoryLoadResult } from '@vcoder/shared';
 
 /**
  * Derive the projectKey from a workspace path.
@@ -456,6 +456,10 @@ async function extractSessionMetadata(
                     if (content && content.trim().toLowerCase() === 'warmup') {
                         continue;
                     }
+                    // Skip internal messages (teammate, system-reminder, CLI commands) as title source
+                    if (content && classifyUserContent(content) !== null) {
+                        continue;
+                    }
                     if (content) {
                         // Take first 50 characters as title
                         title = content.slice(0, 50) + (content.length > 50 ? '...' : '');
@@ -486,16 +490,93 @@ async function extractSessionMetadata(
     };
 }
 
+// =============================================================================
+// Internal message classification & parsing
+// =============================================================================
+
+/** Known XML tag prefixes that indicate internal (non-user) content */
+const INTERNAL_TAG_PATTERNS = [
+    'teammate-message',
+    'local-command-caveat',
+    'command-name',
+    'local-command-stdout',
+    'system-reminder',
+] as const;
+
+type InternalContentKind = 'teammate' | 'system_command' | 'system_reminder';
+
+interface ClassifyResult {
+    kind: InternalContentKind;
+    teammateMessages?: HistoryTeammateMessage[];
+}
+
 /**
- * Load all messages from a history session.
+ * Extract a named attribute value from an XML-like attributes string.
+ * e.g., extractAttribute('teammate_id="x" color="g"', 'teammate_id') → 'x'
  */
-export async function loadHistorySession(
+function extractAttribute(attrsStr: string, name: string): string | undefined {
+    // Match name="value" or name='value'
+    const re = new RegExp(`${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'i');
+    const m = attrsStr.match(re);
+    return m ? (m[1] ?? m[2]) : undefined;
+}
+
+/**
+ * Parse `<teammate-message ...>content</teammate-message>` blocks from text.
+ */
+function parseTeammateMessages(text: string, timestamp?: string): HistoryTeammateMessage[] {
+    const results: HistoryTeammateMessage[] = [];
+    const re = /<teammate-message\s+([^>]*)>([\s\S]*?)<\/teammate-message>/g;
+    let match: RegExpExecArray | null;
+    while ((match = re.exec(text)) !== null) {
+        const attrs = match[1];
+        const content = match[2].trim();
+        results.push({
+            teammateId: extractAttribute(attrs, 'teammate_id') ?? 'unknown',
+            color: extractAttribute(attrs, 'color'),
+            summary: extractAttribute(attrs, 'summary'),
+            content,
+            timestamp,
+        });
+    }
+    return results;
+}
+
+/**
+ * Classify user-event text content as internal or real user message.
+ * Returns null if the content is a normal user message.
+ */
+function classifyUserContent(text: string): ClassifyResult | null {
+    const trimmed = text.trim();
+    if (!trimmed) return null;
+
+    // Check if text starts with a known internal XML tag
+    for (const tag of INTERNAL_TAG_PATTERNS) {
+        if (trimmed.startsWith(`<${tag}`)) {
+            if (tag === 'teammate-message') {
+                return { kind: 'teammate' };
+            }
+            if (tag === 'system-reminder') {
+                return { kind: 'system_reminder' };
+            }
+            // local-command-caveat, command-name, local-command-stdout
+            return { kind: 'system_command' };
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Load all messages from a history session, including extracted team messages.
+ */
+export async function loadHistorySessionFull(
     sessionId: string,
     workspacePath: string
-): Promise<HistoryChatMessage[]> {
+): Promise<HistoryLoadResult> {
     if (!isSafeSessionId(sessionId)) {
         console.error(`[TranscriptStore] Refusing to load unsafe sessionId="${sessionId}"`);
-        return [];
+        return { messages: [], teamMessages: [] };
     }
 
     const resolved = resolveProjectDir(workspacePath);
@@ -509,7 +590,7 @@ export async function loadHistorySession(
                 `[TranscriptStore] Session file not found for sessionId="${sessionId}" (workspace="${workspacePath}"). ` +
                 `Tried: ${preferredPath || '(none)'}`
             );
-            return [];
+            return { messages: [], teamMessages: [] };
         }
         filePath = located.filePath;
     }
@@ -517,7 +598,7 @@ export async function loadHistorySession(
     const projectsDir = getClaudeProjectsDir();
     if (!isPathWithin(projectsDir, filePath)) {
         console.error(`[TranscriptStore] Refusing to read file outside projects dir: ${filePath}`);
-        return [];
+        return { messages: [], teamMessages: [] };
     }
 
     const fileStream = fs.createReadStream(filePath);
@@ -527,6 +608,7 @@ export async function loadHistorySession(
     });
 
     const messages: HistoryChatMessage[] = [];
+    const teamMessages: HistoryTeammateMessage[] = [];
     // Track tool results to associate with their tool_use
     const toolResultsById = new Map<string, { result?: unknown; error?: string }>();
     let messageId = 0;
@@ -536,7 +618,12 @@ export async function loadHistorySession(
 
         try {
             const event = JSON.parse(line);
-            const message = parseEventToMessage(event, () => `msg_${messageId++}`, toolResultsById);
+            const message = parseEventToMessageFiltered(
+                event,
+                () => `msg_${messageId++}`,
+                toolResultsById,
+                teamMessages
+            );
             if (message) {
                 messages.push(message);
             }
@@ -559,7 +646,92 @@ export async function loadHistorySession(
         }
     }
 
-    return messages;
+    return {
+        messages,
+        teamMessages: teamMessages.length > 0 ? teamMessages : undefined,
+    };
+}
+
+/**
+ * Parse event with internal message filtering.
+ * Teammate messages are extracted to `teamMessages`, other internal messages are skipped.
+ * Tool results from internal user events are still captured.
+ */
+function parseEventToMessageFiltered(
+    event: any,
+    generateId: () => string,
+    toolResultsById: Map<string, { result?: unknown; error?: string }>,
+    teamMessages: HistoryTeammateMessage[]
+): HistoryChatMessage | null {
+    // Skip sidechain events
+    if (event?.isSidechain === true) {
+        return null;
+    }
+
+    // Handle standalone tool_result events
+    if (event?.type === 'tool_result' && event.tool_use_id) {
+        toolResultsById.set(String(event.tool_use_id), {
+            result: event.content,
+            error: event.is_error ? String(event.content) : undefined,
+        });
+        return null;
+    }
+
+    const role = getEventRole(event);
+
+    if (role === 'user' && event.message) {
+        // Always collect tool_result blocks first (even from internal messages)
+        if (Array.isArray(event.message.content)) {
+            for (const block of event.message.content) {
+                if (block.type === 'tool_result' && block.tool_use_id) {
+                    toolResultsById.set(block.tool_use_id, {
+                        result: block.content,
+                        error: block.is_error ? String(block.content) : undefined,
+                    });
+                }
+            }
+        }
+
+        let content = extractTextContent(event.message.content);
+        content = cleanAttachmentsFromContent(content);
+
+        // Skip user messages that only contain tool_result (no visible text)
+        if (!content) return null;
+
+        // Classify: internal message or real user message?
+        const classification = classifyUserContent(content);
+        if (classification) {
+            if (classification.kind === 'teammate') {
+                const timestamp = extractTimestamp(event);
+                const parsed = parseTeammateMessages(content, timestamp);
+                teamMessages.push(...parsed);
+            }
+            // All internal messages (teammate, system_command, system_reminder) are excluded from messages
+            return null;
+        }
+
+        return {
+            id: generateId(),
+            role: 'user',
+            content,
+            timestamp: extractTimestamp(event),
+        };
+    }
+
+    // For assistant events, delegate to the original parser
+    return parseEventToMessage(event, generateId, toolResultsById);
+}
+
+/**
+ * Load all messages from a history session (without team messages).
+ * For the full result including teamMessages, use loadHistorySessionFull().
+ */
+export async function loadHistorySession(
+    sessionId: string,
+    workspacePath: string
+): Promise<HistoryChatMessage[]> {
+    const result = await loadHistorySessionFull(sessionId, workspacePath);
+    return result.messages;
 }
 
 /**
@@ -837,6 +1009,10 @@ async function extractMetadataFromLargeFile(
                     let content = extractTextContent(event.message.content);
                     content = cleanAttachmentsFromContent(content);
                     if (content && content.trim().toLowerCase() === 'warmup') {
+                        continue;
+                    }
+                    // Skip internal messages as title source
+                    if (content && classifyUserContent(content) !== null) {
                         continue;
                     }
                     if (content) {

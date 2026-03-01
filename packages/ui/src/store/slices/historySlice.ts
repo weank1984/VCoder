@@ -102,7 +102,7 @@ function mergeHistoryMessages(historyMessages: HistoryChatMessage[]): ChatMessag
 export const createHistorySlice: SliceCreator<HistorySlice> = (set, _get) => ({
     setHistorySessions: (historySessions) => set({ historySessions }),
 
-    loadHistorySession: (sessionId, historyMessages) => set((state) => {
+    loadHistorySession: (sessionId, historyMessages, teamMessages) => set((state) => {
         const messages = mergeHistoryMessages(historyMessages);
 
         const newSessionStates = new Map(state.sessionStates);
@@ -112,6 +112,7 @@ export const createHistorySlice: SliceCreator<HistorySlice> = (set, _get) => ({
             ...(existingState ?? createSessionState(sessionId)),
             messages,
             updatedAt: now,
+            historyTeamMessages: teamMessages,
         });
 
         return {

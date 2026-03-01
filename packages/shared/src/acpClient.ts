@@ -25,7 +25,6 @@ import {
     type McpServerConfig,
     type ResumeSessionParams,
     type HistorySession,
-    type HistoryChatMessage,
     type HistoryListResult,
     type HistoryLoadResult,
     type HistoryDeleteResult,
@@ -579,9 +578,8 @@ export class ACPClient extends EventEmitter {
         return result.sessions;
     }
 
-    async loadHistory(sessionId: string, workspacePath: string): Promise<HistoryChatMessage[]> {
-        const result = await this.sendRequest<HistoryLoadResult>(ACPMethods.HISTORY_LOAD, { sessionId, workspacePath });
-        return result.messages;
+    async loadHistory(sessionId: string, workspacePath: string): Promise<HistoryLoadResult> {
+        return this.sendRequest<HistoryLoadResult>(ACPMethods.HISTORY_LOAD, { sessionId, workspacePath });
     }
 
     async deleteHistory(sessionId: string, workspacePath: string): Promise<boolean> {

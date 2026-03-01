@@ -2,7 +2,7 @@
  * Webview Types
  */
 
-import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, AgentProfile, FileChangeUpdate, SessionCompleteReason, ConfirmationType, PermissionRule, TeamMemberInfo } from '@vcoder/shared';
+import type { UpdateNotificationParams, Session, Task, ModelId, PermissionMode, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, HistoryTeammateMessage, AgentProfile, FileChangeUpdate, SessionCompleteReason, ConfirmationType, PermissionRule, TeamMemberInfo } from '@vcoder/shared';
 
 export type { SessionCompleteReason };
 
@@ -333,6 +333,7 @@ export interface HistoryMessagesMessage {
     type: 'historyMessages';
     data: HistoryChatMessage[];
     sessionId: string;
+    teamMessages?: HistoryTeammateMessage[];
 }
 
 export interface ErrorMessage {
@@ -550,6 +551,8 @@ export interface SessionState {
     updatedAt: number;
     /** Execution summary for the last completed turn */
     executionSummary?: import('@vcoder/shared').ExecutionSummaryUpdate;
+    /** Team messages extracted from history transcripts */
+    historyTeamMessages?: HistoryTeammateMessage[];
 }
 
 export interface AppState {

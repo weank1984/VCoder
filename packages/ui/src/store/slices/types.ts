@@ -1,5 +1,5 @@
 import type { AppState, ChatMessage, ContentBlock, ToolCall, UiLanguage, AgentInfo, SessionStatus, SessionState } from '../../types';
-import type { Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, FileChangeUpdate, SessionCompleteReason, PermissionRule } from '@vcoder/shared';
+import type { Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate, HistorySession, HistoryChatMessage, HistoryTeammateMessage, FileChangeUpdate, SessionCompleteReason, PermissionRule } from '@vcoder/shared';
 
 export type SetState<T extends object> = (
     partial: Partial<T> | ((state: T) => Partial<T>)
@@ -47,7 +47,7 @@ export interface UiSlice {
 
 export interface HistorySlice {
     setHistorySessions: (sessions: HistorySession[]) => void;
-    loadHistorySession: (sessionId: string, messages: HistoryChatMessage[]) => void;
+    loadHistorySession: (sessionId: string, messages: HistoryChatMessage[], teamMessages?: HistoryTeammateMessage[]) => void;
     exitHistoryMode: () => void;
 }
 
@@ -78,5 +78,5 @@ export type SliceCreator<T> = (set: SetState<AppStore>, get: GetState<AppStore>)
 export type {
     AppState, ChatMessage, ContentBlock, ToolCall, UiLanguage, AgentInfo, SessionStatus, SessionState,
     Task, ModelId, PermissionMode, UpdateNotificationParams, ErrorUpdate, SubagentRunUpdate,
-    HistorySession, HistoryChatMessage, FileChangeUpdate, SessionCompleteReason, PermissionRule,
+    HistorySession, HistoryChatMessage, HistoryTeammateMessage, FileChangeUpdate, SessionCompleteReason, PermissionRule,
 };

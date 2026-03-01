@@ -398,11 +398,12 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                     {
                         const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
                         try {
-                            const messages = await this.acpClient.loadHistory(message.sessionId, root);
-                            this.postMessage({ 
-                                type: 'historyMessages', 
-                                data: messages,
-                                sessionId: message.sessionId 
+                            const result = await this.acpClient.loadHistory(message.sessionId, root);
+                            this.postMessage({
+                                type: 'historyMessages',
+                                data: result.messages,
+                                sessionId: message.sessionId,
+                                teamMessages: result.teamMessages,
                             });
                         } catch (err) {
                             console.error('[VCoder] Failed to load history:', err);

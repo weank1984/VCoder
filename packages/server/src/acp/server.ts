@@ -55,7 +55,7 @@ import {
     PermissionRuleDeleteParams,
     ErrorUpdate,
 } from '@vcoder/shared';
-import { listHistorySessions, loadHistorySession, deleteHistorySession } from '../history/transcriptStore';
+import { listHistorySessions, loadHistorySessionFull, deleteHistorySession } from '../history/transcriptStore';
 import { ClaudeCodeWrapper } from '../claude/wrapper';
 
 export class ACPServer {
@@ -518,8 +518,7 @@ export class ACPServer {
     }
 
     private async handleLoadHistory(params: HistoryLoadParams): Promise<HistoryLoadResult> {
-        const messages = await loadHistorySession(params.sessionId, params.workspacePath);
-        return { messages };
+        return loadHistorySessionFull(params.sessionId, params.workspacePath);
     }
 
     private async handleDeleteHistory(params: HistoryDeleteParams): Promise<HistoryDeleteResult> {

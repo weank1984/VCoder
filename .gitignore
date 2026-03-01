@@ -69,4 +69,5 @@ apps/vscode-extension/server/
 demo/
 help.txt
 test-claude-raw.js
-.pnpm-store/apps/vscode-extension/native-deps/
+.pnpm-store/
+apps/vscode-extension/native-deps/

@@ -13,7 +13,7 @@ vi.mock('os', async () => {
   };
 });
 
-import { listHistorySessions, loadHistorySession } from '../../packages/server/src/history/transcriptStore';
+import { listHistorySessions, loadHistorySession, loadHistorySessionFull } from '../../packages/server/src/history/transcriptStore';
 
 function writeJsonl(filePath: string, lines: unknown[]): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -151,5 +151,154 @@ describe('TranscriptStore', () => {
     const sessions = await listHistorySessions('');
     expect(sessions.map((s) => s.id)).toContain(sessionId);
     expect(sessions.find((s) => s.id === sessionId)?.projectKey).toBe(projectKey);
+  });
+
+  // =========================================================================
+  // Internal message filtering tests
+  // =========================================================================
+
+  it('filters teammate messages out of messages and extracts to teamMessages', async () => {
+    const keyNoLeading = path.normalize(workspacePath).replace(/^[\\/]+/, '').replace(/[/\\]/g, '-');
+    const sessionId = 'session-teammate';
+    const transcriptPath = path.join(tempHome, '.claude', 'projects', keyNoLeading, `${sessionId}.jsonl`);
+
+    writeJsonl(transcriptPath, [
+      { type: 'user', timestamp: 1000, message: { content: 'real user question' } },
+      {
+        type: 'assistant', timestamp: 2000,
+        message: { content: [{ type: 'text', text: 'thinking...' }] },
+      },
+      // Teammate message (should be filtered from messages, extracted to teamMessages)
+      {
+        type: 'user', timestamp: 3000,
+        message: { content: '<teammate-message teammate_id="researcher" color="green" summary="found results">Here are my findings</teammate-message>' },
+      },
+      {
+        type: 'assistant', timestamp: 4000,
+        message: { content: [{ type: 'text', text: 'final answer' }] },
+      },
+    ]);
+
+    const result = await loadHistorySessionFull(sessionId, workspacePath);
+
+    // 1 user + 2 assistant messages (merging happens in UI layer, not here)
+    // The key point: the teammate message is NOT in the messages array
+    expect(result.messages).toHaveLength(3);
+    expect(result.messages[0].role).toBe('user');
+    expect(result.messages[0].content).toBe('real user question');
+    expect(result.messages[1].role).toBe('assistant');
+    expect(result.messages[1].content).toContain('thinking...');
+    expect(result.messages[2].role).toBe('assistant');
+    expect(result.messages[2].content).toContain('final answer');
+    // No internal messages in the messages array
+    const allContent = result.messages.map(m => m.content).join(' ');
+    expect(allContent).not.toContain('teammate-message');
+
+    // teamMessages should be extracted
+    expect(result.teamMessages).toBeDefined();
+    expect(result.teamMessages).toHaveLength(1);
+    expect(result.teamMessages![0].teammateId).toBe('researcher');
+    expect(result.teamMessages![0].color).toBe('green');
+    expect(result.teamMessages![0].summary).toBe('found results');
+    expect(result.teamMessages![0].content).toBe('Here are my findings');
+  });
+
+  it('filters system-reminder and CLI command messages from messages', async () => {
+    const keyNoLeading = path.normalize(workspacePath).replace(/^[\\/]+/, '').replace(/[/\\]/g, '-');
+    const sessionId = 'session-system';
+    const transcriptPath = path.join(tempHome, '.claude', 'projects', keyNoLeading, `${sessionId}.jsonl`);
+
+    writeJsonl(transcriptPath, [
+      { type: 'user', timestamp: 1000, message: { content: 'user prompt' } },
+      { type: 'assistant', timestamp: 2000, message: { content: [{ type: 'text', text: 'response' }] } },
+      // system-reminder (should be skipped)
+      { type: 'user', timestamp: 3000, message: { content: '<system-reminder>some system info</system-reminder>' } },
+      // CLI command (should be skipped)
+      { type: 'user', timestamp: 4000, message: { content: '<command-name>/help</command-name>' } },
+      // local-command-caveat (should be skipped)
+      { type: 'user', timestamp: 5000, message: { content: '<local-command-caveat>caveat text</local-command-caveat>' } },
+      // local-command-stdout (should be skipped)
+      { type: 'user', timestamp: 6000, message: { content: '<local-command-stdout>output text</local-command-stdout>' } },
+    ]);
+
+    const result = await loadHistorySessionFull(sessionId, workspacePath);
+
+    // Only real messages
+    expect(result.messages).toHaveLength(2);
+    expect(result.messages[0].role).toBe('user');
+    expect(result.messages[0].content).toBe('user prompt');
+    expect(result.messages[1].role).toBe('assistant');
+    // No team messages either
+    expect(result.teamMessages).toBeUndefined();
+  });
+
+  it('does not use internal messages as session title', async () => {
+    const keyNoLeading = path.normalize(workspacePath).replace(/^[\\/]+/, '').replace(/[/\\]/g, '-');
+    const sessionId = 'session-title';
+    const transcriptPath = path.join(tempHome, '.claude', 'projects', keyNoLeading, `${sessionId}.jsonl`);
+
+    writeJsonl(transcriptPath, [
+      // First user event is a teammate message - should NOT become title
+      {
+        type: 'user', timestamp: 1000,
+        message: { content: '<teammate-message teammate_id="agent1" summary="init">starting work</teammate-message>' },
+      },
+      // Second user event is a system-reminder - should NOT become title
+      {
+        type: 'user', timestamp: 2000,
+        message: { content: '<system-reminder>context info</system-reminder>' },
+      },
+      // Third user event is the real user message - SHOULD become title
+      { type: 'user', timestamp: 3000, message: { content: 'Fix the login bug' } },
+      { type: 'assistant', timestamp: 4000, message: { content: [{ type: 'text', text: 'ok' }] } },
+    ]);
+
+    const sessions = await listHistorySessions(workspacePath);
+    const session = sessions.find((s) => s.id === sessionId);
+    expect(session).toBeDefined();
+    expect(session!.title).toBe('Fix the login bug');
+  });
+
+  it('preserves tool_result from internal user events', async () => {
+    const keyNoLeading = path.normalize(workspacePath).replace(/^[\\/]+/, '').replace(/[/\\]/g, '-');
+    const sessionId = 'session-tool-result';
+    const transcriptPath = path.join(tempHome, '.claude', 'projects', keyNoLeading, `${sessionId}.jsonl`);
+
+    writeJsonl(transcriptPath, [
+      { type: 'user', timestamp: 1000, message: { content: 'do something' } },
+      {
+        type: 'assistant', timestamp: 2000,
+        message: {
+          content: [
+            { type: 'text', text: 'running tool' },
+            { type: 'tool_use', id: 't1', name: 'Bash', input: { command: 'echo hi' } },
+          ],
+        },
+      },
+      // Internal user event containing BOTH a tool_result AND a teammate message
+      {
+        type: 'user', timestamp: 3000,
+        message: {
+          content: [
+            { type: 'tool_result', tool_use_id: 't1', content: 'hi', is_error: false },
+            { type: 'text', text: '<teammate-message teammate_id="worker" summary="done">finished</teammate-message>' },
+          ],
+        },
+      },
+    ]);
+
+    const result = await loadHistorySessionFull(sessionId, workspacePath);
+
+    // The tool_result should still be attached to the tool call
+    expect(result.messages).toHaveLength(2);
+    const assistantMsg = result.messages[1];
+    expect(assistantMsg.toolCalls).toHaveLength(1);
+    expect(assistantMsg.toolCalls![0].id).toBe('t1');
+    expect(assistantMsg.toolCalls![0].result).toBe('hi');
+    expect(assistantMsg.toolCalls![0].status).toBe('completed');
+
+    // The teammate message should be extracted
+    expect(result.teamMessages).toHaveLength(1);
+    expect(result.teamMessages![0].teammateId).toBe('worker');
   });
 });

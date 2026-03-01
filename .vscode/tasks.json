@@ -9,21 +9,18 @@
         "run",
         "dev:plugin"
       ],
-      "isBackground": true,
       "group": {
         "kind": "build",
         "isDefault": false
       },
       "presentation": {
-        "reveal": "always",
-        "panel": "new"
+        "reveal": "silent",
+        "panel": "shared"
       },
       "options": {
         "cwd": "${workspaceFolder}"
       },
-      "problemMatcher": [
-        "$tsc-watch"
-      ]
+      "problemMatcher": []
     },
     {
       "label": "dev:server",

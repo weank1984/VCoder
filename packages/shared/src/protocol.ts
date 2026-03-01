@@ -574,8 +574,21 @@ export interface HistoryChatMessage {
     timestamp?: string;
 }
 
+/**
+ * Teammate message extracted from history transcripts.
+ * These are internal agent-team messages stored as `<teammate-message>` XML in user events.
+ */
+export interface HistoryTeammateMessage {
+    teammateId: string;
+    color?: string;
+    summary?: string;
+    content: string;
+    timestamp?: string;
+}
+
 export interface HistoryLoadResult {
     messages: HistoryChatMessage[];
+    teamMessages?: HistoryTeammateMessage[];
 }
 
 export interface HistoryDeleteParams {

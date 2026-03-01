@@ -281,7 +281,7 @@ function App() {
           setHistorySessions(message.data);
           break;
         case 'historyMessages':
-          loadHistorySession(message.sessionId, message.data);
+          loadHistorySession(message.sessionId, message.data, message.teamMessages);
           break;
         case 'uiLanguage':
           setUiLanguage(message.data.uiLanguage, 'extension');

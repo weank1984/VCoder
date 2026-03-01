@@ -11,6 +11,7 @@ import {
   type FsReadTextFileResult,
   type FsWriteTextFileParams,
   type FsWriteTextFileResult,
+  type ModelId,
   type PermissionRule,
   type TerminalCreateParams,
   type TerminalCreateResult,
@@ -342,7 +343,7 @@ export class DesktopRuntime {
           return;
         case 'setModel':
           if (typeof payload.model === 'string') {
-            await this.requireClient().changeSettings({ model: payload.model as never });
+            await this.requireClient().changeSettings({ model: payload.model as ModelId });
           }
           return;
         case 'setPlanMode':
@@ -437,10 +438,12 @@ export class DesktopRuntime {
         }
         case 'loadHistory':
           if (typeof payload.sessionId === 'string') {
+            const histResult = await this.requireClient().loadHistory(payload.sessionId, this.workspaceRoot);
             this.options.postMessage({
               type: 'historyMessages',
-              data: await this.requireClient().loadHistory(payload.sessionId, this.workspaceRoot),
+              data: histResult.messages,
               sessionId: payload.sessionId,
+              teamMessages: histResult.teamMessages,
             });
           }
           return;
