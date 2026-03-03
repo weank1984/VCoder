@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
+import * as _path from 'path';
 import type {
     LspGoToDefinitionParams,
     LspGoToDefinitionResult,
@@ -196,7 +196,7 @@ export class LspService {
             const document = vscode.workspace.textDocuments.find(doc => doc.uri.toString() === uri.toString());
             
             return !!document;
-        } catch (error) {
+        } catch (_error) {
             return false;
         }
     }

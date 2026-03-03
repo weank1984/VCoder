@@ -275,14 +275,20 @@ export class AgentProcessManager extends EventEmitter {
         // Try graceful shutdown first
         this.process.kill('SIGTERM');
 
-        // Wait a bit for graceful shutdown
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Force kill if still running
-        if (this.process && !this.process.killed) {
-            console.log('[AgentProcessManager] Force killing agent');
-            this.process.kill('SIGKILL');
-        }
+        // Wait for exit event, force kill after timeout
+        await new Promise<void>((resolve) => {
+            const timeout = setTimeout(() => {
+                if (this.process && this.process.exitCode === null) {
+                    console.log('[AgentProcessManager] Force killing agent');
+                    this.process.kill('SIGKILL');
+                }
+                resolve();
+            }, 3000);
+            this.process?.once('exit', () => {
+                clearTimeout(timeout);
+                resolve();
+            });
+        });
 
         this.process = null;
         this.currentProfile = null;
@@ -455,6 +461,12 @@ export class AgentProcessManager extends EventEmitter {
             return;
         }
 
+        if (this.process?.exitCode !== null) {
+            // Process has already exited
+            this.pendingHealthCheck = false;
+            return;
+        }
+
         this.pendingHealthCheck = true;
 
         try {
@@ -534,14 +546,6 @@ export class AgentProcessManager extends EventEmitter {
             recentCrashes,
             retryCount: this.retryCount,
         };
-    }
-
-    /**
-     * Update status and fire event.
-     */
-    private updateStatus_old(newStatus: 'stopped' | 'starting' | 'running' | 'error'): void {
-        this.status = newStatus;
-        this._onStatusChange.fire(newStatus);
     }
 
     /**

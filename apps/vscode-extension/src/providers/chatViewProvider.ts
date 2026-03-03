@@ -32,9 +32,31 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
     private inlineDiffProvider?: InlineDiffProvider;
     private updateReviewStatusBar?: () => void;
 
+    // Temporary highlight decoration for recently changed lines (方案3)
+    private readonly changeHighlightDecoration = vscode.window.createTextEditorDecorationType({
+        backgroundColor: 'rgba(73, 199, 130, 0.12)',
+        isWholeLine: true,
+        overviewRulerColor: new vscode.ThemeColor('editorOverviewRuler.addedForeground'),
+        overviewRulerLane: vscode.OverviewRulerLane.Left,
+    });
+    private changeHighlightTimer?: ReturnType<typeof setTimeout>;
+
+    // Cache diff data from proposed=true events for use when proposed=false arrives
+    private pendingDiffCache = new Map<string, string>();
+
     // Terminal output ring buffer for @terminal feature
     private terminalOutputBuffer: string[] = [];
     private readonly TERMINAL_BUFFER_MAX_LINES = 200;
+
+    // Allowlist for commands that the webview is permitted to invoke via the
+    // 'executeCommand' message. Any command not matching one of these entries is
+    // rejected to prevent arbitrary VS Code command execution in case of XSS or
+    // supply-chain compromise in webview code.
+    private static readonly ALLOWED_COMMAND_PREFIXES = ['vcoder.'];
+    private static readonly ALLOWED_COMMANDS = new Set([
+        'workbench.action.openSettings',
+        'workbench.view.extension.vcoder',
+    ]);
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -194,8 +216,10 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         for await (const data of stream) {
                             lines.push(data);
                         }
+                        // Truncate long lines before buffering
+                        const truncatedLines = lines.map(line => line.length > 2000 ? line.slice(0, 2000) + '...[truncated]' : line);
                         // Append to ring buffer
-                        this.terminalOutputBuffer.push(...lines);
+                        this.terminalOutputBuffer.push(...truncatedLines);
                         if (this.terminalOutputBuffer.length > this.TERMINAL_BUFFER_MAX_LINES) {
                             this.terminalOutputBuffer = this.terminalOutputBuffer.slice(-this.TERMINAL_BUFFER_MAX_LINES);
                         }
@@ -461,7 +485,14 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
                         if (!workspaceFolder || !filePath) break;
                         try {
-                            const uri = vscode.Uri.joinPath(workspaceFolder.uri, filePath);
+                            const workspaceRoot = workspaceFolder.uri.fsPath;
+                            const resolvedPath = path.resolve(workspaceRoot, filePath);
+                            const rel = path.relative(workspaceRoot, resolvedPath);
+                            if (rel.startsWith('..' + path.sep) || rel === '..' || path.isAbsolute(rel)) {
+                                console.warn('[VCoder] readFile: path escapes workspace:', filePath);
+                                break;
+                            }
+                            const uri = vscode.Uri.file(resolvedPath);
                             const stat = await vscode.workspace.fs.stat(uri);
                             // Skip files > 1MB — only attach path
                             if (stat.size > 1 * 1024 * 1024) {
@@ -516,10 +547,18 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                     break;
                 case 'executeCommand':
                     if (message.command) {
+                        const cmd: string = message.command;
+                        const allowed =
+                            ChatViewProvider.ALLOWED_COMMANDS.has(cmd) ||
+                            ChatViewProvider.ALLOWED_COMMAND_PREFIXES.some((prefix) => cmd.startsWith(prefix));
+                        if (!allowed) {
+                            console.warn('[VCoder] Blocked disallowed executeCommand from webview:', cmd);
+                            break;
+                        }
                         try {
-                            await vscode.commands.executeCommand(message.command);
+                            await vscode.commands.executeCommand(cmd);
                         } catch (err) {
-                            console.error('[VCoder] Failed to execute command:', message.command, err);
+                            console.error('[VCoder] Failed to execute command:', cmd, err);
                         }
                     }
                     break;
@@ -755,14 +794,26 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         
                         try {
                             // Resolve absolute path
-                            let absolutePath = filePath;
-                            if (!path.isAbsolute(filePath)) {
-                                const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-                                if (root) {
-                                    absolutePath = path.join(root, filePath);
+                            const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                            let absolutePath: string;
+                            if (path.isAbsolute(filePath)) {
+                                absolutePath = path.resolve(filePath);
+                            } else if (root) {
+                                absolutePath = path.resolve(root, filePath);
+                            } else {
+                                absolutePath = filePath;
+                            }
+
+                            // Validate path stays within workspace
+                            if (root) {
+                                const rel = path.relative(root, absolutePath);
+                                if (rel.startsWith('..' + path.sep) || rel === '..' || path.isAbsolute(rel)) {
+                                    console.warn('[VCoder] openFile: path escapes workspace:', filePath);
+                                    vscode.window.showWarningMessage(`无法打开工作区以外的文件: ${filePath}`);
+                                    break;
                                 }
                             }
-                            
+
                             // Open file in editor
                             const uri = vscode.Uri.file(absolutePath);
                             const doc = await vscode.workspace.openTextDocument(uri);
@@ -785,6 +836,64 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
                         } catch (err) {
                             console.error('[VCoder] Failed to open file:', filePath, err);
                             vscode.window.showErrorMessage(`无法打开文件: ${filePath}`);
+                        }
+                    }
+                    break;
+                case 'openDiff':
+                    {
+                        const filePath = message.path;
+                        if (!filePath) break;
+
+                        try {
+                            let absolutePath = filePath;
+                            if (!path.isAbsolute(filePath)) {
+                                const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                                if (root) {
+                                    absolutePath = path.join(root, filePath);
+                                }
+                            }
+
+                            const fileUri = vscode.Uri.file(absolutePath);
+                            const basename = path.basename(absolutePath);
+
+                            // 尝试用 Git 扩展获取 HEAD 版本作为 original
+                            const gitExtension = vscode.extensions.getExtension('vscode.git');
+                            if (gitExtension?.isActive) {
+                                const git = gitExtension.exports.getAPI(1);
+                                const repo = git?.repositories?.[0];
+                                if (repo) {
+                                    // git show HEAD:relative/path
+                                    const relativePath = path.relative(repo.rootUri.fsPath, absolutePath);
+                                    const gitUri = vscode.Uri.parse(
+                                        `git:/${relativePath}?${JSON.stringify({ path: relativePath, ref: '~' })}`
+                                    );
+                                    await vscode.commands.executeCommand(
+                                        'vscode.diff',
+                                        gitUri,
+                                        fileUri,
+                                        `${basename} (HEAD ↔ Working)`
+                                    );
+                                    break;
+                                }
+                            }
+
+                            // Fallback：直接打开文件
+                            const doc = await vscode.workspace.openTextDocument(fileUri);
+                            await vscode.window.showTextDocument(doc, { preview: false });
+                        } catch (err) {
+                            console.error('[VCoder] openDiff failed:', filePath, err);
+                            // Fallback：尝试直接打开文件
+                            try {
+                                let absolutePath = filePath;
+                                if (!path.isAbsolute(filePath)) {
+                                    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                                    if (root) absolutePath = path.join(root, filePath);
+                                }
+                                const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(absolutePath));
+                                await vscode.window.showTextDocument(doc, { preview: false });
+                            } catch {
+                                vscode.window.showErrorMessage(`无法打开 diff: ${filePath}`);
+                            }
                         }
                     }
                     break;
@@ -850,6 +959,15 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
             if (this.fileDecorator) {
                 this.fileDecorator.removeFile(data.filePath);
             }
+
+            // Reveal accepted file in editor with highlight (方案1+3)
+            if (data.decision === 'accepted') {
+                const cachedDiff = this.pendingDiffCache.get(data.filePath);
+                this.pendingDiffCache.delete(data.filePath);
+                void this.revealFileChange(data.filePath, cachedDiff);
+            } else {
+                this.pendingDiffCache.delete(data.filePath);
+            }
         });
 
         // Listen for conflict detection events
@@ -900,7 +1018,8 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
 
     /**
      * Handle file_change events from the agent.
-     * When proposed=true, triggers Diff review flow.
+     * When proposed=true, triggers Diff review flow + caches diff.
+     * When proposed=false, reveals the file in editor with highlight.
      */
     private handleFileChange(sessionId: string, change: FileChangeUpdate): void {
         // Update file decorator
@@ -908,9 +1027,22 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
             this.fileDecorator.updateFile(change);
         }
 
-        // If not a proposed change, nothing more to do
         if (!change.proposed) {
+            // proposed=false is the "clear pending" signal after accept/reject.
+            // The file is already on disk — reveal it with cached diff (方案1+3).
+            if (change.type !== 'deleted') {
+                const cachedDiff = this.pendingDiffCache.get(change.path);
+                this.pendingDiffCache.delete(change.path);
+                void this.revealFileChange(change.path, cachedDiff);
+            } else {
+                this.pendingDiffCache.delete(change.path);
+            }
             return;
+        }
+
+        // Cache diff for later use when proposed=false arrives
+        if (change.diff) {
+            this.pendingDiffCache.set(change.path, change.diff);
         }
 
         // Check permission mode - bypassPermissions auto-accepts without diff review
@@ -919,6 +1051,14 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
         if (permissionMode === 'bypassPermissions') {
             console.log('[VCoder] bypassPermissions mode: auto-accepting', change.path);
             void this.acpClient.acceptFileChange(change.path, sessionId);
+            // CLI already wrote the file — reveal it in editor (方案1+3)
+            if (change.type !== 'deleted') {
+                // Small delay to ensure the CLI has finished writing
+                setTimeout(() => {
+                    void this.revealFileChange(change.path, change.diff);
+                    this.pendingDiffCache.delete(change.path);
+                }, 500);
+            }
             return;
         }
 
@@ -932,6 +1072,95 @@ export class ChatViewProvider extends EventEmitter implements vscode.WebviewView
         if (this.diffManager) {
             void this.diffManager.previewChange(sessionId, change);
         }
+    }
+
+    /**
+     * 方案1+3：自动打开被修改的文件，滚动到变更位置，临时高亮变更行
+     */
+    private async revealFileChange(filePath: string, diff?: string): Promise<void> {
+        try {
+            let absolutePath = filePath;
+            if (!path.isAbsolute(filePath)) {
+                const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                if (root) {
+                    absolutePath = path.join(root, filePath);
+                }
+            }
+
+            const uri = vscode.Uri.file(absolutePath);
+            const doc = await vscode.workspace.openTextDocument(uri);
+            const editor = await vscode.window.showTextDocument(doc, {
+                preview: true,
+                preserveFocus: true, // 不抢走焦点，用户可能还在 WebView 中操作
+            });
+
+            // 解析 diff 获取变更行范围
+            const changedLines = this.parseChangedLines(diff);
+            if (changedLines.length === 0) return;
+
+            // 方案1：滚动到首个变更行
+            const firstLine = changedLines[0];
+            const revealPos = new vscode.Position(Math.max(0, firstLine - 1), 0);
+            editor.revealRange(
+                new vscode.Range(revealPos, revealPos),
+                vscode.TextEditorRevealType.InCenter
+            );
+
+            // 方案3：临时高亮变更行
+            const decorations: vscode.DecorationOptions[] = changedLines
+                .filter(line => line > 0 && line <= doc.lineCount)
+                .map(line => ({
+                    range: new vscode.Range(line - 1, 0, line - 1, doc.lineAt(line - 1).text.length),
+                }));
+
+            // 清除上一次的高亮
+            if (this.changeHighlightTimer) {
+                clearTimeout(this.changeHighlightTimer);
+            }
+            editor.setDecorations(this.changeHighlightDecoration, decorations);
+
+            // 3 秒后淡出
+            this.changeHighlightTimer = setTimeout(() => {
+                editor.setDecorations(this.changeHighlightDecoration, []);
+                this.changeHighlightTimer = undefined;
+            }, 3000);
+        } catch (err) {
+            // 静默失败——不影响主流程
+            console.warn('[VCoder] revealFileChange failed:', filePath, err);
+        }
+    }
+
+    /**
+     * 从 unified diff 中提取新增/修改的行号（新文件侧）
+     */
+    private parseChangedLines(diff?: string): number[] {
+        if (!diff) return [];
+
+        const lines = diff.split('\n');
+        const changedLines: number[] = [];
+        let newLineNum = 0;
+
+        for (const line of lines) {
+            const hunkMatch = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+            if (hunkMatch) {
+                newLineNum = parseInt(hunkMatch[1], 10) - 1;
+                continue;
+            }
+
+            if (line.startsWith('+') && !line.startsWith('+++')) {
+                newLineNum++;
+                changedLines.push(newLineNum);
+            } else if (line.startsWith('-') && !line.startsWith('---')) {
+                // 删除行不递增 newLineNum
+            } else if (!line.startsWith('diff ') && !line.startsWith('index ') &&
+                       !line.startsWith('---') && !line.startsWith('+++') &&
+                       !line.startsWith('new file') && !line.startsWith('deleted file') &&
+                       !line.startsWith('\\')) {
+                newLineNum++;
+            }
+        }
+
+        return changedLines;
     }
 
     refresh(): void {

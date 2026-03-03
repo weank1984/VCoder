@@ -1,6 +1,6 @@
 import { createHighlighter, type BundledLanguage } from 'shiki';
 
-let highlighter: any = null;
+let highlighter: Awaited<ReturnType<typeof createHighlighter>> | null = null;
 
 async function initHighlighter() {
     try {
@@ -67,11 +67,12 @@ self.addEventListener('message', async (event) => {
                 self.postMessage({ type: 'init-complete', messageId });
                 break;
                 
-            case 'highlight':
+            case 'highlight': {
                 const { code, language, theme } = data;
                 const result = await highlightCode(code, language, theme);
                 self.postMessage({ type: 'highlight-complete', messageId, result });
                 break;
+            }
                 
             default:
                 console.warn('[HighlightWorker] Unknown message type:', type);

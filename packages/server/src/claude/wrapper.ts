@@ -1521,6 +1521,19 @@ export class ClaudeCodeWrapper extends EventEmitter {
             return;
         }
 
+        // EnterPlanMode / ExitPlanMode: eagerly sync mode on tool_use
+        // (safety net for cases where tool_result detection fails, e.g. toolName lookup miss)
+        const toolNameLower = toolName.toLowerCase();
+        if (toolNameLower === 'enterplanmode') {
+            this.settings.permissionMode = 'plan';
+            const modeUpdate: SettingsChangedUpdate = { permissionMode: 'plan' };
+            this.emit('update', sessionId, modeUpdate, 'settings_changed');
+        } else if (toolNameLower === 'exitplanmode') {
+            this.settings.permissionMode = 'default';
+            const modeUpdate: SettingsChangedUpdate = { permissionMode: 'default' };
+            this.emit('update', sessionId, modeUpdate, 'settings_changed');
+        }
+
         // Default: represent tool invocations uniformly.
         const update: ToolUseUpdate = {
             id: toolId,

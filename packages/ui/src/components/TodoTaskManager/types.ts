@@ -21,7 +21,7 @@ export type TaskItem = {
   progress?: number;
   startTime?: number;
   endTime?: number;
-  result?: any;
+  result?: unknown;
 };
 
 export type TodoTaskFilter = {

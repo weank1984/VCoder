@@ -62,6 +62,7 @@ export class ACPServer {
     private sessions: Map<string, Session> = new Map();
     private currentSessionId: string | null = null;
     private mcpConfigPath: string | null = null;
+    private mcpConfigPaths: string[] = [];
     private requestId = 0;
     private pendingRequests: Map<number | string, {
         resolve: (value: unknown) => void;
@@ -152,19 +153,20 @@ export class ACPServer {
     }
 
     async shutdown(): Promise<void> {
-        if (this.mcpConfigPath) {
-            const pathToDelete = this.mcpConfigPath;
-            this.mcpConfigPath = null;
-            try {
-                await fs.unlink(pathToDelete);
-            } catch {
-                // ignore
-            }
-        }
+        await this.cleanupMcpConfigs();
+    }
+
+    private async cleanupMcpConfigs(): Promise<void> {
+        const paths = this.mcpConfigPaths.splice(0);
+        this.mcpConfigPath = null;
+        await Promise.all(
+            paths.map((p) => fs.unlink(p).catch(() => { /* ignore */ }))
+        );
     }
 
     private async handleRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
-        let { id, method, params } = request;
+        const { id, params } = request;
+        let { method } = request;
 
         // FR-302: Compat layer for old `.` style method names (deprecated, remove in v0.4)
         if (method.includes('.') && !method.includes('/')) {
@@ -318,6 +320,11 @@ export class ACPServer {
 
     private async handleNewSession(params: NewSessionParams): Promise<NewSessionResult> {
         if (params.mcpServers && params.mcpServers.length > 0) {
+            if (this.mcpConfigPath) {
+                const prev = this.mcpConfigPath;
+                this.mcpConfigPath = null;
+                await fs.unlink(prev).catch(() => { /* ignore */ });
+            }
             const mcpConfigPath = await this.writeMcpConfig(params.mcpServers);
             this.mcpConfigPath = mcpConfigPath;
             this.claudeCode.updateSettings({ mcpConfigPath });
@@ -336,6 +343,11 @@ export class ACPServer {
 
     private async handleResumeSession(params: ResumeSessionParams): Promise<ResumeSessionResult> {
         if (params.mcpServers && params.mcpServers.length > 0) {
+            if (this.mcpConfigPath) {
+                const prev = this.mcpConfigPath;
+                this.mcpConfigPath = null;
+                await fs.unlink(prev).catch(() => { /* ignore */ });
+            }
             const mcpConfigPath = await this.writeMcpConfig(params.mcpServers);
             this.mcpConfigPath = mcpConfigPath;
             this.claudeCode.updateSettings({ mcpConfigPath });
@@ -383,7 +395,8 @@ export class ACPServer {
 
         const payload = { mcpServers: servers };
         const filePath = `${os.tmpdir()}/vcoder-mcp-${Date.now()}-${Math.random().toString(36).slice(2)}.json`;
-        await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
+        await fs.writeFile(filePath, JSON.stringify(payload, null, 2), { encoding: 'utf8', mode: 0o600 });
+        this.mcpConfigPaths.push(filePath);
         return filePath;
     }
 

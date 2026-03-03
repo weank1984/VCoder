@@ -15,7 +15,11 @@ export default defineConfig([
     files: [
       'packages/shared/src/**/*.{ts,tsx}',
       'packages/server/src/**/*.{ts,tsx}',
+      'packages/ui/src/**/*.{ts,tsx}',
       'apps/vscode-extension/src/**/*.{ts,tsx}',
+      'apps/vscode-extension/webview/src/**/*.{ts,tsx}',
+      'apps/desktop-shell/src/**/*.{ts,tsx}',
+      'apps/desktop-shell/webview/src/**/*.{ts,tsx}',
       'tests/**/*.{ts,tsx}',
     ],
     extends: [js.configs.recommended, tseslint.configs.recommended],
@@ -39,6 +43,20 @@ export default defineConfig([
     rules: {
       // This module parses untyped JSONL from external tools; permissive typing keeps the code readable.
       '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
+    files: ['apps/vscode-extension/src/extension.ts'],
+    rules: {
+      // ACP request handler params arrive as unknown from JSON-RPC; `as any` bridges to typed service methods.
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
+    files: ['packages/ui/src/bridge.ts'],
+    rules: {
+      // Triple-slash reference is required here for global type augmentation of acquireVsCodeApi.
+      '@typescript-eslint/triple-slash-reference': 'off',
     },
   },
 ]);

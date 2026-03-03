@@ -21,13 +21,6 @@ import {
     FsWriteTextFileResult,
 } from '@vcoder/shared';
 
-interface PendingWriteRequest {
-    params: FsWriteTextFileParams;
-    resolve: (result: FsWriteTextFileResult) => void;
-    reject: (error: Error) => void;
-    requestId: string;
-}
-
 interface FileLock {
     requestId: string;
     timestamp: number;
@@ -53,7 +46,7 @@ const LOCK_TIMEOUT = 30000; // 30 seconds
 const MAX_HISTORY_SIZE = 50;
 const LARGE_FILE_THRESHOLD = 1 * 1024 * 1024; // 1MB
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const LINE_CHUNK_SIZE = 50 * 1024;
+const _LINE_CHUNK_SIZE = 50 * 1024;
 
 /**
  * FileSystemProvider implements ACP fs/* capabilities.
@@ -67,7 +60,6 @@ const LINE_CHUNK_SIZE = 50 * 1024;
  * - Conflict detection and rollback
  */
 export class FileSystemProvider {
-    private pendingWrites: Map<string, PendingWriteRequest> = new Map();
     private writeCounter = 0;
     
     // Concurrent access protection
@@ -278,38 +270,6 @@ export class FileSystemProvider {
     }
 
     /**
-     * Approve a pending write request (after user review).
-     */
-    async approveWrite(requestId: string): Promise<void> {
-        const pending = this.pendingWrites.get(requestId);
-        if (!pending) {
-            throw new Error(`Write request not found: ${requestId}`);
-        }
-
-        this.pendingWrites.delete(requestId);
-
-        try {
-            const result = await this.executeWrite(pending.params);
-            pending.resolve(result);
-        } catch (error) {
-            pending.reject(error as Error);
-        }
-    }
-
-    /**
-     * Reject a pending write request.
-     */
-    async rejectWrite(requestId: string, reason?: string): Promise<void> {
-        const pending = this.pendingWrites.get(requestId);
-        if (!pending) {
-            throw new Error(`Write request not found: ${requestId}`);
-        }
-
-        this.pendingWrites.delete(requestId);
-        pending.reject(new Error(reason || 'Write rejected by user'));
-    }
-
-    /**
      * Execute write operation (internal).
      */
     private async executeWrite(params: FsWriteTextFileParams): Promise<FsWriteTextFileResult> {
@@ -363,7 +323,7 @@ export class FileSystemProvider {
      */
     private resolveAbsolutePath(filePath: string, _sessionId?: string): string {
         if (path.isAbsolute(filePath)) {
-            return filePath;
+            return path.resolve(filePath);
         }
 
         // Use workspace folder as base
@@ -372,7 +332,7 @@ export class FileSystemProvider {
             throw new Error('No workspace folder open');
         }
 
-        return path.join(workspaceFolder.uri.fsPath, filePath);
+        return path.resolve(workspaceFolder.uri.fsPath, filePath);
     }
 
     /**
@@ -390,7 +350,8 @@ export class FileSystemProvider {
         // Check if path is within workspace (for safety)
         const isInWorkspace = workspaceFolders.some(folder => {
             const folderPath = folder.uri.fsPath;
-            return absolutePath.startsWith(folderPath);
+            const rel = path.relative(folderPath, absolutePath);
+            return rel === '' || (!rel.startsWith('..' + path.sep) && rel !== '..' && !path.isAbsolute(rel));
         });
 
         if (!isInWorkspace) {
@@ -429,11 +390,6 @@ export class FileSystemProvider {
      * Dispose and cleanup.
      */
     async dispose(): Promise<void> {
-        // Reject all pending writes
-        for (const [, pending] of this.pendingWrites) {
-            pending.reject(new Error('FileSystemProvider disposed'));
-        }
-        this.pendingWrites.clear();
         this.fileLocks.clear();
         this.writeHistory = [];
     }

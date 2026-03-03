@@ -423,7 +423,7 @@ export class AuditLogger {
         const toolResults = new Set<string>();
         let timestampMonotonic = true;
         let prevTime = 0;
-        let corruptedLines = 0;
+        const corruptedLines = 0;
         let totalChecks = 0;
         let passedChecks = 0;
 

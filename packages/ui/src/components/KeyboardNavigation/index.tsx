@@ -145,21 +145,23 @@ export const KeyboardNavigationProvider = ({ children }: KeyboardNavigationProvi
                 }
                 break;
 
-            case key === '/' && !ctrlKey && !metaKey && !altKey:
+            case key === '/' && !ctrlKey && !metaKey && !altKey: {
                 const activeElement = document.activeElement;
                 if (activeElement?.tagName !== 'INPUT' && activeElement?.tagName !== 'TEXTAREA') {
                     event.preventDefault();
                     focusInput();
                 }
                 break;
+            }
 
-            case key === 'Escape':
+            case key === 'Escape': {
                 const modal = document.querySelector('[role="dialog"], .modal') as HTMLElement;
                 if (modal) {
                     const closeButton = modal.querySelector('[data-action="close"], button[aria-label*="close"]') as HTMLElement;
                     closeButton?.click();
                 }
                 break;
+            }
         }
     }, [focusInput, focusNext, focusPrevious, getActiveActions]);
 

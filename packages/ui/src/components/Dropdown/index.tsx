@@ -25,7 +25,7 @@ export interface DropdownItem {
   /** 分组标签(可选) */
   group?: string;
   /** 额外数据 */
-  data?: any;
+  data?: unknown;
 }
 
 export interface DropdownProps {

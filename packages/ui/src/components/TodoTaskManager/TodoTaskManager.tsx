@@ -60,7 +60,7 @@ export const TodoTaskManager: React.FC<TodoTaskManagerProps> = ({
   }), []);
 
   const filteredSortedTodos = useMemo(() => {
-    let filtered = todos.filter(todo => {
+    const filtered = todos.filter(todo => {
       if (!filter.showTodos) return false;
       if (todo.priority && !filter.priorities.includes(todo.priority)) return false;
       if (!filter.statuses.includes(todo.status)) return false;
@@ -73,15 +73,17 @@ export const TodoTaskManager: React.FC<TodoTaskManagerProps> = ({
         const direction = sort.direction === 'asc' ? 1 : -1;
 
         switch (sort.by) {
-          case 'priority':
+          case 'priority': {
             const priorityA = a.priority ? priorityOrder[a.priority] : 0;
             const priorityB = b.priority ? priorityOrder[b.priority] : 0;
             comparison = priorityB - priorityA;
             break;
-          case 'status':
+          }
+          case 'status': {
             const statusOrder = { pending: 0, in_progress: 1, completed: 2, cancelled: 3 };
             comparison = statusOrder[a.status] - statusOrder[b.status];
             break;
+          }
           case 'created':
             comparison = b.createdAt - a.createdAt;
             break;
@@ -98,7 +100,7 @@ export const TodoTaskManager: React.FC<TodoTaskManagerProps> = ({
   }, [todos, filter, sort, sortable, priorityOrder]);
 
   const filteredSortedTasks = useMemo(() => {
-    let filtered = tasks.filter(task => {
+    const filtered = tasks.filter(task => {
       if (!filter.showTasks) return false;
       if (!filter.statuses.includes(task.status)) return false;
       return true;

@@ -13,6 +13,7 @@ import {
 } from '../Icon';
 import { FilePath } from '../FilePath';
 import { copyToClipboard } from '../../utils/clipboard';
+import { postMessage } from '../../bridge';
 import {
     parseDiffStats,
     parseDiffEnhanced,
@@ -44,7 +45,8 @@ export function DiffViewerFull({
     onReject,
     actionsDisabled = false,
     defaultCollapsed = false,
-    onViewFile,
+    // onViewFile kept in interface for API compat but replaced by openDiff postMessage
+    onViewFile: _onViewFile,
     hideHeader = false,
 }: DiffViewerFullProps) {
     const { t } = useI18n();
@@ -158,18 +160,16 @@ export function DiffViewerFull({
                                 </button>
                             </>
                         )}
-                        {onViewFile && (
-                            <button
-                                className="diff-view-btn"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onViewFile(filePath);
-                                }}
-                                title={t('Agent.OpenInEditor')}
-                            >
-                                <EditorIcon />
-                            </button>
-                        )}
+                        <button
+                            className="diff-view-btn"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                postMessage({ type: 'openDiff', path: filePath });
+                            }}
+                            title={t('Agent.ViewFullDiff')}
+                        >
+                            <EditorIcon />
+                        </button>
                         <button
                             className="diff-copy-btn"
                             onClick={(e) => {
