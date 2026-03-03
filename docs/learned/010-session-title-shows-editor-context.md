@@ -83,13 +83,14 @@ function stripEditorContextForTitle(content: string): string {
 4. **如果未来添加新的上下文前缀格式**，需要同步更新 `stripEditorContextForTitle` 的正则匹配模式。
 
 5. **不止标题，消息气泡也受影响** — 同一份带前缀的消息内容不仅用于标题提取，还在 `ChatBubble.tsx` 和 `StickyUserPrompt.tsx` 中直接渲染。修复时需要全面排查所有消费 `message.content` 的 UI 组件。
+6. **CLI 方括号系统消息也会被误识别为用户输入** — Claude CLI 写入 JSONL 的 `[Request interrupted by user for tool use]` 等方括号消息带有 `role: "user"`，但实际是系统事件。需要在 `classifyUserContent` 中用正则匹配过滤（`CLI_SYSTEM_MESSAGE_PATTERNS`）。
 
 ## 涉及文件
 
 | 文件 | 修改 |
 |------|------|
 | `packages/server/src/acp/server.ts` | `handlePrompt`/`handlePromptPersistent` 使用 `stripEditorContextForTitle` |
-| `packages/server/src/history/transcriptStore.ts` | `extractSessionMetadata`/`extractMetadataFromLargeFile` 使用 `stripEditorContextForTitle` |
+| `packages/server/src/history/transcriptStore.ts` | `extractSessionMetadata`/`extractMetadataFromLargeFile` 使用 `stripEditorContextForTitle`；`classifyUserContent` 新增 `CLI_SYSTEM_MESSAGE_PATTERNS` |
 | `packages/ui/src/utils/sanitizeTitle.ts` | 新增 `stripEditorContext`，`sanitizeSessionTitle` 中调用 |
 | `packages/ui/src/components/ChatBubble.tsx` | 用户消息渲染时调用 `stripEditorContext` |
 | `packages/ui/src/components/StickyUserPrompt.tsx` | 折叠显示时调用 `stripEditorContext` |

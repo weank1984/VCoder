@@ -555,6 +555,15 @@ function parseTeammateMessages(text: string, timestamp?: string): HistoryTeammat
 }
 
 /**
+ * Bracket-enclosed CLI system messages that should not be shown as user messages.
+ * These are written by Claude CLI into transcripts with role "user".
+ */
+const CLI_SYSTEM_MESSAGE_PATTERNS = [
+    /^\[Request interrupted by user.*\]$/,
+    /^\[Request cancelled.*\]$/,
+] as const;
+
+/**
  * Classify user-event text content as internal or real user message.
  * Returns null if the content is a normal user message.
  */
@@ -572,6 +581,13 @@ function classifyUserContent(text: string): ClassifyResult | null {
                 return { kind: 'system_reminder' };
             }
             // local-command-caveat, command-name, local-command-stdout
+            return { kind: 'system_command' };
+        }
+    }
+
+    // Check for bracket-enclosed CLI system messages
+    for (const pattern of CLI_SYSTEM_MESSAGE_PATTERNS) {
+        if (pattern.test(trimmed)) {
             return { kind: 'system_command' };
         }
     }
