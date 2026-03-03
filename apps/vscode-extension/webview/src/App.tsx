@@ -363,7 +363,7 @@ function App() {
       maxThinkingTokens: state.thinkingEnabled ? DEFAULT_MAX_THINKING_TOKENS : 0,
     });
     return () => window.removeEventListener('message', handleMessage);
-  }, [handleUpdate, setCurrentSession, setLoading, setSessions, showError]);
+  }, [handleUpdate, setCurrentSession, setLoading, setSessions, showError, setHistorySessions, loadHistorySession, setUiLanguage, setAgents, setCurrentAgent, setPermissionRules]);
 
 
   const isEmpty = messages.length === 0;
@@ -401,7 +401,6 @@ function App() {
   }, [
     isEmpty,
     isInitializing,
-    isLoading,
     hideUserMessagesInList,
     messages,
     range.bottomPadding,

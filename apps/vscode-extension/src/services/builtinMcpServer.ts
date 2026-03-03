@@ -492,9 +492,24 @@ export class BuiltinMcpServer {
             throw new Error('File pattern cannot contain ".." (path traversal)');
         }
 
+        // Reject patterns with known ReDoS-prone constructs:
+        // nested quantifiers like (a+)+, (a*)*,  (a+)*, overlapping alternations etc.
+        const redosPattern = /(\(.+[+*]\))[+*]|\(\?[^)]*[+*]\)[+*]/;
+        if (redosPattern.test(pattern)) {
+            throw new Error('Search pattern contains potentially unsafe nested quantifiers');
+        }
+
         try {
             // Test regex compilation to catch malicious patterns early
             const regex = new RegExp(pattern, 'i');
+
+            // Validate regex against a test string to catch catastrophic backtracking early
+            const testStr = 'a'.repeat(25);
+            const testStart = Date.now();
+            regex.test(testStr);
+            if (Date.now() - testStart > 100) {
+                throw new Error('Search pattern is too computationally expensive');
+            }
 
             const files = await vscode.workspace.findFiles(filePattern, '**/node_modules/**', maxResults * 2);
             const results: Array<{ file: string; line: number; content: string }> = [];

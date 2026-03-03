@@ -104,6 +104,10 @@ export class DiffManager extends EventEmitter implements vscode.TextDocumentCont
         if (!entry) {
             // If the entry was already cleared, still try to read the current file as "original"
             const resolved = this.resolvePath(filePath);
+            if (!this.isWithinWorkspace(resolved)) {
+                console.warn('[DiffManager] provideTextDocumentContent: path escapes workspace:', filePath);
+                return '';
+            }
             return this.readFileIfExists(resolved);
         }
 

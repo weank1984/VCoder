@@ -604,11 +604,23 @@ export class WebviewMessageRouter {
                     if (!filePath) break;
 
                     try {
-                        let absolutePath = filePath;
-                        if (!path.isAbsolute(filePath)) {
-                            const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-                            if (root) {
-                                absolutePath = path.join(root, filePath);
+                        const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                        let absolutePath: string;
+                        if (path.isAbsolute(filePath)) {
+                            absolutePath = path.resolve(filePath);
+                        } else if (root) {
+                            absolutePath = path.resolve(root, filePath);
+                        } else {
+                            absolutePath = filePath;
+                        }
+
+                        // Validate path stays within workspace
+                        if (root) {
+                            const rel = path.relative(root, absolutePath);
+                            if (rel.startsWith('..' + path.sep) || rel === '..' || path.isAbsolute(rel)) {
+                                console.warn('[VCoder] openDiff: path escapes workspace:', filePath);
+                                vscode.window.showWarningMessage(`无法打开工作区以外的文件: ${filePath}`);
+                                break;
                             }
                         }
 
@@ -639,12 +651,17 @@ export class WebviewMessageRouter {
                     } catch (err) {
                         console.error('[VCoder] openDiff failed:', filePath, err);
                         try {
-                            let absolutePath = filePath;
-                            if (!path.isAbsolute(filePath)) {
-                                const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-                                if (root) absolutePath = path.join(root, filePath);
+                            const fallbackRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                            const fallbackPath = path.isAbsolute(filePath)
+                                ? path.resolve(filePath)
+                                : fallbackRoot ? path.resolve(fallbackRoot, filePath) : filePath;
+                            if (fallbackRoot) {
+                                const rel = path.relative(fallbackRoot, fallbackPath);
+                                if (rel.startsWith('..' + path.sep) || rel === '..' || path.isAbsolute(rel)) {
+                                    throw new Error('Path escapes workspace');
+                                }
                             }
-                            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(absolutePath));
+                            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(fallbackPath));
                             await vscode.window.showTextDocument(doc, { preview: false });
                         } catch {
                             vscode.window.showErrorMessage(`无法打开 diff: ${filePath}`);

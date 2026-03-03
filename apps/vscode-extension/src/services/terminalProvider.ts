@@ -88,8 +88,20 @@ export class TerminalProvider {
             };
 
             // Setup event handlers
+            const MAX_OUTPUT_BUFFER = 5 * 1024 * 1024; // 5MB cap per terminal
             ptyProcess.onData((data: string) => {
-                handle.outputBuffer += data;
+                if (handle.outputBuffer.length < MAX_OUTPUT_BUFFER) {
+                    handle.outputBuffer += data;
+                    // Trim to cap if this append pushed over the limit
+                    if (handle.outputBuffer.length > MAX_OUTPUT_BUFFER) {
+                        handle.outputBuffer = handle.outputBuffer.slice(-MAX_OUTPUT_BUFFER);
+                        handle.lastReadOffset = Math.min(handle.lastReadOffset, 0);
+                    }
+                } else {
+                    // Buffer full — keep only tail
+                    handle.outputBuffer = handle.outputBuffer.slice(-(MAX_OUTPUT_BUFFER - data.length)) + data;
+                    handle.lastReadOffset = 0;
+                }
             });
 
             ptyProcess.onExit((event: { exitCode: number; signal?: number }) => {

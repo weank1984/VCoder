@@ -679,20 +679,35 @@ export class AuditLogger {
      */
     private redactSensitiveData(event: AuditEvent): AuditEvent {
         const redacted = { ...event };
-        
-        // Redact API keys, tokens, passwords
-        const sensitivePatterns = [
+
+        // Redact by key name
+        const sensitiveKeyPatterns = [
             /api[_-]?key/i,
             /token/i,
             /password/i,
             /secret/i,
             /auth/i,
+            /credential/i,
+            /private[_-]?key/i,
         ];
-        
+
+        // Redact by value pattern — catches secrets regardless of key name
+        const sensitiveValuePatterns = [
+            /sk-[a-zA-Z0-9]{20,}/, // OpenAI / Anthropic API keys
+            /ghp_[a-zA-Z0-9]{36}/, // GitHub personal access tokens
+            /gho_[a-zA-Z0-9]{36}/, // GitHub OAuth tokens
+            /glpat-[a-zA-Z0-9_-]{20,}/, // GitLab tokens
+            /xox[bsrap]-[a-zA-Z0-9-]+/, // Slack tokens
+            /AKIA[0-9A-Z]{16}/, // AWS access key IDs
+            /-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----/, // PEM private keys
+        ];
+
         function redactObject(obj: Record<string, unknown>): Record<string, unknown> {
             const result: Record<string, unknown> = {};
             for (const [key, value] of Object.entries(obj)) {
-                if (sensitivePatterns.some(p => p.test(key))) {
+                if (sensitiveKeyPatterns.some(p => p.test(key))) {
+                    result[key] = '[REDACTED]';
+                } else if (typeof value === 'string' && sensitiveValuePatterns.some(p => p.test(value))) {
                     result[key] = '[REDACTED]';
                 } else if (typeof value === 'object' && value !== null) {
                     result[key] = redactObject(value as Record<string, unknown>);
@@ -702,7 +717,7 @@ export class AuditLogger {
             }
             return result;
         }
-        
+
         redacted.data = redactObject(event.data);
         return redacted;
     }
