@@ -467,6 +467,10 @@ async function extractSessionMetadata(
                         continue;
                     }
                     if (content) {
+                        // Strip editor context prefixes before using as title
+                        content = stripEditorContextForTitle(content);
+                    }
+                    if (content) {
                         // Take first 50 characters as title
                         title = content.slice(0, 50) + (content.length > 50 ? '...' : '');
                     }
@@ -982,6 +986,22 @@ function cleanAttachmentsFromContent(content: string): string {
     return content;
 }
 
+/**
+ * Strip IDE editor context prefixes from user message for title extraction.
+ * The VSCode extension prepends lines like:
+ *   [Active file: src/foo.ts, cursor at line 11]
+ *   [Diagnostics:\nL5: [Error] ...]
+ */
+function stripEditorContextForTitle(content: string): string {
+    let result = content;
+    while (result.length > 0) {
+        const match = result.match(/^\[(?:Active file|Diagnostics)[^\]]*\]\s*/s);
+        if (!match) break;
+        result = result.slice(match[0].length);
+    }
+    return result.trim();
+}
+
 async function extractMetadataFromLargeFile(
     filePath: string,
     sessionId: string,
@@ -1026,6 +1046,10 @@ async function extractMetadataFromLargeFile(
                     // Skip internal messages as title source
                     if (content && classifyUserContent(content) !== null) {
                         continue;
+                    }
+                    if (content) {
+                        // Strip editor context prefixes before using as title
+                        content = stripEditorContextForTitle(content);
                     }
                     if (content) {
                         title = content.slice(0, 50) + (content.length > 50 ? '...' : '');

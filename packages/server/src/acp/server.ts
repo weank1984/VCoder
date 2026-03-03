@@ -433,8 +433,8 @@ export class ACPServer {
         // Update session title from first user message if still default
         const session = this.sessions.get(params.sessionId);
         if (session && session.title === 'New Chat' && params.content) {
-            // Use first 50 characters of user message as title
-            const cleanContent = params.content.trim();
+            // Strip editor context prefixes before extracting title
+            const cleanContent = stripEditorContextForTitle(params.content);
             if (cleanContent) {
                 session.title = cleanContent.slice(0, 50) + (cleanContent.length > 50 ? '...' : '');
                 session.updatedAt = new Date().toISOString();
@@ -547,7 +547,7 @@ export class ACPServer {
         // Update session title from first user message if still default
         const session = this.sessions.get(params.sessionId);
         if (session && session.title === 'New Chat' && params.content) {
-            const cleanContent = params.content.trim();
+            const cleanContent = stripEditorContextForTitle(params.content);
             if (cleanContent) {
                 session.title = cleanContent.slice(0, 50) + (cleanContent.length > 50 ? '...' : '');
                 session.updatedAt = new Date().toISOString();
@@ -698,4 +698,21 @@ export class ACPServer {
             this.stdout.write(reqStr + '\n');
         });
     }
+}
+
+/**
+ * Strip IDE editor context prefixes from user message for title extraction.
+ * The VSCode extension prepends lines like:
+ *   [Active file: src/foo.ts, cursor at line 11]
+ *   [Diagnostics:\nL5: [Error] ...]
+ */
+function stripEditorContextForTitle(content: string): string {
+    let result = content;
+    // Remove leading bracket-enclosed context blocks
+    while (result.length > 0) {
+        const match = result.match(/^\[(?:Active file|Diagnostics)[^\]]*\]\s*/s);
+        if (!match) break;
+        result = result.slice(match[0].length);
+    }
+    return result.trim();
 }
