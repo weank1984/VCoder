@@ -332,6 +332,14 @@
     /* Code Padding */
     --vc-code-padding: var(--vc-spacing-component-md);
     --vc-code-padding-inline: 2px 6px;
+
+    /* ==========================================================================
+       DIFF VIEWER TOKENS
+       ========================================================================== */
+
+    /* Diff Height */
+    --vc-diff-height-default: 320px;
+    --vc-diff-height-compact: 160px;
 }
 
 /* ==========================================================================

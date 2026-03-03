@@ -1,13 +1,13 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useI18n } from '../../i18n/I18nProvider';
 import {
     parseDiffStats,
-    processLines,
-    formatDiffLine,
-    ESTIMATED_LINE_HEIGHT,
+    parseDiffEnhanced,
+    isDiffLine,
     LARGE_FILE_LINE_THRESHOLD,
 } from './diffUtils';
-import type { ProcessedLine } from './diffUtils';
+import type { EnhancedDiffLine } from './diffUtils';
+import { DiffLine } from './DiffLine';
 
 interface DiffViewerCompactProps {
     filePath: string;
@@ -29,42 +29,31 @@ export function DiffViewerCompact({
     const stats = useMemo(() => parseDiffStats(diff), [diff]);
     const basename = filePath.split(/[\\/]/).pop() || filePath;
 
-    const processedLines = useMemo(() => processLines(diff), [diff]);
+    const parsed = useMemo(() => parseDiffEnhanced(diff), [diff]);
 
-    const compactLines = useMemo(() => {
-        return processedLines.filter(
-            ({ lineType }) => lineType === 'add' || lineType === 'remove' || lineType === 'chunk'
+    // Compact: only show add/remove lines
+    const compactItems = useMemo(() => {
+        return parsed.items.filter(
+            (item): item is EnhancedDiffLine =>
+                isDiffLine(item) && (item.type === 'add' || item.type === 'remove')
         );
-    }, [processedLines]);
+    }, [parsed.items]);
 
-    const isLargeFile = compactLines.length > LARGE_FILE_LINE_THRESHOLD;
+    const isLargeFile = compactItems.length > LARGE_FILE_LINE_THRESHOLD;
 
-    const displayLines = useMemo(() => {
+    const displayItems = useMemo(() => {
         if (isLargeFile && !showAllLines) {
-            return compactLines.slice(0, 100);
+            return compactItems.slice(0, 100);
         }
-        return compactLines;
-    }, [compactLines, isLargeFile, showAllLines]);
-
-    const renderDiffLine = useCallback(({ line, lineType, index }: ProcessedLine) => {
-        const displayLine = formatDiffLine(line, lineType);
-        return (
-            <div
-                key={index}
-                className={`diff-line diff-line-${lineType}`}
-                style={{ height: `${ESTIMATED_LINE_HEIGHT}px` }}
-            >
-                {displayLine || ' '}
-            </div>
-        );
-    }, []);
+        return compactItems;
+    }, [compactItems, isLargeFile, showAllLines]);
 
     return (
         <div className={`diff-viewer ${isCollapsed ? 'collapsed' : ''} diff-viewer--compact ${hideHeader ? 'no-header' : ''}`}>
             {!hideHeader && (
                 <div className="diff-header" onClick={() => setIsCollapsed(!isCollapsed)}>
                     <span className="diff-compact-chevron">
-                        {isCollapsed ? '▸' : '▾'}
+                        {isCollapsed ? '\u25B8' : '\u25BE'}
                     </span>
                     <span className="diff-compact-filename" title={filePath}>
                         {basename}
@@ -82,10 +71,17 @@ export function DiffViewerCompact({
 
             {!isCollapsed && (
                 <div className="diff-content">
-                    {diff && displayLines.length > 0 ? (
-                        <pre className="diff-lines">
-                            {displayLines.map(renderDiffLine)}
-                        </pre>
+                    {diff && displayItems.length > 0 ? (
+                        <div className="diff-lines">
+                            {displayItems.map((item, index) => (
+                                <DiffLine
+                                    key={index}
+                                    line={item}
+                                    showLineNumbers={true}
+                                    showWordDiff={true}
+                                />
+                            ))}
+                        </div>
                     ) : (
                         <div className="diff-empty">
                             <span>{t('Agent.FileModified')}</span>

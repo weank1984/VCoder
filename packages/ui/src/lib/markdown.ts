@@ -51,7 +51,7 @@ async function getHighlighter(): Promise<Highlighter> {
 /**
  * 同步获取 highlighter（如果已初始化）
  */
-function getHighlighterSync(): Highlighter | null {
+export function getHighlighterSync(): Highlighter | null {
     return highlighter;
 }
 
@@ -97,6 +97,44 @@ function createMarkdownIt(theme: 'dark' | 'light'): MarkdownIt {
                 return `<pre class="shiki"><code>${escapeHtml(code)}</code></pre>`;
             }
         },
+    });
+
+    // 拦截 linkify 生成的链接：如果文本看起来像文件名（如 README.md），
+    // 将其转换为可点击的文件路径元素（在编辑器中打开），而非网页链接
+    md.core.ruler.after('linkify', 'fix-filename-linkify', (state) => {
+        for (const blockToken of state.tokens) {
+            if (blockToken.type !== 'inline' || !blockToken.children) continue;
+            const children = blockToken.children;
+            let i = 0;
+            while (i < children.length - 2) {
+                const open = children[i];
+                const text = children[i + 1];
+                const close = children[i + 2];
+                if (
+                    open.type === 'link_open' &&
+                    open.markup === 'linkify' &&
+                    text.type === 'text' &&
+                    close.type === 'link_close' &&
+                    close.markup === 'linkify'
+                ) {
+                    const linkText = text.content;
+                    // 检测裸文件名（无路径分隔符但有已知扩展名）或文件路径
+                    if (looksLikeFilename(linkText) || isFilePath(linkText)) {
+                        const { path, lineRange } = parseFilePathWithLine(linkText);
+                        const lineAttr = lineRange
+                            ? ` data-line-start="${lineRange[0]}" data-line-end="${lineRange[1]}"`
+                            : '';
+                        // 替换 link_open + text + link_close 为单个 html_inline 文件路径元素
+                        const htmlToken = new state.Token('html_inline', '', 0);
+                        htmlToken.content = `<code class="inline-code inline-code--filepath" data-filepath="${escapeAttr(path)}"${lineAttr}>${escapeHtml(linkText)}</code>`;
+                        children.splice(i, 3, htmlToken);
+                        // 不递增 i，继续检查下一个
+                        continue;
+                    }
+                }
+                i++;
+            }
+        }
     });
 
     // 自定义内联代码渲染
@@ -177,6 +215,30 @@ function createMarkdownIt(theme: 'dark' | 'light'): MarkdownIt {
 // ============ 工具函数 ============
 
 /**
+ * 已知文件扩展名 TLD 冲突列表（这些扩展名也是有效的域名后缀，
+ * 会被 markdown-it linkify 误识别为 URL）
+ */
+const FILENAME_LIKE_TLDS = new Set([
+    'md', 'rs', 'sh', 'py', 'pl', 'cc', 'cs', 'ms', 'lk',
+    'io', 'ai', 'do', 'la', 'me', 'to', 'tv', 'in', 'is',
+]);
+
+/**
+ * 检测是否看起来像裸文件名（无路径分隔符，但有已知文件扩展名）
+ * 用于拦截 linkify 把 "README.md" 识别为域名的情况
+ */
+function looksLikeFilename(text: string): boolean {
+    const trimmed = text.trim();
+    // 不应包含空格、协议前缀
+    if (trimmed.includes(' ') || /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) return false;
+    // 匹配：word-chars.ext 格式，扩展名在冲突列表中
+    const match = trimmed.match(/^[\w\-.]+\.([a-zA-Z0-9]+)$/);
+    if (!match) return false;
+    const ext = match[1].toLowerCase();
+    return FILENAME_LIKE_TLDS.has(ext);
+}
+
+/**
  * HTML 转义
  */
 function escapeHtml(str: string): string {
@@ -203,7 +265,7 @@ function escapeAttr(str: string): string {
 /**
  * 标准化语言名称
  */
-function normalizeLanguage(lang: string): BundledLanguage {
+export function normalizeLanguage(lang: string): BundledLanguage {
     const langMap: Record<string, BundledLanguage> = {
         'js': 'javascript',
         'ts': 'typescript',

@@ -1,7 +1,10 @@
 import type { ToolCall } from '../../types';
 import { useI18n } from '../../i18n/I18nProvider';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { postMessage } from '../../bridge';
+import { parseDiffEnhanced, isDiffLine } from './diffUtils';
+import type { EnhancedDiffLine } from './diffUtils';
+import { DiffLine } from './DiffLine';
 
 interface FileApprovalContentProps {
     toolCall: ToolCall;
@@ -43,29 +46,37 @@ export function FileApprovalContent({ toolCall, isDelete }: FileApprovalContentP
         );
     }
 
-    const parsedDiff = parseDiff(diff);
-    const stats = calculateDiffStats(parsedDiff);
-    const displayLines = showFullDiff ? parsedDiff : parsedDiff.slice(0, 20);
+    const parsed = useMemo(() => parseDiffEnhanced(diff), [diff]);
+
+    // Only show diff lines (not hunk separators) in approval view
+    const diffLines = useMemo(() =>
+        parsed.items.filter((item): item is EnhancedDiffLine => isDiffLine(item)),
+        [parsed.items]
+    );
+
+    const displayLines = showFullDiff ? diffLines : diffLines.slice(0, 20);
+    const stats = parsed.stats;
 
     return (
         <div className="approval-content">
-            {parsedDiff.length > 0 && (
+            {diffLines.length > 0 && (
                 <div className={`inline-diff ${showFullDiff ? 'is-expanded' : ''}`}>
                     {displayLines.map((line, index) => (
-                        <div key={index} className={`diff-line ${line.type}`}>
-                            <span className="line-num">{line.lineNum}</span>
-                            <span className="line-prefix">{line.prefix}</span>
-                            <span className="line-content">{line.content}</span>
-                        </div>
+                        <DiffLine
+                            key={index}
+                            line={line}
+                            showLineNumbers={true}
+                            showWordDiff={true}
+                        />
                     ))}
-                    {!showFullDiff && parsedDiff.length > 20 && (
+                    {!showFullDiff && diffLines.length > 20 && (
                         <div className="diff-more" onClick={handleToggleFullDiff}>
-                            ... {parsedDiff.length - 20} more lines
+                            ... {diffLines.length - 20} more lines
                         </div>
                     )}
                     <div className="diff-stats">
-                        <span className="stat-added">{t('Agent.LinesAdded', stats.added)}</span>
-                        {stats.removed > 0 && <span className="stat-removed">{t('Agent.LinesRemoved', stats.removed)}</span>}
+                        <span className="stat-added">{t('Agent.LinesAdded', stats.additions)}</span>
+                        {stats.deletions > 0 && <span className="stat-removed">{t('Agent.LinesRemoved', stats.deletions)}</span>}
                         <button className="diff-open-btn" onClick={handleOpenInEditor} disabled={!filePath}>
                             {t('Agent.OpenInEditor')}
                         </button>
@@ -73,92 +84,5 @@ export function FileApprovalContent({ toolCall, isDelete }: FileApprovalContentP
                 </div>
             )}
         </div>
-    );
-}
-
-interface DiffLine {
-    type: 'diff-add' | 'diff-remove' | 'diff-context';
-    content: string;
-    prefix: string;
-    lineNum: number | '';
-}
-
-function isMetaLine(line: string): boolean {
-    return (
-        line.startsWith('diff --git') ||
-        line.startsWith('index ') ||
-        line.startsWith('new file mode') ||
-        line.startsWith('deleted file mode') ||
-        line.startsWith('similarity index') ||
-        line.startsWith('rename from') ||
-        line.startsWith('rename to') ||
-        line.startsWith('\\ No newline at end of file') ||
-        line.startsWith('+++') ||
-        line.startsWith('---')
-    );
-}
-
-function parseDiff(diff: string): DiffLine[] {
-    if (!diff) return [];
-
-    const lines = diff.split('\n');
-    const result: DiffLine[] = [];
-    let newLineNum = 0;
-    let oldLineNum = 0;
-
-    for (const line of lines) {
-        // Parse @@ header for line numbers
-        if (line.startsWith('@@')) {
-            const match = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
-            if (match) {
-                oldLineNum = parseInt(match[1], 10) - 1;
-                newLineNum = parseInt(match[2], 10) - 1;
-            }
-            continue;
-        }
-        if (isMetaLine(line)) continue;
-
-        if (line.startsWith('+')) {
-            newLineNum++;
-            result.push({
-                type: 'diff-add',
-                content: line.slice(1),
-                prefix: '+',
-                lineNum: newLineNum,
-            });
-        } else if (line.startsWith('-')) {
-            oldLineNum++;
-            result.push({
-                type: 'diff-remove',
-                content: line.slice(1),
-                prefix: '-',
-                lineNum: oldLineNum,
-            });
-        } else if (line.startsWith(' ') || line === '') {
-            oldLineNum++;
-            newLineNum++;
-            const content = line.startsWith(' ') ? line.slice(1) : line;
-            if (content.trim() !== '') {
-                result.push({
-                    type: 'diff-context',
-                    content,
-                    prefix: ' ',
-                    lineNum: newLineNum,
-                });
-            }
-        }
-    }
-
-    return result;
-}
-
-function calculateDiffStats(lines: DiffLine[]): { added: number; removed: number } {
-    return lines.reduce(
-        (stats, line) => {
-            if (line.type === 'diff-add') stats.added++;
-            if (line.type === 'diff-remove') stats.removed++;
-            return stats;
-        },
-        { added: 0, removed: 0 }
     );
 }

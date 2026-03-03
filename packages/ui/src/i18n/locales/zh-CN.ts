@@ -216,6 +216,7 @@ export default {
     QuestionSkip: '跳过',
     QuestionPlaceholder: '输入你的回答...',
     TokenCount: '↓ {0}',
+    HunkCollapsed: '... 隐藏 {0} 行 ...',
     // 通用标签
     Edited: '已编辑',
     Created: '已创建',

@@ -3,6 +3,7 @@
 @use '../../styles/mixins' as *;
 @use './TerminalOutput.scss';
 @use './DiffViewer.scss';
+@use './DiffLine.scss';
 @use './McpToolDisplay.scss';
 @use './TodoWriteEntry.scss';
 @use './ApprovalUI.scss';

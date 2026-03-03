@@ -209,7 +209,15 @@
   }
 }
 
-.inline-diff .diff-line {
+// DiffLine-enhanced rendering inside inline-diff
+.inline-diff .diff-line-enhanced {
+  min-height: 22px;
+  font-size: var(--vc-font-size-md);
+  line-height: var(--vc-line-height-normal);
+}
+
+// Legacy: keep old .diff-line grid for backwards compat (if any old renderers remain)
+.inline-diff .diff-line:not(.diff-line-enhanced) {
   display: grid;
   grid-template-columns: 44px 20px 1fr;
   padding: 0;

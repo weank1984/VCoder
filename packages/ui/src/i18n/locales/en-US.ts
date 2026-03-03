@@ -230,6 +230,7 @@ export default {
     QuestionSkip: 'Skip',
     QuestionPlaceholder: 'Type your answer...',
     TokenCount: '↓ {0}',
+    HunkCollapsed: '... {0} hidden lines ...',
   },
   StepProgress: {
     Title: 'Progress Updates',

@@ -15,13 +15,16 @@ import { FilePath } from '../FilePath';
 import { copyToClipboard } from '../../utils/clipboard';
 import {
     parseDiffStats,
-    processLines,
-    formatDiffLine,
+    parseDiffEnhanced,
+    isHunkSeparator,
     ESTIMATED_LINE_HEIGHT,
     LARGE_FILE_LINE_THRESHOLD,
     VIRTUAL_SCROLL_THRESHOLD,
 } from './diffUtils';
-import type { ProcessedLine } from './diffUtils';
+import type { DiffItem } from './diffUtils';
+import { DiffLine } from './DiffLine';
+import { HunkSeparator } from './HunkSeparator';
+import { useDiffSyntaxHighlight } from './useDiffSyntaxHighlight';
 
 interface DiffViewerFullProps {
     filePath: string;
@@ -49,50 +52,54 @@ export function DiffViewerFull({
     const [showAllLines, setShowAllLines] = useState(false);
 
     const stats = useMemo(() => parseDiffStats(diff), [diff]);
-    const processedLines = useMemo(() => processLines(diff), [diff]);
+    const parsed = useMemo(() => parseDiffEnhanced(diff), [diff]);
 
-    const isLargeFile = processedLines.length > LARGE_FILE_LINE_THRESHOLD;
-    const shouldUseVirtualScroll = processedLines.length > VIRTUAL_SCROLL_THRESHOLD;
+    const isLargeFile = parsed.items.length > LARGE_FILE_LINE_THRESHOLD;
+    const shouldUseVirtualScroll = parsed.items.length > VIRTUAL_SCROLL_THRESHOLD;
 
-    const displayLines = useMemo(() => {
+    const displayItems = useMemo(() => {
         if (isLargeFile && !showAllLines) {
-            return processedLines.slice(0, 100);
+            return parsed.items.slice(0, 100);
         }
-        return processedLines;
-    }, [processedLines, isLargeFile, showAllLines]);
+        return parsed.items;
+    }, [parsed.items, isLargeFile, showAllLines]);
+
+    // Syntax highlighting
+    const syntaxTokensMap = useDiffSyntaxHighlight(displayItems, filePath);
 
     const virtualList = useVirtualList({
-        itemCount: displayLines.length,
+        itemCount: displayItems.length,
         estimatedItemHeight: ESTIMATED_LINE_HEIGHT,
         overscan: 5,
     });
 
-    const isNewFile = useMemo(() => {
-        return diff.includes('--- /dev/null') || diff.includes('new file mode');
-    }, [diff]);
-
-    const isDeletedFile = useMemo(() => {
-        return diff.includes('+++ /dev/null') || diff.includes('deleted file mode');
-    }, [diff]);
-
     const fileTypeLabel = useMemo(() => {
-        if (isNewFile) return t('Agent.Created');
-        if (isDeletedFile) return t('Agent.Deleted');
+        if (parsed.isNewFile) return t('Agent.Created');
+        if (parsed.isDeletedFile) return t('Agent.Deleted');
         return t('Agent.Edited');
-    }, [isNewFile, isDeletedFile, t]);
+    }, [parsed.isNewFile, parsed.isDeletedFile, t]);
 
-    const renderDiffLine = useCallback(({ line, lineType, index }: ProcessedLine) => {
-        const displayLine = formatDiffLine(line, lineType);
+    const renderItem = useCallback((item: DiffItem, index: number) => {
+        if (isHunkSeparator(item)) {
+            return (
+                <HunkSeparator
+                    key={`hunk-${index}`}
+                    hunk={item}
+                    showLineNumbers={true}
+                />
+            );
+        }
+
         return (
-            <div
+            <DiffLine
                 key={index}
-                className={`diff-line diff-line-${lineType}`}
-                style={{ height: `${ESTIMATED_LINE_HEIGHT}px` }}
-            >
-                {displayLine || ' '}
-            </div>
+                line={item}
+                showLineNumbers={true}
+                showWordDiff={true}
+                syntaxTokens={syntaxTokensMap?.[index] ?? undefined}
+            />
         );
-    }, []);
+    }, [syntaxTokensMap]);
 
     return (
         <div className={`diff-viewer ${isCollapsed ? 'collapsed' : ''} ${hideHeader ? 'no-header' : ''}`}>
@@ -186,7 +193,7 @@ export function DiffViewerFull({
                         <div className="diff-large-file-warning">
                             <WarningIcon />
                             <span>
-                                Large diff ({processedLines.length} lines) - Showing first 100 lines
+                                Large diff ({parsed.items.length} lines) - Showing first 100 lines
                             </span>
                             <button
                                 className="diff-show-all-btn"
@@ -197,7 +204,7 @@ export function DiffViewerFull({
                         </div>
                     )}
 
-                    {diff && displayLines.length > 0 ? (
+                    {diff && displayItems.length > 0 ? (
                         shouldUseVirtualScroll && showAllLines ? (
                             <div
                                 ref={virtualList.containerRef}
@@ -207,19 +214,19 @@ export function DiffViewerFull({
                             >
                                 <div style={{ height: `${virtualList.totalHeight}px`, position: 'relative' }}>
                                     <div style={{ transform: `translateY(${virtualList.range.topPadding}px)` }}>
-                                        {displayLines
+                                        {displayItems
                                             .slice(virtualList.range.start, virtualList.range.end)
                                             .map((item, idx) => {
                                                 const actualIndex = virtualList.range.start + idx;
-                                                return renderDiffLine({ ...item, index: actualIndex });
+                                                return renderItem(item, actualIndex);
                                             })}
                                     </div>
                                 </div>
                             </div>
                         ) : (
-                            <pre className="diff-lines">
-                                {displayLines.map(renderDiffLine)}
-                            </pre>
+                            <div className="diff-lines">
+                                {displayItems.map(renderItem)}
+                            </div>
                         )
                     ) : (
                         <div className="diff-empty">

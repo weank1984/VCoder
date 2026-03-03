@@ -1,0 +1,98 @@
+/* DiffLine - Enhanced diff line with line numbers and word-level diff */
+
+.diff-line-enhanced {
+    display: grid;
+    white-space: pre;
+    padding: 0;
+    margin: 0;
+    min-height: 20px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 12px;
+    line-height: 1.6;
+
+    /* Grid: [line-num] [prefix] [content] */
+    &.diff-line-enhanced--with-nums {
+        grid-template-columns: 40px 18px 1fr;
+    }
+
+    /* Grid: [prefix] [content] (compact mode) */
+    &.diff-line-enhanced--no-nums {
+        grid-template-columns: 18px 1fr;
+    }
+
+    /* Add line */
+    &.diff-line-enhanced--add {
+        background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 12%, transparent);
+
+        .diff-linenum {
+            color: var(--vscode-gitDecoration-addedResourceForeground);
+            opacity: 0.7;
+        }
+
+        .diff-prefix {
+            color: var(--vscode-gitDecoration-addedResourceForeground);
+        }
+    }
+
+    /* Remove line */
+    &.diff-line-enhanced--remove {
+        background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 12%, transparent);
+
+        .diff-linenum {
+            color: var(--vscode-gitDecoration-deletedResourceForeground);
+            opacity: 0.7;
+        }
+
+        .diff-prefix {
+            color: var(--vscode-gitDecoration-deletedResourceForeground);
+        }
+    }
+
+    /* Context line */
+    &.diff-line-enhanced--context {
+        .diff-linenum {
+            opacity: 0.5;
+        }
+
+        .diff-content-cell {
+            opacity: 0.7;
+        }
+    }
+}
+
+/* Line number column (single) */
+.diff-linenum {
+    text-align: right;
+    padding: 0 6px 0 4px;
+    color: var(--vscode-editorLineNumber-foreground);
+    user-select: none;
+    font-size: 11px;
+    border-right: 1px solid color-mix(in srgb, var(--vscode-panel-border) 50%, transparent);
+}
+
+/* Prefix column (+/-/space) */
+.diff-prefix {
+    text-align: center;
+    user-select: none;
+    font-weight: 600;
+    padding: 0 2px;
+}
+
+/* Content column */
+.diff-content-cell {
+    padding: 0 8px 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--vscode-editor-foreground);
+}
+
+/* Word-level diff highlights */
+.diff-word-insert {
+    background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 25%, transparent);
+    border-radius: 2px;
+}
+
+.diff-word-delete {
+    background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 25%, transparent);
+    border-radius: 2px;
+}
