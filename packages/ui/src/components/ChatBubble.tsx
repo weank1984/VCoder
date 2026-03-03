@@ -17,6 +17,7 @@ import { useI18n } from '../i18n/I18nProvider';
 import { useToast } from '../utils/Toast';
 import { copyToClipboardAsync } from '../utils/clipboard';
 import { formatTokens } from '../utils/tokenFormat';
+import { stripEditorContext } from '../utils/sanitizeTitle';
 import './ChatBubble.scss';
 
 interface ChatBubbleProps {
@@ -198,7 +199,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
                 /* User Message: Full-width card (Cursor style) */
                 <div className="vc-human-message-container">
                     <div className="vc-human-message-content">
-                        <span className="vc-human-message-text">{message.content}</span>
+                        <span className="vc-human-message-text">{stripEditorContext(message.content)}</span>
                         <button className="vc-human-message-retry" title={t('Agent.Retry')}>↺</button>
                     </div>
                 </div>

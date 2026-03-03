@@ -15,6 +15,7 @@ import { useStore } from '../store/useStore';
 import { PermissionRulesPanel } from './PermissionRulesPanel';
 import { ComposerToolbar } from './ComposerToolbar';
 import { useI18n } from '../i18n/I18nProvider';
+import { stripEditorContext } from '../utils/sanitizeTitle';
 import './StickyUserPrompt.scss';
 import './ComposerSurface.scss';
 import './InputArea.scss';
@@ -65,8 +66,8 @@ export function StickyUserPrompt({ message, disabled, onApplyToComposer, onHeigh
         textareaRef.current?.setSelectionRange(draft.length, draft.length);
     }, [expanded, draft.length]);
 
-    // Simple text transformation - no need for useMemo as it's cheap
-    const collapsedText = message?.content?.replace(/\s+/g, ' ').trim() ?? '';
+    // Simple text transformation - strip editor context and normalize whitespace
+    const collapsedText = stripEditorContext(message?.content ?? '').replace(/\s+/g, ' ').trim();
 
     // Optimized height tracking with RAF throttling and debouncing
     useEffect(() => {

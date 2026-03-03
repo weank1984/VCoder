@@ -82,6 +82,8 @@ function stripEditorContextForTitle(content: string): string {
 3. **已有的 `classifyUserContent()` 只检测 XML 标签** — 它识别 `<system-reminder>`、`<teammate-message>` 等 XML 格式的内部消息，但不识别 `[方括号]` 格式的编辑器上下文。这是两种不同的内部消息格式。
 4. **如果未来添加新的上下文前缀格式**，需要同步更新 `stripEditorContextForTitle` 的正则匹配模式。
 
+5. **不止标题，消息气泡也受影响** — 同一份带前缀的消息内容不仅用于标题提取，还在 `ChatBubble.tsx` 和 `StickyUserPrompt.tsx` 中直接渲染。修复时需要全面排查所有消费 `message.content` 的 UI 组件。
+
 ## 涉及文件
 
 | 文件 | 修改 |
@@ -89,3 +91,5 @@ function stripEditorContextForTitle(content: string): string {
 | `packages/server/src/acp/server.ts` | `handlePrompt`/`handlePromptPersistent` 使用 `stripEditorContextForTitle` |
 | `packages/server/src/history/transcriptStore.ts` | `extractSessionMetadata`/`extractMetadataFromLargeFile` 使用 `stripEditorContextForTitle` |
 | `packages/ui/src/utils/sanitizeTitle.ts` | 新增 `stripEditorContext`，`sanitizeSessionTitle` 中调用 |
+| `packages/ui/src/components/ChatBubble.tsx` | 用户消息渲染时调用 `stripEditorContext` |
+| `packages/ui/src/components/StickyUserPrompt.tsx` | 折叠显示时调用 `stripEditorContext` |
