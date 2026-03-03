@@ -20,14 +20,17 @@ import {
     SubagentRunUpdate,
     ErrorUpdate,
     ConfirmationRequestUpdate,
-    ConfirmationType,
     SettingsChangedUpdate,
     TeamUpdate,
     TokenUsageUpdate,
 } from '@vcoder/shared';
-import { PersistentSession, PersistentSessionSettings } from './persistentSession';
 import { TeamManager } from './teamManager';
 import { resolveClaudePath, loadClaudeEnv, JsonStreamParser, computeFileChangeDiff, matchStderrError, preflightCheck } from './shared';
+import {
+    buildConfirmationRequestUpdate,
+    detectPermissionRequest,
+} from './permissionEngine';
+import { PersistentSessionPool } from './persistentSessionPool';
 
 export interface ClaudeCodeOptions {
     workingDirectory: string;
@@ -97,11 +100,10 @@ export class ClaudeCodeWrapper extends EventEmitter {
             reject: (error: Error) => void;
         }
     > = new Map();
-    
-    
-    // Persistent sessions for bidirectional streaming
-    private readonly persistentSessions: Map<string, PersistentSession> = new Map();
-    private static readonly MAX_PERSISTENT_SESSIONS = 3;
+
+
+    // Persistent session pool (bidirectional streaming)
+    private readonly persistentSessionPool: PersistentSessionPool;
 
     // Team management
     private readonly teamManager: TeamManager;
@@ -110,6 +112,32 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
     constructor(private options: ClaudeCodeOptions) {
         super();
+
+        // Initialize PersistentSessionPool and wire up events
+        this.persistentSessionPool = new PersistentSessionPool(
+            options,
+            () => this.settings,
+            (sessionId: string) => this.claudeSessionIdByLocalSessionId.get(sessionId),
+        );
+        this.persistentSessionPool.on('update', (sessionId: string, update: unknown, type: string) => {
+            this.emit('update', sessionId, update, type);
+        });
+        this.persistentSessionPool.on('complete', (sessionId: string, usage?: unknown) => {
+            this.emit('complete', sessionId, usage);
+        });
+        this.persistentSessionPool.on('persistentSessionClosed', (sessionId: string, code: number) => {
+            this.emit('persistentSessionClosed', sessionId, code);
+        });
+        this.persistentSessionPool.on('control_request', (sessionId: string, event: Record<string, unknown>) => {
+            void this.handleControlRequest(sessionId, event);
+        });
+        this.persistentSessionPool.on('team_tool', (sessionId: string, type: 'create' | 'delete', teamName: string) => {
+            if (type === 'create') {
+                void this.teamManager.onTeamCreated(teamName, sessionId);
+            } else {
+                void this.teamManager.onTeamDeleted(teamName);
+            }
+        });
 
         // Initialize TeamManager and wire up events
         this.teamManager = new TeamManager(options.workingDirectory);
@@ -423,7 +451,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
                     // ignore any best-effort stderr parsing to avoid duplicate prompts.
                     if (!this.pendingCanUseToolByToolCallKey.has(`${sessionId}:${lastToolId}`)) {
                         const toolName = this.toolNameByIdByLocalSessionId.get(sessionId)?.get(lastToolId);
-                        const permissionRequest = this.detectPermissionRequest(text, toolName);
+                        const permissionRequest = detectPermissionRequest(text, toolName);
                         if (permissionRequest) {
                             // Emit confirmation_request
                             const confirmUpdate: ConfirmationRequestUpdate = {
@@ -844,7 +872,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
         this.emitToolUse(sessionId, toolName, toolInput, toolCallId);
 
         // Emit a structured confirmation request so the webview can block until user decides.
-        const confirmUpdate = this.buildConfirmationRequestUpdate(toolCallId, toolName, toolInput);
+        const confirmUpdate = buildConfirmationRequestUpdate(toolCallId, toolName, toolInput, this.options.workingDirectory);
         this.emit('update', sessionId, confirmUpdate, 'confirmation_request');
 
         // Block until user confirms or denies in the UI.
@@ -885,7 +913,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
     private sendControlResponse(sessionId: string, requestId: string, response: unknown): void {
         // Try persistent session first
-        const persistentSession = this.persistentSessions.get(sessionId);
+        const persistentSession = this.persistentSessionPool.getSession(sessionId);
         if (persistentSession) {
             persistentSession.sendControlResponse(requestId, response);
             return;
@@ -907,116 +935,6 @@ export class ClaudeCodeWrapper extends EventEmitter {
             },
         };
         process.stdin.write(JSON.stringify(payload) + '\n');
-    }
-
-    private buildConfirmationRequestUpdate(
-        toolCallId: string,
-        toolName: string,
-        toolInput: Record<string, unknown>
-    ): ConfirmationRequestUpdate {
-        const lower = toolName.toLowerCase();
-
-        if (lower === 'exitplanmode' || lower === 'enterplanmode') {
-            const planSummary = typeof toolInput.plan === 'string' ? toolInput.plan : undefined;
-            const tasks = Array.isArray(toolInput.tasks) ? toolInput.tasks : undefined;
-            const isEnter = lower === 'enterplanmode';
-            return {
-                id: `confirm-${toolCallId}-${Date.now()}`,
-                type: 'plan',
-                toolCallId,
-                summary: isEnter ? '进入规划模式' : '退出规划模式，开始执行',
-                details: {
-                    ...(tasks ? { tasks } : {}),
-                    ...(planSummary ? { planSummary } : {}),
-                },
-            };
-        }
-
-        if (lower === 'bash' || lower.includes('bash')) {
-            const command =
-                (typeof toolInput.command === 'string' && toolInput.command) ||
-                (typeof toolInput.cmd === 'string' && toolInput.cmd) ||
-                '';
-            return {
-                id: `confirm-${toolCallId}-${Date.now()}`,
-                type: 'bash',
-                toolCallId,
-                summary: `执行命令需要权限确认: ${command.slice(0, 60)}${command.length > 60 ? '...' : ''}`,
-                details: {
-                    command,
-                    riskLevel: this.assessBashRisk(command),
-                    riskReasons: this.getBashRiskReasons(command),
-                },
-            };
-        }
-
-        if (lower === 'write' || lower === 'edit' || lower.includes('write') || lower.includes('edit')) {
-            const filePath =
-                (typeof toolInput.file_path === 'string' && toolInput.file_path) ||
-                (typeof toolInput.path === 'string' && toolInput.path) ||
-                '';
-
-            let diff: string | undefined;
-            const proposedContent = typeof toolInput.content === 'string' ? toolInput.content : undefined;
-            if (filePath && typeof proposedContent === 'string' && Buffer.byteLength(proposedContent, 'utf8') <= 1 * 1024 * 1024) {
-                const result = computeFileChangeDiff({
-                    workingDirectory: this.options.workingDirectory,
-                    filePath,
-                    proposedContent,
-                });
-                diff = result.diff || undefined;
-            }
-            return {
-                id: `confirm-${toolCallId}-${Date.now()}`,
-                type: 'file_write',
-                toolCallId,
-                summary: filePath ? `写入文件需要权限确认: ${filePath}` : '写入文件需要权限确认',
-                details: {
-                    filePath,
-                    diff,
-                    riskLevel: 'medium',
-                },
-            };
-        }
-
-        if (lower.includes('delete') || lower.includes('remove')) {
-            const filePath =
-                (typeof toolInput.file_path === 'string' && toolInput.file_path) ||
-                (typeof toolInput.path === 'string' && toolInput.path) ||
-                '';
-            return {
-                id: `confirm-${toolCallId}-${Date.now()}`,
-                type: 'file_delete',
-                toolCallId,
-                summary: filePath ? `删除文件需要权限确认: ${filePath}` : '删除文件需要权限确认',
-                details: {
-                    filePath,
-                    riskLevel: 'high',
-                },
-            };
-        }
-
-        if (lower.startsWith('mcp__') || lower.startsWith('mcp_')) {
-            return {
-                id: `confirm-${toolCallId}-${Date.now()}`,
-                type: 'mcp',
-                toolCallId,
-                summary: `MCP 工具调用需要权限确认: ${toolName}`,
-                details: {
-                    riskLevel: 'medium',
-                },
-            };
-        }
-
-        return {
-            id: `confirm-${toolCallId}-${Date.now()}`,
-            type: 'dangerous',
-            toolCallId,
-            summary: `工具调用需要权限确认: ${toolName}`,
-            details: {
-                riskLevel: 'medium',
-            },
-        };
     }
 
     private formatToolError(result: unknown): string {
@@ -1091,7 +1009,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
         // When can_use_tool is available, tool permission should be handled through control_request/control_response.
         if (!this.seenCanUseToolByLocalSessionId.has(sessionId)) {
             if (!this.pendingCanUseToolByToolCallKey.has(`${sessionId}:${toolId}`)) {
-                const permissionRequest = this.detectPermissionRequest(result, toolName);
+                const permissionRequest = detectPermissionRequest(result, toolName);
                 if (permissionRequest) {
                     // Emit confirmation_request instead of tool_result
                     const confirmUpdate: ConfirmationRequestUpdate = {
@@ -1171,177 +1089,6 @@ export class ClaudeCodeWrapper extends EventEmitter {
                 this.emit('update', sessionId, modeUpdate, 'settings_changed');
             }
         }
-    }
-
-    /**
-     * Detect if a tool result indicates a permission request from Claude CLI.
-     * Returns parsed permission info if detected, null otherwise.
-     */
-    private detectPermissionRequest(
-        result: unknown, 
-        toolName?: string
-    ): { type: ConfirmationType; summary: string; details: ConfirmationRequestUpdate['details'] } | null {
-        // Convert result to string for pattern matching
-        let text: string;
-        if (typeof result === 'string') {
-            text = result;
-        } else if (result && typeof result === 'object') {
-            try {
-                text = JSON.stringify(result);
-            } catch {
-                return null;
-            }
-        } else {
-            return null;
-        }
-
-        // Pattern: "Claude requested permissions to write to <path>"
-        const writeMatch = text.match(/Claude requested permissions? to write to ([^\n,]+)/i);
-        if (writeMatch) {
-            const filePath = writeMatch[1].trim().replace(/['"]/g, '');
-            return {
-                type: 'file_write',
-                summary: `写入文件需要权限确认: ${filePath}`,
-                details: { 
-                    filePath,
-                    riskLevel: 'medium',
-                },
-            };
-        }
-
-        // Pattern: "Claude requested permissions to edit <path>"
-        const editMatch = text.match(/Claude requested permissions? to edit ([^\n,]+)/i);
-        if (editMatch) {
-            const filePath = editMatch[1].trim().replace(/['"]/g, '');
-            return {
-                type: 'file_write',
-                summary: `编辑文件需要权限确认: ${filePath}`,
-                details: { 
-                    filePath,
-                    riskLevel: 'medium',
-                },
-            };
-        }
-
-        // Pattern: "Claude requested permissions to delete <path>"
-        const deleteMatch = text.match(/Claude requested permissions? to delete ([^\n,]+)/i);
-        if (deleteMatch) {
-            const filePath = deleteMatch[1].trim().replace(/['"]/g, '');
-            return {
-                type: 'file_delete',
-                summary: `删除文件需要权限确认: ${filePath}`,
-                details: { 
-                    filePath,
-                    riskLevel: 'high',
-                },
-            };
-        }
-
-        // Pattern: "Claude requested permissions to run: <command>"
-        const bashMatch = text.match(/Claude requested permissions? to run:?\s*([^\n]+)/i);
-        if (bashMatch) {
-            const command = bashMatch[1].trim();
-            return {
-                type: 'bash',
-                summary: `执行命令需要权限确认: ${command.slice(0, 50)}${command.length > 50 ? '...' : ''}`,
-                details: { 
-                    command,
-                    riskLevel: this.assessBashRisk(command),
-                    riskReasons: this.getBashRiskReasons(command),
-                },
-            };
-        }
-
-        // Generic permission denial patterns
-        if (text.includes("haven't granted it yet") || 
-            text.includes("permission denied") ||
-            text.includes("requires user permission") ||
-            text.includes("waiting for user approval")) {
-            // Infer type from tool name
-            const inferredType = this.inferConfirmationType(toolName);
-            return {
-                type: inferredType,
-                summary: '操作需要权限确认',
-                details: {
-                    riskLevel: 'medium',
-                },
-            };
-        }
-
-        return null;
-    }
-
-    /**
-     * Infer confirmation type from tool name
-     */
-    private inferConfirmationType(toolName?: string): ConfirmationType {
-        if (!toolName) return 'dangerous';
-        const name = toolName.toLowerCase();
-        
-        if (name === 'bash' || name === 'run_command' || name.includes('bash')) {
-            return 'bash';
-        }
-        if (name === 'write' || name === 'edit' || name.includes('write') || name.includes('edit')) {
-            return 'file_write';
-        }
-        if (name.includes('delete') || name.includes('remove')) {
-            return 'file_delete';
-        }
-        if (name.startsWith('mcp__') || name.startsWith('mcp_')) {
-            return 'mcp';
-        }
-        
-        return 'dangerous';
-    }
-
-    /**
-     * Assess risk level of a bash command
-     */
-    private assessBashRisk(command: string): 'low' | 'medium' | 'high' {
-        const lowerCmd = command.toLowerCase();
-        
-        // High risk patterns
-        if (lowerCmd.includes('sudo') || 
-            lowerCmd.includes('rm -rf') ||
-            lowerCmd.includes('rm -r') ||
-            lowerCmd.includes('> /') ||
-            lowerCmd.includes('chmod') ||
-            lowerCmd.includes('chown') ||
-            lowerCmd.includes('mkfs') ||
-            lowerCmd.includes('dd if=')) {
-            return 'high';
-        }
-        
-        // Medium risk patterns
-        if (lowerCmd.includes('npm publish') ||
-            lowerCmd.includes('npm install') ||
-            lowerCmd.includes('pip install') ||
-            lowerCmd.includes('yarn add') ||
-            lowerCmd.includes('curl') ||
-            lowerCmd.includes('wget') ||
-            lowerCmd.includes('git push')) {
-            return 'medium';
-        }
-        
-        return 'low';
-    }
-
-    /**
-     * Get risk reasons for a bash command
-     */
-    private getBashRiskReasons(command: string): string[] {
-        const reasons: string[] = [];
-        const lowerCmd = command.toLowerCase();
-        
-        if (lowerCmd.includes('sudo')) reasons.push('命令包含 sudo 提权');
-        if (lowerCmd.includes('rm ')) reasons.push('会删除文件');
-        if (lowerCmd.includes('node_modules')) reasons.push('会修改 node_modules 目录');
-        if (lowerCmd.includes('npm publish')) reasons.push('会发布包到 npm registry');
-        if (lowerCmd.includes('|') || lowerCmd.includes('&&')) reasons.push('命令包含管道或链式操作');
-        if (lowerCmd.includes('curl') || lowerCmd.includes('wget')) reasons.push('会访问网络');
-        if (lowerCmd.includes('git push')) reasons.push('会推送代码到远程仓库');
-        
-        return reasons;
     }
 
     private emitToolUse(sessionId: string, toolName: string, toolInput: Record<string, unknown>, toolId: string): void {
@@ -1695,7 +1442,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
     }
 
     private writeRawStdin(sessionId: string, data: string): void {
-        const persistentSession = this.persistentSessions.get(sessionId);
+        const persistentSession = this.persistentSessionPool.getSession(sessionId);
         if (persistentSession) {
             persistentSession.writeToStdin(data);
             return;
@@ -1736,18 +1483,7 @@ export class ClaudeCodeWrapper extends EventEmitter {
         this.processesByLocalSessionId.clear();
 
         // Shutdown persistent sessions (concurrently)
-        const stopPromises: Promise<void>[] = [];
-        for (const [sessionId, session] of this.persistentSessions.entries()) {
-            stopPromises.push(
-                session.stop().catch((err) => {
-                    console.error('[ClaudeCode] Failed to stop persistent session', sessionId, err);
-                    // Force kill if graceful stop fails
-                    session.kill();
-                })
-            );
-        }
-        await Promise.all(stopPromises);
-        this.persistentSessions.clear();
+        await this.persistentSessionPool.shutdownAll();
 
         // Clean up all pending confirmation promises
         for (const [, resolver] of this.pendingConfirmationResolvers.entries()) {
@@ -1759,64 +1495,17 @@ export class ClaudeCodeWrapper extends EventEmitter {
 
     // =========================================================================
     // Persistent Session Mode (Bidirectional Streaming)
+    // Delegated to PersistentSessionPool
     // =========================================================================
 
-    /**
-     * Send a prompt using persistent session mode (bidirectional streaming).
-     * The session is kept alive for subsequent messages.
-     */
     async promptPersistent(sessionId: string, message: string, attachments?: Attachment[]): Promise<void> {
-        let session = this.persistentSessions.get(sessionId);
-
-        if (!session) {
-            // Enforce multi-session limit: evict LRU if needed
-            await this.evictLruSessionsIfNeeded();
-
-            // Create new persistent session
-            const settings: PersistentSessionSettings = {
-                model: this.settings.model,
-                permissionMode: this.settings.permissionMode,
-                fallbackModel: this.settings.fallbackModel,
-                appendSystemPrompt: this.settings.appendSystemPrompt,
-                mcpConfigPath: this.settings.mcpConfigPath,
-                allowedTools: this.settings.allowedTools,
-                disallowedTools: this.settings.disallowedTools,
-                additionalDirs: this.settings.additionalDirs,
-                maxThinkingTokens: this.settings.maxThinkingTokens,
-                env: {
-                    CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: '1',
-                },
-            };
-
-            session = new PersistentSession(sessionId, this.options, settings);
-            const resumeId = this.claudeSessionIdByLocalSessionId.get(sessionId);
-            if (resumeId) {
-                session.setResumeSessionId(resumeId);
-            }
-            this.forwardPersistentSessionEvents(sessionId, session);
-            this.persistentSessions.set(sessionId, session);
-
-            try {
-                await session.start();
-            } catch (err) {
-                this.persistentSessions.delete(sessionId);
-                throw err;
-            }
-        }
-
-        session.sendMessage(message, attachments);
+        return this.persistentSessionPool.prompt(sessionId, message, attachments);
     }
 
-    /**
-     * Check if a session is using persistent mode
-     */
     isPersistentSession(sessionId: string): boolean {
-        return this.persistentSessions.has(sessionId);
+        return this.persistentSessionPool.isSession(sessionId);
     }
 
-    /**
-     * Get persistent session status
-     */
     getPersistentSessionStatus(sessionId: string): {
         running: boolean;
         cliSessionId: string | null;
@@ -1827,23 +1516,9 @@ export class ClaudeCodeWrapper extends EventEmitter {
         startedAt?: number;
         lastActivityAt?: number;
     } | null {
-        const session = this.persistentSessions.get(sessionId);
-        if (!session) return null;
-        return {
-            running: session.running,
-            cliSessionId: session.cliSessionId,
-            state: session.state,
-            messageCount: session.messageCount,
-            totalUsage: session.totalUsage,
-            pid: session.pid,
-            startedAt: session.startedAt,
-            lastActivityAt: session.lastActivityAt,
-        };
+        return this.persistentSessionPool.getStatus(sessionId);
     }
 
-    /**
-     * Get a list of all active persistent sessions with resource info
-     */
     getActivePersistentSessions(): Array<{
         sessionId: string;
         pid?: number;
@@ -1852,114 +1527,10 @@ export class ClaudeCodeWrapper extends EventEmitter {
         state: string;
         messageCount: number;
     }> {
-        const result: Array<{
-            sessionId: string;
-            pid?: number;
-            startedAt: number;
-            lastActivityAt: number;
-            state: string;
-            messageCount: number;
-        }> = [];
-        for (const [id, session] of this.persistentSessions.entries()) {
-            result.push({
-                sessionId: id,
-                pid: session.pid,
-                startedAt: session.startedAt,
-                lastActivityAt: session.lastActivityAt,
-                state: session.state,
-                messageCount: session.messageCount,
-            });
-        }
-        return result;
+        return this.persistentSessionPool.getActive();
     }
 
-    /**
-     * Stop a persistent session
-     */
     async stopPersistentSession(sessionId: string): Promise<void> {
-        const session = this.persistentSessions.get(sessionId);
-        if (session) {
-            await session.stop();
-            this.persistentSessions.delete(sessionId);
-        }
-    }
-
-    /**
-     * Evict the least-recently-used persistent sessions if over the limit.
-     */
-    private async evictLruSessionsIfNeeded(): Promise<void> {
-        while (this.persistentSessions.size >= ClaudeCodeWrapper.MAX_PERSISTENT_SESSIONS) {
-            // Find the session with the oldest lastActivityAt
-            let oldestId: string | null = null;
-            let oldestActivity = Infinity;
-
-            for (const [id, session] of this.persistentSessions.entries()) {
-                if (session.lastActivityAt < oldestActivity) {
-                    oldestActivity = session.lastActivityAt;
-                    oldestId = id;
-                }
-            }
-
-            if (oldestId) {
-                console.error(`[ClaudeCode] Evicting LRU persistent session ${oldestId} (lastActivity=${new Date(oldestActivity).toISOString()})`);
-                await this.stopPersistentSession(oldestId);
-                this.emit('persistentSessionClosed', oldestId, 0);
-            } else {
-                break;
-            }
-        }
-    }
-
-    private forwardPersistentSessionEvents(sessionId: string, session: PersistentSession): void {
-        session.on('update', (update: unknown, type: string) => {
-            this.emit('update', sessionId, update, type);
-        });
-
-        session.on('complete', (usage?: { inputTokens: number; outputTokens: number }) => {
-            this.emit('complete', sessionId, usage);
-        });
-
-        session.on('control_request', (event: Record<string, unknown>) => {
-            void this.handleControlRequest(sessionId, event);
-        });
-
-        session.on('team_tool', (type: 'create' | 'delete', teamName: string) => {
-            if (type === 'create') {
-                void this.teamManager.onTeamCreated(teamName, sessionId);
-            } else {
-                void this.teamManager.onTeamDeleted(teamName);
-            }
-        });
-
-        session.on('close', (code: number) => {
-            console.error(`[ClaudeCode] Persistent session ${sessionId} closed with code ${code}`);
-            this.persistentSessions.delete(sessionId);
-            // Notify clients that the persistent session has disconnected
-            this.emit('persistentSessionClosed', sessionId, code);
-        });
-
-        session.on('recovered', () => {
-            console.error(`[ClaudeCode] Persistent session ${sessionId} recovered`);
-            const update: TextUpdate = { text: '[Session recovered automatically after crash]\n' };
-            this.emit('update', sessionId, update, 'text');
-        });
-
-        session.on('recoveryFailed', () => {
-            console.error(`[ClaudeCode] Persistent session ${sessionId} recovery failed, falling back to one-shot`);
-            this.persistentSessions.delete(sessionId);
-            // Notify clients about recovery failure - they should fall back to one-shot
-            const errorUpdate: ErrorUpdate = {
-                code: 'PERSISTENT_SESSION_CLOSED',
-                message: 'Persistent session recovery failed. Falling back to one-shot mode.',
-            };
-            this.emit('update', sessionId, errorUpdate, 'error');
-            this.emit('persistentSessionClosed', sessionId, 1);
-        });
-
-        session.on('idleTimeout', () => {
-            console.error(`[ClaudeCode] Persistent session ${sessionId} idle timeout, stopping`);
-            this.persistentSessions.delete(sessionId);
-            this.emit('persistentSessionClosed', sessionId, 0);
-        });
+        return this.persistentSessionPool.stop(sessionId);
     }
 }
