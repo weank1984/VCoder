@@ -63,11 +63,11 @@
 
     &.completed {
       .agent-block-item-icon {
-        color: var(--vscode-gitDecoration-addedResourceForeground, var(--vscode-terminal-ansiGreen));
+        color: var(--vc-color-success-text);
       }
 
       .task-runs-index {
-        background: var(--vscode-gitDecoration-addedResourceForeground, var(--vscode-terminal-ansiGreen));
+        background: var(--vc-color-success-text);
         color: var(--vscode-button-foreground);
       }
     }

@@ -16,7 +16,7 @@
     &:hover {
         opacity: 1;
         background: var(--vscode-toolbar-hoverBackground);
-        color: var(--vcoder-fg);
+        color: var(--vc-color-text-primary);
     }
 
     &:disabled {

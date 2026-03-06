@@ -54,11 +54,11 @@
 }
 
 .vc-pending-changes__stat--accepted {
-  color: var(--vscode-terminal-ansiGreen);
+  color: var(--vc-color-success-text);
 }
 
 .vc-pending-changes__stat--rejected {
-  color: var(--vscode-terminal-ansiRed);
+  color: var(--vc-color-error-text);
 }
 
 .vc-pending-changes__actions {
@@ -87,18 +87,18 @@
   }
 
   &--accept {
-    color: var(--vscode-terminal-ansiGreen);
+    color: var(--vc-color-success-text);
 
     &:hover {
-      background: color-mix(in srgb, var(--vscode-terminal-ansiGreen) 12%, transparent);
+      background: color-mix(in srgb, var(--vc-color-success-text) 12%, transparent);
     }
   }
 
   &--reject {
-    color: var(--vscode-terminal-ansiRed);
+    color: var(--vc-color-error-text);
 
     &:hover {
-      background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 12%, transparent);
+      background: color-mix(in srgb, var(--vc-color-error-text) 12%, transparent);
     }
   }
 }
@@ -139,7 +139,7 @@
   }
 
   &--conflict {
-    border-left: 2px solid var(--vscode-terminal-ansiYellow, #e2c08d);
+    border-left: 2px solid var(--vc-color-warning-text, #e2c08d);
   }
 }
 
@@ -161,15 +161,15 @@
   flex-shrink: 0;
 
   &--added {
-    color: var(--vscode-terminal-ansiGreen);
+    color: var(--vc-color-success-text);
   }
 
   &--modified {
-    color: var(--vscode-terminal-ansiYellow, var(--vscode-gitDecoration-modifiedResourceForeground));
+    color: var(--vc-color-warning-text);
   }
 
   &--deleted {
-    color: var(--vscode-terminal-ansiRed);
+    color: var(--vc-color-error-text);
   }
 }
 
@@ -195,11 +195,11 @@
 }
 
 .vc-pending-changes__additions {
-  color: var(--vscode-terminal-ansiGreen);
+  color: var(--vc-color-success-text);
 }
 
 .vc-pending-changes__deletions {
-  color: var(--vscode-terminal-ansiRed);
+  color: var(--vc-color-error-text);
 }
 
 .vc-pending-changes__file-actions {
@@ -233,18 +233,18 @@
   }
 
   &--accept {
-    color: var(--vscode-terminal-ansiGreen);
+    color: var(--vc-color-success-text);
 
     &:hover {
-      background: color-mix(in srgb, var(--vscode-terminal-ansiGreen) 20%, transparent);
+      background: color-mix(in srgb, var(--vc-color-success-text) 20%, transparent);
     }
   }
 
   &--reject {
-    color: var(--vscode-terminal-ansiRed);
+    color: var(--vc-color-error-text);
 
     &:hover {
-      background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 20%, transparent);
+      background: color-mix(in srgb, var(--vc-color-error-text) 20%, transparent);
     }
   }
 }

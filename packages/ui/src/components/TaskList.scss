@@ -136,8 +136,8 @@
     }
 }
 
-.task-item.completed .task-status-icon { color: var(--vscode-terminal-ansiGreen); }
-.task-item.failed .task-status-icon { color: var(--vscode-terminal-ansiRed); }
+.task-item.completed .task-status-icon { color: var(--vc-color-success-text); }
+.task-item.failed .task-status-icon { color: var(--vc-color-error-text); }
 .task-item.in_progress .task-status-icon { color: var(--vscode-progressBar-background); }
 .task-item.pending .task-status-icon { color: var(--vscode-disabledForeground); }
 

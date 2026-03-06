@@ -28,34 +28,34 @@
     
     // Type-specific styling
     &.toast-success {
-        border-left: 3px solid var(--vscode-terminal-ansiGreen);
+        border-left: 3px solid var(--vc-color-success-text);
         
         .toast-icon {
-            color: var(--vscode-terminal-ansiGreen);
+            color: var(--vc-color-success-text);
         }
     }
     
     &.toast-error {
-        border-left: 3px solid var(--vscode-terminal-ansiRed);
+        border-left: 3px solid var(--vc-color-error-text);
         
         .toast-icon {
-            color: var(--vscode-terminal-ansiRed);
+            color: var(--vc-color-error-text);
         }
     }
     
     &.toast-warning {
-        border-left: 3px solid var(--vscode-terminal-ansiYellow);
+        border-left: 3px solid var(--vc-color-warning-text);
         
         .toast-icon {
-            color: var(--vscode-terminal-ansiYellow);
+            color: var(--vc-color-warning-text);
         }
     }
     
     &.toast-info {
-        border-left: 3px solid var(--vscode-terminal-ansiBlue);
+        border-left: 3px solid var(--vc-color-primary);
         
         .toast-icon {
-            color: var(--vscode-terminal-ansiBlue);
+            color: var(--vc-color-primary);
         }
     }
 }

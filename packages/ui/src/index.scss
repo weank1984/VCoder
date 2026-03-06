@@ -355,7 +355,7 @@
 
     /* ----- Status-Based Colors ----- */
     --vc-todo-status-pending: var(--vc-color-text-secondary);
-    --vc-todo-status-progress: var(--vscode-terminal-ansiYellow);
+    --vc-todo-status-progress: var(--vc-color-warning-text);
     --vc-todo-status-completed: var(--vc-color-success-text);
     --vc-todo-status-cancelled: var(--vc-color-error-text);
 
@@ -380,17 +380,17 @@
     --vc-todo-progress-radius: 9999px;
 
     /* ----- Task Status Colors ----- */
-    --vc-task-status-pending: var(--vscode-terminal-ansiYellow);
-    --vc-task-status-running: var(--vscode-terminal-ansiBlue);
+    --vc-task-status-pending: var(--vc-color-warning-text);
+    --vc-task-status-running: var(--vc-color-primary);
     --vc-task-status-success: var(--vscode-gitDecoration-addedResourceForeground);
-    --vc-task-status-error: var(--vscode-terminal-ansiRed);
+    --vc-task-status-error: var(--vc-color-error-text);
 
     /* ----- Background Colors for Task Types ----- */
     --vc-task-bg-brainstorm: color-mix(in srgb, var(--vscode-symbolIcon-classForeground, #4584b6) 8%, transparent);
     --vc-task-bg-codegen: color-mix(in srgb, var(--vscode-symbolIcon-methodForeground, #563d7c) 8%, transparent);
     --vc-task-bg-execute: color-mix(in srgb, var(--vscode-symbolIcon-interfaceForeground, #a971f8) 8%, transparent);
     --vc-task-bg-refactor: color-mix(in srgb, var(--vscode-symbolIcon-eventForeground) 8%, transparent);
-    --vc-task-bg-test: color-mix(in srgb, var(--vscode-terminal-ansiGreen) 8%, transparent);
+    --vc-task-bg-test: color-mix(in srgb, var(--vc-color-success-text) 8%, transparent);
     --vc-task-bg-unknown: var(--vc-bg-secondary);
 
     /* ==========================================================================

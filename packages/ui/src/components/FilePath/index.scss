@@ -64,11 +64,11 @@
     
     // Directory type
     &--directory {
-        color: var(--vscode-terminal-ansiYellow);
+        color: var(--vc-color-warning-text);
         cursor: default;
         
         .file-path__icon {
-            color: var(--vscode-terminal-ansiYellow);
+            color: var(--vc-color-warning-text);
         }
     }
     
@@ -78,9 +78,9 @@
     &--inline {
         display: inline-flex;  // 强制内联
         vertical-align: baseline;  // 与文本基线对齐
-        background: var(--vcoder-surface-3);
+        background: var(--vc-color-bg-tertiary);
         padding: 1px 5px;
-        border: 1px solid var(--vcoder-border-light);
+        border: 1px solid var(--vc-color-border-secondary);
         font-size: 0.9em;  // 稍小于周围文本
         line-height: 1.4;
         
@@ -102,16 +102,16 @@
     &--block {
         display: flex;
         padding: 10px 14px;
-        background: var(--vcoder-surface-2);
-        border: 1px solid var(--vcoder-border);
+        background: var(--vc-color-bg-secondary);
+        border: 1px solid var(--vc-color-border);
         border-radius: 8px;
         margin: 0.4em 0;
         
         // Subtle gradient background
         background: linear-gradient(
             135deg,
-            var(--vcoder-surface-2) 0%,
-            color-mix(in srgb, var(--vscode-textLink-foreground) 3%, var(--vcoder-surface-2)) 100%
+            var(--vc-color-bg-secondary) 0%,
+            color-mix(in srgb, var(--vscode-textLink-foreground) 3%, var(--vc-color-bg-secondary)) 100%
         );
         
         .file-path__icon {
@@ -126,7 +126,7 @@
             
             &:hover {
                 background: var(--vscode-list-hoverBackground);
-                border-color: color-mix(in srgb, var(--vscode-textLink-foreground) 50%, var(--vcoder-border));
+                border-color: color-mix(in srgb, var(--vscode-textLink-foreground) 50%, var(--vc-color-border));
                 box-shadow: 0 2px 8px color-mix(in srgb, var(--vscode-textLink-foreground) 8%, transparent);
                 transform: translateX(2px);
             }
@@ -150,7 +150,7 @@
     gap: 8px;
     padding: 6px 8px;
     border-radius: 4px;
-    background: var(--vcoder-surface-2);
+    background: var(--vc-color-bg-secondary);
     transition: all 0.15s;
     
     &__icon {
@@ -196,7 +196,7 @@
         font-size: 10px;
         font-family: var(--vscode-editor-font-family);
         color: var(--vscode-descriptionForeground);
-        background: var(--vcoder-surface-3);
+        background: var(--vc-color-bg-tertiary);
         padding: 2px 6px;
         border-radius: 3px;
         flex-shrink: 0;

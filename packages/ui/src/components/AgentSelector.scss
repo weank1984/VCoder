@@ -61,7 +61,7 @@
     font-weight: bold;
     
     &.status-online {
-        color: var(--vscode-testing-iconPassed, var(--vscode-terminal-ansiGreen));
+        color: var(--vscode-testing-iconPassed, var(--vc-color-success-text));
     }
     
     &.status-offline {
