@@ -279,68 +279,23 @@
        These will be deprecated in future versions.
        ========================================================================== */
 
-    /* Legacy vcoder tokens - mapped to new system */
-    --vcoder-bg: var(--vc-color-bg-base);
-    --vcoder-fg: var(--vc-color-text-primary);
-    --vcoder-input-bg: var(--vc-color-bg-input);
-    --vcoder-input-fg: var(--vscode-input-foreground);
-    --vcoder-input-border: var(--vscode-input-border, transparent);
-    --vcoder-input-placeholder: var(--vscode-input-placeholderForeground);
-    --vcoder-border: var(--vc-color-border);
-    --vcoder-focus-border: var(--vc-color-border-focus);
-    --vcoder-text-primary: var(--vc-color-text-primary);
-    --vcoder-text-secondary: var(--vc-color-text-secondary);
-    --vcoder-link: var(--vc-color-link);
-    --vcoder-link-hover: var(--vc-color-link-hover);
-    --vcoder-error: var(--vc-color-error-text);
-    --vcoder-warning: var(--vc-color-warning-text);
-    --vcoder-success: var(--vc-color-success-text);
-    --vcoder-radius-sm: var(--vc-radius-sm);
-    --vcoder-radius-md: var(--vc-radius-md);
-    --vcoder-radius-lg: var(--vc-radius-lg);
-
-    /* Legacy vc tokens - mapped to new system */
+    /* Short aliases — still referenced by components */
     --vc-font-family: var(--vc-font-family-base);
     --vc-font-size: var(--vc-font-size-base);
     --vc-line-height: var(--vc-line-height-base);
     --vc-padding: var(--vc-spacing-component-md);
-    --vc-radius-sm: var(--vc-radius-sm);
-    --vc-radius-md: var(--vc-radius-md);
-    --vc-radius-lg: var(--vc-radius-lg);
     --vc-bg: var(--vc-color-bg-base);
     --vc-bg-secondary: var(--vc-color-bg-secondary);
     --vc-bg-tertiary: var(--vc-color-bg-tertiary);
     --vc-color-text: var(--vc-color-text-primary);
     --vc-color-text-heading: var(--vc-color-text-primary);
-    --vc-color-text-secondary: var(--vc-color-text-secondary);
-    --vc-color-text-tertiary: var(--vc-color-text-tertiary);
     --vc-color-text-description: var(--vc-color-text-secondary);
-    --vc-color-border: var(--vc-color-border);
-    --vc-color-border-secondary: var(--vc-color-border-secondary);
-    --vc-color-primary: var(--vc-color-primary);
-    --vc-color-primary-hover: var(--vc-color-primary-hover);
-    --vc-color-primary-active: var(--vc-color-primary-active);
-    --vc-color-primary-rgb: var(--vc-color-primary-rgb);
-    --vc-color-primary-bg-hover: var(--vc-color-primary-bg-hover);
-    --vc-color-link: var(--vc-color-link);
-    --vc-color-link-hover: var(--vc-color-link-hover);
-    --vc-color-link-active: var(--vc-color-link-active);
-    --vc-color-error-text: var(--vc-color-error-text);
-    --vc-color-error-bg: var(--vc-color-error-bg);
-    --vc-color-error-border: var(--vc-color-error-border);
     --vc-color-danger: var(--vc-color-danger-text);
-    --vc-color-danger-bg: var(--vc-color-danger-bg);
     --vc-color-white: #ffffff;
     --vc-color-icon: var(--vc-color-icon-primary);
     --vc-control-item-bg-hover: var(--vc-color-hover-bg);
     --vc-color-bg-mask: var(--vc-color-mask);
-    --vc-motion-duration-mid: var(--vc-motion-duration-mid);
-    --vc-motion-ease-out: var(--vc-motion-ease-out);
-    --vc-box-shadow: var(--vc-box-shadow);
-    --vc-scrollbar-thumb: var(--vc-scrollbar-thumb);
     --composer-pane-background: var(--vc-color-bg-base);
-
-/* Legacy padding tokens */
     --vc-sticky-user-prompt-offset: 0px;
 
     /* ==========================================================================
