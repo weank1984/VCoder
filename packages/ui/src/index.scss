@@ -203,7 +203,7 @@
     --vc-radius-xs: 2px;   /* Minimal radius - Tags, badges */
     --vc-radius-sm: 4px;   /* Small radius - Buttons, inputs, cards */
     --vc-radius-md: 6px;   /* Medium radius - Panels, containers */
-    --vc-radius-lg: 8px;   /* Large radius - Cards, modals */
+    --vc-radius-lg: 10px;  /* Large radius - Cards, modals (Cursor-style) */
     --vc-radius-xl: 10px;  /* Extra large radius - Special containers */
     --vc-radius-2xl: 12px; /* Huge radius - Hero elements */
     --vc-radius-full: 9999px; /* Pill shapes */
@@ -421,6 +421,53 @@
     --vc-input-height-sm: 26px;
     --vc-input-height-md: 30px;
     --vc-input-height-lg: 36px;
+
+    /* ==========================================================================
+       13. GLASS / SURFACE TOKENS
+       ========================================================================== */
+
+    --vc-glass-bg: rgba(30, 31, 35, 0.78);
+    --vc-glass-border: rgba(255, 255, 255, 0.08);
+    --vc-glass-blur: 12px;
+    --vc-hover-soft: rgba(255, 255, 255, 0.06);
+
+    /* ==========================================================================
+       14. MODEL-SPECIFIC COLORS
+       ========================================================================== */
+
+    --vc-model-sonnet: #6c8cff;
+    --vc-model-sonnet-bg: rgba(108, 140, 255, 0.10);
+    --vc-model-haiku: #2dd4bf;
+    --vc-model-haiku-bg: rgba(45, 212, 191, 0.10);
+    --vc-model-glm: #fbbf24;
+    --vc-model-glm-bg: rgba(251, 191, 36, 0.10);
+
+    /* ==========================================================================
+       15. ICON SIZE TOKENS
+       ========================================================================== */
+
+    --vc-icon-size-xs: 10px;
+    --vc-icon-size-sm: 12px;
+    --vc-icon-size-md: 14px;
+    --vc-icon-size-lg: 16px;
+    --vc-icon-size-xl: 20px;
+
+    /* ==========================================================================
+       16. COMPONENT HEIGHT TOKENS
+       ========================================================================== */
+
+    --vc-height-input: 36px;
+    --vc-height-input-max: 240px;
+    --vc-height-code-preview: 200px;
+    --vc-height-diff-preview: 320px;
+    --vc-height-mc-content: 280px;
+}
+
+.vscode-light,
+.vscode-high-contrast-light {
+    --vc-glass-bg: rgba(255, 255, 255, 0.88);
+    --vc-glass-border: rgba(0, 0, 0, 0.08);
+    --vc-hover-soft: rgba(0, 0, 0, 0.05);
 }
 
 /* ==========================================================================

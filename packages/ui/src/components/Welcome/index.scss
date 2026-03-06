@@ -50,7 +50,7 @@ $welcome-prefixCls: vc-chat-welcome;
       height: 200%;
       background: radial-gradient(
         ellipse,
-        color-mix(in srgb, var(--vc-token-accent, #6c8cff) 8%, transparent) 0%,
+        color-mix(in srgb, var(--vc-color-primary, #6c8cff) 8%, transparent) 0%,
         transparent 70%
       );
       pointer-events: none;
@@ -111,7 +111,7 @@ $welcome-prefixCls: vc-chat-welcome;
     align-items: center;
     gap: var(--vc-space-2);
     padding: var(--vc-space-2) var(--vc-space-3);
-    border-radius: var(--vc-token-radius-lg, 12px);
+    border-radius: var(--vc-radius-lg, 12px);
     border: 1px solid color-mix(in srgb, var(--vc-color-border) 60%, transparent);
     background: transparent;
     color: var(--vc-color-text);
@@ -123,9 +123,9 @@ $welcome-prefixCls: vc-chat-welcome;
 
     &:hover {
       background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
-      border-color: color-mix(in srgb, var(--vc-token-accent, #6c8cff) 30%, var(--vc-color-border));
+      border-color: color-mix(in srgb, var(--vc-color-primary, #6c8cff) 30%, var(--vc-color-border));
       transform: scale(1.015);
-      box-shadow: var(--vc-token-shadow-sm);
+      box-shadow: var(--vc-shadow-sm);
     }
 
     &:active {
@@ -244,7 +244,7 @@ $welcome-prefixCls: vc-chat-welcome;
     &:hover {
       background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
       border-color: color-mix(in srgb, var(--vc-color-border) 40%, transparent);
-      border-left: 2px solid color-mix(in srgb, var(--vc-token-accent, #6c8cff) 50%, transparent);
+      border-left: 2px solid color-mix(in srgb, var(--vc-color-primary, #6c8cff) 50%, transparent);
     }
   }
 
@@ -260,7 +260,7 @@ $welcome-prefixCls: vc-chat-welcome;
   }
 
   &-recents-item:hover &-recents-item-icon {
-    color: var(--vc-token-accent, #6c8cff);
+    color: var(--vc-color-primary, #6c8cff);
     opacity: 1;
   }
 

@@ -4,11 +4,11 @@
   top: 0;
   z-index: 90;
   margin: 0;
-  border-radius: 0 0 var(--vc-token-radius-lg, 12px) var(--vc-token-radius-lg, 12px);
+  border-radius: 0 0 var(--vc-radius-lg, 12px) var(--vc-radius-lg, 12px);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(var(--vc-token-glass-blur, 8px));
-  -webkit-backdrop-filter: blur(var(--vc-token-glass-blur, 8px));
-  background: var(--vc-token-glass-bg);
+  backdrop-filter: blur(var(--vc-glass-blur, 8px));
+  -webkit-backdrop-filter: blur(var(--vc-glass-blur, 8px));
+  background: var(--vc-glass-bg);
 
   .mc-summary-text {
     margin-left: auto;
@@ -50,7 +50,7 @@
       color: var(--vscode-descriptionForeground);
       background: transparent;
       border: none;
-      border-radius: var(--vc-token-radius-sm, 6px);
+      border-radius: var(--vc-radius-sm, 6px);
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 
@@ -62,7 +62,7 @@
       &.mc-tab-active {
         color: var(--vscode-textLink-activeForeground);
         background: color-mix(in srgb, var(--vscode-textLink-activeForeground) 15%, transparent);
-        border-radius: var(--vc-token-radius-sm, 6px);
+        border-radius: var(--vc-radius-sm, 6px);
       }
     }
   }
@@ -227,7 +227,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 8px;
-    border-radius: var(--vc-token-radius-sm, 6px);
+    border-radius: var(--vc-radius-sm, 6px);
     background: color-mix(in srgb, var(--vscode-foreground) 2%, transparent);
     transition: background-color 0.15s ease;
 
@@ -564,7 +564,7 @@
   .mc-detail-prompt {
     padding: 6px 8px;
     background: var(--agent-block-header-bg);
-    border-radius: var(--vc-token-radius-sm, 6px);
+    border-radius: var(--vc-radius-sm, 6px);
     border-left: 2px solid var(--vscode-textLink-activeForeground);
   }
 

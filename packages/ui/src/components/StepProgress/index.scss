@@ -25,7 +25,7 @@
 .step-item {
     padding: 0;
     position: relative;
-    border-radius: var(--vc-token-radius-lg, 12px);
+    border-radius: var(--vc-radius-lg, 12px);
     background: transparent;
     border: 1px solid color-mix(in srgb, var(--vc-color-border) 30%, transparent);
     overflow: hidden;
@@ -511,7 +511,7 @@
 
 /* Task Entry (subagent) */
 .task-entry {
-    border-radius: var(--vc-token-radius-lg, 12px);
+    border-radius: var(--vc-radius-lg, 12px);
     border: 1px solid color-mix(in srgb, var(--vc-color-border) 30%, transparent);
     overflow: hidden;
 
@@ -574,7 +574,7 @@
 
 .task-type-badge {
     padding: 1px 6px;
-    border-radius: var(--vc-token-radius-full, 9999px);
+    border-radius: var(--vc-radius-full, 9999px);
     font-size: var(--vc-font-size-2xs);
     font-weight: var(--vc-font-weight-medium);
     background: var(--vscode-badge-background);
@@ -603,7 +603,7 @@
     background: none;
     cursor: pointer;
     color: var(--vc-color-text-tertiary);
-    border-radius: var(--vc-token-radius-sm, 4px);
+    border-radius: var(--vc-radius-sm, 4px);
     flex-shrink: 0;
     opacity: 0;
     transition: opacity 0.15s, background 0.15s, color 0.15s;
@@ -797,7 +797,7 @@
     padding: 1px 6px;
     font-size: var(--vc-font-size-2xs);
     font-weight: var(--vc-font-weight-medium);
-    border-radius: var(--vc-token-radius-full, 9999px);
+    border-radius: var(--vc-radius-full, 9999px);
     flex-shrink: 0;
 
     &.awaiting {

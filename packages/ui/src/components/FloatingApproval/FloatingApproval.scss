@@ -10,12 +10,12 @@
   bottom: 100%;
   left: var(--vc-space-3);
   right: var(--vc-space-3);
-  z-index: var(--vc-token-z-floating-approval, 200);
+  z-index: var(--vc-z-index-fixed, 200);
   margin-bottom: var(--vc-space-1);
   pointer-events: auto;
 
   @include floating-panel;
-  border-radius: var(--vc-token-radius-lg, 12px);
+  border-radius: var(--vc-radius-lg, 12px);
 
   // Amber accent line at top
   &::before {
@@ -45,7 +45,7 @@
   font-size: var(--vc-font-size-xs);
   font-weight: var(--vc-font-weight-medium);
   color: var(--vscode-descriptionForeground);
-  border-bottom: 1px solid var(--vc-token-glass-border, rgba(255, 255, 255, 0.08));
+  border-bottom: 1px solid var(--vc-glass-border, rgba(255, 255, 255, 0.08));
 }
 
 /* Inner card — resets nested approval/question chrome so it merges with the float */
@@ -59,12 +59,12 @@
 
     .approval-header {
       background: transparent;
-      border-bottom-color: var(--vc-token-glass-border, rgba(255, 255, 255, 0.08));
+      border-bottom-color: var(--vc-glass-border, rgba(255, 255, 255, 0.08));
     }
 
     .approval-actions {
       background: transparent;
-      border-top-color: var(--vc-token-glass-border, rgba(255, 255, 255, 0.08));
+      border-top-color: var(--vc-glass-border, rgba(255, 255, 255, 0.08));
     }
   }
 
@@ -79,7 +79,7 @@
 
 /* Exit animation — slide down and fade */
 .floating-approval--exiting {
-  animation: vc-float-exit var(--vc-token-duration-fast, 150ms) var(--vc-token-ease-in, ease-in) forwards;
+  animation: vc-float-exit var(--vc-motion-duration-fast, 150ms) var(--vc-motion-ease-in, ease-in) forwards;
 }
 
 @keyframes vc-float-exit {

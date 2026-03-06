@@ -791,10 +791,10 @@
  * Glass surface — frosted translucent background for floating elements
  */
 @mixin glass-surface {
-  background: var(--vc-token-glass-bg);
-  backdrop-filter: blur(var(--vc-token-glass-blur));
-  -webkit-backdrop-filter: blur(var(--vc-token-glass-blur));
-  border: 1px solid var(--vc-token-glass-border);
+  background: var(--vc-glass-bg);
+  backdrop-filter: blur(var(--vc-glass-blur));
+  -webkit-backdrop-filter: blur(var(--vc-glass-blur));
+  border: 1px solid var(--vc-glass-border);
 
   @media (prefers-contrast: high) {
     background: var(--vscode-editor-background);
@@ -808,9 +808,9 @@
  */
 @mixin floating-panel {
   @include glass-surface;
-  border-radius: var(--vc-token-radius-lg);
-  box-shadow: var(--vc-token-shadow-float);
-  animation: vc-float-enter var(--vc-token-duration-normal) var(--vc-token-ease-spring);
+  border-radius: var(--vc-radius-lg);
+  box-shadow: var(--vc-shadow-2xl);
+  animation: vc-float-enter var(--vc-motion-duration-mid) var(--vc-motion-ease-bounce);
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -821,19 +821,19 @@
  * Refined card — soft shadow + subtle gradient border
  */
 @mixin refined-card {
-  background: var(--vc-token-bg-surface);
-  border: 1px solid var(--vc-token-glass-border);
-  border-radius: var(--vc-token-radius-lg);
-  box-shadow: var(--vc-token-shadow-sm);
-  transition: box-shadow var(--vc-token-duration-normal) var(--vc-token-ease-default),
-              border-color var(--vc-token-duration-normal) var(--vc-token-ease-default);
+  background: var(--vc-color-bg-secondary);
+  border: 1px solid var(--vc-glass-border);
+  border-radius: var(--vc-radius-lg);
+  box-shadow: var(--vc-shadow-sm);
+  transition: box-shadow var(--vc-motion-duration-mid) var(--vc-motion-ease-in-out),
+              border-color var(--vc-motion-duration-mid) var(--vc-motion-ease-in-out);
 }
 
 /**
  * Status glow — subtle radial glow for running/active states
  * @param {color} $color - Glow color
  */
-@mixin status-glow($color: var(--vc-token-accent)) {
+@mixin status-glow($color: var(--vc-color-primary)) {
   box-shadow: 0 0 0 1px color-mix(in srgb, $color 20%, transparent),
               0 0 12px color-mix(in srgb, $color 10%, transparent);
 }
