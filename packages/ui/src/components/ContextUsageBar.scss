@@ -1,0 +1,67 @@
+.context-usage-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--vc-space-2);
+    padding: 0 var(--vc-space-2);
+    height: 14px;
+
+    &__track {
+        flex: 1;
+        position: relative;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--vc-color-bg-tertiary);
+        overflow: hidden;
+    }
+
+    &__confirmed {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: var(--vc-color-primary);
+        border-radius: 2px;
+        transition: width 0.3s var(--vc-ease-out);
+    }
+
+    &__estimated {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        background: var(--vc-color-primary);
+        opacity: 0.4;
+        border-radius: 2px;
+        transition: width 0.15s var(--vc-ease-out), left 0.3s var(--vc-ease-out);
+    }
+
+    &__label {
+        font-size: var(--vc-font-size-2xs);
+        color: var(--vc-color-text-tertiary);
+        font-variant-numeric: tabular-nums;
+        min-width: 28px;
+        text-align: right;
+        user-select: none;
+    }
+
+    // High usage (>80%)
+    &--high &__confirmed {
+        background: var(--vc-color-warning-text);
+    }
+    &--high &__estimated {
+        background: var(--vc-color-warning-text);
+    }
+    &--high &__label {
+        color: var(--vc-color-warning-text);
+    }
+
+    // Critical usage (>95%)
+    &--critical &__confirmed {
+        background: var(--vc-color-error-text);
+    }
+    &--critical &__estimated {
+        background: var(--vc-color-error-text);
+    }
+    &--critical &__label {
+        color: var(--vc-color-error-text);
+    }
+}

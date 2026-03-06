@@ -12,6 +12,7 @@ import { PermissionRulesPanel } from './PermissionRulesPanel';
 import { ComposerToolbar } from './ComposerToolbar';
 import { CloseIcon } from './Icon';
 import { PendingChangesBar } from './PendingChangesBar';
+import { ContextUsageBar } from './ContextUsageBar';
 import { useI18n } from '../i18n/I18nProvider';
 import { loadPersistedState, savePersistedState } from '../utils/persist';
 import './InputArea.scss';
@@ -449,6 +450,9 @@ export const InputArea = forwardRef<InputAreaHandle>(function InputArea(_props, 
                         onStop={() => postMessage({ type: 'cancel' })}
                         disabled={viewMode === 'history' ? !currentSessionId : isComposerLocked}
                     />
+                    {viewMode !== 'history' && (
+                        <ContextUsageBar inputText={input} attachments={attachments} />
+                    )}
                 </div>
             </div>
 
