@@ -65,13 +65,13 @@
   font-weight: var(--vc-font-weight-medium);
 
   &.risk-medium {
-    color: var(--vscode-terminal-ansiYellow);
-    background: color-mix(in srgb, var(--vscode-terminal-ansiYellow) 15%, transparent);
+    color: var(--vc-color-warning-text);
+    background: color-mix(in srgb, var(--vc-color-warning-text) 15%, transparent);
   }
 
   &.risk-high {
-    color: var(--vscode-terminal-ansiRed);
-    background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 15%, transparent);
+    color: var(--vc-color-error-text);
+    background: color-mix(in srgb, var(--vc-color-error-text) 15%, transparent);
     animation: risk-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }
@@ -111,7 +111,7 @@
 }
 
 .command-preview .command-prompt {
-  color: var(--vscode-terminal-ansiGreen, #4ec9b0);
+  color: var(--vc-color-success-text);
   font-weight: var(--vc-font-weight-bold);
   flex-shrink: 0;
   user-select: none;
@@ -201,7 +201,7 @@
   font-size: var(--vc-font-size-md);
   line-height: var(--vc-line-height-normal);
   background: var(--vscode-editor-background);
-  max-height: 320px;
+  max-height: var(--vc-height-diff-preview);
   overflow-y: auto;
 
   &.is-expanded {
@@ -396,7 +396,7 @@
 .approval-btn.btn-deny {
   background: transparent;
   color: var(--vscode-descriptionForeground);
-  border-color: color-mix(in srgb, var(--vscode-panel-border) 80%, transparent);
+  border-color: var(--vc-color-border-secondary);
 
   &:hover {
     background: var(--vc-color-hover-bg);
@@ -409,7 +409,7 @@
 .approval-btn.btn-session {
   background: transparent;
   color: var(--vscode-descriptionForeground);
-  border-color: color-mix(in srgb, var(--vscode-panel-border) 80%, transparent);
+  border-color: var(--vc-color-border-secondary);
 
   &:hover {
     background: var(--vc-color-hover-bg);
@@ -433,12 +433,12 @@
 
 // Danger button (delete)
 .approval-btn.btn-danger {
-  background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 20%, var(--vscode-button-secondaryBackground));
+  background: color-mix(in srgb, var(--vc-color-error-text) 20%, var(--vscode-button-secondaryBackground));
   color: var(--vscode-foreground);
-  border-color: color-mix(in srgb, var(--vscode-terminal-ansiRed) 35%, var(--vscode-panel-border));
+  border-color: color-mix(in srgb, var(--vc-color-error-text) 35%, var(--vscode-panel-border));
 
   &:hover {
-    background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 30%, var(--vscode-button-secondaryBackground));
+    background: color-mix(in srgb, var(--vc-color-error-text) 30%, var(--vscode-button-secondaryBackground));
   }
 }
 
@@ -499,7 +499,7 @@
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: var(--vc-font-size-sm);
   overflow: auto;
-  max-height: 200px;
+  max-height: var(--vc-height-code-preview);
 }
 
 // Plan summary markdown container

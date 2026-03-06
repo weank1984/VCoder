@@ -39,7 +39,7 @@
     white-space: nowrap;
 
     .terminal-prompt-prefix {
-        color: var(--vscode-terminal-ansiGreen);
+        color: var(--vc-color-success-text);
         margin-right: 6px;
     }
 }
@@ -75,10 +75,10 @@
     }
 
     .terminal-kill-btn {
-        color: var(--vscode-terminal-ansiRed);
+        color: var(--vc-color-error-text);
 
         &:hover {
-            background: color-mix(in srgb, var(--vscode-terminal-ansiRed) 15%, transparent);
+            background: color-mix(in srgb, var(--vc-color-error-text) 15%, transparent);
         }
     }
 }
@@ -167,12 +167,12 @@
 
 // Running state - subtle left border indicator
 .terminal-output.running {
-    border-left: 2px solid var(--vscode-terminal-ansiBlue);
+    border-left: 2px solid var(--vc-color-primary);
 }
 
 // Error state - subtle red left border
 .terminal-output.error {
-    border-left: 2px solid var(--vscode-terminal-ansiRed);
+    border-left: 2px solid var(--vc-color-error-text);
 }
 
 // Success state - no special styling (clean)

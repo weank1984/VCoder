@@ -31,16 +31,16 @@
     overflow: hidden;
 
     &.running {
-        border-left: 2px solid var(--vc-color-primary, #3b82f6);
+        border-left: 3px solid var(--vc-color-primary, #3b82f6);
         box-shadow: 0 0 0 1px color-mix(in srgb, var(--vc-color-primary, #3b82f6) 20%, transparent), 0 0 12px color-mix(in srgb, var(--vc-color-primary, #3b82f6) 8%, transparent);
     }
 
     &.completed {
-        border-left: 2px solid color-mix(in srgb, var(--vscode-terminal-ansiGreen) 40%, transparent);
+        border-left: 3px solid color-mix(in srgb, var(--vc-color-success-text) 40%, transparent);
     }
 
     &.failed {
-        border-left: 2px solid var(--vscode-terminal-ansiRed);
+        border-left: 3px solid var(--vc-color-error-text);
     }
 
     /* When approval is embedded, override left border color to match approval type */
@@ -52,7 +52,7 @@
     }
     &:has(.approval-container.type-bash),
     &:has(.approval-container.type-dangerous) {
-        border-left-color: var(--vscode-terminal-ansiYellow);
+        border-left-color: var(--vc-color-warning-text);
     }
 
     /* Flatten the nested card chrome when approval-container is inside step-item */
@@ -112,12 +112,12 @@
     display: flex;
     align-items: center;
     flex-shrink: 0;
-    width: 14px;
-    height: 14px;
-    
+    width: var(--vc-icon-size-md);
+    height: var(--vc-icon-size-md);
+
     svg {
-        width: 12px;
-        height: 12px;
+        width: var(--vc-icon-size-sm);
+        height: var(--vc-icon-size-sm);
         fill: currentColor;
     }
     
@@ -176,10 +176,10 @@
     display: flex;
     align-items: center;
     transition: transform 0.15s;
-    
+
     svg {
-        width: 12px;
-        height: 12px;
+        width: var(--vc-icon-size-sm);
+        height: var(--vc-icon-size-sm);
         fill: currentColor;
     }
     
@@ -228,8 +228,8 @@
     opacity: 0.7;
 
     svg {
-        width: 14px;
-        height: 14px;
+        width: var(--vc-icon-size-md);
+        height: var(--vc-icon-size-md);
         fill: currentColor;
     }
 }
@@ -266,7 +266,7 @@
 
 .entry-expand-icon {
     opacity: 0.5;
-    svg { width: 12px; height: 12px; }
+    svg { width: var(--vc-icon-size-sm); height: var(--vc-icon-size-sm); }
 }
 
 /* Entry Details */
@@ -328,8 +328,8 @@
         }
 
         svg {
-            width: 14px;
-            height: 14px;
+            width: var(--vc-icon-size-md);
+            height: var(--vc-icon-size-md);
         }
     }
 }
@@ -339,7 +339,7 @@
     font-size: var(--vc-font-size-sm);
     white-space: pre-wrap;
     word-break: break-all;
-    max-height: 200px;
+    max-height: var(--vc-height-code-preview);
     overflow-y: auto;
     color: var(--vc-color-text-primary);
     padding: var(--vc-space-2);
@@ -382,18 +382,18 @@
 .entry-status-icon {
     display: flex;
     align-items: center;
-    width: 14px;
-    height: 14px;
+    width: var(--vc-icon-size-md);
+    height: var(--vc-icon-size-md);
     flex-shrink: 0;
-    
+
     svg {
-        width: 12px;
-        height: 12px;
+        width: var(--vc-icon-size-sm);
+        height: var(--vc-icon-size-sm);
         fill: currentColor;
     }
-    
-    &.success { color: var(--vscode-terminal-ansiGreen); }
-    &.error { color: var(--vscode-terminal-ansiRed); }
+
+    &.success { color: var(--vc-color-success-text); }
+    &.error { color: var(--vc-color-error-text); }
     &.running, &.pending {
         color: var(--vc-color-text-secondary);
         @include pulse-animation;
@@ -415,8 +415,8 @@
     cursor: pointer;
 
     svg {
-        width: 14px;
-        height: 14px;
+        width: var(--vc-icon-size-md);
+        height: var(--vc-icon-size-md);
         fill: currentColor;
         flex-shrink: 0;
     }
@@ -456,8 +456,8 @@
     margin-bottom: var(--vc-space-2);
 
     svg {
-        width: 14px;
-        height: 14px;
+        width: var(--vc-icon-size-md);
+        height: var(--vc-icon-size-md);
         fill: var(--vc-color-error-text);
         flex-shrink: 0;
     }
@@ -516,15 +516,15 @@
     overflow: hidden;
 
     &.running {
-        border-left: 2px solid var(--vc-color-primary, #3b82f6);
+        border-left: 3px solid var(--vc-color-primary, #3b82f6);
     }
 
     &.success {
-        border-left: 2px solid color-mix(in srgb, var(--vscode-terminal-ansiGreen) 40%, transparent);
+        border-left: 3px solid color-mix(in srgb, var(--vc-color-success-text) 40%, transparent);
     }
 
     &.error {
-        border-left: 2px solid var(--vscode-terminal-ansiRed);
+        border-left: 3px solid var(--vc-color-error-text);
     }
 }
 
@@ -543,8 +543,8 @@
     opacity: 0.7;
 
     svg {
-        width: 14px;
-        height: 14px;
+        width: var(--vc-icon-size-md);
+        height: var(--vc-icon-size-md);
         fill: currentColor;
     }
 }
@@ -609,8 +609,8 @@
     transition: opacity 0.15s, background 0.15s, color 0.15s;
 
     svg {
-        width: 12px;
-        height: 12px;
+        width: var(--vc-icon-size-sm);
+        height: var(--vc-icon-size-sm);
         fill: currentColor;
     }
 
@@ -671,11 +671,11 @@
             cursor: pointer;
             
             svg {
-                width: 14px;
-                height: 14px;
+                width: var(--vc-icon-size-md);
+                height: var(--vc-icon-size-md);
             }
         }
-        
+
         .btn-approve {
             background: var(--vscode-button-background);
             color: var(--vscode-button-foreground);

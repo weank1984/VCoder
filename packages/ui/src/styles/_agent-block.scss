@@ -24,11 +24,11 @@
 
 // 基础区块样式
 .agent-block {
-  --block-radius: 8px;
-  --block-padding: 12px;
-  --block-gap: 8px;
+  --block-radius: var(--vc-radius-lg);
+  --block-padding: var(--vc-space-3);
+  --block-gap: var(--vc-space-2);
 
-  margin: 8px 0;
+  margin: var(--vc-space-2) 0;
   border-radius: var(--block-radius);
   border: 1px solid var(--agent-block-border);
   background: var(--agent-block-bg);
@@ -44,7 +44,7 @@
     display: flex;
     align-items: center;
     gap: var(--block-gap);
-    padding: 8px var(--block-padding);
+    padding: var(--vc-space-2) var(--block-padding);
     background: var(--agent-block-header-bg);
     cursor: pointer;
     user-select: none;
@@ -75,10 +75,10 @@
   }
 
   &-badge {
-    padding: 2px 8px;
+    padding: 2px var(--vc-space-2);
     font-size: 11px;
     font-weight: 500;
-    border-radius: 10px;
+    border-radius: var(--vc-radius-full);
     background: var(--vscode-badge-background);
     color: var(--vscode-badge-foreground);
   }
@@ -109,16 +109,16 @@
   &-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 8px var(--block-padding);
+    gap: var(--vc-space-1);
+    padding: var(--vc-space-2) var(--block-padding);
   }
 
   &-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 4px;
+    gap: var(--vc-space-2);
+    padding: 6px var(--vc-space-2);
+    border-radius: var(--vc-radius-sm);
     transition: background-color 0.15s ease;
 
     &:hover {

@@ -19,10 +19,10 @@
     &::before {
         content: '';
         position: absolute;
-        top: -32px;
+        top: calc(-1 * var(--vc-space-7));
         left: 0;
         right: 0;
-        height: 32px;
+        height: var(--vc-space-7);
         background: linear-gradient(
             to bottom,
             transparent 0%,
@@ -107,8 +107,8 @@
     }
 
     svg {
-        width: 10px;
-        height: 10px;
+        width: var(--vc-icon-size-xs);
+        height: var(--vc-icon-size-xs);
         fill: currentColor;
     }
 }
@@ -127,8 +127,8 @@
     font-size: var(--vc-font-size-lg);
     line-height: var(--vc-line-height-normal);
     resize: none;
-    min-height: 24px;
-    max-height: 240px;
+    min-height: var(--vc-height-input);
+    max-height: var(--vc-height-input-max);
     display: block;
     overflow-wrap: break-word;
     word-break: break-word;
@@ -174,7 +174,7 @@
         align-items: center;
         gap: var(--vc-space-1);
         min-width: 0;
-        height: 20px;
+        height: var(--vc-icon-size-xl);
         flex: 1;
     }
 
@@ -198,7 +198,7 @@
     line-height: 1.4;
     min-width: 0;
     max-width: 100%;
-    padding: 2px 4px 2px 8px;
+    padding: 2px var(--vc-space-1) 2px var(--vc-space-2);
     border-radius: var(--vc-radius-full);
     flex-shrink: 0;
     cursor: pointer;
@@ -234,8 +234,8 @@
 
     .dropdown-icon {
         flex-shrink: 0;
-        width: 14px;
-        height: 14px;
+        width: var(--vc-icon-size-md);
+        height: var(--vc-icon-size-md);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -243,9 +243,9 @@
 
         /* SVG icons via Icon component */
         .vc-icon {
-            font-size: 12px;
-            width: 12px;
-            height: 12px;
+            font-size: var(--vc-icon-size-sm);
+            width: var(--vc-icon-size-sm);
+            height: var(--vc-icon-size-sm);
         }
     }
 
@@ -492,8 +492,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: var(--vc-icon-size-xl);
+    height: var(--vc-icon-size-xl);
     padding-top: 1px;
     margin-left: 1px;
 

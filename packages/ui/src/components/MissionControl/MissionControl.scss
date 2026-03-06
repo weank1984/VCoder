@@ -12,8 +12,8 @@
 
   .mc-summary-text {
     margin-left: auto;
-    margin-right: 8px;
-    font-size: 11px;
+    margin-right: var(--vc-space-2);
+    font-size: var(--vc-font-size-xs);
     color: var(--vscode-descriptionForeground);
     white-space: nowrap;
     overflow: hidden;
@@ -38,14 +38,14 @@
   // Tabs
   .mc-tabs {
     display: flex;
-    gap: 4px;
-    padding: 6px 12px;
+    gap: var(--vc-space-1);
+    padding: var(--vc-space-1) var(--vc-space-3);
     border-bottom: 1px solid var(--agent-block-border);
     background: var(--agent-block-header-bg);
 
     .mc-tab {
-      padding: 4px 10px;
-      font-size: 11px;
+      padding: var(--vc-space-1) var(--vc-space-2);
+      font-size: var(--vc-font-size-xs);
       font-weight: 500;
       color: var(--vscode-descriptionForeground);
       background: transparent;
@@ -69,7 +69,7 @@
 
   // Content
   .mc-content {
-    max-height: 300px;
+    max-height: var(--vc-height-mc-content);
     overflow-y: auto;
 
     &::-webkit-scrollbar {
@@ -84,17 +84,17 @@
 
   // Shared section
   .mc-section {
-    padding: 8px 12px;
+    padding: var(--vc-space-2) var(--vc-space-3);
   }
 
   .mc-section-header {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding-bottom: 4px;
+    padding-bottom: var(--vc-space-1);
 
     .mc-section-count {
-      font-size: 11px;
+      font-size: var(--vc-font-size-xs);
       color: var(--vscode-descriptionForeground);
     }
   }
@@ -124,9 +124,9 @@
   .mc-plan-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 8px;
-    border-radius: 4px;
+    gap: var(--vc-space-2);
+    padding: var(--vc-space-1) var(--vc-space-2);
+    border-radius: var(--vc-radius-sm);
     transition: background-color 0.15s ease;
 
     &:hover {
@@ -215,20 +215,20 @@
   .mc-task-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--vc-space-2);
   }
 
   .mc-task-list {
-    margin-top: 4px;
+    margin-top: var(--vc-space-1);
   }
 
   .mc-agent-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: var(--vc-radius-sm, 6px);
-    background: color-mix(in srgb, var(--vscode-foreground) 2%, transparent);
+    gap: var(--vc-space-2);
+    padding: var(--vc-space-2);
+    border-radius: var(--vc-radius-md);
+    background: var(--vc-color-bg-secondary);
     transition: background-color 0.15s ease;
 
     .mc-agent-index {
@@ -275,7 +275,7 @@
     }
 
     .mc-agent-elapsed {
-      font-size: 11px;
+      font-size: var(--vc-font-size-xs);
       color: var(--vscode-descriptionForeground);
       flex-shrink: 0;
       font-variant-numeric: tabular-nums;
@@ -287,6 +287,7 @@
 
     &.in-progress {
       background: color-mix(in srgb, var(--vscode-textLink-activeForeground) 12%, transparent);
+      border-left: 3px solid var(--vc-color-primary);
 
       .mc-agent-index {
         background: var(--vscode-textLink-activeForeground);
@@ -300,11 +301,11 @@
 
     &.completed {
       .mc-agent-icon {
-        color: var(--vscode-gitDecoration-addedResourceForeground, var(--vscode-terminal-ansiGreen));
+        color: var(--vc-color-success-text);
       }
 
       .mc-agent-index {
-        background: var(--vscode-gitDecoration-addedResourceForeground, var(--vscode-terminal-ansiGreen));
+        background: var(--vc-color-success-text);
         color: var(--vscode-button-foreground);
       }
     }
@@ -332,9 +333,9 @@
   .mc-agent-activity {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 1px 8px 4px 36px; // 左对齐到 Agent 文字，视觉上形成层级
-    font-size: 11px;
+    gap: var(--vc-space-1);
+    padding: 1px var(--vc-space-2) var(--vc-space-1) 36px; // 左对齐到 Agent 文字，视觉上形成层级
+    font-size: var(--vc-font-size-xs);
     color: var(--vscode-descriptionForeground);
 
     .mc-agent-activity-icon {
@@ -380,19 +381,19 @@
 
   // === Team Members Section ===
   .mc-team-section {
-    padding: 4px 0;
+    padding: var(--vc-space-1) 0;
     border-top: 1px solid var(--agent-block-border);
-    margin-top: 4px;
+    margin-top: var(--vc-space-1);
   }
 
   .mc-team-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 12px;
+    gap: var(--vc-space-2);
+    padding: var(--vc-space-1) var(--vc-space-3);
 
     .mc-team-name {
-      font-size: 11px;
+      font-size: var(--vc-font-size-xs);
       font-weight: 600;
       color: var(--vscode-descriptionForeground);
       text-transform: uppercase;
@@ -400,7 +401,7 @@
     }
 
     .mc-team-desc {
-      font-size: 11px;
+      font-size: var(--vc-font-size-xs);
       color: var(--vscode-descriptionForeground);
       opacity: 0.7;
     }
@@ -409,8 +410,8 @@
   .mc-team-members {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 0 12px;
+    gap: var(--vc-space-1);
+    padding: 0 var(--vc-space-3);
   }
 
   .mc-team-member {
@@ -444,6 +445,8 @@
   // === Awaiting Confirmation Styles ===
   .mc-agent-item.awaiting-confirmation {
     background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 10%, transparent);
+    border-left: 3px solid var(--vc-color-warning-text);
+    box-shadow: inset 0 0 0 1px var(--vc-color-warning-border);
 
     .mc-agent-index {
       background: var(--vscode-editorWarning-foreground, #cca700);
@@ -463,8 +466,8 @@
   .mc-confirm-badge {
     display: inline-flex;
     align-items: center;
-    padding: 2px 8px;
-    font-size: 11px;
+    padding: 2px var(--vc-space-2);
+    font-size: var(--vc-font-size-xs);
     font-weight: 500;
     border-radius: 10px;
     border: 1px solid var(--vscode-editorWarning-foreground, #cca700);
@@ -481,7 +484,7 @@
   .mc-source-separator {
     height: 1px;
     background: var(--agent-block-border);
-    margin: 4px 8px;
+    margin: var(--vc-space-1) var(--vc-space-2);
   }
 
   .mc-plan-child-bullet {
@@ -526,23 +529,23 @@
 
   // === Agent Detail View ===
   .mc-detail-view {
-    padding: 8px 12px;
+    padding: var(--vc-space-2) var(--vc-space-3);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--vc-space-2);
     animation: vc-detail-enter 0.2s cubic-bezier(0, 0, 0.2, 1);
   }
 
   .mc-detail-meta {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--vc-space-1);
   }
 
   .mc-detail-tool-stats {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: var(--vc-space-1);
   }
 
   .mc-detail-tool-stat {
@@ -550,7 +553,7 @@
     align-items: center;
     gap: 2px;
     padding: 1px 6px;
-    font-size: 11px;
+    font-size: var(--vc-font-size-xs);
     font-weight: 500;
     color: var(--vscode-descriptionForeground);
     background: color-mix(in srgb, var(--vscode-descriptionForeground) 8%, transparent);
@@ -562,7 +565,7 @@
   }
 
   .mc-detail-prompt {
-    padding: 6px 8px;
+    padding: var(--vc-space-1) var(--vc-space-2);
     background: var(--agent-block-header-bg);
     border-radius: var(--vc-radius-sm, 6px);
     border-left: 2px solid var(--vscode-textLink-activeForeground);
@@ -586,10 +589,10 @@
   .mc-detail-tool {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--vc-space-1);
     padding: 3px 6px;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: var(--vc-font-size-xs);
 
     &.completed {
       .mc-detail-tool-icon { color: var(--vscode-gitDecoration-addedResourceForeground, #73c991); }
@@ -639,7 +642,7 @@
   }
 
   .mc-detail-result {
-    padding: 6px 8px;
+    padding: var(--vc-space-1) var(--vc-space-2);
     background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #73c991) 8%, transparent);
     border-radius: 4px;
     border-left: 2px solid var(--vscode-gitDecoration-addedResourceForeground, #73c991);
@@ -647,7 +650,7 @@
 
   .mc-detail-result-text {
     margin: 0;
-    font-size: 11px;
+    font-size: var(--vc-font-size-xs);
     line-height: 1.5;
     color: var(--vscode-editor-foreground);
     white-space: pre-wrap;
@@ -657,7 +660,7 @@
   }
 
   .mc-detail-error {
-    padding: 6px 8px;
+    padding: var(--vc-space-1) var(--vc-space-2);
     background: color-mix(in srgb, var(--vscode-errorForeground) 8%, transparent);
     border-radius: 4px;
     border-left: 2px solid var(--vscode-errorForeground);
@@ -665,7 +668,7 @@
 
   .mc-detail-error-text {
     margin: 0;
-    font-size: 11px;
+    font-size: var(--vc-font-size-xs);
     line-height: 1.5;
     color: var(--vscode-errorForeground);
     white-space: pre-wrap;
@@ -695,15 +698,15 @@
   .mc-todo-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--vc-space-1);
   }
 
   .mc-todo-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 8px;
-    border-radius: 4px;
+    gap: var(--vc-space-2);
+    padding: var(--vc-space-1) var(--vc-space-2);
+    border-radius: var(--vc-radius-sm);
     transition: background-color 0.15s ease;
 
     &:hover {

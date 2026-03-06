@@ -38,18 +38,18 @@
             height: 16px;
         }
         
-        // Python file icon color
+        // Language file icon colors - using VSCode symbol tokens with fallbacks
         &.python {
-            color: #4584b6;
+            color: var(--vscode-symbolIcon-classForeground, #4584b6);
         }
         &.javascript, &.typescript {
-            color: #f7df1e;
+            color: var(--vscode-symbolIcon-methodForeground, #f7df1e);
         }
         &.css, &.scss {
-            color: #264de4;
+            color: var(--vscode-symbolIcon-propertyForeground, #264de4);
         }
         &.html {
-            color: #e34c26;
+            color: var(--vscode-symbolIcon-snippetForeground, #e34c26);
         }
     }
 }
